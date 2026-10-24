@@ -150,8 +150,10 @@ def build_versions(root: Path = ROOT) -> Versions:
 
 def build_alert_sender() -> AlertSender:
     """Alerts go to #fno-desk with `FNO_SLACK_BOT_TOKEN`; without it, nothing is sent and the outcome says so."""
+    from .rehearsal.alert_label import rehearsed_alerts
+
     token = os.environ.get(ENV_FNO_SLACK_BOT_TOKEN)
-    return SlackChannelAlerts(token, FNO_DESK_CHANNEL_ID) if token else NoAlertSender()
+    return rehearsed_alerts(SlackChannelAlerts(token, FNO_DESK_CHANNEL_ID) if token else NoAlertSender())
 
 
 def build_release_time_recorder(log: Path | None = None) -> ReleaseTimeRecorder:

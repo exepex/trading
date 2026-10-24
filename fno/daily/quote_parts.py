@@ -147,6 +147,18 @@ class QuoteParts:
     def busy(self) -> bool:
         return self.started and len(self.results) < len(self.parts)
 
+    def recording(self) -> bool:
+        """True while a part's recorder is running (story REH1: a rehearsal's waits run at real speed then)."""
+        return bool(self.running)
+
+    def next_start(self) -> datetime | None:
+        """The earliest moment a part still to start may start (story REH1: a skipped wait never passes it)."""
+        if not self.started or self.closed:
+            return None
+        due = [datetime.combine(self.day, part.not_before, IST) for part in self.parts
+               if part.starts_after is None and part.not_before is not None and self._unstarted(part)]  # fmt: skip
+        return min(due, default=None)
+
     def service(self) -> None:
         """Starts the parts now due, commits every part that has ended (NIFTY's first), then starts the parts waiting
         for it."""

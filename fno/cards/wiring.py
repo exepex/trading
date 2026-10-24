@@ -74,7 +74,9 @@ def build_status(records: GitHeadRecords, root: Path = ROOT) -> RuledStatus:
 def build_card_poster(env=os.environ) -> CardPoster:
     """#fno-desk with `FNO_SLACK_BOT_TOKEN` only; without it nothing is sent and the outcome says so."""
     token = env.get(ENV_FNO_SLACK_BOT_TOKEN)
-    return SlackCardPoster(token, FNO_DESK_CHANNEL_ID) if token else NoCardPoster()
+    from ..rehearsal.card_label import rehearsed_card_poster
+
+    return rehearsed_card_poster(SlackCardPoster(token, FNO_DESK_CHANNEL_ID) if token else NoCardPoster())
 
 
 def build_card_records(env=os.environ) -> CardRecordStore:

@@ -42,7 +42,9 @@ def receipt_pathspecs(edition: str) -> tuple[str, ...]:
 def build_forecast_poster(env=os.environ) -> ReportPoster:
     """#fno-forecast with `FNO_SLACK_BOT_TOKEN` only; without it nothing is sent and the outcome says so."""
     token = env.get(ENV_FNO_SLACK_BOT_TOKEN)
-    return SlackFilesPoster(token, FNO_FORECAST_CHANNEL_ID) if token else NoReportPoster()
+    from ..rehearsal.report_label import rehearsed_report_poster
+
+    return rehearsed_report_poster(SlackFilesPoster(token, FNO_FORECAST_CHANNEL_ID) if token else NoReportPoster())
 
 
 def live_from(cfg: dict) -> dict[str, date | None]:

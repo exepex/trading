@@ -95,14 +95,25 @@ real run.
 
 **Receipts:** receipts are written in the rehearsal checkout, so they go only to the rehearsal branch, never main.
 
-**Git:**
-- The rehearsal runs in its own git worktree on the branch `rehearsal/<day>-<run_id>`. The branch starts from
-  `main`, with the real day's run commits reverted on it, so the current code meets the day's state before its run.
-- "The real day's run commits" are those whose subject starts `Desk run <day> step`, plus the 3 pm parts' commits of
-  that day (their subjects are fixed by O1). The list is printed before the run starts.
-- `Git.target` (O1-publish-branch's constant, already a constructor argument) is the rehearsal branch. So are
-  `GitManifestRecorder`'s, the numbering's and the AI transport's targets, which gain the same injectable target
-  (each one line in its composition root).
+**Git (corrected while building REH1a; reasoning only, for the judges).**
+- The rehearsal runs in its own local clone of the checkout, under `~/.fno/rehearsals/<run_id>/`. Its `origin` is a
+  local bare repository made from the clone's start, not GitHub.
+- So every committer of every step pushes `HEAD:main` exactly as in a real run, but that `main` is the local bare
+  one. No committer, and no `Git.target`, needs a rehearsal branch. This replaces the earlier plan of an injectable
+  target in four committers: less code, and safe by structure rather than by each committer's care.
+- The rehearse command makes the only push to GitHub, at the end: the bare `main` to
+  `refs/heads/rehearsal/<day>-<run_id>`. That refspec is built from the rehearsal's own name and checked to start with
+  `refs/heads/rehearsal/` before git runs (addition 2).
+- **Code as now, data as of the routine's start.** The clone holds today's code. Its data folders (`journal/`,
+  `receipts/`, `research/data/`, `research/forecasts/`, `research/ops/`) are restored, with `git restore --source`, to
+  the last commit on `main` before the routine's start time on the day. They are committed once in the clone as
+  "Rehearsal <day> <run_id>: data as of <time>". So the day's real run outputs are absent and the run starts as it
+  did, without reverting commits one by one.
+- **The record scan** runs on every rehearsal commit. The clone's `core.hooksPath` is `.githooks`, set and checked
+  before the first step, and a commit without `--no-verify` is the only kind any committer makes (O5).
+- **The point-in-time reader (section 2)** reads the receipts of the checkout the rehearsal was started from (the real
+  record), not the clone's restored ones. So a file the real day recorded at 15:40 is visible to the rehearsal from
+  15:40 on.
 
 ### 4. Every Slack post labelled
 
@@ -239,4 +250,62 @@ Each part has its own judge rounds. The total is about 6 working days of buildin
 
 ## Claims
 
-To be written per part, with each part's gate results, before its judge.
+### REH1a: the safe frame (for its two judges)
+
+**What is built** (`fno/rehearsal/`; each file has one job, so each builder's import closure holds only its own
+service):
+- `mode.py`: the rehearsal's day, run id, clock folder and record checkout. It travels in `FNO_REHEARSAL` (a
+  non-credential, `tests/live_credentials.py`). It names the branch, the Drive root and the label, whose second line
+  lists the parts not yet in rehearsal.
+- `clock.py`: the replay clock, one offset file shared by every process. It only moves forward, and each write is
+  atomic.
+- **One clock for the package.** `fno.models` gains `install_clock`, `now_utc` and `today_local`. The 31 direct
+  `datetime.now` / `date.today` reads in 25 modules now go through it, each giving the same value as before in a real
+  run. A test forbids a direct read anywhere else (`tests/rehearsal/test_one_clock.py`).
+- `process.py`: at `python -m fno`'s start, a rehearsing process installs the replay clock and the HTTP guard. A real
+  run does nothing.
+- `http_guard.py`: refuses every call but Google's Drive and token endpoints and Slack's posting calls. That covers
+  Groww, NSE, the global cues, Anthropic and GitHub's API (addition 1).
+  - It checks at `requests`' session (the URL) and at `http.client`'s connect (the host).
+  - A refusal is a `RuntimeError`, never an `OSError`. A first version used `PermissionError`, and `urllib` wrapped
+    it into an ordinary `URLError`, which callers may retry. The test caught it.
+- `drive.py`, `visibility.py`, `drive_wiring.py`: the dryrun store and its point-in-time reader, chosen by
+  `build_owner_drive`, the one place an owner Drive store is built.
+- `alert_label.py`, `card_label.py`, `report_label.py`: the three Slack ports' label decorators, each chosen by its
+  port's builder. The #fno-intraday poster does not exist yet; when it is built, it joins the guard's list.
+- `waits.py`: the accelerated waits, chosen in the daily run's composition root.
+  - A skip never passes the 3 pm parts' next start, and a running recorder means real speed.
+  - If this process's clock is not the replay clock, a wait falls back to a real wait and never spins.
+  - `QuoteParts` gains two read-only queries for this: `recording()` and `next_start()`.
+- `checkout.py`: the rehearsal's clone, its data as of the routine's start, and the local bare origin. It makes the
+  one guarded push of `refs/heads/rehearsal/<day>-<run_id>`.
+- `guard.py`: the four builders, plus live-call probes, checked before the first step. It runs in a child with the
+  mode set, exactly as a step's process would.
+- `daily.py` and `daily run --rehearse`: the calendar check, the checkout, the clock started at 14:05 IST, the guard,
+  the unchanged `daily run` in the clone as a child, and the publish.
+
+**Tests** (`tests/rehearsal/`, 26). Each acceptance has a test, and each check of the guard has a planted break:
+- acceptance 1: `test_drive.py` and `test_rehearsed_day.py`. The latter runs O2's whole fixture day through the real
+  wiring: every Drive write lands under `dryrun/<run_id>/` and the real record is byte-identical;
+- acceptance 2 and 4b: `test_checkout.py`, on real repositories. Today's code, the morning's data and no real run in
+  the clone. A step's `HEAD:main` lands in the local bare origin. "GitHub" gets only `refs/heads/rehearsal/...`, with
+  `main` unchanged. `main`, another branch, a tag and a `..` ref are refused. A guard problem stops before any step
+  and publishes nothing;
+- acceptance 3 and 4: `test_labels_and_waits.py`, `test_guard.py`, and `test_http_guard.py`, run in a fresh process;
+- acceptance 5: `test_drive.py`. The 23 Oct close is not visible at 14:05 and is visible at 15:41;
+- acceptance 7: the full suite passes untouched. Without the mode every builder gives what it gives today, and only
+  the composition roots know the mode.
+
+**Gates** (branch story/reh1-rehearsal, on main): 14853 passed, 1 skipped, 16 xfailed (pytest -n auto,
+FNO_SLACK_BOT_TOKEN unset). ruff check, ruff format --check, check_imports, check_records and check_numbers are all
+clean.
+
+**Not in REH1a (said plainly):**
+- There are no recorded sources yet. The quote parts, the snapshot, A4h's reads and the candles would reach a live
+  source, which the guard refuses. The step then fails loudly and never fetches. REH1b serves them from the day's
+  receipted files, with `rehearsal:NOT_RECORDED` where a source was never recorded.
+- The shared Drive's raw NSE files (read through the service account, already read-only) are not yet filtered point
+  in time. REH1b.
+- The AI books' sealed answers are not replayed. In REH1a they are never fired (the HTTP guard), and the daily run
+  has no AI step.
+- No rehearsal of the real 23 Oct has run yet. It waits for REH1b and O9's read-only index-close fix.

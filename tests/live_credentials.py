@@ -23,6 +23,7 @@ LIVE_CREDENTIALS = (
 # Every other ENV_ name in fno/constants.py: identifiers, not credentials. A new ENV_ name must join one of the two.
 NOT_CREDENTIALS = (
     c.ENV_GDRIVE_FOLDER_ID,
+    c.ENV_FNO_REHEARSAL,  # story REH1: a rehearsal's day, run id and clock folder
     c.ENV_GITHUB_RUN_ID,
     c.ENV_GITHUB_RUN_ATTEMPT,
     c.ENV_GITHUB_OUTPUT,  # an Actions step's outputs file path (O8b), not a secret

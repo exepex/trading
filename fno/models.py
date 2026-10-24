@@ -10,11 +10,12 @@ IST = timezone(timedelta(hours=5, minutes=30))
 EXPIRY_CLOSE = time(15, 30)
 
 
-def _wall_clock() -> datetime:
+def wall_clock() -> datetime:
+    """The real time, whatever clock is installed (a replay clock is built on it)."""
     return datetime.now(UTC)
 
 
-_clock: Callable[[], datetime] = _wall_clock  # the process's one clock (story REH1: a rehearsal installs its own)
+_clock: Callable[[], datetime] = wall_clock  # the process's one clock (story REH1: a rehearsal installs its own)
 
 
 def install_clock(clock: Callable[[], datetime]) -> None:

@@ -61,6 +61,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from ..premium_ranges.folders import receipt_pathspecs as premium_receipts
     from ..price_distribution.folders import receipt_pathspecs
     from ..price_ranges.folders import receipt_pathspecs as range_receipts
+    from ..rehearsal.waits import rehearsed_waiter
     from ..scorecard.wiring import build_scorecard_run
     from .alerts import ReportedAlerts
     from .earlier_run import PartMarkers
@@ -83,7 +84,8 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     committer = GitCommitter(git, OwnUnpushed(root / OWN_UNPUSHED_FILE))  # the run's one: G4
     parts = QuoteParts(QUOTE_PARTS, processes, committer, git.changed, alerts, now_ist, PartLocks(root / PART_LOCKS),
                        PartMarkers(root, git))  # fmt: skip
-    waiter = AnnouncedWaiter(ServicingWaiter(parts, now_ist, sleep), now_ist, lambda line: print(line, flush=True))
+    announced = AnnouncedWaiter(ServicingWaiter(parts, now_ist, sleep), now_ist, lambda line: print(line, flush=True))
+    waiter = rehearsed_waiter(announced, parts)  # story REH1: a rehearsal skips the waits outside the windows
 
     def waiting(seconds: float) -> None:
         """A command's wait: a quote part due meanwhile starts (no git: the commits stay between the steps)."""

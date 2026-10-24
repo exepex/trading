@@ -102,7 +102,10 @@ def build_owner_drive(env=os.environ, session=None) -> GoogleDriveUploadStore | 
     folder, client_id, client_secret, refresh_token = (env.get(name) for name in OWNER_UPLOAD_SETTINGS)
     if not (folder and client_id and client_secret and refresh_token):
         return None
-    return GoogleDriveUploadStore(folder, OwnerAccessToken(client_id, client_secret, refresh_token), session)
+    from ..rehearsal.drive_wiring import rehearsed_drive
+
+    store = GoogleDriveUploadStore(folder, OwnerAccessToken(client_id, client_secret, refresh_token), session)
+    return rehearsed_drive(store)  # story REH1: under `dryrun/<run_id>/` when rehearsing, else unchanged
 
 
 def build_revision_index() -> RevisionIndex:
