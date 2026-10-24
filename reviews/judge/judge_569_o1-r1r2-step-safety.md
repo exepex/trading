@@ -64,3 +64,29 @@ merges cleanly with current main.
   `test_step_error_run.py` plants only the snapshot's failure.
 - **Test it must pass:** with the decisions step failed by an unexpected error, fills is `refused` naming decisions,
   and no fill is made. The plant must fail it.
+
+## Addendum 1 (pending: round 2 not yet judged)
+
+**Status: PENDING.** The head at the time of writing is f0bb2aa9c. The session is handing over (the orchestrator,
+usage at 100%). The next judge finishes round 2 (the last allowed) on the builder's SF1 and SF2 commit.
+
+**Already checked on f0bb2aa9c (holds):**
+- **Fail closed:** fills is refused when its input step has not run, as well as when it failed.
+- **One rule:** `run_log.problem_steps` and `book_results` give `{}` for a failed or refused step.
+- **The scoreboard's `committed_runs`** is guarded. `uncollected()` raised `AttributeError` on a failed decisions step
+  (I reproduced it); it now reads no books.
+- **The reader list** matches my own map: opening_runs, reviews, health, the scoreboard's runs, snapshot_ids and
+  missed, and `_unreviewed` are safe. The card's decisions reader goes in T1d, merged together with R2.
+
+**What remains to check on the next head:**
+1. **SF1, under the orchestrator's ruling (24 Oct 06:24):** a step failed by an unexpected error is recorded failed
+   and retried on a same-day rerun, while a finished step never repeats.
+   - Verify `RunLog.done` and `record`: a failed entry is replaced, and an OK or refused one never is.
+   - Verify the builder's table of each desk step as safe or not safe to retry, against the code: in particular,
+     whether a retried `fills` or `exits` after a partial write can double a fill, an exit or a ledger row, and how the
+     partly written step's commit behaves. A step not safe to retry stays final, with its reason stated.
+   - A test: a rerun after a planted exits failure runs exits again, with nothing doubled.
+2. **SF2:** with the decisions step failed, fills is refused naming decisions. My plant
+   `NEEDS = {"fills": ("snapshot",)}` still passes `tests/daily`, `tests/timetable`, `tests/desk` and
+   `tests/scoreboard` on f0bb2aa9c (489 passed). It must fail.
+3. **The full gates** on the head, and the merge with main (and with T1d, which merges together).
