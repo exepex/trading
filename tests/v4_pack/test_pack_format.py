@@ -31,7 +31,7 @@ def a_pack(**changes):
     pack = Pack(DAY, "A", "groww", "groww_api", "a4/2026-10-22/attempt-1", at(14, 32), Level(25012.4, at(14, 30, 1)),
                 FutureQuote(NEXT_MONTHLY, 25110.0, 25108.5, 25111.0, at(14, 30, 2)),
                 VixLevel(11.82, at(14, 30, 3), at(14, 29, 0)), chain,
-                Iv30(0.112, False, (MONTHLY, NEXT_MONTHLY), METHOD, at(14, 31, 9)))  # fmt: skip
+                Iv30(11.2, False, (MONTHLY, NEXT_MONTHLY), METHOD, at(14, 31, 9)))  # fmt: skip
     return replace(pack, **changes)
 
 

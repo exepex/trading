@@ -7,7 +7,7 @@ whatever sits on disk, and only verified bytes are read (O9):
 - for each forecaster and question with a back-fill, the file of this tree's method hash with the latest last day,
   every row `backfill_exploratory` with that full hash. A pair whose back-fill exists only for other code stops the
   report (regenerate it), never a silent drop;
-- a sync that leaves any chosen file missing or damaged stops the report, naming it;
+- a chosen file Drive does not return with its receipted bytes stops the report (G10's `DriveRecords`, the one seam);
 - one row per forecaster, question and day across every source: a second row stops the report and names it.
 """
 
@@ -43,10 +43,6 @@ class StaleBackfill(RuntimeError):
     """A back-fill exists only for other code (another method hash): regenerate it before any report."""
 
 
-class UnverifiedRecords(RuntimeError):
-    """A chosen record file could not be brought from Drive with its receipted bytes."""
-
-
 class BadRecord(ValueError):
     """A row that does not match its file: wrong label, day, day label or method hash."""
 
@@ -78,17 +74,9 @@ def chosen_paths(paths: Iterable[str], method_sha256: str) -> list[str]:
     return sorted(live) + sorted(path for _, path in latest.values())
 
 
-def verified_files(cache, area: str, paths: list[str]) -> dict[str, bytes]:
-    """Each chosen path brought to disk through the verified Drive cache, then read; any problem stops."""
-    problems = [problem for path in paths for problem in cache.sync(f"{area}/{path}").problems]
-    if problems:
-        raise UnverifiedRecords("; ".join(problems))
-    return {path: cache.local(f"{area}/{path}").read_bytes() for path in paths}
-
-
 class DriveForecastRecords(V4ForecastSource):
     def __init__(self, files: Mapping[str, bytes], method_sha256: str):
-        """`files`: the chosen paths' verified bytes (`chosen_paths`, `verified_files`)."""
+        """`files`: the chosen paths' verified bytes (`chosen_paths`, then `wiring.build_drive_records`)."""
         self.rows: dict[tuple[str, str], dict[str, Record]] = defaultdict(dict)
         for path, data in files.items():
             for forecaster, question, row in _rows(path, data, method_sha256):

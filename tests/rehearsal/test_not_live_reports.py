@@ -51,6 +51,7 @@ def test_the_daily_run_wraps_every_step_not_live_on_the_replayed_day_with_its_no
     """Judge 564 F1: the daily run's composition root is what makes these steps run; dropping its one line must fail."""
     from fno.config import load_app_config
     from fno.daily import wiring
+    from fno.daily.v4_wiring import step_notes
 
     monkeypatch.setenv(ENV_FNO_REHEARSAL, env(tmp_path)[ENV_FNO_REHEARSAL])
     monkeypatch.setenv("FNO_SLACK_BOT_TOKEN", "xoxb-test")
@@ -58,4 +59,5 @@ def test_the_daily_run_wraps_every_step_not_live_on_the_replayed_day_with_its_no
     _, notes = rehearsed_live(wiring.live_dates(cfg))
     steps = wiring.build_day_runner(cfg, sleep=lambda seconds: None).daily_run.day_steps
     wrapped = {name: step.note for name, step in steps.items() if isinstance(step, NotLiveInRealRuns)}
-    assert "card" in notes and wrapped == notes
+    expected = {name: note for name, note in step_notes(notes).items() if name in steps}  # G10: `v4_pack`'s two steps
+    assert "card" in notes and wrapped == expected and {"v4_release", "v4_deadline"} <= set(wrapped)

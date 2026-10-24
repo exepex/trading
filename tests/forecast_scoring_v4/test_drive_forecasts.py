@@ -4,7 +4,6 @@ only verified bytes are read, and it stops on a stale back-fill, an unverified f
 file, or a second row for a day."""
 
 import json
-from dataclasses import dataclass, field
 from datetime import date
 
 import pytest
@@ -15,9 +14,7 @@ from fno.forecast_scoring.v4.drive_forecasts import (
     DriveForecastRecords,
     DuplicateDay,
     StaleBackfill,
-    UnverifiedRecords,
     chosen_paths,
-    verified_files,
 )
 from fno.forecast_scoring.v4.inputs import ForecastFiles, ForecastValue
 from fno.forecast_v4_rules.drive_records import backfill_name, backfill_path, live_bytes, live_path, read_live
@@ -101,33 +98,46 @@ def test_a_second_row_for_a_day_stops():
         DriveForecastRecords(files, METHOD)
 
 
-@dataclass
-class Report:
-    problems: list = field(default_factory=list)
+class Seam:
+    """`wiring.build_drive_records` replaced: receipted paths per folder, and the files of each fetched one."""
+
+    def __init__(self, held: dict[str, bytes]):
+        self.held, self.fetched = held, []
+
+    def __call__(self, folder: str):
+        seam = self
+
+        class Records:
+            def paths(self):
+                return sorted(p for p in seam.held if p.startswith(f"data/{folder}"))
+
+            def files(self):
+                seam.fetched.append(folder)
+                return {p: seam.held[p] for p in self.paths()}
+
+        return Records()
 
 
-class Cache:
-    def __init__(self, tmp_path, held: dict, broken=()):
-        self.root, self.held, self.broken, self.synced = tmp_path, held, set(broken), []
+def test_the_wiring_fetches_only_live_files_and_this_codes_latest_backfill(monkeypatch):
+    from fno.forecast_scoring.v4 import wiring
+    from fno.forecast_v4_rules.wiring import IMPLIED_METHOD_FILES, method_sha256
 
-    def sync(self, prefix):
-        self.synced.append(prefix)
-        if prefix in self.broken:
-            return Report([f"MISSING {prefix}"])
-        self.local(prefix).parent.mkdir(parents=True, exist_ok=True)
-        self.local(prefix).write_bytes(self.held[prefix])
-        return Report()
-
-    def local(self, path):
-        return self.root / path
-
-
-def test_verified_files_syncs_only_the_chosen_paths_and_stops_on_any_problem(tmp_path):
-    live = live_path(F, Q, D3)
-    cache = Cache(tmp_path, {f"data/{live}": b"x"})
-    assert verified_files(cache, "data", [live]) == {live: b"x"} and cache.synced == [f"data/{live}"]
-    with pytest.raises(UnverifiedRecords, match="MISSING"):
-        verified_files(Cache(tmp_path, {}, broken=[f"data/{live}"]), "data", [live])
+    method = method_sha256(IMPLIED_METHOD_FILES)
+    old, new = (
+        backfill([row(D1, 1e-4, BACKFILL, method)], method),
+        backfill([row(D1, 1e-4, BACKFILL, method), row(D2, 2e-4, BACKFILL, method)], method),
+    )
+    stale = backfill([row(D1, 1e-4, BACKFILL, OTHER)], OTHER)
+    live = (live_path(F, Q, D3), live_bytes(row(D3, 3e-4, LIVE, method), "A"))
+    seam = Seam({f"data/{p}": d for p, d in (old, new, stale, live)})
+    monkeypatch.setattr(wiring, "build_drive_records", seam)
+    wiring._forecasts.cache_clear()
+    try:
+        values = wiring._forecasts().values(Q, F)
+    finally:
+        wiring._forecasts.cache_clear()
+    assert sorted(seam.fetched) == sorted([live[0], new[0]])  # never the older file nor the other code's
+    assert set(values) >= {D1, D2, D3}
 
 
 def test_combined_sources_union_forecasters_and_refuse_a_day_held_twice(tmp_path):

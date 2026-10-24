@@ -11,7 +11,7 @@ from datetime import date
 from pathlib import Path
 
 from ..config import ROOT
-from ..constants import CARD_DELIVERIES_FOLDER, OWNER_TIMING_STEP, PLAYBOOK_FOLDER, REVIEWS_STEP
+from ..constants import CARD_DELIVERIES_FOLDER, OWNER_TIMING_STEP, PLAYBOOK_FOLDER, REVIEWS_STEP, V4_PACK_LIVE_KEY
 from ..desk.daily_ports import DayStep
 from .runner import DayRunner
 
@@ -21,8 +21,8 @@ FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
 FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
-LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card", OWNER_TIMING_STEP, "price_distribution",
-              "premium_ranges", "price_distribution_scores", "price_ranges", "price_range_scores",
+LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, "card", OWNER_TIMING_STEP,
+              "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges", "price_range_scores",
               "premium_range_scores", "close_read", "close_recheck")  # fmt: skip
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
 PREMIUM_SCORES = ("premrange", "score")  # G13d: every issue whose next session has passed, and the seals
@@ -62,6 +62,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from ..price_distribution.folders import receipt_pathspecs
     from ..price_ranges.folders import receipt_pathspecs as range_receipts
     from ..rehearsal.live_wiring import rehearsed_live, rehearsed_not_live
+    from ..rehearsal.v4_pack import rehearsed_part_processes
     from ..rehearsal.waits import rehearsed_waiter
     from ..scorecard.wiring import build_scorecard_run
     from .alerts import ReportedAlerts
@@ -69,10 +70,11 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from .history import WholeHistory
     from .part_locks import PART_LOCKS, PartLocks
     from .processes import ChildProcesses
-    from .quote_parts import QUOTE_PARTS, QuoteParts
+    from .quote_parts import QuoteParts
     from .quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
     from .reviews import ReviewsStep, ScorecardReview
     from .steps import Alerted, CommandStep, LiveFrom, NotBefore
+    from .v4_wiring import day_parts, part_notes, step_notes, v4_steps
     from .wait_notice import AnnouncedWaiter
 
     git, alerts, processes, (live, not_live) = (
@@ -83,8 +85,10 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     )
     locks = GitLocks(root)  # story O2: a command stopped at its limit leaves no git lock behind
     committer = GitCommitter(git, OwnUnpushed(root / OWN_UNPUSHED_FILE))  # the run's one: G4
-    parts = QuoteParts(QUOTE_PARTS, processes, committer, git.changed, alerts, now_ist, PartLocks(root / PART_LOCKS),
-                       PartMarkers(root, git))  # fmt: skip
+    quote_parts = day_parts(cfg)  # A4's 3 pm parts and G10's `v4` capture
+    parts = QuoteParts(quote_parts, rehearsed_part_processes(processes, part_notes(quote_parts, not_live)), committer,
+                       git.changed, alerts, now_ist, PartLocks(root / PART_LOCKS), PartMarkers(root, git),
+                       live)  # fmt: skip
     announced = AnnouncedWaiter(ServicingWaiter(parts, now_ist, sleep), now_ist, lambda line: print(line, flush=True))
     waiter = rehearsed_waiter(announced, parts)  # story REH1: a rehearsal skips the waits outside the windows
 
@@ -165,7 +169,9 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     entry_desk, exit_timing = build_owner_timing_desks(cfg, live[OWNER_TIMING_STEP], build_entry_desk(cfg))
     fills = build_owner_timing_step(cfg, alerts, exit_timing, live[OWNER_TIMING_STEP], root=root)
     steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, fills, alerts)  # E8: seals only before its live date
-    steps = rehearsed_not_live(steps, not_live)
+    steps |= v4_steps(lambda arguments, specs: CommandStep(processes, arguments, specs, git.changed, waiting, locks),
+                      parts, waiter, live[V4_PACK_LIVE_KEY], alerts)  # G10 completion  # fmt: skip
+    steps = rehearsed_not_live(steps, step_notes(not_live))
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts, entry_desk=entry_desk, exit_timing=exit_timing,
                                 git_committer=committer, recorder=public_recorder(root))  # fmt: skip

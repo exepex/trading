@@ -323,6 +323,352 @@ command, which commits its own decision; its pathspecs are none, so the run swee
   - a rerun accepts the run's own commit by content, and refuses it if its files were changed;
   - G4's strict xfail in `tests/e2e/test_hangs.py` becomes the real assertion.
 
+## Fix after DRY2: the indices' own early limit and one failed step never ends the day (24 Oct, `story/o1-r1r2-step-safety`)
+
+DRY2's daily-run rehearsal (docs/dryruns/DRY2_2026-10-23.md, rows d8 and d11) found two risks for a real day. The
+orchestrator put both before Monday 26 Oct 14:05 IST, lane 1 (judges B and E).
+
+**R1. The indices part started "too early" when NIFTY's part ended early.**
+- **Before:** the indices part started the moment NIFTY's part ended. A NIFTY part that died at 14:38 started A4c's
+  index recorder at once, more than 20 minutes before 15:01. It returned "too early" and recorded nothing, and the run
+  never started it again: the day's indices were lost.
+- **Note:** no "none" marker is written: "too early" skips `close_day`. A4c's alert still says "canonical none",
+  which is A4c's wording, a finding for A4c's owner, unchanged here.
+- **Fix:** `QuotePart.not_before` now also holds for a part that waits for another. The indices part gets
+  `INDEX_EARLIEST_START`, A4c's own early limit (15:01 less 20 minutes, plus the 3-minute margin: 14:44).
+  - `start_due` starts a waiting part once its part ended and its time has come; `service` calls it.
+  - `next_start` counts a waiting part once its part ended, so a rehearsal's skipped wait never passes it.
+  - On a normal day nothing changes: NIFTY commits at about 14:57, after 14:44.
+- **Tests** (`tests/daily/test_index_part_window.py`):
+  - the limit is 14:44, inside A4c's 20 minutes;
+  - a NIFTY part dead at 14:38 starts the indices only at 14:44, from any wait, without git;
+  - a normal day still starts them right after NIFTY's commit.
+- **Plants:** the indices' `not_before` dropped fails the test; `not_before` ignored for a waiting part fails it.
+
+**R2. One unexpected error ended the whole daily run.**
+- **Before:** `DailyRun._guarded` handled only `CommitFailed` and `GitFailed`. In the rehearsal a `NotImplementedError`
+  in the 15:15 snapshot ended the run with a traceback: no fills, exits, reviews, card, scores, candles or close reads.
+- **Fix:** `DailyRun._run_step` catches any other `Exception` from a step's action.
+  - The step is logged `{"status": "failed", "reason": "<type>: <first line>"}`. #fno-desk gets "F&O paper desk <day>:
+    step <name> FAILED (<reason>); the run goes on, the steps that need it are refused". The run goes on.
+  - A failed commit or git read still stops the run, as decision 44 says (unchanged).
+  - `NEEDS` names the steps that read another step's logged result. Only `fills` does: it reads the snapshot's
+    `valid` and the decisions. So `fills` is refused when either failed ("needs snapshot, which failed today"). Every
+    other step reads its own inputs. The exits and the marks check the snapshot through the gate themselves, so the
+    risk-reducing exits always run (design 9).
+  - The next session's `_unreviewed` reads a failed exits step as "no book's exits were reviewed". Before, it would
+    have read the failure's own fields as books.
+- **Tests** (`tests/timetable/test_step_error_run.py`):
+  - a planted `NotImplementedError` in the snapshot capture fails that step only, with its type and first line, and
+    alerts; `fills` is refused; the exits and the marks run;
+  - a failed exits step leaves every book unreviewed for the next session.
+- **Plants:** the catch narrowed, the refusal dropped, and the exits rule dropped: each fails a test.
+
+**Contracts changed** (for the judges):
+- (1) `QuotePart.not_before` now applies to parts with `starts_after`.
+- (2) `QuoteParts.next_start` includes such a part once its part has ended.
+- (3) `DailyRun` no longer lets a non-git, non-commit exception out of a step. A step's result may now be
+  `failed`/`refused` with a reason where the run used to raise.
+- (4) `_unreviewed` for a failed exits step.
+- (5) Round 2: a step's failure from `_run_step` carries `retry`. `RunLog.done` is false for a retry-failed entry, and
+  `record` replaces it. `DeskSteps.fill` raises `StepInterrupted` after N trades are written.
+
+**Round 2 (the orchestrator and judge 567): fail closed, one table, every reader.**
+
+*Which step needs which.* This is read from `DailyRun`'s real step inputs: `_plan` and each step's own reads.
+
+| Step | Reads another step's logged result | If that step has not run | If that step failed |
+|---|---|---|---|
+| fills | snapshot (`valid`), decisions (the collected runs) | refused: "needs snapshot, which has not run today" | refused: "needs snapshot, which failed today" |
+| every other desk and O1 step | none: each reads its own inputs (files, the gate, Drive) | runs | runs |
+
+The exits and the marks check the snapshot through the gate themselves, so risk-reducing exits always run (design
+9). Book 1's decision (an O1 command) reads the pack from disk and refuses itself without it ("no common pack").
+
+*Every reader of a failed or refused step's committed result* (`{"status", "reason"}`, nothing else):
+- **Desk:**
+  - `daily_run` fills: refused (the table).
+  - `daily_run._unreviewed`: a failed exits step means every book is unreviewed.
+  - `_unfilled` and `_unscored` already read `status`.
+- **The run's last line** (`runner.py`): names the failed and refused steps through `run_log.problem_steps`, the one
+  rule (agreed with T1 for T1d's card).
+- **Scoreboard** (`scoreboard/committed_runs.py`, guarded here): reads the decisions and the exits through
+  `run_log.book_results`, which gives {} for a failed step.
+  - `runs()`: no run.
+  - `uncollected()`: no others. Before, it raised AttributeError on the failure's string.
+  - `missed_runs`: a missed decision and a missed exit review.
+  - `snapshot_ids`: no valid snapshot.
+- **Card** (T1, `cards/rule_checks.py`):
+  - The snapshot verdict reads "no valid execution snapshot (<reason>)", `data_check_failed`. Correct already.
+  - The decisions' late books would list "status" and "reason" (judge 567). T1d's change uses `book_results`, and the
+    orchestrator merges R2 together with T1d.
+- **E6 reviews** (`daily/reviews.py`): no valid snapshot, so a day with open positions is refused. Correct already.
+- **O8 health** (`health/desk_checks.py`): `_problems` names the step; `_collected_late` keeps only per-book dicts.
+  Correct already.
+- **E8 opening runs** (`books/opening_runs.py`): no `run_id`, so "no log". Correct already.
+- **A16's feed gate:** reads only the candles step, an O1 command whose shape is unchanged.
+- **Tests** (`tests/timetable/test_failed_step_readers.py`): the two helpers; the scoreboard on a failed decisions,
+  snapshot and exits day; a missing input refused.
+- **Plants** (the scoreboard without `book_results`; the missing check dropped): each fails.
+
+*A frozen day (the desk freeze, held for the owner's v4 sign-off, unmerged).* The freeze records the desk's steps
+`frozen` and runs none of them. `frozen` is neither failed nor missing, so `NEEDS` would not refuse the fills. The
+freeze's own rule must decide first: when the freeze merges, its check goes before `_refused` in `_step`, so a frozen
+day's fills are `frozen`, never refused or run. Both are O1's own code; the freeze branch carries the test.
+
+**Round 2 (judges 569 and 570): SF1, SF2 and judge E's minors** (24 Oct; builder session_01Mt6dcBU5kp2htdPN2KmiZH,
+which took over from the first builder)
+
+*SF1, under the orchestrator's ruling (24 Oct 06:24).* A desk step failed by an unexpected error (`_run_step`) is
+recorded `{"status": "failed", "reason", "retry": true|false}`. `retry` is true only for the steps in
+`RETRIED_ON_RERUN` (`fno/desk/daily_run.py`).
+- `RunLog.done(step)` is false for an entry that failed with `retry: true`, so a rerun runs that step again. `record`
+  replaces that entry, and only that one. A finished step, a refused one, a step failed for good, an O1 command step's
+  failure (no `retry` key) and a `retry` key on a step that did not fail all raise "a run never repeats a step". The
+  new entry goes last in the log, in the order the steps ran.
+- A failed step is retried on its own IST day only. `daily run --day <past day>` never retries it, because the next
+  session's `_unreviewed` has already read that log.
+- The alert ends "a rerun today retries it (nothing it wrote is done twice)" or "a rerun today will not retry it:
+  <why>".
+- `_refused` calls an input still waiting for its retry "failed", not "not run". The O8 health check lists it as
+  failed, not as missing.
+
+*Which desk step a rerun retries, and why* (read from the code):
+
+| Step | What its retry would write again | Retried | Why |
+|---|---|---|---|
+| versions | a D6 row (`Book1Versions.keep`; a second same-day version is refused by D6) | no | It must land before the day's decision (judge 80). A rerun comes after Book 1 decided and after the decisions step ran, and a version committed after the decision cannot count for it (D6). Its only reader has already run. |
+| pack | the common and private packs, written once (`PackStore`: the same bytes are accepted, a different pack is `PackError`, so the step returns built false) | no | Book 1's decision, the decisions step and the snapshot's checks have already run without it. A late pack would only disagree with what they saw. |
+| decisions | `no_decision.json` per book, written once | no | Collected after the deadline, every book is late (`COLLECTED_LATE`), so a retry adds nothing true. Run 1 may have written a no-decision file with another reason, and the retry would conflict on it. The fills are already refused for the day. |
+| snapshot | a second capture record (`RecorderExecutionCapture`), committed at once | no | `CommittedExecutionSchedule` reads the day's latest record. A retry would move the day's one execution snapshot after the exits and marks had used the first one. The fills are already refused. |
+| fills | entry fills, ledger rows and events | **yes in round 2; no from round 3** (owner, 24 Oct: see Round 3) | Fill IDs are `trade:action:contract` (`fill_id`). `apply_fill` and `IdempotentCsvLog` make the same row a no-op, and a different row under a used ID is an error, never a second row. `EntryDesk.enter` returns a trade's recorded outcome, and E8's `PendingEntries.enter` does too. The gate reads the same committed capture, and its window check is on the capture's own times, not the clock, so a retry prices at the same snapshot. A trade cut off inside its write is never pushed to Drive (`open_account_writer` pushes only on a clean exit), so the next pull discards it, or the retry completes it under the same IDs. Each completed write's daily totals were committed by `DriveAccountSync` itself. A failed commit inside is `CommitFailed` and still stops the run. |
+| exits | close fills, ledger rows and events | **yes** | The same fill IDs, and event IDs per trade, outcome and snapshot or day (`ExitDesk._event`). `apply_fill` refuses a fill on a closed trade, and a closed trade is not an open position, so it is never reviewed again. Each book's own error was already caught per book before R2 (see the gap below). |
+| trade_marks | `trade_marks.csv` and the equity row of the day | **yes** | Both replace the day's own rows (`write_trade_marks`, `_replace_equity_row`), and the values come from the committed snapshot, so a rerun gives the same bytes. Nothing is committed. |
+| O1's day steps (quotes, owner_timing, reviews, quotes_done, the commands) | - | no | In production each is wrapped in `Alerted`, which records its failure itself, without a `retry` key, before `_run_step` sees it. They stay final, as since O1. A bare `DayStep` reaching `_run_step` (E3's tests only) gets "only the desk's own steps are retried". |
+
+*How a partly written step commits.* A failed step commits only the run log (`outcome.paths` is empty).
+- The fills and the exits: each completed account write is pushed to Drive and its daily totals are committed inside
+  the step (`DriveAccountSync`). A write cut off by the error is neither pushed nor committed.
+- The pack: files written before the error stay uncommitted in the checkout. The pack is not retried; the next
+  session's checkout is fresh.
+- The snapshot: the capture commits its own record before the gate runs.
+
+*SF2 and judge E's minor 1.* With the decisions step failed by an unexpected error, `fills` is refused "needs
+decisions, which failed today", and no fill is made, before or after a rerun. Judge B's plant
+`NEEDS = {"fills": ("snapshot",)}` now fails that test.
+
+*The orchestrator's finding (24 Oct, on c9fba7584): any problem status of an input refuses the fills.* `_refused`
+counted only a `failed` input, so a `refused` input step would have let the fills run on it. That had no effect
+today, because only the fills have `NEEDS` and neither input is ever refused, but it broke "never run on a missing
+input". Now an input that has not run, or that has any status `problem_steps` names (failed or refused, O1's one
+rule), refuses the fills: "needs snapshot, which was refused today" or "needs snapshot, which failed today".
+
+*Judge E's minor 2.* `DeskSteps.fill` counts the trades whose account write finished (`snapshot_id` in their result).
+On an unexpected error after N > 0 of them it raises `StepInterrupted(N)`, caused by the error. `CommitFailed` and
+`GitFailed` (`RUN_STOPS`) still pass through unwrapped. The alert says "... FAILED (<type>: <line>) after N trades were
+recorded in their accounts; those records stay there, check them; ...". With N = 0 the alert has no such clause.
+
+*Real output sample* (the committed code in a test, fake data, public recorder):
+- The committed exits entry after run 1: `{"status": "failed", "reason": "raised:TimeoutError", "retry": true}`.
+- The alert: `F&O paper desk 2026-10-16: step exits FAILED (TimeoutError: planted: the Drive read timed out); the run
+  goes on, the steps that need it are refused; a rerun today retries it (nothing it wrote is done twice)`.
+- After the rerun: `{"book1_rules": {"reviewed": true, "results": [{"trade_id": "t1", "outcome": "closed", "reason":
+  "unlisted"}]}}`, with the steps in order versions, pack, decisions, snapshot, fills, trade_marks, exits.
+- The fills alert with one trade written: `F&O paper desk 2026-10-14: step fills FAILED (TimeoutError: planted: the
+  Drive read timed out) after 1 trades were recorded in their accounts; those records stay there, check them; the run
+  goes on, the steps that need it are refused; a rerun today retries it (nothing it wrote is done twice)`.
+
+*Criteria, tests, cases and plants.* Each plant was put into the code, checked to fail the named test, then
+restored. All 18 were caught (run on tests/timetable, health, daily, desk and scoreboard).
+
+| Criterion (code) | Tests (good / bad / boundary / empty) | Plant, caught by |
+|---|---|---|
+| `done` ignores a retry-failed entry (`run_log.py`) | `test_run_log_retry.py`: retry-failed not done; finished, refused, final-failed, command-failed and retry-key-on-ok all done | P1 done counts it: the exits, fills and log tests; P4 the retry key alone reopens a step: `[result5]` |
+| `record` replaces only a retry-failed entry, placed last | the same file, and failing twice then succeeding | P2 kept in place: the exits test; P3 any entry replaced: `test_a_step_is_never_recorded_twice` |
+| exits retried, nothing doubled | `test_failed_step_retry.py`: written then failed, failed twice, then OK, then never again (good, boundary); failed before any write, then closed once (empty) | P5 exits not retried |
+| (round 2, replaced in round 3 by `test_fills_final.py`) fills retried, no trade doubled, alert counts N | the same file, parametrized: 0 trades written (empty), 1 written (N), the rerun replays the written trade with fills and ledger rows unchanged | P6 not retried; P9 no count; P10 count not in the alert; P13 the cause's type lost |
+| a failed commit inside the fills still stops the run | `test_a_failed_commit_after_a_trade_was_written_still_stops_the_run` | P15 the fills wrap `CommitFailed` |
+| marks retried | `test_a_failed_marking_is_retried_once_and_nothing_else_repeats` | P14 not retried |
+| not-safe steps stay failed, and their alert says so | `test_final_step_failures.py`: decisions and snapshot (the fills stay refused, no fill, no second capture), versions and pack (bad) | P7 every failed desk step retried: 4 tests |
+| SF2: fills refused naming decisions | `test_a_step_not_safe_to_repeat_stays_failed_and_its_fills_stay_refused[decisions]` | P8 judge B's `NEEDS` without decisions |
+| alert says whether a rerun retries | the exits, fills and final tests (`endswith`) | P11 the rerun clause dropped |
+| retried on its own day only | `test_a_failed_step_is_retried_on_its_own_day_only` (boundary: the next day) | P16 dropped |
+| an input awaiting its retry is "failed" | `test_a_needed_step_awaiting_its_retry_refuses_as_failed_not_as_missing` | P17 called missing |
+| an input refused, or with any problem status, refuses the fills (`_refused` through `problem_steps`) | `test_an_input_step_refused_or_with_any_problem_status_refuses_the_fills`: both ok (good); snapshot refused, decisions refused (bad); one refused and one failed, one missing and one refused (boundary); nothing ran (empty) | P18 only a failed input refuses |
+| O8 health names it failed, not missing | `test_the_health_check_names_a_step_awaiting_its_retry_failed_not_missing` | P12 listed as not run |
+
+*Gap list (round 2).* Each requirement of SF1, SF2 and judge E's minors has a criterion above, except these, which
+are out of scope or open, with why:
+- **Open, for the orchestrator: a book's own exits error is not retried.** Judge B's example, a Drive or HTTP
+  timeout inside one book's review, is caught per book by `review_exits` (since judge 84). The step finishes OK with
+  that book's `error`, so under the ruling ("a step that finished OK never repeats") a rerun does not retry it. The
+  next session blocks that book's entries (`_unreviewed`), and its due exits wait a day. SF1 covers only a step-level
+  error, such as the pack read. Reasoning only, a fix if wanted: mark such an exits result for a retry. The per-book
+  review is idempotent by the same IDs.
+- **Open: a retried fills or exits step does not re-run the steps after it.** The marks, E6's reviews and the card
+  ran in run 1 and are final. After a retry, a trade opened or closed in the rerun is not in today's marks or equity
+  row; the next session's row is right. S2's scoreboard recomputes from the fills and is unaffected. Today's
+  scorecard did not see it either.
+- **Not changed: the blocked-books alert of the fills is sent again on each retry.** It is information, and the
+  books are still blocked.
+- **Not changed: the count of trades written is a lower bound.** A trade whose account write itself raised after
+  writing locally is not counted. In production that write is never pushed to Drive, so the account does not hold it.
+- **Not changed: the private full log keeps a retried step in its first position.** It is git-ignored, and nothing
+  reads its order.
+
+*Self-review* (an independent code-review agent on the uncommitted diff only, before the gates), 10 findings:
+- **Fixed:**
+  - `versions` and `pack` were first in the retried list. They are retried after their readers ran, so they are now
+    final, with their reasons.
+  - A past day could be retried with `--day`; now the retry is same-day only (P16).
+  - `_refused` called an input awaiting its retry "missing" (P17).
+  - The alert said "trades written" where a refused entry also counts; it now says "recorded in their accounts".
+- **Listed as open above:** the steps after a retried step, and the lower-bound count.
+- **Not changed, with why:**
+  - The partial result of an interrupted fills step is not in the log. The alert gives the count, and the next
+    session's exits read the open trade from the account.
+  - The repeated blocked alert, and the full log's order: above.
+  - "Literal step names": `_plan` and the readers already key the desk's steps by these literals, so the new list
+    uses the same names. A constant for only some of them would be inconsistent.
+
+**Not changed, said plainly:**
+- The card's own text (T1's) does not list failed steps. The run's last line already names them ("day done with
+  problems: snapshot, fills"), and each failed step is alerted.
+- A `BaseException` (a kill, `KeyboardInterrupt`) still ends the run, as it should.
+
+**Round 3 (the owner's ruling, 24 Oct; judges 569.2 SF3 and 570.2 finding 1)** (builder
+session_016CU8KFuEEtWAM7ZNnFcKxv, on story/o1-r1r2-step-safety-b)
+
+Both judges found that a fills retry, chosen by a person after 15:15, could open trades hours after `fills_by` with
+hindsight. The owner ruled (DESK_DECISIONS, 24 Oct, "1 - A" and "2 - yes"):
+
+*(A) A failed fills step is final for the day* (`fno/desk/daily_run.py`).
+- `fills` left `RETRIED_ON_RERUN`, which is now exits and trade_marks only. A failed fills step is logged
+  `"retry": false`, so it is done, and a rerun never runs it again. Its alert ends "a rerun today will not retry it:
+  failed fills are final for the day: no other new desk trade opens today (fail closed)".
+- The exits and the marks still run in the same run after a failed fills step. They review any trade written before
+  the error.
+
+*(A, the stopped run, judge 570.2's point 3).* After a stop (decision 47), the fills step has no log entry, so a rerun
+runs it. `_too_late` refuses it when two things hold: the run did not record the day's snapshot itself
+(`DailyRun.ran_here`), and the clock is past `fills_by`. The limit is 15:20:00 itself: a start at 15:20:00 fills, and
+15:20:01 is refused.
+- The refusal is logged `refused` (done for the day; even a clock set back never runs the fills). One alert:
+  "step fills REFUSED: it is HH:MM:SS, past fills_by 15:20, in a run that did not take the day's snapshot: no fills by
+  this run (fail closed); trades recorded before the stop stay in their accounts, check them".
+- The public log's code is `desk:FILLS_LATE` (`reason_codes.py`). Round 2's `NEEDS_*` reasons get codes too. Before,
+  they showed "unlisted".
+- **Why only a run that did not take the snapshot** (the self-review's finding, accepted). Only a person's rerun
+  reaches the fills without taking the snapshot itself, and the hindsight risk is that person's choice. The run that
+  took the snapshot fills at its prices with no choice in between, even when its own commit ends past 15:20 (on 22 Oct
+  the snapshot step ended at 15:21:23). A wall-clock limit on that run would lose a valid day to a slow push.
+  - On real days fills started at 15:17:51 to 15:18:12 (19, 21 and 23 Oct, `journal/runs`).
+  - A valid snapshot must itself finish by 15:20:00 (`SnapshotInWindow`).
+- **The limit is on the step's start.** Its account writes may end a few seconds later, at the snapshot's prices.
+
+*(B) The immediate rerun* (`fno/daily/runner.py`, `CLAUDE.md` step 2b). A Slack alert that was sent is never printed,
+so the routine could not see "a rerun today retries it" in the alert. The run's last line now ends "; a rerun today
+retries it: <steps>" when a step is marked for a retry, on the run's own day only. CLAUDE.md "Daily desk routine"
+step 2b: on that line, run `python -m fno daily run` once more at once, once only, never a rerun chosen later. A
+failed fills step is never retried. The routine's time is unchanged (14:05). This is a rule-document change, checked
+with the code.
+
+*Judge 570.2's minors.*
+- J6: `test_the_written_count_leaves_out_a_blocked_book` has three books: book 1 blocked, book 2 written, and book 3
+  failing. The alert counts 1, so `written = len(result)` (which counts 2) fails it.
+- **Exit review of a trade opened in a retry: none can be opened.** No retry runs the fills (A). A rerun after a stop
+  that does fill (by 15:20:00) runs the fills before the exits in the same rerun (`DAILY_RUN_STEPS` order: fills,
+  exits, trade_marks), and the exits never ran in the stopped run. So that trade's exits are reviewed that day.
+
+*Stated limits* (the builder's open points, as both judges asked).
+- **A book's own exits error is not retried.** `review_exits` catches it per book and the step finishes OK. That book
+  is blocked the next session (`_unreviewed`), and its due exits wait a day. This has been so since judge 84. A fix
+  would mark such a result for a retry, and is the orchestrator's call.
+- **The marks, E6's reviews and the card are not rerun after a retried exits step.** Today's equity row and the
+  card's "exits (failed)" line stay as run 1 left them. The next session's rows are right, and S2 recomputes from the
+  fills.
+- **The scratchpad restore** (round 2, a shared scratchpad). Round 3's plants ran in their own worktree. Each plant
+  was restored with `git checkout --`, then `git status` was clean.
+- **A joined refusal reason gets one code.** "needs snapshot, which failed today; needs decisions, which was refused
+  today" matches only `desk:NEEDS_REFUSED`. The full text is in the alert and the private log.
+- **The late refusal's alert is sent before its commit.** If that commit fails, the run stops, and the next rerun sends
+  the alert again.
+- **A stop's own alert does not say that a rerun after 15:20 fills nothing.** The refusal's alert says it when it
+  happens.
+- **The hindsight left open is at most 15:20:00 less the snapshot.** A person who reruns after a stop has seen up to
+  about 5 minutes of prices after the 15:15 snapshot. The owner's limit is `fills_by`.
+
+*Criteria, tests and plants (round 3): 15 planted, 15 caught after the code test was added.* Each plant was put in a separate worktree, run on tests/timetable, daily,
+desk, scoreboard and health, then restored with `git checkout --`.
+
+| Criterion (code) | Tests (good / bad / boundary / empty) | Plant, caught by |
+|---|---|---|
+| failed fills final, no trade on a rerun (`RETRIED_ON_RERUN`) | `test_a_failed_fills_step_is_final_and_a_rerun_opens_no_trade`: 0 written (empty), 1 written; the rerun opens nothing, fills and ledger unchanged | K1 fills back in the list: 2 tests |
+| its alert says final, no new trade (`NOT_RETRIED`) | the same (`endswith`) | K9 the reason dropped: collection fails |
+| rerun after a stop: limit at 15:20:00 (`_too_late`) | `..._at_fills_by_fills_the_rest_once` (good, boundary 15:20:00, replayed and never doubled); `..._past_fills_by_is_refused...` at +1 s, +1 min and 23:50 (bad) | K2 no check; K3 2 minutes of grace; K12 a minute of grace (`<` + 1 min); K11 checked only for a logged step |
+| refusal alerted, done for the day, written trades stated | the same: the alert in `alerts.sent`, a clock set back still refused, "stay in their accounts" | K10 no alert |
+| the run that took the snapshot is never cut off | `test_the_run_that_took_the_snapshot_fills_even_when_its_commit_ends_past_fills_by` | K13 `ran_here` ignored; K14 `ran_here` never reset between runs: 3 tests |
+| the late and `NEEDS_*` reasons have public codes (`reason_codes.py`) | `tests/daily/test_fills_reason_codes.py`: each code, and a joined reason (boundary) | K15 `desk:FILLS_LATE` dropped (it survived the first set; this test was added for it) |
+| J6 count | `test_the_written_count_leaves_out_a_blocked_book` | K5 `len(result)` |
+| last line names the retried steps, own day only (`runner.py`, `retried_steps`) | `test_rerun_line.py`: exits failed (good), its rerun (boundary), a later day (no line), fills failed (bad: no line, never retried) | K6 no suffix; K7 any day; K8 any failed step |
+
+*Real output sample* (the committed code in a test, fake data):
+- Fills failed after one trade: `F&O paper desk 2026-10-14: step fills FAILED (TimeoutError: planted: the Drive read
+  timed out) after 1 trades were recorded in their accounts; those records stay there, check them; the run goes on,
+  the steps that need it are refused; a rerun today will not retry it: failed fills are final for the day: no other new
+  desk trade opens today (fail closed)`. Logged: `{"status": "failed", "reason": "TimeoutError: planted: the Drive
+  read timed out", "retry": false}`.
+- A rerun after a stop at 15:21:00: `F&O paper desk 2026-10-14: step fills REFUSED: it is 15:21:00, past fills_by
+  15:20, in a run that did not take the day's snapshot: no fills by this run (fail closed); trades recorded before the
+  stop stay in their accounts, check them`. Public code `desk:FILLS_LATE`.
+- The last line after a failed exits step: `day done with problems: exits; a rerun today retries it: exits`.
+
+*Self-review* (an independent code-review agent, given only the diff and the requirement; 10 findings):
+- **Fixed:**
+  - The limit hit the first run too, so a slow snapshot commit would lose a valid day. It now applies to a run that
+    did not take the snapshot, strictly at 15:20:00. That also drops the minute grace and its misleading comment.
+  - "No new trades today" was untrue after a stop that had written trades. Production writes the trade before the
+    failed commit. The test fake now does the same (`WrittenThenCommitFailing`), and the reason says the trades stay.
+  - The late reason showed "unlisted" in the public log; it now has a code, as do `NEEDS_*`.
+  - The limit applies at the step's start: now stated in the docstring.
+  - Weak tests in `test_rerun_line.py`: the rerun's line is asserted, and a fills retry fails the test.
+  - "No other new trade" now says "desk trade": the school's and the lab's paper fills are separate.
+- **Stated as limits above:** the alert repeated after a failed commit; the stop alert's wording; the hindsight
+  window up to 15:20.
+
+**Follow-up after the merge (judge 569.3 M1; tests only, lane 2; `story/o1-r2-exits-retry-test`)** (builder
+session_016CU8KFuEEtWAM7ZNnFcKxv)
+
+M1: the late-rerun test checked only that "exits" was in the log, so nothing proved that an exits or marks retry after
+15:20 runs. That is when CLAUDE.md step 2b's immediate rerun comes, after the first run ends. No code changes; this
+pins round 2's claim that exits and marks keep their same-day retry, and round 3's claim that only the fills have the
+`fills_by` limit. No new criterion.
+
+| Claim | Test (`tests/timetable/test_late_retries.py`) and cases | Plant, caught by |
+|---|---|---|
+| An exits retry after 15:20 runs, reviews and closes each leg once, at the day's own snapshot | `test_an_exits_retry_after_fills_by_...`: reruns at 15:20:01 (boundary), 16:10 and 23:50 (good). The error comes after the closes were written (fills, ledger and event rows unchanged by the retry) or before any write (empty: the retry closes t1). Checks: one `closed` event row, one close per leg, unique fill IDs, closes on the snapshot's ID, one ledger row per entry ID | J8 `_too_late` refuses exits and marks too: 18 tests; J8b exits not retried: 6 |
+| A marks retry after 15:20 marks the day and writes each row once | `test_a_marks_retry_after_fills_by_...`: the same times, after or before the writes. The day's row for t1 is present, and marking once more changes no byte of `trade_marks.csv` or `equity_history.csv` | J8c marks not retried: 6; J8d the day's mark rows appended, not replaced: 6 |
+| Decision 47's rerun after a stop inside the fills, past 15:20, refuses the fills and runs the exits and the marks | `test_a_rerun_after_a_stop_past_fills_by_...` on a day t1's exit is due, at the three times. The fills are refused, book 2's written trade is unchanged, the exits close t1 once at the snapshot, and the marks are not refused or failed (the self-review's finding 2) | J8: 3 tests |
+| The same, in round 3's test | `test_fills_final.py`: the exits' and the marks' status is asserted (it used to be a membership check that survived J8) | J8: 3 tests |
+
+*Real output sample* (the committed code in a test, fake data). Run 1's exits on 16 Oct failed at 15:15:40 with
+`{"status": "failed", "reason": "TimeoutError: planted: the Drive read timed out", "retry": true}`. The rerun's exits
+started at 16:10:00: `{"book1_rules": {"reviewed": true, "results": [{"trade_id": "t1", "outcome": "closed", "reason":
+"every leg closed; net Rs -513.64"}]}}`. When the error came after the closes, the rerun reviewed with no new row:
+`{"book1_rules": {"reviewed": true, "results": []}}`.
+
+*Self-review* (an independent agent, given the diff and the story only; 4 findings, all taken):
+1. The ledger check compared whole rows, which a doubled entry with a new running cash balance passes, and `events()`
+   is a set. Now it checks unique entry IDs and counts the event rows, and the written case compares every row with
+   the state before the retry.
+2. Decision 47's late first exits after a stop was unproven, and round 3's check survived J8. Both are added above.
+3. The exit prices were not tied to the snapshot. The closes' snapshot ID is now asserted.
+4. A redundant equity count was replaced by checking that the day's mark row exists.
+
+*Gap list:* each of M1's asks (exits and marks after 15:20, the step's work, nothing doubled, J8) has a row above.
+Out of scope: a plant on the ledger's own duplicate check, because a closed trade is never reviewed again, so a retry
+never reaches that check.
+
 ## Known limits (one line each)
 
 - If the routine's session dies mid-day nothing restarts it; O8's 17:51 check reports it, and a rerun resumes (late).
