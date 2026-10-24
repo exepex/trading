@@ -7,7 +7,7 @@ import subprocess
 from datetime import date, datetime, time
 
 from fno.config import ROOT, load_app_config
-from fno.constants import STEP_FAILED, STEP_NOT_LIVE, STEP_OK
+from fno.constants import STEP_FAILED, STEP_OK
 from fno.daily.earlier_run import PartMarkers
 from fno.daily.part_locks import PART_LOCKS, PartLocks
 from fno.daily.quote_parts import NIFTY_QUOTES, NOT_IN_THIS_RUN, QUOTE_PARTS, QuoteParts
@@ -87,18 +87,25 @@ def test_live_today_it_starts_at_the_run_s_start_and_commits_alone_before_nifty_
     assert parts.results["v4"]["status"] == STEP_OK and alerts.sent == []
 
 
-def test_not_live_it_never_starts_is_not_live_and_is_no_problem_of_the_day(tmp_path):
+def test_not_live_it_is_not_a_part_of_the_day_and_never_starts(tmp_path):
     for live in (None, date(2026, 10, 27)):
         clock = Clock()
         clock.now = at(14, 7)
         parts, processes, commits, alerts = run(tmp_path / str(live), clock, live=live)
         step = StartQuoteParts(parts).run(DAY)
-        assert "v4 not live" in step.result["reason"]
+        assert "v4" not in step.result["reason"] and "v4" not in step.inputs["parts"]
         clock.now = at(15, 20)
         done = FinishQuoteParts(parts, ServicingWaiter(parts, clock, sleep=clock.advance)).run(DAY)
         assert V4.arguments not in [a for _, a in processes.started]
-        assert done.result["parts"]["v4"]["status"] == STEP_NOT_LIVE and done.result["status"] == STEP_OK
+        assert "v4" not in done.result["parts"] and done.result["status"] == STEP_OK
         assert not any("v4" in text for text in alerts.sent)
+
+
+def test_live_from_today_is_a_part_of_the_day(tmp_path):
+    clock = Clock()
+    clock.now = at(14, 7)
+    parts, *_ = run(tmp_path, clock, live=DAY)
+    assert "v4" in StartQuoteParts(parts).run(DAY).inputs["parts"]
 
 
 def test_a_rerun_after_14_40_takes_an_earlier_run_s_capture_or_fails_it_once(tmp_path):

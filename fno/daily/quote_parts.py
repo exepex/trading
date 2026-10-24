@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from ..alerts.sender import AlertSender
-from ..constants import STEP_FAILED, STEP_NOT_LIVE, STEP_REFUSED
+from ..constants import STEP_FAILED, STEP_REFUSED
 from ..desk.daily_ports import CommitFailed, Committer
 from ..models import IST
 from ..quotes.indices import INDEX_WINDOW_END
@@ -22,7 +22,7 @@ from ..quotes.weekly import WEEKLY_DATASET, WEEKLY_STEM
 from .earlier_run import EarlierRun, PartMarkers
 from .part_locks import PartLocks
 from .processes import Process, Processes
-from .steps import NO_DATE, NOT_LIVE, outcome
+from .steps import outcome
 
 GROWW_QUOTES = ":(glob)research/data/quotes/groww/**/{name}_*"  # A4c's per-part paths, as CLAUDE.md gives them
 # NIFTY's own dataset only: `groww/**/nifty_*` would also take a named window's files (G10: `quote-snapshots-v4`)
@@ -99,8 +99,8 @@ class QuoteParts:
         markers: PartMarkers,
         live: Mapping[str, date | None] | None = None,
     ):
-        """`live`: each `live_key`'s first live date (`daily.live_from`); a part whose key is not live that day never
-        starts and is recorded `not_live`."""
+        """`live`: each `live_key`'s first live date (`daily.live_from`); a part whose key is not live on the day is
+        not a part of that day (its steps, sharing the key, record `not_live`)."""
         self.parts, self.processes, self.committer, self.changed, self.alerts, self.clock = (
             parts,
             processes,
@@ -110,6 +110,7 @@ class QuoteParts:
             clock,
         )
         self.locks, self.markers, self.live = locks, markers, live or {}
+        self.every_part = tuple(parts)
         self.day: date | None = None
         self.running: dict[str, Process] = {}
         self.results: dict[str, dict] = {}
@@ -120,8 +121,7 @@ class QuoteParts:
         """Opens the day, once: every part that waits for no other starts now, or at its `not_before` if that is
         later (`start_due`); the names of those parts."""
         if self.day != day:
-            self.day = day
-            self._not_live()
+            self._open(day)
             self.start_due()
         return [part.name for part in self.parts if part.starts_after is None]
 
@@ -130,11 +130,8 @@ class QuoteParts:
         adopted while an earlier run's recorder still holds its lock (never a second recorder), taken from the earlier
         run when every canonical marker exists, restarted while its window is open, and otherwise failed with one
         alert. NIFTY still commits first and the indices still start after it, whatever each part's `how`."""
-        self.day = day
-        self._not_live()
+        self._open(day)
         for part in self.parts:
-            if part.name in self.results:
-                continue
             if self.locks.held(day, part.name):
                 self._earlier(part, ADOPTED)
             elif self.markers.recorded(day, part.canonicals):
@@ -208,20 +205,21 @@ class QuoteParts:
                 self._failed(part.name, NEVER_STARTED)
         return self.results
 
-    def _not_live(self) -> None:
-        """Each part whose live key is not live on the day: recorded `not_live`, never started, never alerted."""
-        for part in self.parts:
-            if part.live_key is None:
-                continue
-            live_from = self.live.get(part.live_key)
-            if live_from is None or self.day < live_from:
-                why = NO_DATE if live_from is None else NOT_LIVE.format(live_from=live_from)
-                self.results[part.name] = {"status": STEP_NOT_LIVE, "reason": why, "commit": None}
+    def _open(self, day: date) -> None:
+        """The day's parts: every part whose live key (if any) is live on `day` (`daily.live_from`)."""
+        self.day = day
+        self.parts = tuple(part for part in self.every_part if self._live(part, day))
+
+    def _live(self, part: QuotePart, day: date) -> bool:
+        live_from = self.live.get(part.live_key) if part.live_key else day
+        return live_from is not None and live_from <= day
 
     def await_part(self, name: str, limit: datetime, wait: Callable[[datetime], None]) -> None:
         """Waits (servicing every part) until the part `name` has ended and its commit was made or tried, at most until
         `limit`; one still running then is stopped and failed, its files not committed (G10's release reads only an
         ended capture)."""
+        if name not in {part.name for part in self.parts}:
+            return  # not a part of this day (not live): nothing to wait for
         self.service()
         while self.started and name not in self.results and self.clock() < limit:
             wait(min(limit, self.clock() + timedelta(seconds=5)))

@@ -44,13 +44,14 @@ def _run(args) -> int:
         build_look_records,
         build_scoring,
         build_thresholds,
+        build_unchecked_days,
     )
 
     scoring, records = build_scoring(), build_look_records()
     if args.v4_cmd == "report":
         as_of = args.as_of or now_ist().date()
         return _report(scoring, records, as_of.isoformat(), build_day_counts(as_of))
-    return _look(scoring, records, build_thresholds(), build_ai_slot_days(), args.look, now_ist())
+    return _look(scoring, records, build_thresholds(), build_ai_slot_days(), args.look, now_ist(), build_unchecked_days)
 
 
 def _report(scoring, records, as_of: str, days) -> int:
@@ -67,10 +68,12 @@ def _report(scoring, records, as_of: str, days) -> int:
     return 0
 
 
-def _look(scoring, records, thresholds, slot_days, look: str, decided_at) -> int:
-    """A recorded look runs only when every scheduled AI slot-day up to its day is settled (`slot_days`)."""
+def _look(scoring, records, thresholds, slot_days, look: str, decided_at, unchecked=list) -> int:
+    """A recorded look runs only when every scheduled AI slot-day up to its day is settled (`slot_days`) and every live
+    row up to it has its 15:10 deadline verdict (`unchecked()`: the days without one; G10 completion, criterion 8)."""
     from dataclasses import asdict
 
+    from .deadlines import require_checked
     from .look import run_look
     from .reconcile import LookBlocked, require_reconciled
     from .records import EXPLORATORY
@@ -79,6 +82,7 @@ def _look(scoring, records, thresholds, slot_days, look: str, decided_at) -> int
     if counted_after is not None:
         try:
             require_reconciled(slot_days.unsettled(counted_after, decided_at.date()), decided_at.date())
+            require_checked(unchecked(), decided_at.date())
         except LookBlocked as refusal:
             print(f"look NOT run, nothing recorded: {refusal}")
             return 1

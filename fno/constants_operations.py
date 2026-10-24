@@ -14,6 +14,9 @@ __all__ = [
     "REVIEWS_STEP",
     "DESK_RUN_STEPS",
     "DAILY_RUN_STEPS",
+    "V4_PACK_LIVE_KEY",
+    "V4_RELEASE_STEP",
+    "V4_DEADLINE_STEP",
     "OWNER_TIMING_STEP",
     "STEP_OK",
     "STEP_FAILED",
@@ -45,6 +48,8 @@ DESK_RUN_STEPS = (
     RUN_LOG_EXITS_STEP,
     RUN_LOG_TRADE_MARKS_STEP,
 )
+# Story G10 completion: one `daily.live_from` key for protocol v4's 14:30 capture part, its release and its 15:10 check
+V4_PACK_LIVE_KEY, V4_RELEASE_STEP, V4_DEADLINE_STEP = "v4_pack", "v4_release", "v4_deadline"
 OWNER_TIMING_STEP = "owner_timing_fills"  # story E8: right after the quote parts start, before every other step
 DAILY_RUN_STEPS = (
     "quotes",
@@ -52,6 +57,7 @@ DAILY_RUN_STEPS = (
     "margin_check",
     "weather",
     "forecasts_v4",
+    V4_RELEASE_STEP,  # G10 completion: after the `v4` part's capture ends (by 14:45), before E3's pack (14:58)
     *DESK_RUN_STEPS[:2],
     "book1",
     *DESK_RUN_STEPS[2:],
@@ -66,7 +72,8 @@ DAILY_RUN_STEPS = (
     "premium_range_scores",  # G13d's scores and seals: issues whose next session has passed
     "candles",  # A16b-d: after A16's last mark (fno/intraday/backfill_daily.py)
     "close_read",  # story A4h: today's closes from NSE's index list, 15:40, after the candles
-    "close_recheck",  # A4h's second read, 16:00, last (judge 440 add. 1)
+    "close_recheck",  # A4h's second read, 16:00 (judge 440 add. 1)
+    V4_DEADLINE_STEP,  # G10 completion: the 15:10 verdicts and the 14:30 overlap watch, last (from 15:12)
 )  # fmt: skip; the quote parts start first (judge 178)
 # Story REH1: set only by a rehearsal, inherited by its children; and the line a not-yet-live report's posts carry
 ENV_FNO_REHEARSAL = "FNO_REHEARSAL"

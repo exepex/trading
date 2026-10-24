@@ -7,20 +7,24 @@ from __future__ import annotations
 import hashlib
 import os
 from collections.abc import Mapping
-from datetime import date, timedelta
 from pathlib import Path
 
 from ..ai.receipts import GitHubActivityReceipts
 from ..config import ROOT
-from ..constants import ENV_GITHUB_TOKEN, GITHUB_REPOSITORY_VARIABLE
+from ..constants import ENV_GITHUB_TOKEN, GITHUB_REPOSITORY_VARIABLE, V4_PACK_LIVE_KEY
 from ..health.evidence import Evidence, HealthHistory
-from ..storage.data_wiring import DATA_AREA, build_data_store, build_drive_cache
+from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER, build_data_store, build_drive_cache
 from .commitment import CommitmentTimes, GitHubCommitmentTimes
+from .deadline import DeadlineRun
+from .overlap import OverlapWatch
+from .paths import LIVE_RECORDS_FOLDER
 from .release import ReleasedPacks
 from .release_run import ReleaseRun
+from .sessions import sessions_between
 
 V4_CAPTURE_WINDOW = "v4"  # A4e's named window in config.yaml (quotes.windows.v4)
-RELEASE_WRITER = "v4-release"
+V4_RECORDS = "research/forecasts/v4"  # G8's folder of CSV records (G7's rules, M1's weather)
+RELEASE_WRITER, DEADLINE_WRITER = "v4-release", "v4-deadline"
 IV30_METHOD = "g1_v2_live_atm_iv30"
 IV30_METHOD_FILES = ("research_engine/live_features.py", "forecast/iv30.py")  # G1 v2's live ATM rule and interpolation
 
@@ -50,13 +54,50 @@ def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> Release
     rule = LiveAtmIvMinusRealised(None, cfg["risk_free_rate"], Black76())
     calendar, store = build_session_calendar(), build_data_store(RELEASE_WRITER, env=env)
 
-    def sessions(first: date, last: date) -> list[date]:
-        days = (first + timedelta(days=n) for n in range((last - first).days + 1))
-        return [day for day in days if is_scored_session(calendar, day)]
+    from ..rehearsal.v4_pack import rehearsed_release_excuse
 
-    builder, live_from = PackBuilder(rule, iv30_method(), now_ist), live_dates(cfg)["forecasts_v4"]
+    sessions, live = sessions_between(lambda day: is_scored_session(calendar, day)), live_dates(cfg)
+    builder = PackBuilder(rule, iv30_method(), now_ist)
+    excuse = rehearsed_release_excuse(_recorded_v4(dataset), env)
     in_drive = lambda path: store.drive.get(path) is not None  # noqa: E731
-    return ReleaseRun(store, in_drive, capture, builder, sessions, live_from, now_ist)
+    return ReleaseRun(store, in_drive, capture, builder, sessions, live[V4_PACK_LIVE_KEY], now_ist,
+                      live["forecasts_v4"], excuse)  # fmt: skip
+
+
+def build_deadline_run(cfg: dict, env: Mapping[str, str] = os.environ) -> DeadlineRun:
+    """The 15:10 check of every live commitment, through GitHub's push receipts (F1, O8's evidence)."""
+    from ..daily.wiring import live_dates
+    from ..forecast_v4.sessions import is_scored_session
+    from ..models import now_ist
+    from ..rehearsal.v4_pack import rehearsed_catch_up
+    from ..storage.wiring import build_session_calendar
+    from .commitments import RecordCommitments
+
+    calendar, store = build_session_calendar(), build_data_store(DEADLINE_WRITER, env=env)
+    source = RecordCommitments(ROOT, V4_RECORDS, f"{RECEIPTS_FOLDER}/{DATA_AREA}/{LIVE_RECORDS_FOLDER}")
+    in_drive = lambda path: store.drive.get(path) is not None  # noqa: E731
+    sessions = sessions_between(lambda day: is_scored_session(calendar, day))
+    return DeadlineRun(store, in_drive, source, build_commitment_times(env=env), sessions,
+                       live_dates(cfg)[V4_PACK_LIVE_KEY], now_ist, rehearsed_catch_up(env))  # fmt: skip
+
+
+def build_overlap_watch(cfg: dict) -> OverlapWatch:
+    from ..quotes.recorder import DATASET
+    from ..quotes.window import named_window
+    from ..storage.wiring import QUOTES_FOLDER
+
+    dataset = named_window(cfg, V4_CAPTURE_WINDOW).dataset(DATASET)
+    return OverlapWatch(QUOTES_FOLDER.joinpath(*dataset.split("/")), ROOT / "research" / "data" / "intraday")
+
+
+def _recorded_v4(dataset: str):
+    """Whether a checkout (the rehearsal's record) holds a `v4` attempt of a day: a sidecar in the dataset's folder."""
+    from ..storage.wiring import QUOTES_FOLDER
+
+    folder = QUOTES_FOLDER.relative_to(ROOT).joinpath(*dataset.split("/"))
+    return lambda record, day: any(
+        (record / folder / f"{day:%Y}" / f"{day:%m}").glob(f"nifty_{day:%Y%m%d}_*.meta.json")
+    )
 
 
 def build_released_packs(env: Mapping[str, str] = os.environ) -> ReleasedPacks:

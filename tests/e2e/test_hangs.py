@@ -64,7 +64,8 @@ def test_a_quote_part_s_push_that_hangs_is_alerted_not_pushed_the_next_push_carr
     day = fixture_day(tmp_path, monkeypatch)
     hang, release = hanging_pushes(day, monkeypatch)
     after_parts = datetime.combine(day.day, time(14, 57, 30), IST)  # the parts' push hangs, the desk's do not
-    day.clock.on_condition = [(lambda: day.committed(f"Desk run {day.day} step forecasts_v4"), hang),
+    # the hang starts after the last step before the desk waits for 14:58 (G10 put `v4_release` after `forecasts_v4`)
+    day.clock.on_condition = [(lambda: day.committed(f"Desk run {day.day} step v4_release"), hang),
                               (lambda: day.clock.now >= after_parts, release)]  # fmt: skip
     code, line = day.run()
     assert code == 1 and line.startswith("day done with problems:") and "quotes_done" in line

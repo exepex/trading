@@ -8,6 +8,7 @@ from ..desk import book_versions, daily_run, daily_steps, exits, recorded_c4, tr
 from ..desk.owner_timing import entry_fills, exit_fills, outcomes, pending_entries
 from ..desk.owner_timing import step as owner_timing
 from ..rehearsal import recorded_quotes
+from ..v4_pack import deadline, release_run
 from . import earlier_run, quote_parts, reviews, steps
 
 # O1's own messages: any step may carry them (a raise, a stop at the limit, a step not yet live)
@@ -58,6 +59,7 @@ QUOTE_PARTS = (
     ("parts:NEVER_STARTED", quote_parts.NEVER_STARTED),
     ("parts:STILL_HELD", quote_parts.STILL_HELD),
     ("parts:NOT_IN_THIS_RUN", quote_parts.NOT_IN_THIS_RUN),
+    ("parts:HUNG", quote_parts.HUNG),  # G10's `v4` part still running at 14:45
     ("parts:RECORDED_EARLIER", earlier_run.RECORDED_EARLIER),
     ("parts:NO_RECORD", earlier_run.NO_RECORD),
     ("parts:ENDED_NONE", earlier_run.ENDED_NONE),
@@ -82,4 +84,17 @@ STEP_TEMPLATES = {
     "reviews": (("reviews:NOTHING_TO_MARK", reviews.NOTHING_TO_MARK),),
     "owner_timing_fills": OWNER_TIMING,
     "quotes_done": QUOTE_PARTS,
+    "v4_release": (  # G10 completion: the release's own lines (an A or system_late line keeps the command's code)
+        ("v4_release:ALREADY", release_run.ALREADY),
+        ("v4_release:WAITING", release_run.WAITING),
+        ("v4_release:REFUSED", release_run.REFUSED),
+        ("v4_release:NOT_LIVE", release_run.NOT_LIVE),
+    ),
+    "v4_deadline": (
+        ("v4_deadline:CHECKED", deadline.CHECKED),
+        ("v4_deadline:TOO_EARLY", deadline.TOO_EARLY),
+        ("v4_deadline:UNKNOWN", deadline.UNKNOWN),
+        ("v4_deadline:REFUSED", deadline.REFUSED),
+        ("v4_deadline:NOT_LIVE", deadline.NOT_LIVE),
+    ),
 }

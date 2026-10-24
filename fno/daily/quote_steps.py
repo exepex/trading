@@ -8,7 +8,7 @@ import time as clock_time
 from collections.abc import Callable
 from datetime import date, datetime, time
 
-from ..constants import STEP_FAILED, STEP_NOT_LIVE, STEP_OK
+from ..constants import STEP_FAILED, STEP_OK
 from ..desk.daily_ports import DayStep, Waiter
 from ..desk.daily_steps import StepOutcome
 from ..models import IST
@@ -30,9 +30,7 @@ class ServicingWaiter(Waiter):
             self.parts.service()
 
 
-def start_time(part: QuotePart, results: dict[str, dict]) -> str:
-    if results.get(part.name, {}).get("status") == STEP_NOT_LIVE:
-        return "not live"
+def start_time(part: QuotePart) -> str:
     if part.starts_after:
         return f"after {part.starts_after}"
     return f"from {part.not_before:%H:%M}" if part.not_before else "at the run's start"
@@ -47,7 +45,7 @@ class StartQuoteParts(DayStep):
         self.parts.start(day)
         starts: dict[str, list[str]] = {}
         for part in self.parts.parts:
-            starts.setdefault(start_time(part, self.parts.results), []).append(part.name)
+            starts.setdefault(start_time(part), []).append(part.name)
         reason = "; ".join(f"{', '.join(names)} {when}" for when, names in starts.items())
         return StepOutcome({"parts": [p.name for p in self.parts.parts]}, {"status": STEP_OK, "reason": reason})
 
@@ -59,8 +57,7 @@ class FinishQuoteParts(DayStep):
     def run(self, day: date) -> StepOutcome:
         """The parts are always open here: started by this run's `quotes`, or resumed by a rerun (F1)."""
         results = self.parts.finish(self.waiter.until)
-        fine = (STEP_OK, STEP_NOT_LIVE)  # a part not live yet (G10's `v4`) is no problem of the day
-        bad = [name for name, result in results.items() if result["status"] not in fine or result.get("commit_error")]
+        bad = [name for name, result in results.items() if result["status"] != STEP_OK or result.get("commit_error")]
         reason = f"not ok: {', '.join(bad)}" if bad else "every part ok"
         return StepOutcome({}, {"status": STEP_FAILED if bad else STEP_OK, "reason": reason, "parts": results})
 

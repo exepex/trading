@@ -11,6 +11,7 @@ from fno.config import ROOT
 from fno.constants import V4_DAY_A, V4_DAY_SYSTEM_LATE, V6_BIG_MOVE_1S
 from fno.forecast_scoring.v4 import wiring
 from fno.forecast_scoring.v4.days import PENDING, DayFileError, DayLabel, LiveDayLabels, V4DaySource, missing_label
+from fno.forecast_scoring.v4.drive_records import DriveRecords
 from fno.forecast_scoring.v4.release_days import ReleasedDays
 from fno.storage import data_wiring
 from fno.storage.data_store import DataStore
@@ -74,7 +75,7 @@ def released(tmp_path, *days, late=()):
         built.append(1)
         return DriveCache(drive, receipts, tmp_path / "cache")
 
-    return ReleasedDays(receipts, cache, "data"), drive, built
+    return ReleasedDays(DriveRecords(receipts, cache, "data", "v4/days")), drive, built
 
 
 def test_records_are_read_from_drive_across_a_year_folder(tmp_path):

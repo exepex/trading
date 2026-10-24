@@ -23,7 +23,7 @@ LABELS = (V4_DAY_A, V4_DAY_SYSTEM_LATE)  # A2 (A16's mark as fallback) dropped: 
 SHA256 = re.compile(r"[0-9a-f]{64}")
 PENDING = "pending"  # the report's own date with no release record yet: never scored, counted apart
 COUNTS_LINE = ("days (live pack): A {a}, system_late {late} (out for every family), pending {pending}; moved after "
-               "cutoff {flagged}, flag not computable {unknown}")  # fmt: skip
+               "cutoff {flagged}, flag not computable {unknown}; deadline not checked {unchecked}")  # fmt: skip
 
 
 class DayFileError(ValueError):
@@ -45,10 +45,11 @@ class DayCounts:
     flagged: int
     unknown: int  # labelled days whose 14:30 or 15:15 level is missing: the flag is not computable
     pending: int = 0  # the report's own date, its release record not written yet
+    unchecked: int = 0  # live days with a row whose 15:10 deadline has no verdict yet (G10 completion, criterion 8)
 
     def line(self) -> str:
         return COUNTS_LINE.format(a=self.a, late=self.late, pending=self.pending, flagged=self.flagged,
-                                  unknown=self.unknown)  # fmt: skip
+                                  unknown=self.unknown, unchecked=self.unchecked)  # fmt: skip
 
 
 class V4DaySource(ABC):
@@ -83,12 +84,13 @@ def missing_label(day: date, live_from: date | None, today: date) -> str | None:
 
 
 def day_counts(labels: dict[date, DayLabel], moved: Callable[[date], bool | None], as_of: date,
-               pending: int = 0) -> DayCounts:  # fmt: skip
+               pending: int = 0, unchecked: int = 0) -> DayCounts:  # fmt: skip
     """`moved(d)`: whether day d moved after the cutoff (None: not computable)."""
     shown = [label for day, label in labels.items() if day <= as_of]
     flags = [moved(label.day) for label in shown]
     count = [label.label for label in shown].count
-    return DayCounts(count(V4_DAY_A), count(V4_DAY_SYSTEM_LATE), flags.count(True), flags.count(None), pending)
+    return DayCounts(count(V4_DAY_A), count(V4_DAY_SYSTEM_LATE), flags.count(True), flags.count(None), pending,
+                     unchecked)  # fmt: skip
 
 
 class LiveDayLabels(V4DaySource):
