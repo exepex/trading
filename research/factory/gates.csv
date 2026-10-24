@@ -58,3 +58,4 @@ trial_id,gate,outcome,on,commit,numbers
 94,G2,exploratory,2026-10-22,0618f52fff4175de73dfb6342e85905258968f2f,rows=1;not_fresh=1
 94,G3,exploratory_shadow,2026-10-22,13312eaf2f09aab6742f45dd90241925f9781d9e,z=1.6449;n=133;years=25.33
 99,G0,idea,2026-10-22,c0c2775da74c3632850cb67ac17cf22b72125890,
+100,G0,idea,2026-10-24,ccb04c83bbc162a714b0c032d31a15b633b82a4a,
