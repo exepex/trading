@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: market-brief app API
-  version: 2.13.0
+  version: 2.14.0
   summary: Read API over the precomputed read models (docs/ARCHITECTURE.md section 4), plus planned governed writes.
   description: |
     Research only: nothing here places, routes or suggests a trade, and nothing is investment advice.
@@ -114,6 +114,12 @@ info:
     every publication, the F&O pages held back, each with the session its hold began, the reason (a fixed sentence, never
     a value) and whether the screen shows the previous page or nothing, so every held page says so on screen. Both are
     additions: every 2.12 payload stays valid.
+
+    Version 2.14 (W3i, owner's UI pause exception a, 24 Oct 2026): the card's `reason` gains three codes exepex/trading's
+    card already gives: `trade_fields_not_built` (T1), `hard_rule_breach` (T2: C4 refused a book's trade; not the devil's
+    advocate's `advocate_hard_rule`) and `step_problems` (T1e: a desk step failed or was refused). No screen changes.
+    The three codes have no Mock example yet (an example would add a mockup state, which the UI pause stops). An
+    addition: every 2.13 payload stays valid; the card page is not published yet.
 
     Serve-time fields (2.0 page payloads): the stored payload carries no time of its build, so a rebuild of the same data
     keeps its hash. The route adds `cutoff` and `built_at` (the row's envelope) at the top of a page payload and
