@@ -7,11 +7,6 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 from datetime import date, datetime
 
-# Protocol 1.4: v4's Black-76 runs at 6.5% (the pack's IV30; V4's and V5's leg IVs and parity forward). A protocol
-# number, never `config.yaml`'s `risk_free_rate` (other stories read that one and may move it); kept out of
-# `fno/forecast_v4/terms.py`, whose bytes are in M1's method hash (as `release_run.V4_RELEASE_BY`)
-PACK_RISK_FREE_RATE = 0.065
-
 
 @dataclass(frozen=True)
 class Level:

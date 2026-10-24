@@ -73,18 +73,44 @@ def test_a_record_pinning_another_text_than_the_commits_is_refused(repo):
     ]
 
 
-def test_a_record_without_a_protocol_commit_line_is_refused(repo):
-    _commit(repo, "final text\n", "protocol")
+def test_a_record_without_or_with_two_protocol_commit_lines_is_refused(repo):
+    commit = _commit(repo, "final text\n", "protocol")
     assert freeze_check.protocol_problems("# Freeze\n", Git(repo)) == [
-        "the record has no 'Protocol commit: `<40-hex sha>`' line"
+        "the record has 0 'Protocol commit: `<40-hex sha>`' lines, not one"
+    ]
+    twice = _record(commit, "final text\n") + f"Protocol commit: `{commit}`\n"
+    assert freeze_check.protocol_problems(twice, Git(repo)) == [
+        "the record has 2 'Protocol commit: `<40-hex sha>`' lines, not one"
     ]
 
 
-def test_freeze_problems_joins_the_files_and_the_protocol_commit(repo):
+def test_an_earlier_commit_with_the_same_text_is_not_the_final_text_commit(repo):
+    first = _commit(repo, "final text\n", "protocol")
+    _commit(repo, "other\n", "an edit")
+    _commit(repo, "final text\n", "the edit undone")
+    assert freeze_check.protocol_problems(_record(first, "final text\n"), Git(repo)) == [
+        f"protocol commit {first[:10]} is not the last commit that changed {PROTOCOL}"
+    ]
+
+
+def test_the_check_joins_the_files_and_the_protocol_commit(repo):
     commit = _commit(repo, "final text\n", "protocol")
     record = _record(commit, "final text\n")
-    assert freeze_check.freeze_problems(repo, record, Git(repo)) == []
+    assert freeze_check.check(repo, record, Git(repo)) == freeze_check.FreezeCheck()
     _commit(repo, "edited text\n", "an edit after the freeze")
-    assert freeze_check.freeze_problems(repo, record, Git(repo)) == [
-        f"{PROTOCOL}: changed since the freeze (a change is a new version, never an edit)"
-    ]
+    found = freeze_check.check(repo, record, Git(repo))
+    assert not found.holds() and found.problems == (
+        f"{PROTOCOL}: changed since the freeze (a change is a new version, never an edit)",
+        f"protocol commit {commit[:10]} is not the last commit that changed {PROTOCOL}",
+    )
+
+
+class ShallowGit(Git):
+    def is_shallow(self) -> bool:
+        return True
+
+
+def test_a_shallow_clone_is_not_checked_never_broken_or_intact(repo):
+    commit = _commit(repo, "final text\n", "protocol")
+    found = freeze_check.check(repo, _record(commit, "final text\n"), ShallowGit(repo))
+    assert not found.holds() and found.problems == () and found.lines()[0].startswith("v4 freeze NOT CHECKED: shallow")

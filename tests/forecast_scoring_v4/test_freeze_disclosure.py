@@ -7,11 +7,16 @@ import json
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 from fno.forecast_scoring.v4.freeze_disclosure import (
+    DRIVE_BACKFILLS,
+    DRIVE_LIVE,
     NONE,
+    DisclosureError,
     csv_rows,
     disclosure,
-    drive_backfills,
+    drive_files,
     reports_through,
     weather_rows,
 )
@@ -38,7 +43,7 @@ def test_a_mixed_file_discloses_its_backfill_rows_and_its_live_rows_apart(tmp_pa
     _csv(tmp_path, "base_rate", [*back, *live])
     (found,) = csv_rows(tmp_path, "backfill_exploratory")
     assert (found.first, found.last, found.count, found.methods) == ("2017-01-03", "2026-10-15", 2, ("a" * 64,))
-    assert found.sha256 == hashlib.sha256(("\n".join([HEADER, *back]) + "\n").encode()).hexdigest()
+    assert found.sha256 == hashlib.sha256(("\n".join([HEADER, *back]) + "\n").encode()).hexdigest()  # plain rows
     (before,) = csv_rows(tmp_path, "live", FREEZE)
     assert (before.first, before.last, before.count) == ("2026-10-22", "2026-10-22", 1)
 
@@ -73,14 +78,46 @@ def test_reports_and_drive_receipts_are_listed_on_or_before_the_freeze(tmp_path)
         (folder / name).write_text("x", encoding="utf-8")
     assert reports_through(tmp_path, FREEZE) == [f"research/forecasts/v4_scores/{n}" for n in
                                                  ("2026-10-24.md", "2026-10-25.json")]  # fmt: skip
-    receipt = tmp_path / "receipts/data/v4/records/backfill/21f62594/raw_implied/v2_to_2026-10-15.csv.sha256"
+    receipt = tmp_path / DRIVE_BACKFILLS / "21f62594/raw_implied/v2_to_2026-10-15.csv.sha256"
     receipt.parent.mkdir(parents=True)
     receipt.write_text(f"{'f' * 64}\t10\t2026-10-24T10:00:00+00:00\tv4\tid\n", encoding="utf-8")
-    assert drive_backfills(tmp_path) == [f"| `{receipt.relative_to(tmp_path).as_posix()}` | `{'f' * 64}` |"]
+    assert drive_files(tmp_path, DRIVE_BACKFILLS) == [
+        f"| `{receipt.relative_to(tmp_path).as_posix()}` | `{'f' * 64}` |"
+    ]
+
+
+def test_drive_live_rows_are_listed_up_to_the_freeze_day_only(tmp_path):
+    for day in ("2026-10-23", "2026-10-25", "2026-10-26"):
+        receipt = tmp_path / DRIVE_LIVE / f"premium_adjusted_implied/v2_rv_next_5_sessions/2026/{day}.json.sha256"
+        receipt.parent.mkdir(parents=True, exist_ok=True)
+        receipt.write_text(f"{day[-1] * 64}\t10\tt\tw\tid\n", encoding="utf-8")
+    listed = drive_files(tmp_path, DRIVE_LIVE, FREEZE)
+    assert len(listed) == 2 and "2026-10-26" not in "".join(listed)
+
+
+def test_a_file_the_disclosure_cannot_read_is_named(tmp_path):
+    path = _csv(tmp_path, "base_rate", [])
+    path.write_text("", encoding="utf-8")
+    with pytest.raises(DisclosureError, match="base_rate/v6_abs_move_2pct_next_session.csv: no header"):
+        csv_rows(tmp_path, "backfill_exploratory")
+    path.write_text(HEADER + "\n2017-01-03,0.04\n", encoding="utf-8")
+    with pytest.raises(DisclosureError, match="another field count"):
+        csv_rows(tmp_path, "backfill_exploratory")
+    path.unlink()
+    receipt = tmp_path / DRIVE_BACKFILLS / "x.csv.sha256"
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text("", encoding="utf-8")
+    with pytest.raises(DisclosureError, match="an empty receipt"):
+        drive_files(tmp_path, DRIVE_BACKFILLS)
+
+
+def test_a_quoted_field_with_a_comma_is_one_field(tmp_path):
+    _csv(tmp_path, "base_rate", [_line("2017-01-03", "backfill_exploratory").replace(",ok,", ',"o,k",')])
+    assert csv_rows(tmp_path, "backfill_exploratory")[0].count == 1
 
 
 def test_an_empty_repository_discloses_none_in_every_part(tmp_path):
-    assert disclosure(tmp_path, FREEZE).count(NONE) == 4
+    assert disclosure(tmp_path, FREEZE).count(NONE) == 5
 
 
 def test_the_repository_discloses_g7s_and_m1s_backfills_and_the_pre_freeze_live_days():

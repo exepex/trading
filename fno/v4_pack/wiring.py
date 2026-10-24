@@ -26,7 +26,8 @@ from .sessions import sessions_between
 V4_RECORDS = "research/forecasts/v4"  # G8's folder of CSV records (G7's rules, M1's weather)
 RELEASE_WRITER, DEADLINE_WRITER = "v4-release", "v4-deadline"
 IV30_METHOD = "g1_v2_live_atm_iv30"
-IV30_METHOD_FILES = ("research_engine/live_features.py", "forecast/iv30.py")  # G1 v2's live ATM rule and interpolation
+# G1 v2's live ATM rule and interpolation, and the protocol's rate they run at (story G6 freeze, judge 597 SF1)
+IV30_METHOD_FILES = ("research_engine/live_features.py", "forecast/iv30.py", "forecast_v4/pricing.py")
 
 
 def iv30_method() -> str:
@@ -37,12 +38,12 @@ def iv30_method() -> str:
 
 
 def build_iv30_rule():
-    """G1 v2's live ATM IV30 rule at the protocol's rate (`model.PACK_RISK_FREE_RATE`), never the config's."""
+    """G1 v2's live ATM IV30 rule at the protocol's rate (`pricing.V4_RISK_FREE_RATE`), never the config's."""
+    from ..forecast_v4.pricing import V4_RISK_FREE_RATE
     from ..research_engine.implied_vol import Black76
     from ..research_engine.live_features import LiveAtmIvMinusRealised
-    from .model import PACK_RISK_FREE_RATE
 
-    return LiveAtmIvMinusRealised(None, PACK_RISK_FREE_RATE, Black76())
+    return LiveAtmIvMinusRealised(None, V4_RISK_FREE_RATE, Black76())
 
 
 def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> ReleaseRun:

@@ -1,7 +1,8 @@
 """The v4 freeze record's disclosure (protocol section 8; story G6 freeze, criterion 9): every exploratory back-fill and
-every live row, report and Drive back-fill made on or before the freeze day, read from the repository, never typed by
-hand. Each back-fill source names its days, its row count, its method hashes and the SHA-256 of its back-fill rows, so
-the judge and any later reader can check that the rows disclosed are the rows still there."""
+every live row, report and Drive record made on or before the freeze day, read from the repository, never typed by
+hand. Each repository source names its days, its row count, its method hashes and the SHA-256 of its rows, so the judge
+and any later reader can check that the rows disclosed are the rows still there; a Drive file is named by its
+receipt."""
 
 from __future__ import annotations
 
@@ -13,13 +14,23 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from ...forecast_v4_rules.implied_backfill import BACKFILL_FOLDER
 from ...forecast_v4_rules.records import BACKFILL, LIVE
+from ...forecast_v4_rules.wiring import LIVE_RECORDS
+from ...storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER
 
 V4_RECORDS = "research/forecasts/v4"  # G7's and M1's CSV records, M1's day files under weather/
 WEATHER_DAYS = f"{V4_RECORDS}/weather"
 REPORTS = "research/forecasts/v4_scores"  # G8's reports (and looks, none before the freeze)
-DRIVE_BACKFILLS = "receipts/data/v4/records/backfill"  # G7b's Drive back-fills, one receipt per file
+DRIVE_BACKFILLS = f"{RECEIPTS_FOLDER}/{DATA_AREA}/{BACKFILL_FOLDER}"  # G7b's Drive back-fills, one receipt per file
+DRIVE_LIVE = f"{RECEIPTS_FOLDER}/{LIVE_RECORDS}"  # G7b's pack-derived live rows: <forecaster>/<question>/<YYYY>/<day>
+RECEIPT = ".sha256"
 NONE = "- none"
+TABLE_HEAD = "| Source | First day | Last day | Rows | Method SHA-256 (first 12) | Rows' SHA-256 |"
+
+
+class DisclosureError(ValueError):
+    """A record file the disclosure cannot read: named, so the freeze tool stops with the file, never a traceback."""
 
 
 @dataclass(frozen=True)
@@ -35,40 +46,53 @@ class Rows:
 
     def line(self) -> str:
         methods = ", ".join(f"`{m[:12]}`" for m in self.methods) or "none"
-        return (f"| `{self.source}` | {self.first} | {self.last} | {self.count} | {methods} | "
-                f"`{self.sha256}` |")  # fmt: skip
+        return f"| `{self.source}` | {self.first} | {self.last} | {self.count} | {methods} | `{self.sha256}` |"
 
 
 def csv_rows(root: Path, label: str, through: date | None = None) -> list[Rows]:
-    """Per record file, its rows of `label` (live ones only up to `through`): the header and those lines, hashed."""
+    """Per record file, its rows of `label` (live ones only up to `through`): the header and those rows, written back
+    as CSV with "\\n" line ends, hashed."""
     found = []
     for path in sorted((root / V4_RECORDS).glob("*/*.csv")):
-        text = path.read_text(encoding="utf-8")
-        header, *lines = text.splitlines()
-        rows = zip(csv.DictReader(io.StringIO(text)), lines, strict=True)
-        picked = [(row, line) for row, line in rows if _wanted(row, label, through)]
+        name = path.relative_to(root).as_posix()
+        header, *rows = _csv(path, name)
+        picked = [r for r in rows if _wanted(dict(zip(header, r, strict=True)), label, through)]
         if picked:
-            body = "\n".join([header, *(line for _, line in picked)]) + "\n"
-            found.append(_rows(path.relative_to(root).as_posix(), [r for r, _ in picked], body))
+            out = io.StringIO()
+            csv.writer(out, lineterminator="\n").writerows([header, *picked])
+            found.append(_rows(name, [dict(zip(header, r, strict=True)) for r in picked], out.getvalue()))
     return found
+
+
+def _csv(path: Path, name: str) -> list[list[str]]:
+    rows = list(csv.reader(io.StringIO(path.read_text(encoding="utf-8"))))
+    if not rows or not {"day", "label"} <= set(rows[0]):
+        raise DisclosureError(f"{name}: no header with `day` and `label`")
+    if any(len(r) != len(rows[0]) for r in rows[1:]):
+        raise DisclosureError(f"{name}: a row with another field count than the header")
+    return rows
 
 
 def weather_rows(root: Path, label: str, through: date | None = None) -> list[Rows]:
     """M1's day files of `label` as one source: the SHA-256 is over each file's path and bytes, in day order."""
     picked = []
     for path in sorted((root / WEATHER_DAYS).glob("*/*.json")):
-        day = json.loads(path.read_text(encoding="utf-8"))
+        name = path.relative_to(root).as_posix()
+        try:
+            day = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as fault:
+            raise DisclosureError(f"{name}: not JSON ({fault.msg})") from fault
         if _wanted(day, label, through):
-            picked.append((path, day))
+            picked.append((name, path, day))
     if not picked:
         return []
-    body = "".join(
-        f"{p.relative_to(root).as_posix()} {hashlib.sha256(p.read_bytes()).hexdigest()}\n" for p, _ in picked
-    )
-    return [_rows(f"{WEATHER_DAYS}/*/*.json", [d for _, d in picked], body)]
+    body = "".join(f"{name} {hashlib.sha256(path.read_bytes()).hexdigest()}\n" for name, path, _ in picked)
+    return [_rows(f"{WEATHER_DAYS}/*/*.json", [d for _, _, d in picked], body)]
 
 
 def _wanted(row: dict, label: str, through: date | None) -> bool:
+    if "label" not in row or "day" not in row:
+        raise DisclosureError(f"a record without `day` and `label`: {sorted(row)[:5]}")
     return row["label"] == label and (through is None or date.fromisoformat(row["day"]) <= through)
 
 
@@ -91,18 +115,28 @@ def _dated_on_or_before(stem: str, through: date) -> bool:
         return False
 
 
-def drive_backfills(root: Path) -> list[str]:
-    """G7b's Drive back-fills by their receipts: the path and the SHA-256 the receipt holds (content stays in Drive)."""
-    receipts = sorted((root / DRIVE_BACKFILLS).rglob("*.sha256"))
-    return [f"| `{p.relative_to(root).as_posix()}` | `{p.read_text(encoding='utf-8').split()[0]}` |" for p in receipts]
+def drive_files(root: Path, folder: str, through: date | None = None) -> list[str]:
+    """Drive files by their receipts under `folder`: each path and the SHA-256 its receipt holds (the content stays in
+    Drive); live files only up to `through`, by the day in their name."""
+    rows = []
+    for receipt in sorted((root / folder).rglob(f"*{RECEIPT}")):
+        name = receipt.relative_to(root).as_posix()
+        if through is not None and not _dated_on_or_before(receipt.name.split(".")[0], through):
+            continue
+        fields = receipt.read_text(encoding="utf-8").split()
+        if not fields:
+            raise DisclosureError(f"{name}: an empty receipt")
+        rows.append(f"| `{name}` | `{fields[0]}` |")
+    return rows
 
 
 def disclosure(root: Path, frozen_on: date) -> str:
     """The record's disclosure section, as Markdown."""
-    head = "| Source | First day | Last day | Rows | Method SHA-256 (first 12) | Rows' SHA-256 |\n" + "|---" * 6 + "|"
+    head = TABLE_HEAD + "\n" + "|---" * 6 + "|"
+    drive_head = "| Receipt | File SHA-256 |\n|---|---|"
     backfill = csv_rows(root, BACKFILL) + weather_rows(root, BACKFILL)
     live = csv_rows(root, LIVE, frozen_on) + weather_rows(root, LIVE, frozen_on)
-    drive = drive_backfills(root)
+    drive_back, drive_live = drive_files(root, DRIVE_BACKFILLS), drive_files(root, DRIVE_LIVE, frozen_on)
     parts = [
         "### Exploratory back-fills in the repository (`backfill_exploratory`, never counted)",
         "\n".join([head, *(r.line() for r in backfill)]) if backfill else NONE,
@@ -111,6 +145,8 @@ def disclosure(root: Path, frozen_on: date) -> str:
         f"### G8's reports dated on or before {frozen_on} (exploratory)",
         "\n".join(f"- `{p}`" for p in reports_through(root, frozen_on)) or NONE,
         "### Exploratory back-fills in Drive (by receipt; never counted)",
-        "\n".join(["| Receipt | File SHA-256 |", "|---|---|", *drive]) if drive else NONE,
+        "\n".join([drive_head, *drive_back]) if drive_back else NONE,
+        f"### Live rows in Drive made on or before {frozen_on} (by receipt; before the freeze, never counted)",
+        "\n".join([drive_head, *drive_live]) if drive_live else NONE,
     ]
     return "\n\n".join(parts)
