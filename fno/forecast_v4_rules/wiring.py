@@ -40,6 +40,13 @@ METHOD_FILES = (
 IMPLIED_METHOD_FILES = (
     "implied.py", "eod_iv30.py", "implied_backfill.py", "drive_records.py", "series.py", "baselines.py", "records.py"
 )  # fmt: skip
+# Criterion 21 (judge 585's ruling): the pack-derived rows' own method hash, over every file of this package the post-
+# release capture runs (a test checks the list holds the capture's whole import closure inside the package)
+PACK_METHOD_FILES = (
+    "pack_capture.py", "v4_expiry.py", "live_quotes.py", "option_terms.py", "option_probabilities.py",
+    "option_outcomes.py", "implied.py", "ratio_store.py", "intraday_series.py", "drive_records.py", "constants.py",
+    "series.py", "baselines.py", "records.py",
+)  # fmt: skip
 LIVE_RECORDS = f"{DATA_AREA}/{LIVE_FOLDER}"  # the pack-derived live rows (part b2)
 LIVE_PATH_PARTS, JSON = 4, ".json"  # <forecaster>/<question>/<YYYY>/<date>.json under LIVE_RECORDS
 

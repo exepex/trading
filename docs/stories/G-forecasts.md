@@ -1179,6 +1179,42 @@ they found and what was fixed or why not.
   report files it wrote were removed (not this story's to commit).
 - **Gates:** see the commit message.
 
+### Claims, build step 6: part b2's capture core (no pack file read yet; G10 is not on main)
+
+- **Code:** `fno/forecast_v4_rules/pack_capture.py` (`PackInputs`, this module's own input interface, carrying the
+  release record's label and SHA apart from the loaded pack's; `PackForecasts`; `capture_pack`), `ratio_store.py`
+  (`StoredRatio`), `records.record(..., version=)`, `implied.PremiumRatio.window`, `wiring.PACK_METHOD_FILES`
+  (criterion 21), two forecaster ids, and G10's guard: `fno/v4_pack/guard.PACK_READERS` gains the five pack-reading
+  forecasters (its own comment says they join "when they are built"). **Said plainly:** that edits G10's file and its
+  test `tests/v4_pack/test_pack_binding.py` (a lane-1 test edit, now naming the new readers and that base rates are
+  none); G10's branch does not change either file, so the merge does not conflict.
+- **Rules as built:** nothing on a `system_late` day; every pack row passes `check_pack_binding` against the release
+  record's SHA; base rates name no pack; the 15:10 deadline is checked before every write; a rerun skips a row
+  already written the same (`Record.same_as`, `made_at` aside) and refuses a changed one; the ratio is computed only
+  on its refit day and stored with its window (first, last, count, inputs SHA-256), so a missed refit day leaves the
+  month not eligible (never a late ratio); each row hashes what it read; versions carry protocol 3.1's
+  "risk-neutral, not a real-world probability" (V5's baseline) and the ratio measure (premium-adjusted, W3).
+- **Tests:** `test_v4rules_pack_capture.py` (17). **Plants (16 + 1 equivalent):** deadline inclusive; a base rate
+  naming the pack; pack rows without the SHA; the W3 label lost; the stored ratio recomputed; a ratio file left out of
+  the hash list; another day written; a rerun conflicting; `system_late` written; the guard skipped; the deadline read
+  once; a late ratio; both version labels lost. **Equivalent:** the capture's own `resolved_on < d` filter widened to
+  `<=` (`BaseRate.forecast` already drops outcomes not resolved before `d`).
+- **Self-review (an independent agent), all fixed:** (1, blocking) `made_at` in the bytes made every rerun conflict,
+  so a failed run could never finish the day; (2, blocking) the guard was never called and the pack's SHA was
+  compared with itself; (3, blocking) the day label was a constant and `system_late` unhandled; (4) the stored ratio
+  could be computed late from files archived after the refit day; (5) the ratio file lacked its window; (6) one
+  inputs hash for every row; (7) no measure or risk-neutral label; (8) the deadline checked once; (10) V1 under option
+  A hard-coded: `PackForecasts` no longer decides it; V1's baselines come from the wiring on its own measure's ratio
+  (that wiring comes with the adapter, below). **Said plainly (9):** criterion 21's gate is the
+  import-closure test plus the reader's stale back-fill stop; live rows keep the hash of the code that made them,
+  as phase 1's gate (live rows are never regenerated). Files outside the package that shape these rows
+  (`fno/forecast_v4/*`, frozen at the v4 freeze; `fno/v4_pack/model.py`, G10's) are not in this hash.
+- **Not yet (needs G10 on main):** the adapter from G10's released `Pack` to `PackInputs` (IV30 points to a fraction,
+  the future's last trade time or volume, `v4_expiry`, `ListedExpiries`), the wiring of `get`/`put` to the Drive
+  cache and `DataStore`, the CLI `forecast-v4 capture-pack`, the O1 step (with `receipts/data/v4/ratios/` in its
+  paths) and the V4/V5 outcome and proxy-drift writers.
+- **Gates:** see the commit message.
+
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
 premium ratio is fitted on the EOD proxy and applied to the 14:30 pack's IV30 (the mismatch is the drift criterion 14

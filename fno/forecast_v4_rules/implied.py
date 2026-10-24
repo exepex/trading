@@ -10,6 +10,7 @@ import statistics
 from dataclasses import dataclass
 from datetime import date
 from functools import cache
+from typing import Protocol
 
 from ..forecast_v4.eligibility import premium_ratio_window
 from ..forecast_v4.terms import CALENDAR_DAYS_A_YEAR
@@ -65,15 +66,24 @@ class PremiumRatio:
         self.at = cache(self._at)
 
     def _at(self, refit_day: date) -> float | None:
-        window = premium_ratio_window(self.resolved.items(), refit_day)
+        window = self.window(refit_day)
         return None if window is None else statistics.median(self.ratios[t] for t in window)
+
+    def window(self, refit_day: date) -> list[date] | None:
+        """The window's points at a refit (None: fewer than 500)."""
+        return premium_ratio_window(self.resolved.items(), refit_day)
+
+
+class RatioAt(Protocol):
+    def at(self, refit_day: date) -> float | None: ...
 
 
 class ImpliedBaselines:
     """Raw and premium-adjusted implied for one horizon from a day's IV30 (the pack's live, the EOD proxy in the
-    back-fill) and the scored sessions; the horizon end `d+h` is the h-th scored session after `d`."""
+    back-fill) and the scored sessions; the horizon end `d+h` is the h-th scored session after `d`. `ratio`: the
+    in-memory `PremiumRatio` (back-fill) or the month's stored one (`ratio_store.StoredRatio`, live)."""
 
-    def __init__(self, horizon: int, sessions: list[date], ratio: PremiumRatio):
+    def __init__(self, horizon: int, sessions: list[date], ratio: RatioAt):
         self.h, self.sessions, self.ratio = horizon, sessions, ratio
 
     def raw(self, d: date, iv: IvPoint | None) -> Value:
