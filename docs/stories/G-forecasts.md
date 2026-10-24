@@ -638,7 +638,8 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
   before the refit day, the most recent 750, at least 500 (else not eligible).
 - Ratio: the **median** of `RV_h(t) / raw_h(t)`, with `raw_h(t) = IV30_EOD(t)^2 x (calendar days t to t+h) / 365`.
 - Refit on the first scored session of each month (as HAR); every day of that month uses that refit. **The ratio is
-  computed once, on the refit day, from the inputs present then, and stored write-once** (`v4/ratios/<question>/<YYYY-MM>.json`:
+  computed once, on the refit day, from the inputs present then, and stored write-once** (`v4/ratios/<measure>/<question>/<YYYY-MM>.json`, `<measure>` = `close_proxy` or `intraday`, so an
+  option-B ratio never collides with an option-A one (judge 578.1 n2):
   the ratio, the window's first and last day, its count, and the inputs' SHA-256); every later day of the month reads
   the stored ratio and never recomputes it with files archived after the refit day (judge 578 m3). A refit day with no
   stored ratio (the capture did not run) is computed at the next run only from inputs whose receipts GitHub received
@@ -650,7 +651,8 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
     A16b's back-filled rows never count, decision 56). Same measure on both sides of the ratio. **Cost:** the window
     holds only live days from 16 Oct 2026, so V1's and part f's premium-adjusted baseline is missing (`not_eligible`)
     for about two years (longer for V3's 20-session series).
-  - **Option B, the close-proxy ratio (available now):** the V2 / V3 window's ratio, at `h` = 1 for V1, multiplies the
+  - **Option B, the close-proxy ratio (available now):** the close-proxy method (the V2 / V3 window: close-to-close `RV_h`
+    over the EOD-IV30 raw implied) computed at the question's own `h` (1 for V1; 5 and 20 for part f), multiplies the
     pack's raw implied. **Cost:** a measure mismatch: the ratio is fitted on close-to-close `RV_s` and applied to an
     intraday-with-overnight target. Both estimate the same daily variance, and the window already mixes measures (the
     EOD IV30 stands in for the 14:30 IV30, protocol 3.1), but the 26-snapshot quote RV can differ in level from the
@@ -873,10 +875,10 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 | # | What it says | Why it is needed |
 |---|---|---|
 | W1 | V4 measures realised movement from the 15-minute intraday quotes (A16), not from daily closes | the protocol implies it but never says it |
-| W2 | V5 uses the future's mid price (halfway between bid and ask) as its forward, and drops the day if that quote's spread is over 5% | the protocol says "the future" without saying which price |
+| W2 | V5 uses the future's mid price (halfway between bid and ask) as its forward, and drops the day if that quote's spread is over 5% or the future did not trade that day | the protocol says "the future" without saying which price |
 | W3 | **Your choice.** For V1 and the intraday V2/V3 series, the "premium-adjusted" yardstick (implied movement scaled by how much realised movement has run below it) is either (A) scaled on the same intraday measure: no value for about two years; or (B) scaled on daily closes: a value now, with a small known mismatch shown on every report. Recommended: B (reasoning only); both are side reports, never the main test | the protocol does not say which, and the two cost different things |
 | W4 | Dropped: the "first seen" time of the expiry-day file is Drive's own creation time, which the protocol already means | nothing to sign |
-| W5 | A "live" option quote needs a bid, an ask (ask not below bid) and a trade in that contract the same day, the rule the 3 pm quotes already use; order sizes are not checked because the pack does not hold them | the protocol does not define "live"; without the trade check a stale quote could pass |
+| W5 | A "live" quote (each option leg **and the future**) needs a bid, an ask (ask not below bid) and a trade in that contract the same day, the rule the 3 pm quotes already use; order sizes are not checked because the pack does not hold them | the protocol does not define "live"; without the trade check a stale quote could pass |
 | W6 | V4 starts when the pack holds a suitable expiry and A16 records movement (old text named A16's weekly quotes); V4's and V5's rule forecasts read the pack and name its fingerprint | the old start line predates the pack |
 | W7 | V2's and V3's intraday versions: how they are summed, voided, started and reported | the protocol names the series but not its rules |
 
@@ -970,7 +972,11 @@ they found and what was fixed or why not.
   `fno/forecast_scoring/v4/wiring.py`) to the Drive release records; part e depends on that change and never
   re-implements it.
 - **Open (asked of G10 through the orchestrator):** that its `v4_deadline` verdict also covers this story's receipt
-  path `receipts/data/v4/records/live/` (section 4's 15:10 rule, part e below). **Merge order:** `first_v4_expiry` merges first (G10's capture imports it); the rest of this
+  path `receipts/data/v4/records/live/` (section 4's 15:10 rule, part e below); until it does, G8's "deadline not
+  checked" count shows the gap, never silent.
+- **Open (b), asked of G10 (judge 578.1 n1):** the pack's future carries its `last_trade_time` or its day volume.
+  **Without it every V5 day is void (`no_trade_today`), so V5's primary baseline and its rule forecaster never have a
+  value.** W5 is never relaxed for the future without the owner's word. **Merge order:** `first_v4_expiry` merges first (G10's capture imports it); the rest of this
   story after G10's pack and release are on `main`.
 
 ### Round 2: answers to judge 578, by number
