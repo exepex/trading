@@ -158,3 +158,36 @@ def test_under_the_mode_the_owner_drive_sees_the_record_s_quote_sidecars(monkeyp
     monkeypatch.setattr("fno.rehearsal.drive_wiring.now_utc", lambda: datetime(2026, 10, 23, 3, 10, tzinfo=UTC))
     store = rehearsed_drive(RecordingDrive({raw(B22): b"22 Oct rows"}), env)
     assert store.get(raw(B22)) == b"22 Oct rows"
+
+
+def test_the_sidecar_is_read_as_main_holds_it_never_from_the_working_tree(tmp_path):
+    """Self-review: the record checkout may be on any branch; a sidecar gone from its working tree, or edited there,
+    neither crashes the read nor changes what main recorded."""
+    repo = record(tmp_path)
+    path = repo / QUOTES / f"{B22}.meta.json"
+    path.write_text(json.dumps({"finished_at": "2026-10-25T00:00:00+00:00", "raw_file_saved": False}))
+    assert QuoteSidecars(repo).seen_at(raw(B22)) == COMMITTED_22  # the edit is ignored
+    path.unlink()
+    assert seen(repo, B22, datetime(2026, 10, 23, 3, 8, tzinfo=UTC))  # and so is its absence
+
+
+def test_a_weekly_file_counts_and_a_non_groww_file_with_a_matching_sidecar_does_not(tmp_path):
+    repo = tmp_path / "record"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    for key, value in (("user.email", "t@example.com"), ("user.name", "t"), ("commit.gpgsign", "false")):
+        git(repo, "config", key, value)
+    weekly = "groww/derivatives/quote-snapshots-weekly/2026/10/niftyweekly_20261022_150613"
+    nse = "nse/derivatives/quote-snapshots/2026/10/nifty_20261022_145500"
+    for stem in (weekly, nse):
+        sidecar(repo, stem, FINISHED_22)
+    commit(repo, "both", COMMITTED_22)
+    assert QuoteSidecars(repo).seen_at(raw(weekly)) == COMMITTED_22
+    assert QuoteSidecars(repo).seen_at(raw(nse)) is None  # NSE's chain is in the repository, never a Drive quote
+
+
+def test_a_record_with_no_main_shows_nothing(tmp_path):
+    repo = tmp_path / "record"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    assert QuoteSidecars(repo).seen_at(raw(B22)) is None
