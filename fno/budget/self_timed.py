@@ -22,7 +22,7 @@ from .usage_reader import DayUsage, ExportRefused, SessionUsageReader, ist_time,
 
 SOURCE = "self-timed by the routine (start to end of its run)"
 SPLIT_SOURCE = "self-timed by the routine (start to seal; the wait to the end apart)"
-UPPER_BOUND_SOURCE = "self-timed by the routine (no_seal_upper_bound: never sealed, start to end counted)"
+UPPER_BOUND_SOURCE = "self-timed by the routine (no_seal_upper_bound: never sealed; start to end counted)"
 SEALED_AT = "sealed_at"
 MAX_RUN = timedelta(hours=24)  # longer is a typo, not a run: refused, never recorded
 LATER_THAN_TODAY = "ended_at {day} is after today ({today}): a run cannot end in the future"
