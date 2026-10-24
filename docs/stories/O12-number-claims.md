@@ -226,6 +226,25 @@ block, only that every trial sits in a block named for its experiment. An id typ
    accepts 116 for `edge2-f6-...`; Book 3's `book3:<id>` is still accepted.
 5. The evaluation freeze registers the lowest free id of its experiment's block; it is refused when there is no
    such block and when the block is full, even with a free id in another block.
-6. `numbers/README.md` and CLAUDE.md's numbering line name the new category; the claim tool's help lists it.
+6. `numbers/README.md` and `research/LEDGER.md` (where trial registration is described) name the new category; the
+   claim tool's help lists it. (CLAUDE.md's numbering line is about the review files and stays as it is.)
 Plants, one at a time and restored: the block check removed; the experiment check removed; the overlap check removed;
 the guard removed from `register`; the freeze's highest-plus-one restored.
+7. The factory's `register` takes the lowest free id of its card's experiment block, as the freeze does: its
+   "the next ledger trial" rule was the same highest-plus-one (found while building; same root cause).
+
+**Claims (builder, for the judge).**
+- Code: `fno/numbering/blocks.py` (new: the series, the findings, the seed runs, `TrialClaims`), `check.py`,
+  `seed.py` (keeps every pin when it rewrites them), `claim.py` (`CLAIMABLE`, `--count`, an exact block),
+  `tools/claim_number.py`; `fno/research_engine/ledger.py` (`TrialNotClaimed` in `register`);
+  `fno/evaluation/freeze.py` (the id chosen before any write, from the block); `fno/factory/registration.py`
+  (criterion 7).
+- Data: `numbers/ledger-trial.csv` (16 history rows by `check_numbers.py --seed` on `main` at c1c78f7c2 plus this
+  branch's merge, then the two reservations), `fno/numbering/seed_pins.json` (its `ledger-trial` pin).
+- Tests: `tests/numbering/test_ledger_blocks.py`, `tests/numbering/test_ledger_claim.py`; the factory and evaluation
+  test repositories now carry a claim registry (`tests/factory/helpers.py`, `tests/evaluation/builders.py`,
+  `tests/evaluation/test_breadth_protocol.py`), and `tests/factory/test_cards_anywhere.py`'s planted experiments
+  became `x1-test-*` (they shared one repository's ids with `x1-test`).
+- Plants (8, each caught, restored): the uncovered-trial check, the experiment check, the overlap check, the `-`
+  boundary of the prefix (`edge2-f60` taken by `edge2-f6`), the guard in `register`, the freeze's and the factory's
+  highest-plus-one, and a block claim that ignores ledger ids typed past every block.

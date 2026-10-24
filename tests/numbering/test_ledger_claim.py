@@ -39,6 +39,13 @@ def test_a_block_starts_after_every_block_and_ledger_id_on_main(tmp_path):
     assert origin_file(tmp_path, LEDGER_TRIAL.registry).endswith("121-126,edge2-f7,session_a,2026-10-25T01:00:00Z")
 
 
+def test_a_block_starts_after_a_ledger_id_typed_past_every_block(tmp_path):
+    """An id written into the ledger by hand, outside any block, is never handed out again."""
+    typed = {**MAIN, LEDGER: MAIN[LEDGER] + "130,hand,t,prospective,no,2026-10-25,,,,\n"}
+    clone, _ = origin_and_clones(tmp_path, typed)
+    assert claimer(clone).claim(block(count=2)).number == "131-132"
+
+
 def test_one_id_without_a_count(tmp_path):
     clone, _ = origin_and_clones(tmp_path, MAIN)
     assert claimer(clone).claim(block()).number == "121"

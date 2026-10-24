@@ -7,7 +7,8 @@ Untouched checks still available: NIFTY 2019-2023 (older NSE files) and forward 
 
 **Machine record:** `research/ledger.csv` (one row per trial) is what the engine checks before any trial runs
 (`fno/research_engine/ledger.py`, story B4): registration must be committed, and the trial's protocol frozen and
-unchanged. Trials 1-21 are `retrospective` (recorded while or after being run). Experiment 1's trials 22-31 were
+unchanged. Trial ids are claimed first, as blocks in `numbers/ledger-trial.csv` (story O12e; `numbers/README.md`),
+so parallel branches never take the same ids. Trials 1-21 are `retrospective` (recorded while or after being run). Experiment 1's trials 22-31 were
 registered before any of their results; they run only after the protocol freeze fills in `protocol_commit`.
 
 | # | Date | Meeting | Idea tested (data: NIFTY monthly options, 2024-2026, close-proxy) | Result | Status |

@@ -9,7 +9,8 @@
 
 Fails when a numbered file (or a numbered `## Addendum` heading) has no registry row, when a number is used twice
 outside the seeded history, when the seeded history differs from its pin, when a series file is misnamed, or when a
-row is malformed. A row with no file yet is a claim still being written.
+row is malformed. A row with no file yet is a claim still being written. Ledger trials (story O12e): fails when a
+whole-number trial id sits in no claimed block or in another experiment's block, or when two blocks overlap.
 """
 
 from __future__ import annotations

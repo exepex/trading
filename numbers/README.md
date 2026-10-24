@@ -8,6 +8,15 @@ One file per numbered series; each series has its own numbers, so series never c
 | `chatgpt-review.csv` | `reviews/chatgpt/review_<n>_<slug>.md` | the file name |
 | `judge-report.csv` | `reviews/judge/judge_<n>_<slug>.md` | the file name |
 | `judge-addendum.csv` | `## Addendum <k>` in `judge_<n>_*.md`, numbered `<n>.<k>` | a short label |
+| `ledger-trial.csv` | blocks of trial ids in `research/ledger.csv`, numbered `<a>-<b>` (or `<n>`) | the experiment prefix |
+
+**Ledger trials (story O12e).** Claim a block before registering trials:
+`python tools/claim_number.py ledger-trial <experiment-prefix> --session <id> --count <k>`, then merge `main` into
+your branch (`git pull --no-rebase origin main`) and register the trials with an experiment that is the prefix or
+starts with it and `-`. `Ledger.register`, the factory and the evaluation freeze refuse an id outside such a block;
+the check fails on a trial in no block, a trial in another experiment's block, and overlapping blocks. Ids that are
+not whole numbers (`book3:<strategy_id>`) are names, not counted ids, and stay outside. Trials 1-108 were on `main`
+when this merged and are seeded history (pinned), one block per run of one experiment.
 
 Columns: `number,name,session,claimed_at_utc`. Rows with session `existing` are the files that were on `main` when
 O12 merged (history, kept as it is, duplicates included); their SHA-256 is pinned in `fno/numbering/seed_pins.json`,
