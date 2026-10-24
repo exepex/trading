@@ -26,8 +26,9 @@ no-implied-vol proof, M1's hash gate) are merged (judges 414, 430, 436). This st
 
 1. **Title and protocol commit:** `Protocol commit: <sha>`, the commit that gives `PROTOCOL_v4.md` its final form
    (section 3 below). The record is a later commit; it names that commit and the SHA-256 of the protocol text at it.
-2. **`Frozen on: 2026-10-25`** (the line G8's `LookRecords.frozen_on` reads, `records.py:20`) and **`First counted
-   session: 2026-10-26`**, the first A7 `regular` session after it. If the merge to `main` slips past 25 Oct IST, both
+2. **`Frozen on: <day>`** (the line G8's `LookRecords.frozen_on` reads, `records.py:20`) and **`First counted
+   session: <S>`**, the first A7 `regular` session after it; planned 25 and 26 Oct, S held open for the owner (section
+   5). If the merge to `main` slips past 25 Oct IST, both
    lines move to the merge's IST day and the next regular session before the merge, never back-dated (owner, 21 Oct,
    "v4 freeze answers" (1): "Frozen on = the day the judge passes the freeze and the owner signs; go-live = the next
    trading session"). Live rows made on or before `Frozen on:` (22-23 Oct today) are never counted.
@@ -77,38 +78,92 @@ no-implied-vol proof, M1's hash gate) are merged (judges 414, 430, 436). This st
 
 ## 2. The file lists (section 10 of the protocol, widened to every file that decides a v4 baseline, outcome or score)
 
-**Byte-checked** (`freeze_check.BYTE_CHECKED_GLOBS`; today's list plus the additions marked **new**):
+**The rule (round 2, judge 597 SF3 and its import-walk note):** every file is classed by what its bytes do, and an
+import walk proves the classes cover everything, so no file on a v4 input path is missed by hand (judge 596 found
+three such: A16b's `candle_rv_table.py`, `rv_table.py`, `row_files.py`).
+- **Byte-checked** (`freeze_check.BYTE_CHECKED_GLOBS`): v4's own files whose bytes decide a v4 value. A change breaks
+  the freeze: the look refuses (criterion 4), a new version is needed.
+- **Recorded** (`freeze_check.RECORDED`, path -> reason): files shared with other stories or other versions whose
+  bytes still decide a v4 value. The record holds each SHA-256 and reason; every v4 report prints one line per
+  recorded file changed since the freeze (criterion 12), so a change is seen, never silent. The reason names the
+  lock: an earlier freeze that already byte-checks it, a hash carried in every record (the pack's `iv30_method`), or
+  the tests that pin its behaviour.
+- **Not deciding** (`freeze_check.NOT_DECIDING`, path -> reason): composition roots, storage, alerts, clocks and
+  readers that move bytes without computing a v4 value. Named in the record, not hashed; the walk stops at them.
+- **The walk (criterion 11):** from every byte-checked and recorded module, every `fno` module it imports (top-level
+  or inside a function) must be in one of the three classes; a stale entry (reached by nothing, or in two classes)
+  fails too. Modelled on S1's `tests/evaluation/test_scoring_closure.py` (judge 229), whose `imported` helper it
+  reuses. The walk is re-run on the merged tree with G7b and G11, so their new imports are classed before the freeze.
+
+**Byte-checked:**
 
 | Files | Why | On `main` now? |
 |---|---|---|
 | `research/forecasts/PROTOCOL_v4.md`, `PROTOCOL_v4_calibration.md` | the protocol | yes; final wording missing (section 3) |
-| `fno/forecast_v4/*.py` | every rule and number (G6) | yes (one change: the rate constant, section 3) |
+| `fno/forecast_v4/*.py` | every rule and number (G6); **new:** `pricing.py`, the rate (below) | yes |
 | `tools/v4_*.py`, `research/forecasts/v4_*.json`, `v4_*.md`, `tests/fixtures/forecast_v4/v4_golden.json` | calibration tools and tables, golden example | yes |
-| `fno/forecast_v4_rules/*.py` | G7 and G7b: baselines, rule forecasters, outcomes' series, records, the pack capture | **partly**: G7, G7b part a, b1, steps 3-4 merged (62023dbdd); steps 5-6 on `story/g7b-completion` (3033da0c9); the `Pack` adapter, `forecast-v4 capture-pack`, the V4/V5 outcome and proxy-drift writers not built |
+| `fno/forecast_v4_rules/*.py` | G7 and G7b: baselines, rule forecasters, outcomes' series, records, the pack capture, W8's ratio window reader | **partly**: G7, G7b part a, b1, steps 3-4 merged (62023dbdd); steps 5-6 on `story/g7b-completion` (3033da0c9); the `Pack` adapter, `forecast-v4 capture-pack`, the V4/V5 outcome and proxy-drift writers not built |
 | `fno/forecast_scoring/v4/*.py` | G8: scoring, comparisons, looks, day labels, deadlines, this check | **partly**: G10 completion merged; G7b's `drive_forecasts.py` and its `inputs.py`/`wiring.py` edits on the G7b branch |
 | `fno/forecast_scoring/scores.py` | G4's log-score clip and bins in v4's reported scores (judge 177) | yes |
 | `fno/intraday/realised_vol.py`, `session_rv.py`, `status.py`, `slots.py` | A16's V1 arithmetic and void rule (judge 177) | yes |
 | M1's `METHOD_FILES` (`fno/weather/wiring.py`) | V6's `rules` slot (decision 70) | yes |
-| **new:** `fno/v4_pack/*.py` | G10's pack, release, day labels (`system_late` days are out of scoring), 15:10 deadline (late = miss), the pack binding guard; the pack's IV30 is V2's raw and premium-adjusted input since G7b | yes (G10 completion); response 287 left it out because no counted member read the pack then; V2's primary now does |
-| **new:** `fno/research_engine/live_features.py`, `fno/forecast/iv30.py` | G1 v2's live ATM IV30 rule and interpolation, the pack's IV30 (`v4_pack/wiring.IV30_METHOD_FILES`); `iv30.py` is also the EOD proxy `PanelAtmIv30` | yes; `iv30.py` is already byte-checked by `FREEZE.md` and `FREEZE_v2.md`; `live_features.py` is recorded only by v2, so the desk's B7 ATM rule is frozen for v4's life (a change goes to a new file) |
-| **new:** G11's AI files: proposed `fno/ai/v4_*.py`, `scoring_gate.py`, `outcome.py`, `stop_rule.py`, `versions.py`, `run_terms.py`, `fire.py`, and the prompts `agents/forecast/book2_hybrid_v2.md`, `book3_ai_v2.md` | which AI book-days become rows or misses, the forecaster version and prompt hash, the pack binding (judge 275's condition; G11 D5: "the freeze list is the freeze builder's") | **no**: `story/g11-ai-books-v4` (bde1ec3c1), to merge tonight; G11's builder confirms the exact list through the orchestrator before the freeze code is judged |
+| **new:** `fno/v4_pack/*.py` | G10's pack, release, day labels (`system_late` days are out of scoring), 15:10 deadline (late = miss), the pack binding guard; the pack's IV30 is V2's raw and premium-adjusted input | yes, but **G10's `story/v4pack-rehearsed-live` changes `wiring.py` and must land before the freeze** (blocker 6) |
+| **new:** `fno/quotes/v4_extras.py` | the `v4` window's V4 expiry and future quote (G10 completion 3a), v4 only | yes |
+| **new:** `fno/ai/v4_*.py`, `agents/forecast/book2_hybrid_v2.md`, `book3_ai_v2.md` | G11's v4-only files: which AI book-days become rows or misses, the pack binding, the slots' registration; the prompts are the registered forecasters | **no**: `story/g11-ai-books-v4`, to merge tonight; G11's builder confirms through the orchestrator |
 
-**Recorded, not byte-checked** (`freeze_check.RECORDED_NOT_CHECKED`; shared, changed by other stories, behaviour locked
-by v4's tests): `fno/constants.py`, `fno/desk/settlement.py` (V5's `NseFinalSettlement`),
-`fno/research_data/calendar.py`, `fno/research_engine/implied_vol.py` (Black-76; also locked by v1 and v2's golden
-values), `fno/intraday/rv_table.py` (V1's outcome rows), and the rest of `fno/weather/` (the card and the US flag
-stay free). `fno/forecast/iv30.py` moves from this list to the byte-checked one.
+**Recorded (shared; each with its lock), the rulings so far** (the walk adds every other reached file, each with a
+one-line reason in `freeze_check.RECORDED` or `NOT_DECIDING`, listed in the record):
+
+| File | Decides | Shared with | Lock |
+|---|---|---|---|
+| `fno/constants.py`, `fno/desk/settlement.py`, `fno/research_data/calendar.py`, `fno/research_engine/implied_vol.py` | names; V5's settlement; the session set; Black-76 | every story | section 10's own list; v4's tests (`tests/forecast_v4/`), v1/v2 golden values for Black-76 |
+| `fno/forecast/iv30.py`, `fno/research_engine/volatility_features.py`, `close_series.py`, `fno/research_data/panel_reader.py`, `fno/forecast/live_pack.py`, `fno/research_data/quote_snapshots.py` | the EOD IV30 proxy (premium ratio window) and the live IV30's parts | G1 v1-v3 | **byte-checked by `FREEZE.md`/`FREEZE_v2.md`/`FREEZE_v3.md`** (strongest lock: their tests fail on any edit) |
+| `fno/research_engine/live_features.py`, `features.py`, `event_features.py` | the pack's live ATM IV30 (V2's raw and premium-adjusted input) | the desk (B7) | the pack's `iv30_method` hashes their bytes in every pack (`v4_pack/wiring.IV30_METHOD_FILES`), so a pack made on changed code names a different method; v2's golden cases |
+| `fno/quotes/quote_validity.py` | W5's "live two-sided quote" for V4/V5 legs and the future | A4's 3 pm quotes | G7b's live-quote tests (`tests/forecast_v4_rules/`) |
+| `fno/research_data/expiries.py`, `fno/analytics.py` (`norm_cdf`) | V4/V5 expiries; V5's option-implied probability | the desk, G13 | G7b's terms and probability tests (hand-computed values) |
+| `fno/storage/creation_times.py`, `fno/storage/raw_source.py` | V5's `first_seen_at` and settlement file path | O9, E7 | G7b's outcome tests |
+| `fno/intraday/rv_table.py`, `candle_rv_table.py`, `row_files.py`, `document.py`, `snapshot_files.py`, `clock.py`, `ledger.py` | V1's outcome rows; W8's ratio window (A16b's candles, `backfill_window`, judge 596); the pack's clock check | A16, A16b, G14 | A16's and A16b's tests; G7b names the W8 reader module (asked through the orchestrator) |
+| `fno/ai/versions.py`, `fire.py`, `outcome.py`, `scoring_gate.py`, `stop_rule.py`, `run_terms.py` and their AI imports (`answer.py`, `envelope.py`, `seal.py`, `submissions.py`, `timing.py`, `transcript_audit.py`, `audit_plan.py`, `draw_seed.py`, `coverage.py`, `rules.py`, `paths.py`, `pointer.py`) | the AI books' records, misses, versions | the v1/v2 AI run (G5) | G11's tests; each AI row carries its prompt hash (judge 597 SF3: recorded, not byte-checked) |
+| `fno/ai/receipts.py` | GitHub push times behind the 15:10 deadline (late = miss) | F1, O8 | the deadline tests (`tests/v4_pack/test_deadline.py`) |
+
+**Not deciding (named, not hashed), examples:** `fno/config.py`, `fno/models.py`, `fno/composition.py` (reached
+through `v4_pack/cli.py`), `fno/daily/wiring.py`, `fno/storage/*` wiring and stores, `fno/alerts/sender.py`,
+`fno/health/*`, `fno/pipeline/trigger.py`, `fno/rehearsal/*`, `fno/global_cues/*` (M1's US flag, outside its
+`METHOD_FILES`), `fno/quotes/recorder.py` and `window.py` (dataset names, capture window; the cutoff is enforced in
+`terms`), `fno/research_engine/ledger.py` (git), `fno/weather/records.py`, `drivers.py`, `model.py` (row shapes and the
+card's drivers, outside M1's `METHOD_FILES`).
 
 **Data, not hashed (it grows):** `research/data/nifty-panel/warmup_closes.csv` (O6, outcomes of V2, V3, V6, V7),
-A16's `rv/` rows, `research/data/calendar/nse_sessions.csv` (2027 rows to come), the Drive archives. Each row's own
-provenance and the readers' checks protect them; the record says so.
+A16's `rv/` rows, A16b's candle rows, `research/data/calendar/nse_sessions.csv` (2027 rows to come), the Drive
+archives. Each row's own provenance and the readers' checks protect them; the record says so.
 
-**Settings v4 reads from `config.yaml`** (recorded with their freeze values; not frozen):
-- `risk_free_rate: 0.065` **is read today by the pack's IV30 rule** (`fno/v4_pack/wiring.py:54`,
-  `LiveAtmIvMinusRealised(None, cfg["risk_free_rate"], ...)`), so a config edit (A21's T-bill capture is planned to
-  replace it, `fno/price_distribution/records.py:31`) would move V2's primary baseline with no frozen file changed.
-  Protocol 1.4 fixes 6.5%. **Fix (criterion 3):** a constant in `fno/forecast_v4/terms.py`, read by the pack's wiring
-  and by G7b's adapter; never `config.yaml`.
+**The rate (round 2, judge 597 SF1 and SF2; G10's builder's three conditions).** Protocol 1.4 fixes 6.5%; `config.yaml`
+`risk_free_rate: 0.065` is read by other stories and may move (A21's T-bill capture,
+`fno/price_distribution/records.py:31`).
+- **Where:** a new module `fno/forecast_v4/pricing.py`, `V4_RISK_FREE_RATE = 0.065`. Evidence: it is byte-checked by
+  the `fno/forecast_v4/*.py` glob; it is in no other method hash (M1's `METHOD_FILES`, `fno/weather/wiring.py:28-33`,
+  list only `forecast_v4/terms.py` and `sessions.py` from that package; G7's `METHOD_FILES`, `IMPLIED_METHOD_FILES` and
+  G7b's `PACK_METHOD_FILES` are paths inside `fno/forecast_v4_rules/`), so no committed row's hash moves and no
+  back-fill is regenerated. **Also in the pack's IV30 method** (G10's view): `pricing.py` joins
+  `v4_pack/wiring.IV30_METHOD_FILES`, so every pack's `iv30_method` covers the rate (no test pins that digest:
+  `tests/v4_pack/test_release_run.py:124` checks its form only; the first live pack is 26 Oct, so no released pack
+  changes). Not in `terms.py` (M1's hash would move: 2,400+ weather files regenerated) and not in `live_features.py`
+  or `iv30.py` (shared; `iv30.py` is byte-checked by v1, so an edit would break v1's freeze). Exactly 0.065, so 26
+  Oct's first pack is unchanged (G10's condition 1). Round 1's code put it in `fno/v4_pack/model.py`; round 2 moves it.
+- **Every v4 reader of the configured rate today, each fixed:** (1) the pack's IV30 rule, `fno/v4_pack/wiring.py:54`
+  (this story, G10's agreement, merged after or rebased on `story/v4pack-rehearsed-live`, then
+  `tests/rehearsal/test_v4_pack_live.py` and `tests/v4_pack` rerun: G10's condition 3); (2) G7b's EOD proxy for the
+  back-fill and the premium ratio window, `fno/forecast_v4_rules/wiring.py:77` `build_atm_iv30(cfg)`, which reads
+  `cfg["risk_free_rate"]` inside v1's frozen `fno/forecast/wiring.py:17` (that file cannot change): G7b builds
+  `PanelAtmIv30(Black76(), V4_RISK_FREE_RATE)` in its own wiring instead (G7b's file; asked through the
+  orchestrator); (3) G7b's V4/V5 terms (`option_terms.OptionTerms(model, rate, calendar)`), wired in its adapter, not
+  built yet: it passes `V4_RISK_FREE_RATE`. The EOD values are unchanged while the config holds 0.065, so the
+  back-fill's rows do not move (its method hash moves only if G7b's wiring is in `IMPLIED_METHOD_FILES`; G7b says).
+- **Test (criterion 3):** no byte-checked or recorded v4 module reads `cfg["risk_free_rate"]` or calls a known config
+  reader of it (`build_atm_iv30`), scanned over the walk's classes; and each rate user gets 0.065 with the config set
+  to 0.10.
+
+**Other settings v4 reads from `config.yaml`** (recorded with their freeze values; not frozen):
 - `quotes.windows.v4` (14:30-14:40): when A4e captures; the cutoff itself is enforced by `terms.V4_CAPTURE_START` and
   `V4_PACK_WINDOW_END` in `v4_pack/codec.py:119-131`, so a config edit cannot put a later quote in a pack.
 - `daily.live_from.*` (`weather`, `forecasts_v4`, `v4_pack`, G7b's `forecasts_v4_pack`, G11's `ai_books_v4`): which
@@ -124,7 +179,9 @@ provenance and the readers' checks protect them; the record says so.
   Frozen by `research/forecasts/FREEZE_v4.md` (section 10), which names this text's commit; nothing counts under v4
   before that record exists"; (b) section 10's list widened to section 2 above (G10's pack, G11's AI files, the IV30
   files) and "ChatGPT's review" marked paused by the owner (22 Oct); (c) section 1.4's rate named as
-  `terms.V4_RISK_FREE_RATE`. One commit, the protocol commit; nothing else changes it after.
+  `pricing.V4_RISK_FREE_RATE`, and `pricing.py` added to the "Reference code" list; (d) section 10 names the slot
+  registry `research/forecasts/v4_slots.csv` as append-only after the freeze (judge 597 m1; section 4 already names
+  the file, line 226, but not that rule). One commit, the protocol commit; nothing else changes it after.
 - `tests/forecast_scoring_v4/test_freeze_check.py`'s draft branch (`"**Status: DRAFT, not frozen.**"`) reads the new
   status line instead.
 
@@ -151,10 +208,13 @@ provenance and the readers' checks protect them; the record says so.
    `effective_start` after a question's first eligible session, and their base rate is eligible on Mon 26 Oct. They
    would stay "not started" (p = 1) for all of v4. (The owner's 21 Oct answer (3), "freeze with the AI slots
    unregistered", is replaced by the 24 Oct row: "G11's AI books (slots registered at the freeze)".)
-3. **The rate constant** (section 2): one constant in `terms.py` (this story) and one line in `fno/v4_pack/wiring.py`
-   (G10's file: its builder session_011hvvn9 or this story with its agreement, through the orchestrator).
+3. **The rate** (section 2): `fno/forecast_v4/pricing.py` and the pack's wiring line (this story; G10's builder
+   agreed, 24 Oct), and G7b's two readers (G7b's builder).
 4. **G7b's wordings W1-W8** in the protocol, then this story's protocol commit (section 3).
 5. **Main green** with the merged tree (full gates once, `docs/JUDGE.md` merge procedure).
+6. **Known pending changes to byte-checked files land first** (judge 597 SF3): G10's `story/v4pack-rehearsed-live`
+   (`fno/v4_pack/wiring.py`); any other open branch touching a byte-checked file is listed by the freeze tool from the
+   register and the branches at the freeze, and either lands or waits for v5.
 
 **Said plainly:** Sunday holds only if item 1 passes judge K on Sunday. If not, nothing is frozen early: `Frozen on:`
 becomes the merge's day and the first counted session the next one. Freezing without V2's live code would break
@@ -200,9 +260,18 @@ Rows of `docs/DESK_DECISIONS.md` by date and title. Recommendations are reasonin
 
 ## 5. `research/forecasts/v4_slots.csv` (protocol 4 and 5.6; `slot_file.COLUMNS`)
 
-Written in the freeze commit; every row `effective_start` 2026-10-26 (the first session after `Frozen on:`, and no
-later than any question's first eligible session: none exists before the freeze, `wiring._first_eligible`),
-`registered_on` 2026-10-25.
+Written in the freeze commit; every row `effective_start` = **S, the first counted session**, and `registered_on` =
+`Frozen on:`. **S is held open (orchestrator, 24 Oct): the owner decides between Mon 26 Oct and the first session
+the AI books can fire.** What follows from S, said plainly:
+- `slot_file.py:66-69` refuses an `effective_start` after a question's first eligible session, the first live session
+  after `Frozen on:` with a primary value; V6a, V6b and V7's base rate has a value on every session. So every row's
+  start must be the first session after `Frozen on:`, and **`Frozen on:` must be the calendar day before S or
+  earlier, but not before the previous session** (S = Tue 27 Oct needs `Frozen on: 2026-10-26`; Monday's live rows
+  are then before the freeze and never counted).
+- `daily.live_from.ai_books_v4` is set to S **in the freeze commit** (G11 C13; orchestrator, 24 Oct), so the AI books
+  fire on the first counted session; a later date leaves `not_fired` misses from S.
+- G11's 10 rows are written by `python -m fno ai register-v4-slots --print` on the freeze tree and pasted into the
+  freeze commit, before 09:15 IST of S (G11's command refuses after).
 
 | Question | `rules` | `hybrid` | `ai_team` |
 |---|---|---|---|
@@ -247,33 +316,47 @@ input "protocol v4's registered family, frozen" (`stop_rule_tracker.INPUTS`, sto
 
 ## 8. Acceptance criteria (each with its code, its test, the plant that must break it; good, bad, boundary, empty)
 
-1. **The list** (`freeze_check.BYTE_CHECKED_GLOBS`, `RECORDED_NOT_CHECKED`): covers section 2, the new rows
-   included, G11's list as confirmed. Test: named files listed, recorded ones not; G: a file of each folder; B: a
-   recorded file never byte-checked; Bd: `__pycache__` left out; E: an empty folder adds nothing. Plants: drop the
-   `fno/v4_pack` glob; drop one AI file; move `fno/constants.py` into the checked list.
-2. **The protocol commit** (new `freeze_check.protocol_problems(root, record, git)`, reusing B4's `Git`): the record's
-   `Protocol commit:` is an ancestor of HEAD and `PROTOCOL_v4.md` at it hashes to the table's value. Tests on a
+1. **The list** (`freeze_check.BYTE_CHECKED_GLOBS`, `RECORDED`, `NOT_DECIDING`): the three classes of section 2.
+   Test: named files in their class; no file in two classes; G: a file of each folder; B: a recorded file never
+   byte-checked; Bd: `__pycache__` left out; E: an empty folder adds nothing. Plants: drop the `fno/v4_pack` glob;
+   move `fno/constants.py` into the byte-checked list; move a recorded file to `NOT_DECIDING`. **The freeze tool refuses
+   while any listed glob or path matches no file** (self-review: G11's prompts and `run_terms.py` are not on `main`
+   yet, so a table printed now would leave them out silently).
+2. **The protocol commit** (new `freeze_check.protocol_problems(record, git)`, reusing B4's `Git`): the record has
+   exactly one `Protocol commit:` line; that commit is an ancestor of HEAD, is the last commit that changed
+   `PROTOCOL_v4.md` (section 10: "the commit that adds this text in its final form"), and the text at it hashes to
+   the table's value. Tests on a
    temporary git repository: G: intact; B: a commit not in history, a protocol edited after it; Bd: the protocol
    commit equal to HEAD; E: no `Protocol commit:` line. Plants: skip the ancestry check; compare with HEAD's text.
-3. **The rate** (`terms.V4_RISK_FREE_RATE = 0.065`): the release run's IV30 rule uses it whatever `config.yaml` says.
-   Test: `build_release_run` with `risk_free_rate: 0.10` builds a rule at 0.065. Plant: read the config again.
-4. **The look refuses a broken freeze** (G8's look command, `fno/forecast_scoring/v4/cli.py` or `look.py`): a
-   recorded look stops, writing nothing, while `problems` or `protocol_problems` is not empty, naming each; the
-   report's header prints "v4 freeze: intact" or the problems. G, B (one changed file), Bd (a file added after), E
-   (no record: "not frozen", as today). Plants: ignore the problems; print without refusing.
+3. **The rate** (`fno/forecast_v4/pricing.V4_RISK_FREE_RATE = 0.065`): the pack's IV30 rule and G7b's two users
+   run at it whatever `config.yaml` says (config set to 0.10 in the test); `pricing.py` is in
+   `IV30_METHOD_FILES`; no module in the walk's classes reads `cfg["risk_free_rate"]` or calls `build_atm_iv30`. G: the
+   three users; B: a planted config read; Bd: a comment naming the setting is not a read; E: a module with no rate.
+   Plants: read the config again in the pack's wiring; drop `pricing.py` from `IV30_METHOD_FILES`.
+4. **The look refuses a broken freeze** (G8's look command, `fno/forecast_scoring/v4/cli.py`): a recorded look stops,
+   writing nothing, while `freeze_problems` is not empty, naming each; the report's first line prints "v4 freeze:
+   intact" or the problems. The check is a required argument (no default that reads "intact"). **A shallow clone is
+   "freeze not checked (shallow clone)" in the report, never "BROKEN", and a look refuses on it** (self-review: the
+   weekly post-mortem workflow, `.github/workflows/postmortem-weekly.yml:46`, checks out shallow and commits the
+   report; its `fetch-depth: 0` is LR1's lane-1 change, asked through the orchestrator). G, B (one changed file), Bd
+   (a file added after; a shallow clone), E (no record: exploratory, as today). Plants: ignore the problems; print
+   without refusing; read a shallow clone as intact.
 5. **The record matches the repository** (existing `test_once_the_record_exists_the_repository_matches_it`, plus):
    `Frozen on:` parses; `First counted session:` is the first A7 regular session after it; the recorded list equals
    `recorded()`; the settings section names each key of section 2 with its value at the freeze. Plants: edit one
    hashed file by one byte (fails); a first session on a holiday; drop a recorded file.
 6. **Slots:** `v4_slots.csv` read through G8's real `build_slot_registry()` (G11's name for today's
-   `wiring._registry`) gives 15 members, all effective 2026-10-26; the record's copied rows are the file's first 15
+   `wiring._registry`) gives 15 members, all effective on S; the record's copied rows are the file's first 15
    rows, unchanged (append-only). B: an edited forecaster; Bd: a 16th appended row passes; E: no file before the
-   freeze (existing test, kept). Plants: change one frozen row; start one row on 2026-10-27.
+   freeze (existing test, kept). Plants: change one frozen row; start one row a session after S.
 7. **Ledger:** the `forecasts-v4` rows exist, one per question, `protocol_commit` equal to the record's, through
    `read_ledger`. Plants: a wrong protocol commit; a missing V6b row.
 8. **Freeze date:** `budget.stop_rule.v4_freeze_date` equals `Frozen on:`, and `build_review_date()` gives 2027-04-30
    with the weekday-fallback note. Plant: a date one day off.
-9. **Disclosure** (new module beside `freeze_check`, printed by `tools/v4_freeze_table.py`): one row per source with
+9. **Disclosure** (new module beside `freeze_check`, printed by `tools/v4_freeze_table.py`; it refuses a dirty tree, so
+   "as of commit" is true; a record file it cannot parse is named, never a traceback; Drive live rows made before
+   the freeze are listed by receipt beside Drive back-fills, folders taken from G7b's constants): one row per source
+   with
    first and last back-fill day, row count, method SHA-256(s) and the SHA-256 of its back-fill rows; pre-freeze live
    rows and reports listed apart; Drive back-fills from receipts. Tests on fixture folders: G mixed file; B a file
    whose rows carry two method hashes (both listed); Bd a file of live rows only (no back-fill line); E an empty
@@ -281,6 +364,16 @@ input "protocol v4's registered family, frozen" (`stop_rule_tracker.INPUTS`, sto
    as back-fill; drop M1's day files.
 10. **Protocol text:** the status line and section 10's widened list are read by `tests/forecast_v4/
     test_protocol_text.py`. Plant: the old draft line.
+
+11. **The walk** (S1's pattern, `imported` reused): from every byte-checked and recorded module, every reached `fno`
+    module is in a class; every `RECORDED` and `NOT_DECIDING` entry is reached and in one class only; reasons are
+    non-empty. G: today's tree; B: a new import of an unclassed module (a fixture module); Bd: an import inside a
+    function counts; E: a module with no `fno` import. Plants: drop `fno/intraday/candle_rv_table.py` from the
+    classes (the walk names it and its importer); leave a stale entry.
+12. **Recorded drift is printed:** after the freeze, the report prints one line per recorded file whose SHA-256
+    differs from the record's ("recorded file changed since the freeze: <path> (<reason>)"); the look prints the same
+    lines and still runs (recorded files do not break the freeze, by design of section 10). G: none changed; B: one
+    changed; E: before the freeze, nothing. Plant: compare with the wrong hash column.
 
 Every new file under 350 lines; the freeze tool and check stay pure functions apart from git and file reads.
 
@@ -291,9 +384,13 @@ Every new file under 350 lines; the freeze tool and check stay pure functions ap
 | The commit of the protocol's final form named | section 3; criterion 2 |
 | SHA-256 of the protocol, calibration, `fno/forecast_v4/`, tools and tables, golden fixture | criterion 1 (existing list) |
 | Every G7 and G8 file deciding a baseline, outcome or score | criterion 1; blocker 1 (G7b on `main`) |
-| Files outside G7/G8 that now decide one (G10's pack, G11's AI files, the IV30 files) | criterion 1; section 2 |
+| Files outside G7/G8 that now decide one (G10's pack, G11's AI files, the IV30 files, A16b's candle readers) | criteria 1, 11; section 2 |
+| No file on a v4 input path missed by hand (judges 596, 597) | criterion 11 |
+| A shared file that decides a v4 value changes after the freeze | criterion 12 (printed), section 2's locks |
 | The four recorded files of section 10 (+ `rv_table.py`, rest of `fno/weather/`) | criterion 5 |
-| A value that decides a baseline outside every file (the rate) | criterion 3 |
+| A value that decides a baseline outside every file (the rate), every reader of it | criterion 3; section 2 "The rate" |
+| Known pending changes to byte-checked files | blocker 6 |
+| The first counted session S held open; `ai_books_v4` = S in the freeze commit | section 5 |
 | Ledger row (B4) with the freeze | criterion 7 |
 | A change after the freeze is a new version | criteria 4, 5; record item 12 |
 | `Frozen on:` and the go-live date (G8) | criterion 5 |
@@ -325,9 +422,32 @@ Every new file under 350 lines; the freeze tool and check stay pure functions ap
 **Depends:** G6 pieces 1-3 (merged), G7b completion, G10 completion (merged), G11, the owner's sign-off (given) ·
 **Size:** M · **Status:** story text for the judge (rule 1); no code before its check
 
+## Round 2: answers to judge 597 (read at 2f48524dc), by number
+
+Also folded in from the builder's self-review of the round-1 code (an independent agent; findings and their fixes go
+in Claims): a shallow clone read as a broken freeze (criterion 4), a byte-checked entry that matches no file (criterion
+1), the check's arguments defaulting to "intact" (criterion 4), two `Protocol commit:` lines and an ancestor that is
+not the final-text commit (criterion 2), and the disclosure's robustness and Drive live rows (criterion 9).
+
+- **SF1, accepted.** The rate moves to `fno/forecast_v4/pricing.py` (outside M1's `METHOD_FILES`, evidence in section
+  2) and joins the pack's `IV30_METHOD_FILES` (G10's view); not `terms.py`. Round 1's code had it in
+  `fno/v4_pack/model.py` (also outside every method hash, but not where a protocol number belongs); round 2 moves it.
+- **SF2, accepted.** Section 2 names the three readers (the pack, G7b's EOD proxy through v1's frozen
+  `build_atm_iv30(cfg)`, G7b's V4/V5 terms); criterion 3's test scans the walk's classes for a config read or a call
+  of `build_atm_iv30`.
+- **SF3, accepted, with the walk.** Byte-checked = v4's own files; recorded = shared files that decide a v4 value, each
+  with its lock and a drift line (criterion 12); `fno/ai/versions.py`, `fire.py`, `outcome.py`, `scoring_gate.py`,
+  `stop_rule.py`, `run_terms.py` move to recorded; `live_features.py` and `iv30.py` too (locks: the pack's
+  `iv30_method`, v1-v3's freezes). Pending changes land first (blocker 6).
+- **m1, partly.** Section 4 of the protocol already names `research/forecasts/v4_slots.csv` (line 226); the protocol
+  commit adds the append-only rule in section 10 (section 3 (d)).
+- **Import walk (orchestrator's note, judges 596-597), accepted:** criterion 11; A16b's `candle_rv_table.py`,
+  `rv_table.py` and `row_files.py` are recorded with A16b's tests as their lock, and G7b names the W8 reader module.
+- **The first counted session S** is held open for the owner (section 5), with what it forces on `Frozen on:`.
+
 ## Orchestrator rulings on this text (24 Oct 2026)
 
-- V7's `rules` slot is `v7_vix_vs_mean20`; all 15 rows effective 2026-10-26, registered 2026-10-25 (section 5).
+- V7's `rules` slot is `v7_vix_vs_mean20`; all 15 rows effective on S (section 5; S held open for the owner).
 - 8 ledger rows, one per question (section 6).
 - The keep-or-change table above goes to the owner through the orchestrator.
 - The rate: this story adds the constant and the one wiring line unless G10's builder objects (asked by the
