@@ -107,7 +107,7 @@ def test_a_rerun_after_a_stop_past_fills_by_is_refused_and_opens_nothing(root, t
     assert log.result("fills") == {"status": STEP_REFUSED, "reason": reason} and log.done("fills")
     assert not fills(root, BOOK3_AI) and {book: fills(root, book) for book in written} == written
     assert FILLS_REFUSED.format(day=NORMAL, reason=reason) in alerts.sent and "stay in their accounts" in reason
-    assert "exits" in log.steps and "trade_marks" in log.steps
+    assert all(log.result(name).get("status") not in (STEP_FAILED, STEP_REFUSED) for name in ("exits", "trade_marks"))
     clock.now = clock.now.replace(hour=15, minute=19)  # even a clock set back: the refusal is recorded for the day
     assert run.run(NORMAL).result("fills")["status"] == STEP_REFUSED and not fills(root, BOOK3_AI)
 

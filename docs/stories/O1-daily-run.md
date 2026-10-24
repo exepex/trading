@@ -636,6 +636,39 @@ desk, scoreboard and health, then restored with `git checkout --`.
 - **Stated as limits above:** the alert repeated after a failed commit; the stop alert's wording; the hindsight
   window up to 15:20.
 
+**Follow-up after the merge (judge 569.3 M1; tests only, lane 2; `story/o1-r2-exits-retry-test`)** (builder
+session_016CU8KFuEEtWAM7ZNnFcKxv)
+
+M1: the late-rerun test checked only that "exits" was in the log, so nothing proved that an exits or marks retry after
+15:20 runs. That is when CLAUDE.md step 2b's immediate rerun comes, after the first run ends. No code changes; this
+pins round 2's claim that exits and marks keep their same-day retry, and round 3's claim that only the fills have the
+`fills_by` limit. No new criterion.
+
+| Claim | Test (`tests/timetable/test_late_retries.py`) and cases | Plant, caught by |
+|---|---|---|
+| An exits retry after 15:20 runs, reviews and closes each leg once, at the day's own snapshot | `test_an_exits_retry_after_fills_by_...`: reruns at 15:20:01 (boundary), 16:10 and 23:50 (good). The error comes after the closes were written (fills, ledger and event rows unchanged by the retry) or before any write (empty: the retry closes t1). Checks: one `closed` event row, one close per leg, unique fill IDs, closes on the snapshot's ID, one ledger row per entry ID | J8 `_too_late` refuses exits and marks too: 18 tests; J8b exits not retried: 6 |
+| A marks retry after 15:20 marks the day and writes each row once | `test_a_marks_retry_after_fills_by_...`: the same times, after or before the writes. The day's row for t1 is present, and marking once more changes no byte of `trade_marks.csv` or `equity_history.csv` | J8c marks not retried: 6; J8d the day's mark rows appended, not replaced: 6 |
+| Decision 47's rerun after a stop inside the fills, past 15:20, refuses the fills and runs the exits and the marks | `test_a_rerun_after_a_stop_past_fills_by_...` on a day t1's exit is due, at the three times. The fills are refused, book 2's written trade is unchanged, the exits close t1 once at the snapshot, and the marks are not refused or failed (the self-review's finding 2) | J8: 3 tests |
+| The same, in round 3's test | `test_fills_final.py`: the exits' and the marks' status is asserted (it used to be a membership check that survived J8) | J8: 3 tests |
+
+*Real output sample* (the committed code in a test, fake data). Run 1's exits on 16 Oct failed at 15:15:40 with
+`{"status": "failed", "reason": "TimeoutError: planted: the Drive read timed out", "retry": true}`. The rerun's exits
+started at 16:10:00: `{"book1_rules": {"reviewed": true, "results": [{"trade_id": "t1", "outcome": "closed", "reason":
+"every leg closed; net Rs -513.64"}]}}`. When the error came after the closes, the rerun reviewed with no new row:
+`{"book1_rules": {"reviewed": true, "results": []}}`.
+
+*Self-review* (an independent agent, given the diff and the story only; 4 findings, all taken):
+1. The ledger check compared whole rows, which a doubled entry with a new running cash balance passes, and `events()`
+   is a set. Now it checks unique entry IDs and counts the event rows, and the written case compares every row with
+   the state before the retry.
+2. Decision 47's late first exits after a stop was unproven, and round 3's check survived J8. Both are added above.
+3. The exit prices were not tied to the snapshot. The closes' snapshot ID is now asserted.
+4. A redundant equity count was replaced by checking that the day's mark row exists.
+
+*Gap list:* each of M1's asks (exits and marks after 15:20, the step's work, nothing doubled, J8) has a row above.
+Out of scope: a plant on the ledger's own duplicate check, because a closed trade is never reviewed again, so a retry
+never reaches that check.
+
 ## Known limits (one line each)
 
 - If the routine's session dies mid-day nothing restarts it; O8's 17:51 check reports it, and a rerun resumes (late).
