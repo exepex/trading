@@ -32,6 +32,15 @@ class CardSection:
 
 
 @dataclass(frozen=True)
+class CardWarning:
+    """Story T1e: the card's warning, a headline (glyph and word) and its detail. Only the renderer decides where it
+    goes, so the owner's choice of placement is a one-place change."""
+
+    headline: str
+    detail: str
+
+
+@dataclass(frozen=True)
 class StatusReading:
     status: CardStatus
     reason_code: str
@@ -45,6 +54,12 @@ class StatusSource(ABC):
 
 
 WEATHER_BLOCKS = "No new trades while the weather reading is missing (owner rule)."  # owner "4 A", 15 Oct 2026
+
+
+class WarningSource(ABC):
+    @abstractmethod
+    def warning(self, day: date) -> CardWarning | None:
+        """Story T1e: the card's warning for the day (a failed or refused desk step), or None."""
 
 
 class WeatherSource(ABC):

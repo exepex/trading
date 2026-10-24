@@ -51,7 +51,8 @@ class CardIssuer:
         after = self.host_now()
         checks = [self._slack_check(receipt, before, after), *(check_server(c, self.host_now) for c in self.clocks)]
         facts = {**self._facts(card, text, receipt, before, after, checks), "test": test}
-        record = {**facts, "schema": RECORD_SCHEMA, "text": text, "sections": [_section(s) for s in card.sections]}
+        record = {**facts, "schema": RECORD_SCHEMA, "text": text, "sections": [_section(s) for s in card.sections],
+                  "warning": _warning(card)}  # fmt: skip
         saved, drive_line = self.records.save(
             card.day, _record_name(card, receipt, after) + ("_test" if test else ""), _json(record)
         )
@@ -91,6 +92,11 @@ class CardIssuer:
 
 def _section(section) -> dict:
     return {"title": section.title, "lines": list(section.lines), "missing": list(section.missing)}
+
+
+def _warning(card: TradeCard) -> dict | None:
+    """Story T1e: the warning kept as data in the Drive record (never in the repository's delivery metadata)."""
+    return {"headline": card.warning.headline, "detail": card.warning.detail} if card.warning else None
 
 
 def _record_name(card: TradeCard, receipt: PostReceipt, after: datetime) -> str:
