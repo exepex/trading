@@ -3,8 +3,8 @@
 **Repository:** trading. **Owner:** session_011SsKz428ekYzMEeFMRphfA (orchestrator, 24 Oct; earlier the R2/G7 builder
 0185gR5DmoDh2zBAvgRU4CEB, out of reach). **Lane 1** (forecast records),
 one judge: Judge J (session_01Qg4Gxun1NvGRrtS9C68Dc1); judge D for the O1 parts. **Status:** text PASS (judge
-497.1, round 2); amendment 1 (v4 signed off, the v4 freeze, W8) to Judge J; code after its PASS and
-`FREEZE_v4.md` on `main`.
+497.1, round 2); amendment 1 (v4 signed off, the v4 freeze, W8) round 2 to Judge J (judge 596 FAIL
+round 1); code after its PASS and `FREEZE_v4.md` on `main`.
 
 **Description:** As the quantitative modeller, I want v4's five V1 forecasters (trailing, EWMA, HAR daily, HAR
 intraday and the close blend) run every session from now on, on the candle-based intraday RV history A16b already
@@ -127,8 +127,8 @@ The question is what the forecast for day `d` may read, point in time, at `d`'s 
   - The committed run log holds status only (`command:ok`); values live in this story's own records.
   - Judge D judges the O1 parts. The branch is never merged between 14:00 and 16:15 IST.
   - Timing: v4 ran 14:11:25-14:11:27 on 22 Oct, so this step starts at about 14:12.
-- Freeze: before its first live day, a short `FREEZE_v5_v1.md` hashes this package's files and the imported G7
-  files, with a `Frozen on:` line, the same rule as v4.
+- Freeze: before its first live day, a short `FREEZE_v5_v1.md` hashes every file on G14's input path, with a
+  `Frozen on:` line, the same rule as v4 (amended in round 2, judge 596 S2; amendment 1, section 3b).
 
 ### Registration (R1)
 
@@ -167,6 +167,16 @@ G14's capture refuse (criterion 9). So:
    PASS, merged outside 14:00-16:15 IST on a session day. Its gate is now steps 1-3 plus judge D; the owner's
    sign-off is given, so it is no longer a gate.
 
+**3b. What `FREEZE_v5_v1.md` hashes (judge 596 S2).** Every file on G14's input path: this package's files and every
+`fno` module they import, directly or through others, found by walking the imports (not a hand list). Today that path
+includes G7's imported files, G7b's candle reader and A16b's `fno/intraday/candle_rv_table.py`, which imports
+`fno/intraday/rv_table.py`, which imports `fno/intraday/row_files.py`. None of those three intraday files has a row in
+`FREEZE_v4.md` (`rv_table.py` is only "recorded, not checked"; the other two are in neither list), so without this an
+edit to them would change G14's input mid-measurement with nothing refusing it. Where `FREEZE_v4.md` has a row, the
+hash must be equal (criterion 12); where it has none, `FREEZE_v5_v1.md` alone holds it and the capture's freeze check
+(criterion 9) refuses on any change. W8's v4 baseline reads the same unhashed files: that is the v4 freeze builder's
+call, raised to the orchestrator, not G14's.
+
 **4. Live date.** `daily.live_from.forecasts_v5_v1` is set in the O1 step's commit to the first NSE session after the
 day that commit merges (never the merge day itself; DESK_DECISIONS 24 Oct "Merge and turn on everything completed
 now": a finished, judged switch goes live from the next session). Mon 26 Oct is possible only if steps 1-4 all pass
@@ -178,16 +188,24 @@ live row and no candle row before the cutoff (A16b's catch-up for 23 Oct runs at
 **5. W8 and G14: one reader of the candle history, no overlap** (owner, 24 Oct: "W8 - yes"; DESK_DECISIONS "W8:
 A16b's candle back-fill fills option A's ratio window"; G7b completion text, W8).
 - Different uses, said plainly. W8 puts A16b's rows only in a v4 baseline's ratio window (`backfill_window`), never a
-  forecast input, outcome or base rate (decision 56 as the owner read it). G14 uses A16b's rows as a forecast input,
-  exactly what decision 56 forbids in v4; that is allowed here only because G14 is a v5 R1 measurement, never a v4
-  member, never in a v4 look, and labelled on every row. Neither changes the other's rule.
+  forecast input, outcome or base rate (decision 56 as the owner read it, 24 Oct). G14 uses A16b's rows as a forecast
+  input. **Decision 56** (response 113, row 56: "rows with provenance backfilled never count as live forecast
+  inputs") **is general: as written it covers v5 too, so it forbids G14's input.** The authority for G14 is the
+  owner's own row of 23 Oct (DESK_DECISIONS "v5 trial: V1 next-session forecasts from stored candle history": "same
+  V1 forecasters fed by rv-candle 2020-2026"; owner: "Yes, start it"), which makes this one measurement an exception
+  to decision 56; it is not a general change of the rule. Decision 56's reason is hindsight inflating a forecast's
+  measured skill. The safeguards that keep that reason answered here: each row is read point in time by its
+  `first_seen_at` before `d`'s cutoff (criterion 1); every score is a live forecast against a live A16 outcome, never
+  a candle outcome (criterion 6); every row is labelled with its input measure and sources (criterion 4); G14 is an
+  R1 measurement, never a v4 member, never in a v4 look, never promoted.
 - One reader. G7b's builder (session_017GCFK7JLcsYeFKESyXtCyf) builds the reader of A16b's `rv-candle/` rows for
   W8, on top of A16b's own `CandleRvTable` (`fno/intraday/candle_rv_table.py`). G14's `history.py` imports that
   reader unchanged and adds only the splice; it never reads `rv-candle/` files itself. The reader must return each
   session's `status`, `rv_session`, `method`, `provenance` and `first_seen_at` (all columns of the table today); the
   splice's point-in-time filter uses `first_seen_at` against `d`'s cutoff. If G7b's reader is not on `main` when G14's
-  code starts, G14 waits; it never writes a second one. Because the reader sits in v4's byte-checked files, it must
-  land before `FREEZE_v4.md` (open item for the orchestrator).
+  code starts, G14 waits; it never writes a second one. If the reader lands in `fno/forecast_v4_rules/` (byte-checked
+  by v4's freeze), it must land before `FREEZE_v4.md`; G7b's builder has not named its module yet (open item for the
+  orchestrator, sent to G7b's builder on 24 Oct).
 - One pairing. W8's drift line (back-fill / live `RV_s` over every live day with both rows) and G14's measure-gap
   table are the same pairs. G14's `gap.py` prints the per-session rows of G7b's pairing; it computes no second
   ratio. W8's review alert (median of the latest 20 outside [0.95, 1.05]) is G7b's; G14 raises none.
@@ -202,11 +220,16 @@ A16b's candle back-fill fills option A's ratio window"; G7b completion text, W8)
 
   The same three values as W8's text (0.962, 0.997, 1.009). Some evidence only (n = 3).
 
-**6. "No partial v5" (owner, 24 Oct), said plainly.** The owner wrote "close v4 full first and then we'll work on v5
-and no partial implementation". G14 is not v5 going live: it is one R1 measurement candidate with its own step, and
-the later sign-off row names it among the items to switch on. If the owner reads "no partial v5" as covering G14
-too, G14 waits for the full v5; the orchestrator should confirm this with the owner before the O1 step merges (open
-item). Nothing else in this story changes with that answer.
+**6. "No partial v5" (owner, 24 Oct), settled.** The owner wrote "close v4 full first and then we'll work on v5 and
+no partial implementation". The orchestrator checked the owner's later words the same day: "Consider v4 sign off. So
+activate all the features which were waiting for v4 sign off" and "I want to run v5 dry run tests on weekend". G14's
+step is named among those held items (sign-off row), so G14 goes ahead; no further owner question (orchestrator, 24
+Oct).
+
+**Round 2 (judge 596).** S1: accepted; response 113 row 56 reads general, so section 5 now cites the owner's 23 Oct
+row as the authority and calls this an exception. S2: accepted and widened: the import walk also finds
+`fno/intraday/row_files.py` (imported by `rv_table.py`), which the finding did not name. m1: accepted; section 5 is
+conditional on the reader's module.
 
 ## Acceptance criteria and tests
 
@@ -235,8 +258,11 @@ item). Nothing else in this story changes with that answer.
 10. Code size, ruff and the full suite pass.
 11. One reader (amendment 1): no file under `fno/forecast_v5_v1/` names `rv-candle` or `CandleRvTable`; candle rows
    reach the splice only through G7b's reader (a test on the package's source and an import test).
-12. Freeze order (amendment 1): every imported G7 file listed in `FREEZE_v5_v1.md` has the same SHA-256 as its row in
-   `FREEZE_v4.md`, and the commit adding `FREEZE_v5_v1.md` has `FREEZE_v4.md` in its history.
+12. Freeze coverage and order (amendment 1, round 2): `FREEZE_v5_v1.md` lists exactly the files of the import walk
+   (section 3b; a test computes the walk and compares the two lists, and names each file with "v4 row" or "v5 only");
+   each file with a row in `FREEZE_v4.md` has the same SHA-256 there; each without one is hashed in `FREEZE_v5_v1.md`
+   and an edit to it makes the capture refuse (planted on `candle_rv_table.py`); the commit adding `FREEZE_v5_v1.md`
+   has `FREEZE_v4.md` in its history.
 
 ## Claims
 
