@@ -721,6 +721,40 @@ starts in time and runs past 15:30 (its late fills are `stale_seal`, visible; O1
 a stop mid-write is worse than a late finish); a whole rehearsal of the day through `rehearse daily` with the switch
 on (it needs the switch; the seams it rests on are criterion 8's tests and REH1's own).
 
+### MS-P1j3 The runner's first-seal cutoff · lane 1 (decides whether a session is recorded; two judges) · model tier: H · `story/ms-p1j3-first-seal-cutoff` · depends on j and j2 (on `main`)
+
+Judges 607 and 608 (MS-P1j2) made it a condition of the switch commit, and the owner switched the school on (25 Oct
+2026, through the orchestrator: "we don't want any features switched off anymore"). The daily step never starts after
+15:25 IST (j2), but `python -m fno school run` by hand can. A first run after the close seals the whole session's
+decisions, then law 6 refuses every fill as `stale_seal`: the session's one record is spent with no fill, and it
+counts in the 10-session gate's denominator. `SchoolFleet._run` marks `LATE_RERUN` only when a seal already exists.
+
+**Files owned:** `fno/school/fleet/runner.py` (the cutoff), `fno/school/constants.py` (`SLOT_LAST_START`, one value for
+the runner and the daily step), `fno/daily/wiring.py` (`SCHOOL_STARTS_BY` reads it), `tests/school/fleet/`
+(a new test file), this section.
+
+**Acceptance criteria:**
+1. **The cutoff.** In `RunMode.RECORD`, a run whose clock is after the session's 15:25:00 IST (`SLOT_LAST_START`)
+   and that finds no sealed decisions file for the session seals nothing, settles nothing, fills nothing and writes
+   no counts. Its status is "stopped: too late for a first seal: <now> IST is after the slot's last start, 15:25 IST
+   on <session>; nothing sealed", so `school run` exits 1 and the daily step's alert or the person running it sees it.
+2. **Boundary.** 15:25:00 exactly seals as today; 15:25:00.000001 is refused. A clock in another zone is compared in
+   IST; a run on a later day for a past session is refused.
+3. **What it never touches.** A session already sealed reruns exactly as today, whatever the hour (the finish and
+   `LATE_RERUN` unchanged). `RunMode.REPLAY` (`--replay`, the simulator's practice at 15:30) is never refused. A
+   closed day or a session with nothing scheduled prints its own line as today (the check comes after `plan_slot`). A
+   REH1 rehearsal is `RECORD` on the replay clock, so a rehearsed session reaching the school by 15:25 replayed time
+   seals.
+4. **One value.** The daily step's `SCHOOL_STARTS_BY` is `SLOT_LAST_START`; changing one changes both.
+
+**Gap list.** Every requirement above has a criterion. Out of scope: the switch itself (a separate commit, the
+orchestrator's); what a person does after a refusal (runbook below); a late finish of a run that started in time (j2's
+gap list).
+
+**Runbook line.** Never run `python -m fno school run` for a session after 15:25 IST on its day: the runner refuses it
+(criterion 1) and the session is not recorded. A school step that failed or was refused is not rerun that day; the
+next session runs as normal.
+
 ### MS-P1m The roads' margins · lane 1 (money limits: C2's margin room; two judges) · model tier: H · depends on nothing in P1
 
 Owner: the A14 builder (session 01Vm1WnH8i9waM8EJG8zwWqg; orchestrator, 22 Oct 2026). Law 3 asks C2's `MarginRoom` on
