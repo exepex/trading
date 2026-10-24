@@ -1,6 +1,6 @@
 # Freeze record: forecast protocol, version 4 (story G6 freeze; questions V1-V7)
 
-Protocol commit: `1712a476b73b305c5f956a5911c14de48fbc80d7`
+Protocol commit: `a6da6f2b2e9cc1cad016c7d9441630c496cec86d`
 
 Frozen on: 2026-10-25
 
@@ -82,8 +82,10 @@ and V5 and for the descriptive-only V7.
 
 - The rate: none. v4's 6.5% is `fno/forecast_v4/pricing.py`, which is byte-checked; `risk_free_rate` is read by
   no v4 module.
-- `quotes.windows.v4`: `{start: "14:30", end: "14:40"}`, when A4e captures. The cutoff itself is enforced by
-  `terms.V4_CAPTURE_START` and `V4_PACK_WINDOW_END` in `fno/v4_pack/codec.py`.
+- `quotes.windows.v4`: `{start: "14:32", end: "14:40"}`, when A4e captures (set in this commit; orchestrator, 25 Oct:
+  after A16's 14:30 mark, which ends about 14:31:25, so the two never hit Groww's 300-a-minute cap together; protocol
+  1.2 and 1.6). The pack's window itself, 14:30:00-14:40:00, is enforced by `terms.V4_CAPTURE_START` and
+  `V4_PACK_WINDOW_END` in `fno/v4_pack/codec.py`, and the forecasters' 14:30 cutoff is unchanged.
 - `daily.live_from`: `weather` 2026-10-22, `forecasts_v4` 2026-10-22, `v4_pack` 2026-10-26, `forecasts_v4_pack`
   2026-10-26 (set in this commit: the owner's standing 24 Oct rule, "Merge and turn on everything completed
   now", and the v4 sign-off; V2's primary baseline, V4's and V5's live rows; G7b's builder confirmed it needs nothing
@@ -235,7 +237,7 @@ and V5 and for the descriptive-only V7.
 | `fno/weather/v0_live.py` | `dd68f4e6aecb6c505e85bb7ab6926689de03ac05eab03e2eddce61b5c4dd31b7` |
 | `fno/weather/vix_scaled.py` | `b2b30ba432129ff0b5c334b9fff3f37f6a2ae3653aeea99255df1f302b5091e5` |
 | `fno/weather/wiring.py` | `eaf9b051ac1f46cf93ce0bef918fca2fcbd40b8789d9f8483a80c14693769205` |
-| `research/forecasts/PROTOCOL_v4.md` | `c639f67db5b6a2589d48f7d63bc8f92b0867938d736c35d4bcd483414008942d` |
+| `research/forecasts/PROTOCOL_v4.md` | `a22880ec832b5fb2c7cfc65c9543bc75c3ab1b5dd149657a8a553ba34a657a49` |
 | `research/forecasts/PROTOCOL_v4_calibration.md` | `e295c1a93c8c0fc2a395e16f013282013de0fa77a2f731f2152ef2517f5c39a2` |
 | `research/forecasts/v4_brier_bands.json` | `13c44a218d40ed5b5087b9f482724061f3d1eb68020f54ffb511eb180dc524dc` |
 | `research/forecasts/v4_brier_bands.md` | `fb778cc02782585e10f0c4c961654df4e5ba9858d279c5e61ba8741960136d96` |
@@ -404,7 +406,7 @@ and V5 and for the descriptive-only V7.
 
 Python 3.13.17, numpy 2.5.3, C library glibc-2.39, x86_64
 
-## Disclosure (protocol section 8), as of commit `5e99d57824e17fdfb4e3c59054f03f8d10fd3561`
+## Disclosure (protocol section 8), as of commit `a6da6f2b2e9cc1cad016c7d9441630c496cec86d`
 
 ### Exploratory back-fills in the repository (`backfill_exploratory`, never counted)
 

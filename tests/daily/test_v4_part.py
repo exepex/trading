@@ -67,8 +67,8 @@ def run(tmp_path, clock, live, ends=(14, 34), recorded=None, files=None):
 
 def test_the_part_is_a4e_s_window_with_its_own_times_and_dataset():
     assert V4.arguments == ("quotes", "record", "--window", "v4")
-    assert (WINDOW.start, WINDOW.end) == (time(14, 30), time(14, 40))
-    assert V4.not_before == time(14, 27) and V4.window_end == time(14, 40)  # O1's 3-minute margin before 14:30
+    assert (WINDOW.start, WINDOW.end) == (time(14, 32), time(14, 40))  # after A16's 14:30 mark (25 Oct)
+    assert V4.not_before == time(14, 29) and V4.window_end == time(14, 40)  # O1's 3-minute margin before 14:32
     # never before A4's one early-limit rule with this window's own 30-minute wait, plus O1's margin (14:03)
     assert WINDOW.max_early_wait_seconds == 1800 and V4.not_before >= time(14, 3)
     assert V4.pathspecs == (":(glob)research/data/quotes/groww/derivatives/quote-snapshots-v4/**",)

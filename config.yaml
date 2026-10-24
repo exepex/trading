@@ -12,7 +12,7 @@ quotes:
   # Story A4e: named capture windows, each in its own dataset (quote-snapshots-<name>); `quotes record --window v4`.
   # The default capture (no --window) is A4's 14:55-15:10 and is not set here.
   windows:
-    v4: {start: "14:30", end: "14:40", max_early_wait_minutes: 30}
+    v4: {start: "14:32", end: "14:40", max_early_wait_minutes: 30}  # after A16's 14:30 mark (Groww cap; 25 Oct)
 
 underlyings: [NIFTY, BANKNIFTY]
 
