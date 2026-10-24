@@ -162,3 +162,10 @@ def test_forecast_captures_v4_collect_fails_loudly():
     steps = [s for job in capture["jobs"].values() for s in job["steps"]]
     collect = next(s["run"] for s in steps if "ai collect --protocol v4" in s.get("run", ""))
     assert collect.index("set -o pipefail") < collect.index("python -m fno ai collect --protocol v4 | tee -a ai.log")
+
+
+def test_an_unpushed_fire_log_is_kept_as_a_run_artifact_and_a_half_merge_is_aborted():
+    keep = _step("Keep the fire log as a run artifact")
+    assert keep["if"].startswith("${{ failure()") and keep["uses"].startswith("actions/upload-artifact@v")
+    assert keep["with"]["path"] == f"{FIRE_LOG_FOLDER}/"
+    assert "git merge --abort" in _step("Commit the fire log")["run"]

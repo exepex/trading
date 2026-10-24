@@ -33,7 +33,10 @@ def fired_sessions(root: Path, month: str, before: str) -> list[tuple[str, str, 
 
 def _fired(log: Path, terms: RunTerms) -> list[tuple[str, str]]:
     try:
-        entries = terms.fired_books(json.loads(log.read_text(encoding="utf-8")))
+        raw = json.loads(log.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            raise ValueError
+        entries = terms.fired_books(raw)
         if not isinstance(entries, dict) or not all(isinstance(e, dict) for e in entries.values()):
             raise ValueError
     except ValueError:

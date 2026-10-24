@@ -67,6 +67,9 @@ class Released:
     def release(self, day):
         return ReleaseRecord(day, "A", f"v4/packs/{day.year}/{day}.json", PACK_SHA, at(14, 40))
 
+    def pack_bytes(self, release):
+        return b"{}"  # a released day: the real class verifies the bytes against their receipt here
+
     def pack(self, release):
         return replace(a_pack(), day=DAY)
 

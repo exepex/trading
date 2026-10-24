@@ -66,8 +66,17 @@ jobs:
           git commit -m "G10/G11 Actions: v4 AI fire log ${{ steps.day.outputs.day }}"
           for attempt in 1 2; do # the daily run pushes to main at the same minutes: a refused push is pulled once more
             git pull --no-rebase --no-edit origin main && git push origin HEAD:main && exit 0
+            git merge --abort 2>/dev/null || true # a half-done merge never blocks the second pull
+            sleep 10
           done
           exit 1
+      - name: Keep the fire log as a run artifact when it was not pushed (collect waits 3 sessions for it; G11 C19)
+        if: ${{ failure() && steps.day.outputs.day != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: v4-fire-log-${{ steps.day.outputs.day }}
+          path: research/forecasts/ai_v4/
+          if-no-files-found: ignore
       - name: "Alert #fno-desk when the fire itself failed"
         if: ${{ failure() }}
         run: |

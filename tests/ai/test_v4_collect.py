@@ -5,7 +5,7 @@ release record's SHA, and the settled days become one row per question; pending 
 
 import json
 import shutil
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 import pytest
 
@@ -23,6 +23,7 @@ from fno.ai.v4_settle import V4RowSettler
 from fno.constants import BOOK2_HYBRID, BOOK3_AI, V3_RV_20S, V4_SLOT_AI, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.inputs import ForecastFiles
 from fno.forecast_v4_rules import records
+from fno.models import IST
 from tests.ai.fakes import ROOT, FakeReceipts, git
 from tests.ai.test_v4_fire import DAY, Ledger, NoBudgetStop, Released, Series, at, write_rules
 from tests.pipeline.fakes import FakeTrigger, RecordingAlerts
@@ -138,7 +139,7 @@ def test_a_session_the_fire_never_ran_is_a_not_fired_miss_for_every_question(des
 
 
 def test_no_released_pack_collects_nothing(desk):
-    lines = desk.collect(released=Released("2026-10-26: system_late, no pack was released"))
+    lines = desk.collect(released=Released(late=True))  # the real class returns a system_late record
     assert "nothing collected (no row)" in lines[0] and not (desk.root / V4_TERMS.folder).exists()
 
 
@@ -268,3 +269,50 @@ def test_one_broken_audit_is_said_and_never_stops_the_other_days(desk):
     lines = desk.settle()
     assert lines[0].endswith("2 v4 row(s) added; 0 day(s) awaiting audit")  # Book 3's day still lands
     assert any("NOT settled, fix and rerun" in line and "KeyError" in line for line in lines)
+
+
+def commit_fire_log(desk):
+    path = V4_TERMS.fired_path(DAY)
+    git(desk.root, "add", path)
+    git(desk.root, "commit", "-q", "-m", "G10/G11 Actions: v4 AI fire log")
+    return desk.root / path
+
+
+def edit_log(path, edit):
+    log = json.loads(path.read_text())
+    edit(log)
+    path.write_text(json.dumps(log))
+
+
+def test_the_fire_log_is_read_as_first_committed_so_a_later_edit_changes_no_verdict(desk):
+    """Review of 99a916f2: the log is the record of what each book was given; an edit after its commit is ignored."""
+    desk.fire()
+    desk.answer(BOOK3_AI)
+    log = commit_fire_log(desk)
+    edit_log(log, lambda f: f["books"][BOOK3_AI]["labels"].update(export_sha256="0" * 64))
+    desk.collect()
+    assert desk.audit(BOOK3_AI)["status"] == "on_time"
+
+
+def test_a_hybrid_entry_without_its_envelope_is_invalid_never_unchecked(desk):
+    desk.fire()
+    desk.answer(BOOK2_HYBRID, values=(0.95, None))  # outside any envelope
+    edit_log(desk.root / V4_TERMS.fired_path(DAY), lambda f: f["books"][BOOK2_HYBRID].update(envelope=None))
+    desk.collect()
+    assert desk.audit(BOOK2_HYBRID)["status"] == "invalid"
+
+
+@pytest.mark.parametrize(("sessions_later", "waits"), [(2, True), (3, False)])
+def test_a_lost_fire_log_waits_three_sessions_then_the_committed_book_is_invalid(desk, sessions_later, waits):
+    desk.sessions = [DAY + timedelta(days=n) for n in range(sessions_later + 1)]
+    desk.fire()
+    desk.answer(BOOK3_AI)
+    (desk.root / V4_TERMS.fired_path(DAY)).unlink()
+    last = desk.sessions[-1]
+    lines = desk.collect(day=last, now=datetime.combine(last, time(15, 31), IST))
+    first = [line for line in lines if f": {DAY}: " in line]
+    if waits:
+        assert len(first) == 1 and "awaiting the fire log" in first[0]
+    else:
+        assert desk.audit(BOOK3_AI)["status"] == "invalid" and "lost" in " ".join(desk.audit(BOOK3_AI)["notes"])
+        assert desk.audit(BOOK2_HYBRID)["status"] == "not_fired"

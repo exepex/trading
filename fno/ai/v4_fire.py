@@ -35,7 +35,7 @@ from .budget_stop import BudgetStop
 from .run_terms import V4_TERMS
 from .stop_rule import stop_reason
 from .v4_book_inputs import V4BookInputs
-from .v4_pointer import V4Pointer, v4_labels
+from .v4_pointer import V4Pointer, parse_v4_pointer, v4_labels
 from .versions import current_version
 
 LINE = "Omenix F&O AI forecasts v4 (GitHub Actions): {day}: {result}"
@@ -109,6 +109,7 @@ class V4BookFirer:
         entry |= {"input_sha256": pointer.input_sha256, "labels": v4_labels(pointer.input),
                   "envelope": (pointer.input.get("rules") or {}).get("envelope")}  # fmt: skip
         try:
+            parse_v4_pointer(pointer.to_text())  # brief's check: a refusal is a logged not_fired, never a silent day
             session = self.triggers[book].fire(pointer)  # to_text refuses a pointer over the cap: never truncated
         except (FireFailed, ValueError) as failed:
             return self._not_fired(day, book, entry, str(failed))

@@ -18,6 +18,7 @@ from fno.constants import (
     BOOK3_AI,
     V3_RV_20S,
     V4_BASELINE_BASE_RATE,
+    V4_DAY_SYSTEM_LATE,
     V4_SLOT_AI,
     V4_SLOT_HYBRID,
     V4_SLOT_RULES,
@@ -42,15 +43,26 @@ def at(hh, mm, ss=0, day=DAY):
 
 
 class Released:
-    def __init__(self, missing=""):
-        self.missing = missing
+    """`ReleasedPacks` as the real class behaves (review of 99a916f2): `release` raises only when there is no record; a
+    system_late record is returned, and `pack` and `pack_bytes` refuse it."""
+
+    def __init__(self, missing="", late=False):
+        self.missing, self.late = missing, late
 
     def release(self, day):
         if self.missing:
             raise NotReleased(self.missing)
+        if self.late:
+            return ReleaseRecord(day, V4_DAY_SYSTEM_LATE, "", "", at(14, 41))
         return ReleaseRecord(day, "A", f"v4/packs/{day.year}/{day}.json", PACK_SHA, at(14, 31))
 
+    def pack_bytes(self, release):
+        if release.label == V4_DAY_SYSTEM_LATE:
+            raise NotReleased(f"{release.day}: system_late, no pack was released")
+        return b"{}"
+
     def pack(self, release):
+        self.pack_bytes(release)
         return a_pack()
 
 
@@ -136,7 +148,7 @@ def test_a_day_that_is_not_today_or_not_live_fires_nothing_and_logs_nothing(tmp_
 
 def test_no_released_pack_fires_nothing_says_why_and_leaves_the_day_open(tmp_path):
     """No log is written, so a later receipt push before 14:55 can still fire the day (review of dfb26381)."""
-    desk = Desk(tmp_path, released=Released("2026-10-26: system_late, no pack was released"))
+    desk = Desk(tmp_path, released=Released(late=True))
     assert "nothing fired: 2026-10-26: system_late" in desk.firer.fire(DAY)[-1]
     assert not (tmp_path / V4_TERMS.fired_path(DAY)).exists() and len(desk.alerts.lines) == 1
 
@@ -220,3 +232,17 @@ def test_the_ai_books_go_live_on_their_own_key_never_forecasts_v4s_date():
     assert v4_live_from({"daily": {"live_from": {"forecasts_v4": "2026-10-22"}}}) is None
     assert v4_live_from({"daily": {"live_from": {"ai_books_v4": "2026-11-02"}}}) == date(2026, 11, 2)
     assert v4_live_from(load_app_config()) is None
+
+
+def test_a_pointer_brief_would_refuse_is_a_logged_not_fired_and_never_sent(tmp_path, monkeypatch):
+    """Review of 99a916f2: the firer runs brief's own check, so real data brief refuses never becomes a silent day."""
+    from fno.ai.pointer import PointerRefused
+
+    def refuse(text):
+        raise PointerRefused("v1_rv_next_session: a rule's value must be a variance above 0 or null")
+
+    monkeypatch.setattr("fno.ai.v4_fire.parse_v4_pointer", refuse)
+    desk = Desk(tmp_path)
+    desk.firer.fire(DAY)
+    entry = desk.log()["books"][BOOK3_AI]
+    assert entry["fired"] is False and "variance above 0" in entry["reason"] and not desk.triggers[BOOK3_AI].fired

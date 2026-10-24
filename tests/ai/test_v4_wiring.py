@@ -84,3 +84,13 @@ def test_a_v4_run_that_published_no_timing_is_named_not_captured(tmp_path):
 def test_zero_reveal_calls_count_as_zero_never_as_unknown(tmp_path):
     rows = [timing(tmp_path, LIVE, BOOK3_AI, 5, 0.1, 0)]
     assert "reveal calls p50 0.00, p95 0.00" in V4CostReport(tmp_path, Ledger(rows), LIVE).lines()[1]
+
+
+def test_a_v4_fire_log_that_is_not_an_object_is_named_unreadable(tmp_path):
+    from fno.budget.capture_coverage import FireLogUnreadable, fired_sessions
+
+    path = tmp_path / V4_TERMS.fired_path(LIVE)
+    path.parent.mkdir(parents=True)
+    path.write_text("[1, 2]")
+    with pytest.raises(FireLogUnreadable):
+        fired_sessions(tmp_path, "2026-11", "2026-12-01")
