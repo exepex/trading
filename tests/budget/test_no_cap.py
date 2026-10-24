@@ -83,9 +83,9 @@ class Sender:
         return "alert sent to #fno-desk"
 
 
-@pytest.mark.parametrize("minutes", [0, 34.46, 100_000])
+@pytest.mark.parametrize("minutes", [None, 0, 34.46, 100_000])  # None: no rows at all
 def test_under_none_the_signal_never_stops_or_alerts(minutes):
-    reading = cap_reading(rows(minutes), settings("none"), "2026-10", GAPS)
+    reading = cap_reading([] if minutes is None else rows(minutes), settings("none"), "2026-10", GAPS)
     data = signal_data("2026-10", reading, 3, datetime(2026, 10, 24, 20, 0, tzinfo=IST))
     sender = Sender()
     assert reading.level != BUDGET_STOP and data["stop_ai_roles"] is False and data["alert_text"] == ""
@@ -131,3 +131,10 @@ def test_the_share_settings_stay_in_config_for_a_later_decision():
     budget = load_app_config()["budget"]
     assert [budget[k] for k in ("books_and_roles_share_pct", "alert_pct", "stop_pct")] == [50, 80, 100]
     assert settings("share").share_pct == Decimal(50)
+
+
+@pytest.mark.parametrize("share", [{}, {"alert_pct": 120}, {"books_and_roles_share_pct": 0}])
+def test_under_none_the_share_settings_are_neither_read_nor_checked(share):
+    assert not CapSettings.from_config({"cap": "none"} | share).capped
+    with pytest.raises((ValueError, KeyError)):  # under share they are required and checked, as before
+        CapSettings.from_config({"cap": "share"} | (share or {"alert_pct": 80}))

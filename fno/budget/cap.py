@@ -4,7 +4,10 @@ The plan publishes no minutes allowance, so until `basis_until` the basis is all
 after it, only the owner's own monthly figure. Compared in decimals, so an exact 80% or 100% is never read as just below
 it. A level is given only when it is known: on the measured basis it needs every development session captured and every
 expected data-routine run captured (missing ones would lower the books' share); missing book sessions can only raise it,
-so then `ok` is unknown and `alert` or `stop` is "at least"."""
+so then `ok` is unknown and `alert` or `stop` is "at least".
+
+Story BG1-u (owner, 24 Oct 2026: "No monthly budget cap for AI. Keep it unlimited."): all of the above holds only under
+`budget.cap: share`. Under `none`, the configured value, the reading has the level `no_cap` and no cap at all."""
 
 from __future__ import annotations
 
@@ -56,10 +59,11 @@ class CapSettings:
         mode = budget.get("cap")
         if mode not in CAP_MODES:  # required, never guessed: G11's fire and role_value refuse on a ValueError
             raise ValueError(BAD_CAP.format(modes=", ".join(CAP_MODES), value=mode))
+        if mode != CAP_SHARE:  # BG1-u: the share settings are kept in config but neither read nor checked
+            return cls(Decimal(0), Decimal(0), Decimal(0), None, capped=False)
         plan, until = budget.get("plan_minutes_per_month"), budget.get("measured_basis_until")
         settings = cls(_dec(budget["books_and_roles_share_pct"]), _dec(budget["alert_pct"]),
-                       _dec(budget["stop_pct"]), _dec(plan) if plan is not None else None, until,
-                       mode == CAP_SHARE)  # fmt: skip
+                       _dec(budget["stop_pct"]), _dec(plan) if plan is not None else None, until)  # fmt: skip
         if not (0 < settings.share_pct <= 100 and 0 < settings.alert_pct <= settings.stop_pct):
             raise ValueError(BAD_SETTINGS)
         return settings

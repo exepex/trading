@@ -99,7 +99,7 @@ def test_data_routine_minutes_count_in_the_basis_but_never_against_the_cap():
 
 
 def test_the_owner_numbers_come_from_config_and_bad_numbers_are_refused():
-    settings = CapSettings.from_config(load_app_config()["budget"])
+    settings = CapSettings.from_config(load_app_config()["budget"] | {"cap": "share"})  # the kept 15 Oct numbers
     assert (settings.share_pct, settings.alert_pct, settings.stop_pct, settings.plan_minutes) == (50, 80, 100, None)
     assert settings.basis_until == "2026-12"
     base = {"cap": "share", "books_and_roles_share_pct": 50, "alert_pct": 80, "stop_pct": 100}

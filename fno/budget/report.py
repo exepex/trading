@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .allocation import ALLOCATED_LABEL, DEVELOPMENT_LABEL, FORMULA, UNMEASURED, Allocation
 from .cap import BASIS_MEASURED, MEASURED_LIMIT, CapReading, shown_pct
-from .constants import ITEM_CLAUDE_PLAN, NO_SEAL_UPPER_BOUND, PURPOSE_DEVELOPMENT, USAGE_PURPOSES
+from .constants import BUDGET_NO_CAP, ITEM_CLAUDE_PLAN, NO_SEAL_UPPER_BOUND, PURPOSE_DEVELOPMENT, USAGE_PURPOSES
 from .items import ItemLine
 from .stop_rule_tracker import ZERO_SHADOWS, ReviewDate, stop_test_status
 
@@ -89,7 +89,7 @@ def _wait_lines(rows: list[dict]) -> list[str]:
 
 def _cap_lines(meter: MonthMeter) -> list[str]:
     cap = meter.cap
-    if cap.cap_minutes is None:  # BG1-u: no cap, so no %, level, basis or coverage lines
+    if cap.level == BUDGET_NO_CAP:  # BG1-u: no cap, so no %, level, basis or coverage lines
         return [NO_CAP_LINE.format(minutes=cap.books_and_roles_minutes)]
     pct = "unknown" if cap.pct_of_cap is None else f"{shown_pct(cap.pct_of_cap):.1f}%"
     lines = [f"  AI cap: books and roles {cap.books_and_roles_minutes:,.2f} of {cap.cap_minutes:,.2f} minutes = {pct}; "
