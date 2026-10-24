@@ -645,22 +645,45 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
   stored ratio (the capture did not run) is computed at the next run only from inputs whose receipts GitHub received
   before that refit day; none: the month's premium-adjusted rows are missing, counted.
 - Value for `d`: raw implied of `d` times the refit's ratio; missing when either is missing.
-- **V2 and V3** use the close proxy (protocol 1.1). **V1 and part f's intraday series: the owner's choice (W3,
-  judge 578 SF4), reasoning only for both options:**
-  - **Option A, own measure:** the window uses the intraday A16 `RV_s` (live, non-void rows of `V1_INTRADAY_METHOD`;
-    A16b's back-filled rows never count, decision 56). Same measure on both sides of the ratio. **Cost:** the window
-    holds only live days from 16 Oct 2026, so V1's and part f's premium-adjusted baseline is missing (`not_eligible`)
-    for about two years (longer for V3's 20-session series).
-  - **Option B, the close-proxy ratio (available now):** the close-proxy method (the V2 / V3 window: close-to-close `RV_h`
-    over the EOD-IV30 raw implied) computed at the question's own `h` (1 for V1; 5 and 20 for part f), multiplies the
-    pack's raw implied. **Cost:** a measure mismatch: the ratio is fitted on close-to-close `RV_s` and applied to an
-    intraday-with-overnight target. Both estimate the same daily variance, and the window already mixes measures (the
-    EOD IV30 stands in for the 14:30 IV30, protocol 3.1), but the 26-snapshot quote RV can differ in level from the
-    close proxy; that level gap moves the baseline and so every paired difference. Each report then prints the mean
-    ratio of intraday to close-proxy `RV_s` over the live days, so the gap is seen, not assumed away.
-  - **Recommendation (reasoning only): B.** Both uses are "also reported" (protocol 3.2; never a member's test), so a
-    labelled mismatch now costs less than two years with no value. The build implements the option the owner signs;
-    until then it builds B behind one switch in the wiring and labels the rows `premium_ratio_measure=close_proxy`.
+- **V2 and V3** use the close proxy (protocol 1.1). **V1 and part f's intraday series: both yardsticks (W3, owner
+  24 Oct 2026, DESK_DECISIONS c63eb7e0b: "I want both intraday and daily closes"), each its own labelled row, never
+  pooled, side reports only:**
+  - **B, close proxy (`premium_adjusted_implied`, version `1 ratio close_proxy`):** the close-proxy method (close-to-
+    close `RV_h` over the EOD-IV30 raw implied) at the question's own `h` (1 for V1; 5 and 20 for part f, where it is
+    V2's and V3's own row). Available now. Cost: a measure mismatch against an intraday target; every report prints
+    the mean ratio of intraday to close-proxy `RV_s` over the live days, so the gap is seen.
+  - **A, intraday (`premium_adjusted_implied_intraday`, version `1 ratio intraday`):** the window's `RV_h(t)` is the
+    intraday session variance. Live A16 rows alone give about two years with no value; W8 below proposes A16b's
+    candle back-fill for the window's history, so A has a value now.
+  - G8 prints each V1 and part f forecaster against both yardsticks, each comparison labelled; V2's and V3's
+    close-proxy series keep B only (their own measure). Both are "also reported" (protocol 3.2), never a member's test.
+
+**W8, A16b's candle back-fill in option A's ratio window (proposed; text for judge K and the owner).**
+- **Same measure? Some evidence: yes, by construction and on 3 days.** A16's live `RV_s` (`rv-quote-15m-v1`) is the
+  squared log returns between the 26 marks 09:15-15:30 plus the overnight return, each mark NIFTY's level from Groww;
+  in practice every live mark is a 1-minute candle's close (Groww gives no index last-trade time: `basis_counts`
+  `candle_1m_close:25;candle_1m_open:1` on each live day). A16b's back-fill (`rv-candle-15m-v1`, `provenance
+  backfilled`) is the same formula on the same 26 marks, each the 15-minute candle's close (strong evidence: both
+  tables' columns and A16b's step 0, which found the 15-minute closes equal A16's live levels on 75 of 75 marks, 3
+  days of 2026).
+- **The gap, every live day so far (all of them):** A16 has 5 live sessions (16, 19, 21, 22, 23 Oct); 16 and 23 Oct
+  are void live (16 Oct: no usable 09:15-09:45 levels; 23 Oct: void, and A16b has no row yet), so **3 days compare**:
+  back-fill / live `RV_s` = **0.962 (19 Oct), 0.997 (21 Oct), 1.009 (22 Oct)**, mean 0.989. Some evidence only: 3 days
+  cannot bound a level bias; the gap is reported on every new live day (below).
+- **What it gives:** A16b holds 695 sessions from 1 Jan 2024 (685 ok, 10 void; 1,685 from 2020), so option A's window
+  reaches 500 points about as B's did (eligible now, from the refit after the change), instead of about two years.
+- **Proposed protocol text (section 3.1, after "Premium-adjusted implied"):** "For the intraday premium-adjusted
+  yardstick (V1, and V2's and V3's intraday versions), a window point's `RV_h(t)` is A16's live intraday `RV_s` where
+  A16 recorded `t+1..t+h`, else A16b's back-filled candle-close `RV_s` (`rv-candle-15m-v1`), labelled
+  `backfill_window`. Back-filled rows enter only this ratio window: never a forecast's input, never an outcome, never
+  a base rate (decision 56 unchanged). Every report prints the paired back-fill / live `RV_s` ratio over all live days
+  with both rows, its median and the latest 20, as the IV30 proxy's drift line."
+- **Why it is honest (reasoning only):** the window already uses a labelled end-of-day proxy for the IV side (3.1); the
+  ratio is a baseline's scale, not a forecast input, so decision 56's point (no hindsight in a forecast) is untouched;
+  the paired line makes any level gap visible. **Risk:** if the 15-minute close differs systematically from the live
+  1-minute close (a microstructure bias), A's ratio is biased by that factor; 3 days say under 4%, not proven.
+- **If W8 is not accepted:** A's rows are written `not_eligible` until 500 live window points (about two years), as
+  the text said before.
   V1's raw implied (`h` = 1, its horizon) is computed only as this input: protocol 3.2 does not report raw implied for V1.
 
 **V5 terms, frozen from the pack of `d` (protocol 1.5).** `e` = the nearest monthly expiry strictly after `d`, read
@@ -850,9 +873,8 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 - **Forecasts scored:** the same V2 and V3 forecaster rows (no new forecaster, no new record); each is scored against
   this outcome as its own series, `v2_rv_next_5_sessions/intraday` and `v3_rv_next_20_sessions/intraday` in the
   report, never pooled with the close-proxy series and never in the family, Test A or a look.
-- **Its primary baseline:** premium-adjusted implied, its ratio as the owner chooses in W3: under option B available
-  now; under option A `not_eligible` until 500 window points (about two years for V2, longer for V3), the pair missing
-  and counted, and the report printing each forecaster's QLIKE only.
+- **Its baselines:** both premium-adjusted yardsticks (W3, owner 24 Oct): B (V2's and V3's own rows, available now) and
+  A (the intraday ratio, W8), each comparison labelled; a yardstick with no value leaves its pairs missing, counted.
 - Reasoning only, said plainly: QLIKE ranks correctly under either proxy (protocol 1.1, Patton 2011); this series
   exists to show whether the close proxy's noise hides a difference, not to judge anyone.
 
@@ -861,9 +883,9 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 - **W1 (1.4):** V4's realised side is A16's intraday `RV_s` (method `V1_INTRADAY_METHOD`), live rows only.
 - **W2 (1.5, 3.1):** V5's `F` is the pack's future at mid, a live two-sided quote under the 5% spread rule; else void.
   V5's leg IVs use Black-76 on that `F` at 6.5%.
-- **W3 (3.1), a choice:** V1's and part f's premium ratio is either (A) fitted on their own intraday measure (no value
-  for about two years) or (B) the close-proxy ratio (available now, with a measured measure gap printed). Recommended
-  B, reasoning only. V2 and V3 use the close proxy either way.
+- **W3 (3.1), decided by the owner (24 Oct, "both"):** V1 and part f carry both premium-adjusted yardsticks, (A) on the
+  intraday measure and (B) on the close proxy, each a labelled row, never pooled. V2 and V3 use the close proxy.
+- **W8 (3.1), proposed:** A16b's candle back-fill fills option A's ratio window, never a forecast input (above).
 - **W4: dropped** (judge 578 SF3). Protocol 1.5's "archive time of A11's first version" exists: Drive's `createdTime`
   through `CreationTimes`. No wording needed.
 - **W5 (1.4, 1.5):** "a live two-sided quote" is bid > 0 and ask >= bid, both in the pack, and a trade in the contract
@@ -881,7 +903,8 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 |---|---|---|
 | W1 | V4 measures realised movement from the 15-minute intraday quotes (A16), not from daily closes | the protocol implies it but never says it |
 | W2 | V5 uses the future's mid price (halfway between bid and ask) as its forward, and drops the day if that quote's spread is over 5% or the future did not trade that day | the protocol says "the future" without saying which price |
-| W3 | **Your choice.** For V1 and the intraday V2/V3 series, the "premium-adjusted" yardstick (implied movement scaled by how much realised movement has run below it) is either (A) scaled on the same intraday measure: no value for about two years; or (B) scaled on daily closes: a value now, with a small known mismatch shown on every report. Recommended: B (reasoning only); both are side reports, never the main test | the protocol does not say which, and the two cost different things |
+| W3 | **Decided by you (24 Oct): both.** For V1 and the intraday V2/V3 series, the "premium-adjusted" yardstick (implied movement scaled by how much realised movement has run below it) is reported twice: scaled on the intraday measure (A) and on daily closes (B), each labelled, never mixed; both side reports. The code keeps the two in `fno/forecast_v4_rules/intraday_series.py` (judge 585.1 s1) | the protocol did not say which |
+| W8 | **Proposed, for you:** let the 15-minute candle history (A16b, 2020-2026, fetched later) fill the intraday yardstick's history, so it has a value now instead of in about two years. Those rows never become a forecast or a result; every report shows how far they differ from the live readings (3 days so far: within 4%) | without it, A has no value for about two years |
 | W4 | Dropped: the "first seen" time of the expiry-day file is Drive's own creation time, which the protocol already means | nothing to sign |
 | W5 | A "live" quote (each option leg **and the future**) needs a bid, an ask (ask not below bid) and a trade in that contract the same day, the rule the 3 pm quotes already use; order sizes are not checked because the pack does not hold them | the protocol does not define "live"; without the trade check a stale quote could pass |
 | W6 | V4 starts when the pack holds a suitable expiry and A16 records movement (old text named A16's weekly quotes); V4's and V5's rule forecasts read the pack and name its fingerprint | the old start line predates the pack |
@@ -894,7 +917,7 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 | 1 | EOD IV30 proxy series: one value and flag per regular session from 1 Jan 2024; flagged days kept with their flag, dropped by every window | fixture panel; a single-expiry day; empty panel gives no points; on the real panel the 686/647 counts of G7b are reproduced (claims) | flagged days not dropped |
 | 2 | Raw implied = `IV30^2 x calendar days / 365` over `d..d+h` | hand values at h 5 and 20 across a holiday; flagged gives missing; horizon past the calendar gives missing; 0 IV gives missing | sessions instead of calendar days; `d+h` one session off |
 | 3 | Premium ratio: median over `premium_ratio_window`, computed once on the month's first scored session and stored write-once; later days read the stored ratio | 499 points not eligible, 500 present; a point resolving on the refit day excluded, the day before included; `t` on 31 Dec 2023 excluded; a file archived after the refit day changes no stored ratio | mean instead of median; `<=` refit day; recomputed each day |
-| 4 | Premium-adjusted = raw x ratio; V1 and part f with the ratio W3 chooses (switch in the wiring, labelled on each row) | either input missing gives missing; option A: A16b back-filled rows never enter the window, 499 live points `not_eligible`; option B: the close-proxy ratio at `h` = 1, the row labelled `close_proxy`, the intraday / close-proxy level line printed | option A counting back-filled rows; option B rows without the label |
+| 4 | Premium-adjusted = raw x ratio; V1 and part f carry both yardsticks (W3), A `premium_adjusted_implied_intraday` and B `premium_adjusted_implied`, each labelled | either input missing gives missing; A's window takes A16 live where recorded, else A16b's back-fill labelled `backfill_window` (W8; without W8: back-filled rows never enter, 499 live points `not_eligible`); B: the close-proxy ratio at `h` = 1 for V1; the intraday / close-proxy and back-fill / live level lines printed; G8 compares V1 and part f forecasters against both | a back-filled row used as a forecast input or outcome; the two yardsticks pooled or unlabelled; a live day where A16 recorded overridden by the back-fill |
 | 5 | Back-fill (b1) for V2, V3: every row `backfill_exploratory`, ends before the first live day, re-run byte-identical, stored per method hash, reader refuses a missing hash file | re-run; changed method file gives a new path, never an overwrite | writing over an existing back-fill file |
 | 6 | V5 terms: `e` checked against NSE's listed monthlies known before `d`, K (tie lower), P, F, `S_e`, `C_e`; a live quote needs a trade on `d` (A4's `traded_today`, imported) | spread exactly 5% passes, 5.01% void; a one-sided leg void; a leg whose last trade is the day before: void `no_trade_today`; `d` an expiry day takes next month; a pack future on a weekly or on `d`: void `future_not_monthly`; no listed-expiry file: void `expiry_list_unavailable`; no future quote void | tie to the upper strike; `<` for the spread; `traded_today` copied or skipped; `e` trusted from the pack |
 | 7 | V5 option-implied probability equals a hand-computed golden value (30-digit decimals, fixture JSON) | IV unsolved gives missing; deep wide P near 1; tiny P near 0 | drift term dropped; `tau` in sessions |
@@ -1222,7 +1245,7 @@ reports); `v4_ewma_chi2` mixes a close-proxy variance with an intraday outcome; 
 so from Tue 22 Dec 2026 `first_v4_expiry` raises every day until they are added (needed by about 21 Dec 2026; the
 scheduled task "Omenix F&O: add NSE 2027 trading calendar", firing 15 Dec 2026, adds them); likewise V5's terms are
 void (`calendar`) from Tue 29 Dec 2026, the December monthly's own expiry day, whose `e` is January 2027's monthly (judge
-585 m3 estimated mid-December; days up to 28 Dec take the 29 Dec monthly, inside the 2026 calendar), and V4's from 22
+585 m3's rule, days whose monthly is in 2027; days up to 28 Dec take the 29 Dec monthly, inside the 2026 calendar), and V4's from 22
 Dec; NSE's 2027 holiday circular rows in `research/data/calendar/nse_sessions.csv` are the fix, and the voids are
 counted, never filled; `IMPLIED_METHOD_FILES` leaves out `fno/forecast_v4/eligibility.py`, hashed only at the v4 freeze
 (response 250 item 10's accepted reasoning): a change of the configured rate or the panel data under the same hash
