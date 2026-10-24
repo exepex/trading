@@ -1,8 +1,9 @@
 """A17e's Yahoo reads in a rehearsal (story REH1c), behind the cue jobs' HTTP session: each URL is answered with the
-copy the day archived for it, fetched near now (`serving.is_near`), once the replay clock reaches that time. The copy
-is found in the record checkout's snapshot logs (`research/data/manifests/global-cues/`) and read from the real
-Drive's `raw` area, checked against the row's SHA-256. A URL the day never fetched near then is "not
-recorded": a request that is never sent, which the readers already count as that cue's failure."""
+copy the day archived for it nearest to now, never the same copy twice (`serving.ServedOnce`), once the replay clock
+reaches its fetch time. The copy is found in the record checkout's snapshot logs
+(`research/data/manifests/global-cues/`) and read from the real Drive's `raw` area, checked against the row's SHA-256.
+A URL the day never fetched near then is "not recorded": a request that is never sent, which the readers already count
+as that cue's failure."""
 
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .nse_wiring import NotRecorded
-from .serving import is_near
+from .serving import ServedOnce
 
 NOT_RECORDED = "rehearsal:NOT_RECORDED {url} at {at}: the day archived no copy near then"
 DAMAGED = "rehearsal: the recorded copy {path} is missing from Drive or differs from its snapshot-log row"
@@ -37,6 +38,7 @@ class RecordedCueSession:
                  sleep: Callable[[float], None]):  # fmt: skip
         self.logs, self.read, self.now, self.sleep = Path(logs), read, now, sleep
         self.headers: dict[str, str] = {}
+        self.served = ServedOnce()
 
     def get(self, url, *args, **kwargs) -> RecordedAnswer:
         now = self.now()
@@ -54,6 +56,6 @@ class RecordedCueSession:
         rows = []
         for log in sorted(self.logs.glob("*.csv")) if self.logs.is_dir() else ():
             rows += csv.DictReader(io.StringIO(log.read_text(encoding="utf-8")))
-        near = [r for r in rows if r["url"] == url
-                and is_near(now, datetime.fromisoformat(r["fetched_at"]))]  # fmt: skip
-        return min(near, key=lambda r: r["fetched_at"], default=None)
+        copies = {r["path"]: r for r in rows if r["url"] == url}
+        picked = self.served.pick(now, ((datetime.fromisoformat(r["fetched_at"]), p) for p, r in copies.items()))
+        return copies[picked[1]] if picked else None
