@@ -17,7 +17,15 @@ PACKAGE = Path(__file__).resolve().parents[2] / "fno"
 # app's root, the command list (`rehearse check`), the daily command's `--rehearse` flag, the variable's name and the
 # run log's registry of the rehearsal's message
 ROOT_FILE = re.compile(r"(^|/|_)wiring\.py$")
-ALSO = {"__main__.py", "cli.py", "composition.py", "daily/cli.py", "constants.py", "daily/reason_codes.py"}
+ALSO = {
+    "__main__.py",
+    "cli.py",
+    "composition.py",
+    "daily/cli.py",
+    "constants.py",
+    "constants_operations.py",
+    "daily/reason_codes.py",
+}
 
 
 def rehearsing(monkeypatch, tmp_path, slack=True):

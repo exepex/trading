@@ -61,6 +61,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from ..premium_ranges.folders import receipt_pathspecs as premium_receipts
     from ..price_distribution.folders import receipt_pathspecs
     from ..price_ranges.folders import receipt_pathspecs as range_receipts
+    from ..rehearsal.live_wiring import rehearsed_live, rehearsed_not_live
     from ..rehearsal.waits import rehearsed_waiter
     from ..scorecard.wiring import build_scorecard_run
     from .alerts import ReportedAlerts
@@ -74,11 +75,11 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from .steps import Alerted, CommandStep, LiveFrom, NotBefore
     from .wait_notice import AnnouncedWaiter
 
-    git, alerts, processes, live = (
+    git, alerts, processes, (live, not_live) = (
         Git(root),
         ReportedAlerts(build_alert_sender()),
         ChildProcesses(root),
-        live_dates(cfg),
+        rehearsed_live(live_dates(cfg)),  # story REH1c: every report runs in a rehearsal, and says if not live
     )
     locks = GitLocks(root)  # story O2: a command stopped at its limit leaves no git lock behind
     committer = GitCommitter(git, OwnUnpushed(root / OWN_UNPUSHED_FILE))  # the run's one: G4
@@ -164,6 +165,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     entry_desk, exit_timing = build_owner_timing_desks(cfg, live[OWNER_TIMING_STEP], build_entry_desk(cfg))
     fills = build_owner_timing_step(cfg, alerts, exit_timing, live[OWNER_TIMING_STEP], root=root)
     steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, fills, alerts)  # E8: seals only before its live date
+    steps = rehearsed_not_live(steps, not_live)
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts, entry_desk=entry_desk, exit_timing=exit_timing,
                                 git_committer=committer, recorder=public_recorder(root))  # fmt: skip

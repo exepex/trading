@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from ..constants import ENV_FNO_REHEARSAL
+from ..constants import ENV_FNO_REHEARSAL, ENV_FNO_REHEARSAL_NOT_LIVE
 from ..models import now_utc
 
 DRYRUN_ROOT = "dryrun"
@@ -56,8 +56,10 @@ class Rehearsal:
         return cls(date.fromisoformat(data["day"]), data["run_id"], Path(data["state"]), Path(data["record"]))
 
 
-def labelled(label: str, text: str) -> str:
-    return f"{label}\n{text}"
+def labelled(label: str, text: str, env: Mapping[str, str] = os.environ) -> str:
+    """The label first; a report not live in real runs adds its own line (REH1c)."""
+    note = env.get(ENV_FNO_REHEARSAL_NOT_LIVE)
+    return f"{label}\n{note}\n{text}" if note else f"{label}\n{text}"
 
 
 def rehearsal(env: Mapping[str, str] = os.environ) -> Rehearsal | None:

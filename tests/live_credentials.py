@@ -24,6 +24,7 @@ LIVE_CREDENTIALS = (
 NOT_CREDENTIALS = (
     c.ENV_GDRIVE_FOLDER_ID,
     c.ENV_FNO_REHEARSAL,  # story REH1: a rehearsal's day, run id and clock folder
+    c.ENV_FNO_REHEARSAL_NOT_LIVE,  # story REH1c: a line of text
     c.ENV_GITHUB_RUN_ID,
     c.ENV_GITHUB_RUN_ATTEMPT,
     c.ENV_GITHUB_OUTPUT,  # an Actions step's outputs file path (O8b), not a secret
