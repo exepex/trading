@@ -16,7 +16,13 @@ from ..research_data.nifty_panel import DailyFiles
 from ..storage.data_wiring import receipt_folder
 from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.raw_source import NseIndexCloseSource
-from ..storage.wiring import OWNER_UPLOAD_SETTINGS, REPOSITORY, build_owner_drive, build_raw_stores
+from ..storage.wiring import (
+    OWNER_UPLOAD_SETTINGS,
+    REPOSITORY,
+    build_owner_drive,
+    build_raw_stores,
+    build_session_calendar,
+)
 from .certifier import Certifier
 from .closes import DATASET as CLOSES
 from .closes import A4hRecordComparison, ClosesRules, a4h_raw_paths
@@ -60,7 +66,7 @@ def build_certifier(dataset: str, commit: bool, env=os.environ) -> Certifier:
     if dataset != CLOSES:
         raise ValueError(f"no certification rules for {dataset!r}; known: {', '.join(DATASETS)}")
     drive = _drive(env)
-    rules = ClosesRules(ArchivedIndexCloses(stored_index_closes()))
+    rules = ClosesRules(ArchivedIndexCloses(stored_index_closes()), build_session_calendar().previous_session)
     versions = ReceiptedFiles(receipt_folder(), a4h_raw_paths)
     return Certifier(rules, versions, drive, build_record_folder(commit), A4hRecordComparison(drive))
 
