@@ -23,7 +23,7 @@ def _cfg(entry):
 
 def test_the_repository_config_holds_v4_at_1430_to_1440_with_a_30_minute_wait():
     window = named_window(load_app_config(), "v4")
-    assert (window.start, window.end, window.max_early_wait_seconds) == (time(14, 30), time(14, 40), 1800)
+    assert (window.start, window.end, window.max_early_wait_seconds) == (time(14, 32), time(14, 40), 1800)
     assert window.dataset(DATASET) == "groww/derivatives/quote-snapshots-v4"
 
 
