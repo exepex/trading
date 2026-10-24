@@ -527,3 +527,52 @@ now, once the replay clock reaches that time, read from the real record:
   rehearses the evening on a real repository and finds its receipts commit on the published rehearsal branch. The
   commit must be dated within 2 minutes of 19:53 IST on the day. Plant (`commit_receipts`' git with `env=None`, past
   the shim): it fails.
+
+### REH1e: DRY2's stop (24 Oct), the parent's mode and today's tracked paths (for judges B and E)
+
+Branch `story/reh1e-parent-env`, from main. DRY2's first step (`rehearse preopen --day 2026-10-23`, run
+`20261024T040926Z-7b64b2`) stopped before any step. Its checkout's data commit was refused by the record scan, and the
+scan's hook posted an **unlabelled** alert to #fno-desk (09:40 IST, ts 1792815012.908599). Nothing was written to
+Drive, and no `rehearsal/` ref or main commit was made. A labelled note is threaded under the alert.
+
+**Root causes (both read in the code and git history):**
+1. **Unlabelled.** `rehearse()` put the mode only in the children's environment. The checkout's data commit is made
+   by the rehearsing parent, so git started the hook without the mode, and its #fno-desk sender was the real one.
+2. **Refused.** The checkout restored the data folders as of the routine's start: 23 Oct 08:36 IST. That is before
+   O9b's removal commit `9c2ac0b63` (23 Oct 13:40 IST, "VIX data out of the repository"). So four VIX files came back
+   as repository files, and today's scan rightly refuses them as "India VIX data moved to Drive". Any rule tightened
+   after a routine's start breaks the same way.
+
+**Fixes:**
+- **(a)** `mode.in_this_process(mode)`: the rehearsing parent carries the mode from `Rehearsal.new` to its last line,
+  and its previous environment comes back afterwards. Every process it starts outside the steps sees the mode, so
+  their alerts are labelled.
+  - Test: `test_the_checkout_s_own_commit_and_its_hook_run_with_the_mode_so_its_alerts_are_labelled`. The hook
+    records the variable it sees, and the parent's environment is clean after the rehearsal.
+  - Plant (the `with` dropped): the test fails.
+- **(b)** `RehearsalCheckout._drop_moved_since`: after the restore, a file the day had that today's main no longer
+  tracks is removed (`git rm`). Its data comes from Drive through the recorded sources. The scan still runs on the
+  commit, never bypassed.
+  - Test: `test_a_file_moved_out_of_the_repository_after_the_start_stays_out_and_the_scan_still_runs`. The 23 Oct
+    case: a VIX file added at 08:00 and removed at 13:40; the checkout is at 08:36; a hook refuses the file. The test
+    keeps a still-tracked file beside it, so the folder is restored, and checks the hook ran.
+  - Plant (the call dropped): the test fails. A first version of the test passed under the plant, because its tree
+    had no `research/data` left today; it was fixed before this claim.
+- **Real check:** on this repository, checkouts at 23 Oct 08:36, 08:38, 14:05 and 19:53 IST are all made, with the
+  scan run and passing. No VIX file comes back. The Slack token was unset for the check, so nothing could post.
+
+**Every parent-side outside call (the orchestrator's audit).** The parent (`python -m fno rehearse ...` or `daily run
+--rehearse`) does not install REH1a's process guard: the mode is not set when it starts. It makes no HTTP call of
+its own: no Slack, no Drive, no Groww, no NSE.
+- **Its git calls:**
+  - `fetch --unshallow origin`: a read from GitHub, only when the source is shallow.
+  - `clone`, `fetch`, `restore`, `rm`, `remote set-url` and `ls-tree`: all local.
+  - The data **commit**: runs the record scan's hook, which can post to #fno-desk. It now runs with the mode, so the
+    post is labelled.
+  - `init` of the bare origin and a `push` to it: local; its post-receive hook writes only the push log.
+  - `commit_receipts`' add, commit and push: with the rehearsal's env (mode and git shim); its hook is labelled.
+  - `publish`: the one push to GitHub, to `refs/heads/rehearsal/...` only, checked before git runs. `.githooks` has
+    no pre-push hook.
+  - `remote get-url`: local.
+- **Its other calls:** `_is_session` reads the repository's calendar file (local). The guard and the routine's
+  commands are children with the rehearsal's env.
