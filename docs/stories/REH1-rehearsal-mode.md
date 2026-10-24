@@ -822,11 +822,13 @@ plainly").
 
 1. **The rule (rehearsal only).** A capture's stem (`niftyweekly`, `banknifty`, the `v4` dataset's `nifty`, ...) is
    "not a part of the day" on the replayed day D when the real record (`mode.record`, never the rehearsal's own store)
-   holds no canonical marker of that stem in that dataset on or before D. The rule never reads a day after D: no
-   look-ahead.
+   holds no canonical marker AND no sidecar of that stem in that dataset on or before D (judge 635 SF1: A4 writes
+   each attempt's sidecar at once and the day's marker only when the day is recorded or at the window's end, so a
+   run that died after one attempt leaves a sidecar with no marker; that is a failure, never "not a part"). The rule
+   never reads a day after D: no look-ahead.
 2. **Where.** `RecordedRecorder.record` and `RecordedRecorder.attempt_now`, before any wait: such a stem answers
    `RecordResult(NOT_A_PART, reason="rehearsal: <stem> not recorded on or before <D>")` and writes nothing (no file,
-   no sidecar, no "none" marker). A stem with an earlier marker, or a marker on D, is served as today.
+   no sidecar, no "none" marker). A stem with an earlier marker or sidecar, or either on D, is served as today.
    `capture` (the desk's 15:15 execution read, NIFTY only) is unchanged: NIFTY's monthly stem is in the record on
    every replayable day.
 3. **The real code accepts it as quiet.** `NOT_A_PART = "not a part of the day"` is a named constant in
@@ -843,11 +845,12 @@ plainly").
    printed: "NIFTY weekly not a part of the day: - (0 contracts, complete=False) - rehearsal: niftyweekly not
    recorded on or before 2026-10-21".
 
-**The one wrong case, plainly.** A capture that existed on D but whose run crashed before writing anything (no
-sidecar, no marker), and had never recorded before D, reads here as "not a part of the day" instead of a failure. It
-can only be a capture's very first day; the real day's own run log already records that failure, and the rehearsal
-replays the record, not the crash. Every later day of a capture keeps the real rule: A4 and A4c always leave a marker
-(recorded or "none"), so a day with no marker after an earlier one is still a failure.
+**The one wrong case, plainly.** A capture that existed on D but whose run crashed before its first attempt wrote its
+sidecar (so no sidecar and no marker), and had never recorded before D, reads here as "not a part of the day" instead
+of a failure. It can only be a capture's very first day, before any attempt: a run that died after one attempt leaves
+its sidecar and stays a failure (judge 635). Monday 26 Oct is v4's first live day, so this is its one exposure: the
+real day's own run log records that failure, and the rehearsal replays the record, not the crash. Every later day keeps
+the real rule: any earlier sidecar or marker makes a day with nothing a failure.
 
 #### Criteria (each with good, bad, boundary and empty cases, a test and a plant)
 
@@ -858,6 +861,8 @@ replays the record, not the crash. Every later day of a capture keeps the real r
   made "on or before D-1 only" (on D) or "any day" (look-ahead: a 21 Oct replay must not see 22 Oct's marker).
 - **N3. Bad: a known capture that recorded nothing stays a failure.** A stem with a marker on an earlier day and none
   on D (a planted record): "window closed", alerted, exit 1, as today. Plant: the rule keyed on "no marker on D".
+  The first day with a sidecar and no marker (judge 635 SF1): a planted record whose only file of the stem is one
+  attempt's sidecar on D stays "window closed", alerted, exit 1. Plant: the rule reading markers only.
 - **N4. Real runs unchanged.** No mode: the real recorder; `NOT_A_PART` is never returned; the quiet sets only gain
   a status nobody real produces; the full suite passes. Plant: `NOT_A_PART` left out of `QUIET_STATUSES` (N1 fails)
   or out of `GOOD_STATUSES` (`quotes record` exits 1 for a `v4` replay before A4e).
@@ -873,7 +878,8 @@ replays the record, not the crash. Every later day of a capture keeps the real r
 | "with the exercised-line plumbing" | Design 4, N5 | |
 | "state the one wrong case plainly" | "The one wrong case" | |
 | The `v4` part posted "failed" before A4e | Design 1 (same rule) | |
-| G13's issuers refusing themselves in a rehearsal (finding 2) | | REH1o, proposed to the orchestrator |
+| G13's issuers refusing themselves in a rehearsal (finding 2) | | REH1o (its own story) |
+| Steps with their own live key (`close_read`, `close_recheck`, `card`, the v4 and G13 steps, ...) | | Each is its own `LiveFrom` step, so a replayed day before its key's date is `not_live` with its outcome exercised (REH1j); never a failure of the day (judge 635 m2). REH1n is for a capture inside a step that has no key of its own |
 
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
