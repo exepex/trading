@@ -23,7 +23,7 @@ from ..constants import (
 )
 from ..desk.daily_ports import ExitRules, OrderBuilder, Waiter
 from ..pipeline.trigger import RoutineFireTrigger, RoutineTrigger, UnconfiguredTrigger
-from .ports import AiBookDecider, AnalystCards, DayPacks, NoAnalystCards
+from .ports import AiBookDecider, AnalystCards, DayPacks, JudgeStep, NoAnalystCards
 from .versions import REGISTRY
 
 ROUTINES = {
@@ -41,6 +41,7 @@ class BookParts:
 
 PartsBuilder = Callable[[dict, Path, AlertSender], BookParts]
 BOOK_PARTS: dict[str, PartsBuilder] = {}  # F5 and F6 add their book's builder here
+JUDGE_STEP: Callable[[Path], JudgeStep] | None = None  # F4 sets its builder here (`fno/judge/wiring.py`)
 
 
 def build_decision_trigger(book: str, env=os.environ) -> RoutineTrigger:
@@ -126,6 +127,7 @@ def build_ai_steps(
     from .budget import LevelBudgetStop
     from .collect import DecisionCollector
     from .fire import DecisionFirer
+    from .no_judge import NoJudge
     from .promote import Promoter
     from .steps import AiCollectStep, AiFireStep, ObserverHandle
     from .terms import decision_terms
@@ -141,8 +143,9 @@ def build_ai_steps(
     firer = DecisionFirer(root, REGISTRY, triggers, budget, packs, cards, build_record_scanner(), commit, clock, terms)
     deciders = {book: book_parts.decider for book, book_parts in parts.items()}
     pull = lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.target)  # noqa: E731 - O1 publish branch
+    judge_step = (JUDGE_STEP or NoJudge)(root)  # F4 sets JUDGE_STEP when its code lands; until then never a trade
     collector = DecisionCollector(root, RepoHistory(root), REGISTRY, Promoter(root, deciders), packs, cards, pull,
-                                  terms)  # fmt: skip
+                                  terms, judge_step)  # fmt: skip
     observer, rehearsing = ObserverHandle(), lambda: rehearsal() is not None  # REH1: a rehearsal never fires
     return {
         AI_FIRE_STEP: AiFireStep(root, firer, timing, live, processes, observer, rehearsing),

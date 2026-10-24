@@ -1,7 +1,8 @@
 """The collection (story F1t, O1's `ai_collect` step): after Book 1 decides, for each live AI book, read its sealed
 submission with receipts from the remote observer's two readings, judge it (`outcome.judge`), hand an accepted answer
-to its decider (`Promoter`) and write the day's outcome record. Returns every book's outcome and the files to commit
-(the outcome records and each promoted run). A book with an outcome record already is never judged again."""
+to its decider (`Promoter`) after the daily judge (F4's `JudgeStep`; `NoJudge` until F4 lands) and write the day's
+outcome record. Returns every book's outcome and the files to commit (the outcome records, each verdict file and each
+promoted run). A book with an outcome record already is never judged again."""
 
 from __future__ import annotations
 
@@ -19,11 +20,12 @@ from ..desk.common_pack import CommonPack
 from ..desk.pack_items import canonical_json, sha256_hex
 from ..desk.private_pack import ALLOWED_FOLDERS, PrivatePack
 from .figures import private_figures, redact
-from .outcome import ACCEPTED, PROMOTED, REFUSED, DayOutcome, Deadlines, Judged, judge, seen_at
+from .outcome import ACCEPTED, JUDGE_FAILED, PROMOTED, REFUSED, DayOutcome, Deadlines, Judged, judge, seen_at
 from .paths import fired_path, observations_path
-from .ports import AcceptedDecision, AnalystCards, DayPacks, consulted_units
+from .ports import AcceptedDecision, AnalystCards, DayPacks, JudgeCase, JudgeStep, consulted_units
 from .promote import Promoter, Promotion
 from .records import OutcomeRecords
+from .run_check import strategy_label
 from .versions import DecisionRegistry, VersionRefused
 
 NO_ENTRY = "no fire log entry for the day"
@@ -31,6 +33,7 @@ PACKS_MISSING = "the day's packs could not be read: {why}"
 FAILED = "the collection failed for this book: {error}"
 PACKS_CHANGED = "the day's packs are not the ones fired (their SHA-256 differs from the fire log's labels)"
 CARDS_CHANGED = "the analyst cards read now are not the ones fired (their SHA-256 differs)"
+BLOCKED = "the judge's verdict blocks ({status}: {reason}); the no-trade run {run_id} is committed, no trade today"
 
 
 class PacksMissing(RuntimeError):
@@ -45,9 +48,11 @@ class Collected:
 
 class DecisionCollector:
     def __init__(self, root: Path, history: RepoHistory, registry: DecisionRegistry, promoter: Promoter,
-                 packs: DayPacks, cards: AnalystCards, refresh: Callable[[], None], terms: RunTerms):  # fmt: skip
+                 packs: DayPacks, cards: AnalystCards, refresh: Callable[[], None], terms: RunTerms,
+                 judge_step: JudgeStep):  # fmt: skip
         self.root, self.history, self.registry, self.promoter = Path(root), history, registry, promoter
         self.terms = terms  # the decision run's: where its commitments and reveals are
+        self.judge_step = judge_step
         self.packs, self.cards, self.refresh, self.records = packs, cards, refresh, OutcomeRecords(root)
 
     def collect(self, day: date, books: Sequence[str], deadlines: Deadlines) -> Collected:
@@ -87,10 +92,11 @@ class DecisionCollector:
         if facts is not None:
             outcome = judge(book, facts, receipts, deadlines, others)
         cards = self._cards(day, outcome, labels) if outcome.status == ACCEPTED else {}
-        promotion = self._promote(day, book, entry, outcome, cards) if outcome.status == ACCEPTED else None
+        accepted = outcome.status == ACCEPTED
+        promotion, verdict = self._promote(day, book, entry, outcome, cards) if accepted else (None, ())
         outcome.reason = redact(outcome.reason, facts.private if facts else set())  # public record and alert
         written = self.records.write(day, outcome, labels, consulted_units(cards), promotion)
-        return [written, *(promotion.paths if promotion else ())]
+        return [written, *verdict, *(promotion.paths if promotion else ())]
 
     def _facts(self, day, book, entry, labels, submission) -> Judged | None:
         if entry.get("state") == NOT_FIRED:
@@ -101,20 +107,28 @@ class DecisionCollector:
         figures = private_figures(private.body, common.data.decode("utf-8"), public)
         return Judged(entry, labels, submission, version.shape_check, figures, version.registered_model)
 
-    def _promote(self, day, book, entry, outcome: DayOutcome, cards: dict) -> Promotion:
+    def _promote(self, day, book, entry, outcome: DayOutcome, cards: dict) -> tuple[Promotion, tuple[Path, ...]]:
+        """The judge first (criterion 16), then the decider in every case; a blocked day keeps its no-trade run."""
         version = self.registry.by_label(outcome.version)
         common, private = self._packs(day, book, entry.get("labels", {}))
+        decision = outcome.answer.decision
+        judged = self.judge_step.run(JudgeCase(book, day, version.registered_model, decision, common.body,
+                                               private.body, common.sha256, private.sha256))  # fmt: skip
         accepted = AcceptedDecision(
             book, day, version.label, version.registered_model, outcome.model_reported, entry.get("session", ""),
-            common, private, outcome.answer.decision, cards, consulted_units(cards), outcome.commitment_commit,
-            outcome.reveal_commit,
+            common, private, decision, cards, consulted_units(cards), outcome.commitment_commit,
+            outcome.reveal_commit, judged.path, judged.verdict.blocks,
         )  # fmt: skip
         promotion = self.promoter.promote(accepted, version.write_paths)
-        if promotion.promoted:
-            outcome.status, outcome.reason = PROMOTED, f"run {promotion.run_id} committed for E3's deadline"
-        else:
+        if not promotion.promoted:
             outcome.stop(REFUSED, promotion.reason)
-        return promotion
+        elif judged.verdict.blocks:
+            reason = BLOCKED.format(status=judged.verdict.status, reason=judged.verdict.reason, run_id=promotion.run_id)
+            outcome.stop(JUDGE_FAILED, reason)
+        else:
+            outcome.status, outcome.reason = PROMOTED, f"run {promotion.run_id} committed for E3's deadline"
+            outcome.strategy_label = strategy_label(self.root / promotion.paths[0])
+        return promotion, (self.root / judged.path,)
 
     def _cards(self, day: date, outcome: DayOutcome, labels: dict) -> dict:
         """F2's item read again (the fire log keeps only its hash): exactly the one fired, or the book is refused."""

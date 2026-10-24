@@ -148,8 +148,11 @@ class AiCollectStep(DayStep):
             b: f"{r['status']}: {r['reason']}" for b, r in collected.outcomes.items() if r["status"] != PROMOTED
         }
         statuses = {book: record["status"] for book, record in collected.outcomes.items()}
+        labels = {book: r["strategy_label"].replace(" ", "_") for book, r in collected.outcomes.items()
+                  if r.get("strategy_label")}  # fmt: skip  # the owner's label, as words the public log keeps
         result = _result(problems, OBSERVER_LOST, ended=ended) if ended else _result(problems, NOT_PROMOTED)
-        return StepOutcome({"books": list(books), "statuses": statuses}, result, collected.paths)
+        inputs = {"books": list(books), "statuses": statuses, "strategy_labels": labels}
+        return StepOutcome(inputs, result, collected.paths)
 
     def _await_last_reading(self, day: date, deadline: datetime) -> None:
         """Until the observer wrote its reading for the reveal deadline, or it can no longer be valid."""

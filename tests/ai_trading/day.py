@@ -24,7 +24,7 @@ from fno.desk.private_pack import PrivatePack
 from fno.pipeline.trigger import RoutineTrigger
 from tests.ai.fakes import Clock, git
 
-from .builders import CARDS, DAY, TERMS, FakeDecider, at, common_pack, make_repo, private_body, registry
+from .builders import CARDS, DAY, TERMS, FakeDecider, FakeJudge, at, common_pack, make_repo, private_body, registry
 from .fakes import DecisionRoutine
 
 BOOKS = (BOOK2_HYBRID, BOOK3_AI)
@@ -55,7 +55,7 @@ class SameCards:
 
 
 class Day:
-    def __init__(self, tmp_path: Path, deciders=None, cards=None):
+    def __init__(self, tmp_path: Path, deciders=None, cards=None, judge=None):
         self.root = make_repo(tmp_path / "repo")
         self.registry, self.clock = registry(self.root), Clock(at(15, 0))
         self.triggers = {book: KeepPointer() for book in BOOKS}
@@ -63,6 +63,7 @@ class Day:
         self.cards = cards or SameCards()
         self.deciders = deciders if deciders is not None else {b: FakeDecider(self.root) for b in BOOKS}
         self.routines = {b: DecisionRoutine(self.root, self.registry, self.clock) for b in BOOKS}
+        self.judge = judge or FakeJudge(self.root)
 
     def fire(self, books=BOOKS) -> dict:
         firer = DecisionFirer(self.root, self.registry, self.triggers, NoStop(), self.packs, self.cards,
@@ -103,7 +104,7 @@ class Day:
     def collect(self, books=BOOKS):
         promoter = Promoter(self.root, self.deciders)
         collector = DecisionCollector(self.root, RepoHistory(self.root), self.registry, promoter, self.packs,
-                                      self.cards, lambda: None, TERMS)  # fmt: skip
+                                      self.cards, lambda: None, TERMS, self.judge)  # fmt: skip
         return collector.collect(DAY, books, DEADLINES)
 
     def _commit(self, paths, message):

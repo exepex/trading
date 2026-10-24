@@ -37,7 +37,7 @@ from fno.playbook.history import PlaybookGit
 from tests.desk.builders import fly_order
 from tests.timetable.fakes import C4, Clock, Decisions, Rules, daily_run
 
-from .builders import FakeDecider, private_body, registry
+from .builders import FakeDecider, FakeJudge, private_body, registry
 from .day import KeepPointer, NoStop, SameCards
 from .fakes import DecisionRoutine
 
@@ -201,7 +201,7 @@ def build_day(root: Path, tmp_path: Path, alerts, day, routine_draft, *, c4=C4_P
     firer = DecisionFirer(root, reg, {BOOK2_HYBRID: routine}, NoStop(), packs, SameCards(), build_record_scanner(),
                           ClockCommitter(root, clock).commit, clock, decision_terms(TIMING))  # fmt: skip
     collector = DecisionCollector(root, RepoHistory(root), reg, Promoter(root, {BOOK2_HYBRID: decider}), packs,
-                                  SameCards(), lambda: None, decision_terms(TIMING))  # fmt: skip
+                                  SameCards(), lambda: None, decision_terms(TIMING), FakeJudge(root))  # fmt: skip
     observer, handle = Observer(root, clock, observer_killed), ObserverHandle()
     books = lambda d: live  # noqa: E731
     steps = {"ai_fire": AiFireStep(root, firer, TIMING, books, observer, handle),

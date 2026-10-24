@@ -78,3 +78,20 @@ def test_a_rehearsal_neither_fires_nor_starts_the_observer_nor_collects(tmp_path
         assert done.result["status"] == STEP_REFUSED and done.result["reason"].startswith("rehearsal: AI decision")
     quiet = AiFireStep(tmp_path, firer, TIMING, lambda day: (), processes, ObserverHandle(), lambda: True).run(DAY)
     assert quiet.result["status"] == STEP_NOT_LIVE  # no book live: as in a real run
+
+
+def test_the_strategy_label_of_a_promoted_book_stays_in_the_public_run_log(tmp_path):
+    from fno.ai_trading.collect import Collected
+    from fno.daily.public_log import PublicResult, ReasonRegistry
+    from fno.daily.reason_codes import COMMON, STEP_TEMPLATES
+
+    class Labelled(Collector):
+        def collect(self, day, books, deadlines):
+            return Collected({"book2_hybrid": {"status": "promoted", "reason": "r", "strategy_label":
+                                               "strategy not yet passed"}}, ())  # fmt: skip
+
+    clock = Clock(at(15, 11, 2))
+    done = AiCollectStep(tmp_path, Labelled({}), TIMING, lambda day: ("book2_hybrid",), Waiter(clock), clock,
+                         ObserverHandle()).run(DAY)  # fmt: skip
+    shown = PublicResult(ReasonRegistry(COMMON, STEP_TEMPLATES)).public("ai_collect", done.inputs)
+    assert shown["strategy_labels"] == {"book2_hybrid": "strategy_not_yet_passed"}

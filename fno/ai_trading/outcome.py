@@ -17,7 +17,9 @@ from ..ai.submissions import Submission
 from .answer import SESSION_TOOL, AnswerRefused, CheckedAnswer, check_answer
 
 ACCEPTED, MODEL_UNVERIFIED, REFUSED, PROMOTED = "accepted", "model_unverified", "refused", "promoted"
-NOT_TRADED = (NOT_FIRED, NO_SUBMISSION, LATE, EXPOSED, INVALID, NOT_REVEALED, MODEL_MISMATCH, MODEL_UNVERIFIED, REFUSED)
+JUDGE_FAILED = "judge_failed"  # the judge's verdict blocked (Book 2): the "no trade, judge failed" run is committed
+NOT_TRADED = (NOT_FIRED, NO_SUBMISSION, LATE, EXPOSED, INVALID, NOT_REVEALED, MODEL_MISMATCH, MODEL_UNVERIFIED,
+              JUDGE_FAILED, REFUSED)  # fmt: skip
 NO_COMMITMENT = "no commitment (the AI was unavailable or limited)"
 NOT_ON_TIME = "commitment not on the remote at {at:%H:%M:%S} ({why})"
 OTHERS_EARLY = "{books} revealed before {at:%H:%M:%S}: their answer could be read"
@@ -37,6 +39,7 @@ class DayOutcome:
     model_configured: str = ""
     model_source: str = ""
     model_check: str = ""
+    strategy_label: str = ""  # a promoted run's: "strategy passed" or "strategy not yet passed"; "" with no trade
     commitment_commit: str = ""
     reveal_commit: str = ""
     received: dict = field(default_factory=dict)  # "commitment"/"reveal" -> deadline it was first seen at, or None

@@ -5,13 +5,23 @@ answers, and a decider that writes a valid D3 run."""
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import date, datetime, time
 from pathlib import Path
 
 from fno.ai_trading.answer import complete_answer, labels_of
-from fno.ai_trading.paths import common_pack_path
+from fno.ai_trading.paths import common_pack_path, judge_path
 from fno.ai_trading.pointer import DecisionPointer
-from fno.ai_trading.ports import AcceptedDecision, AiBookDecider, DecidedRun, DecisionRefused
+from fno.ai_trading.ports import (
+    AcceptedDecision,
+    AiBookDecider,
+    DecidedRun,
+    DecisionRefused,
+    JudgeCase,
+    Judged,
+    JudgeStep,
+    JudgeVerdict,
+)
 from fno.ai_trading.terms import decision_terms
 from fno.ai_trading.timing import DecisionTiming
 from fno.ai_trading.versions import DecisionRegistry, DecisionVersion
@@ -117,7 +127,8 @@ def record(book: str, run_id: str, accepted: AcceptedDecision, **changes) -> dic
                                                          "registry_commit", "strategy_file_sha256"), "h"),
                "book": book, "common_pack_sha256": accepted.common_pack.sha256,
                "private_pack_sha256": accepted.private_pack.sha256, "model_served": accepted.model_reported,
-               "session_id": accepted.session, "served": {"decision_version": accepted.version}}  # fmt: skip
+               "session_id": accepted.session, "served": {"decision_version": accepted.version},
+               "judge": accepted.judge or None}  # fmt: skip
     return fields | changes
 
 
@@ -158,3 +169,17 @@ def accepted(root: Path, book: str = BOOK2_HYBRID, decision: dict | None = None)
 
 def canonical(value) -> str:
     return sha256_hex(canonical_json(value))
+
+
+class FakeJudge(JudgeStep):
+    """F4's place in tests: a `pass` (or the given) verdict, written once like F4's file."""
+
+    def __init__(self, root: Path, status: str = "pass", blocks: bool = False):
+        self.root, self.status, self.blocks, self.cases = Path(root), status, blocks, []
+
+    def run(self, case: JudgeCase) -> Judged:
+        self.cases.append(case)
+        path = judge_path(case.day, case.book)
+        (self.root / path).parent.mkdir(parents=True, exist_ok=True)
+        (self.root / path).write_text(json.dumps({"book": case.book, "status": self.status}) + "\n", encoding="utf-8")
+        return Judged(JudgeVerdict(self.status, self.blocks, f"test verdict {self.status}"), path)

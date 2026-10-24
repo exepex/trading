@@ -1,5 +1,6 @@
 """What the AI books' trading runner depends on (story F1t), each behind an interface: the book's decider (F5 for
-Book 2, F6 for Book 3), F2's analyst cards, and the routine trigger (O6's `RoutineTrigger`, used unchanged). The
+Book 2, F6 for Book 3), F4's daily judge (one port, one owner: F4 implements `JudgeStep` and defines no second copy of
+these types; judge 628), F2's analyst cards, and the routine trigger (O6's `RoutineTrigger`, used unchanged). The
 hand-over shape was agreed with F5, F6 and F2 on 16 Oct 2026 (`docs/stories/F1t-ai-trading-runner.md`, "Hand-over
 port"). Each book's `OrderBuilder` and `ExitRules` (E3's ports) are also the decider's story's, wired per book in
 `fno/daily/wiring.py`."""
@@ -7,7 +8,7 @@ port"). Each book's `OrderBuilder` and `ExitRules` (E3's ports) are also the dec
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -47,6 +48,42 @@ class AcceptedDecision:
     consulted_units: tuple[str, ...]  # the units whose card was in that item: what was given (F9b withholds it)
     commitment_commit: str
     reveal_commit: str
+    judge: str = ""  # the judge's verdict file, repository-relative: every record's D3 `judge`
+    judge_blocks: bool = False  # the verdict blocks (Book 2 only): the decider writes "no trade, judge failed"
+
+
+@dataclass(frozen=True)
+class JudgeCase:
+    book: str
+    day: date
+    registered_model: str
+    decision: Mapping  # the accepted answer's decision
+    common: Mapping  # the common pack's body
+    private: Mapping  # the book's private pack's body
+    common_sha256: str
+    private_sha256: str
+
+
+@dataclass(frozen=True)
+class JudgeVerdict:
+    """What `ai_collect` reads of a verdict; the file holds the rest (F4 design 3)."""
+
+    status: str  # "pass" | "fail" | "unavailable"
+    blocks: bool  # true only for Book 2 when the status is not "pass"
+    reason: str  # one line
+
+
+@dataclass(frozen=True)
+class Judged:
+    verdict: JudgeVerdict
+    path: str  # the verdict file, repository-relative
+
+
+class JudgeStep(ABC):
+    @abstractmethod
+    def run(self, case: JudgeCase) -> Judged:
+        """Writes the day's verdict file once and returns it; never raises for a bad case (an error inside the judge
+        is the verdict `unavailable`)."""
 
 
 @dataclass(frozen=True)

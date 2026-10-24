@@ -54,3 +54,8 @@ def common_pack_path(day: date) -> str:
     """E2's committed common pack (`fno/desk/pack_store.py`), repeated here because the routine side cannot import the
     desk's pack code; `tests/ai_trading/test_paths.py` keeps them equal."""
     return f"journal/packs/{day.isoformat()}/common.json"
+
+
+def judge_path(day: date, book: str) -> str:
+    """The daily judge's verdict file (F4 design 3; `NoJudge`'s until F4 lands)."""
+    return f"{DECISIONS_FOLDER}/{day:%Y}/{day.isoformat()}_{book}_judge.json"

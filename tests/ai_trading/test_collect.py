@@ -2,7 +2,7 @@
 an accepted answer to its decider with exactly what was fired, and writes one outcome record per book."""
 
 from fno.ai_trading.outcome import PROMOTED, REFUSED
-from fno.ai_trading.paths import outcome_path
+from fno.ai_trading.paths import judge_path, outcome_path
 
 from .builders import DAY, FakeDecider, draft
 from .day import BOOKS, DEADLINES, Day, SameCards
@@ -25,8 +25,8 @@ def test_two_on_time_books_are_promoted_with_one_record_each(tmp_path):
     collected = day.collect()
     assert {b: r["status"] for b, r in collected.outcomes.items()} == dict.fromkeys(BOOKS, PROMOTED)
     assert sorted(p.name for p in collected.paths if p.suffix == ".json") == sorted(
-        outcome_path(DAY, b).split("/")[-1] for b in BOOKS
-    )
+        path(DAY, b).split("/")[-1] for b in BOOKS for path in (outcome_path, judge_path)
+    )  # each book's outcome record and its judge verdict (criterion 16)
     record = collected.outcomes["book2_hybrid"]
     assert record["received"] == {"commitment": DEADLINES.receipt.isoformat(), "reveal": DEADLINES.reveal.isoformat()}
     assert record["consulted_units"] == ["analyst_volatility"] and record["run_id"] == f"{DAY}-r1"

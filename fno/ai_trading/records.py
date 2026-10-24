@@ -36,6 +36,7 @@ class OutcomeRecords:
             "version": outcome.version, "labels": labels, "consulted_units": list(consulted),
             "model_reported": outcome.model_reported, "model_configured": outcome.model_configured,
             "model_source": outcome.model_source, "model_check": outcome.model_check,
+            "strategy_label": outcome.strategy_label,
             "commitment_commit": outcome.commitment_commit, "reveal_commit": outcome.reveal_commit,
             "received": {k: v.isoformat() if v else None for k, v in sorted(outcome.received.items())},
             "run_id": promotion.run_id if promotion else "",
