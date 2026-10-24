@@ -73,3 +73,16 @@ itself is right. 2 minor.
 **Gates (the same trial merge):**
 - `pytest -n auto`: 14778 passed, 1 skipped, 16 xfailed, plus the 5 conflict-only failures above.
 - ruff check, ruff format, check_imports, check_records (8891 files) and check_numbers: clean.
+
+## Addendum 2: O8e at 782bb6632 (story/o8e-collected-late, 552.1's notes)
+
+**Verdict: PASS.**
+- **The docstring question:** verified. E3 writes `COLLECTED_LATE` only in `collect_decisions`'s fail-closed branch, through `_all_late` (daily_steps.py lines 96-97 and 122-124), for every book from one start time, before any per-book work. A book late for its own reason gets `NOT_COMMITTED`. So one book carrying the text is enough, and the new docstring says why.
+- **A mixed log:** a log with the text on some books only cannot come from E3. It now reads LATE and is named "run log inconsistent: COLLECTED_LATE on some books only (...)".
+- **Plants (mine, `tests/health`): 3 of 3 caught.**
+  - The decision filter dropped (552.1's survivor): now caught.
+  - A mixed log not named.
+  - A full log named inconsistent.
+- **Gates (a trial merge with main d76ef42d, no conflict):**
+  - `pytest -n auto`: 14870 passed, 1 skipped, 15 xfailed.
+  - ruff check, ruff format, check_imports, check_records (8902 files) and check_numbers: clean.
