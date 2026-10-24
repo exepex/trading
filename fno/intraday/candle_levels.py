@@ -44,7 +44,7 @@ class SessionCandles:
 def parse_candles(rows) -> list[Candle]:
     try:
         return [Candle(candle_start(str(r[0])), *(float(v) for v in r[1:5])) for r in rows]
-    except (ValueError, TypeError, IndexError) as exc:
+    except (ValueError, TypeError, IndexError, KeyError) as exc:  # KeyError: a row that is a JSON object, not a list
         raise CandleParse(type(exc).__name__) from exc
 
 

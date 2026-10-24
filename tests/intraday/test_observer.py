@@ -4,7 +4,8 @@ recorder."""
 
 from datetime import time
 
-from fno.intraday.observer import MarkObserver, NoObserver
+from fno.intraday.observer import MarkObserver
+from fno.intraday.observer_group import ObserverGroup
 from fno.intraday.slots import label, marks
 from fno.intraday.status import MISSED
 from tests.intraday.fakes import DAY, FakeClock, build, ist
@@ -62,9 +63,10 @@ def test_the_rv_catch_up_reports_the_missed_marks_it_settles(tmp_path):
     assert [(label(m), s, d) for m, s, d in observer.calls] == [(label(m), MISSED, None) for m in marks(DAY)]
 
 
-def test_the_live_wiring_starts_with_no_observer(tmp_path, monkeypatch):
+def test_the_live_wiring_starts_with_an_empty_observer_group(tmp_path, monkeypatch):
     from fno.intraday import wiring
     from tests.intraday.groww_fakes import FakeGrowwProvider
 
     monkeypatch.setattr(wiring, "GrowwProvider", lambda cfg: FakeGrowwProvider())
-    assert isinstance(wiring.build_intraday_recorder({}, tmp_path).observer, NoObserver)
+    observer = wiring.build_intraday_recorder({}, tmp_path).observer
+    assert isinstance(observer, ObserverGroup) and observer.members == ()

@@ -111,8 +111,8 @@ worst), `risk` (C2 verdicts with numbers), `validity` (C4 result), `decision` (t
 book3_ai`), `version_id` (D6), `common_pack_sha256` and `private_pack_sha256` (E2), `rule_default` (Book 2: D2's
 action), `chosen_action` with `reason`, `authority_check` (Book 2: D4), `strategy_id` and its spec hash (Book 3: D5),
 `model_served` and `session_id` (AI books, F1), `judge` (C4 result; F4 verdicts and links), `owner_override` (always
-null: the owner never overrides a paper decision, DESK_DECISIONS row 229 item 4; a non-empty value is refused for
-every book), `forecasts` (G3 link). Records live under `journal/<book>/decisions/<date>/...` and are
+null: the owner never overrides a paper decision, DESK_DECISIONS "D4/D5: the five design questions accepted as
+recommended" item 4; a non-empty value is refused for every book), `forecasts` (G3 link). Records live under `journal/<book>/decisions/<date>/...` and are
 **committed before the execution snapshot** (E3).
 
 **Acceptance criteria:**
@@ -123,7 +123,8 @@ every book), `forecasts` (G3 link). Records live under `journal/<book>/decisions
 4. Records are never edited after writing (a correction is a new record linked to the old one).
 5. A record whose commit time is after its day's execution snapshot is marked late and never filled (test).
 6. The schema is versioned; every three-book field is present (null only where the book has no such field, e.g.
-   `rule_default` for Book 3) and validated.
+   `rule_default` for Book 3, and `strategy_id` with its spec hash on Book 3's day record "no_trade", which names no
+   strategy) and validated; `owner_override` is null in every book.
 
 **Test plan:** replay test; immutability test.
 

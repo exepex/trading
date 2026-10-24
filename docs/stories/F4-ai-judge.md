@@ -1,7 +1,9 @@
 # F4. The judge of the AI books' daily decisions, and its monthly audit (design v2)
 
 **Repository:** trading · **Lane:** 1 (decides whether a trade happens) · **Size:** M ·
-**Builder:** session_01AN94h4cY98oYa3CF2MZfak · **Judge:** E · **Orchestrator:** session_01VG1RqxLFUVdvvPuMRYZtDH ·
+**Builder:** session_01B3RARTgoiGJwBKXRCgGRe8 (from 25 Oct 2026; text by session_01AN94h4cY98oYa3CF2MZfak, out of
+reach) · **Judges:** the orchestrator's two (it decides whether a trade happens) · **Orchestrator:**
+session_01Mt6dcBU5kp2htdPN2KmiZH ·
 **Replaces:** the F4 text in `docs/stories/F-ai-layer.md` (amended 16 Oct), which now points here.
 
 **Description:** As the owner, I want every AI book's sealed daily decision checked, before it is promoted, for
@@ -107,7 +109,10 @@ a Book 2 decision other than `follow_rule` that passes both checks becomes `fail
 `journal/ai_decisions/<YYYY>/<d>_<book>_judge.json` (the same bytes again are accepted; different bytes are refused).
 The verdict carries no private pack value.
 
-**4. The port and its timing (`fno/judge/port.py`, `fno/judge/step.py`, `fno/judge/wiring.py`):**
+**4. The port and its timing (the port in F1t's `fno/ai_trading/ports.py`; F4's `fno/judge/step.py` implements it,
+built by `fno/judge/wiring.py`):** one port, one owner (F1t revision 2, 25 Oct): `JudgeCase`, `Judged` and the
+`JudgeStep` interface are F1t's, exactly as below, and F4 defines no second copy. Until F4's code merges, F1t wires
+`NoJudge` (always `unavailable`, "judge not built (F4)"), so Book 2 never trades without this judge.
 
 ```python
 @dataclass(frozen=True)
@@ -222,4 +227,6 @@ the audit after a fix that passes lifts it.
 
 **Depends:** F1t (the port and `judge_failed`), F5 and F6 (the `evidence` key and prompt lines), E2/E2c (packs), D3
 (`judge` field, no override) · **Status:** story text; judge 308 FAIL fixed; owner answered; partners' addenda: F5
-0bb574de, F6 c625151e, F1t pending
+0bb574de, F6 c625151e, F1t revision 2 (`story/f1t-runner-v2`, 25 Oct: the `JudgeStep` call before `decide()`,
+`judge` and `judge_blocks`, `judge_failed`, criterion 16): judge 308.1's last item, for re-check; code after F1t's text
+PASS. Builder's claims: the story file's Claims section (process of 22 Oct), plus the older response 271.

@@ -94,7 +94,8 @@ def test_c4_s_evidence_is_the_same_and_still_hash_checked(stores):
 def test_book1_s_snapshot_is_the_same(stores, tmp_path):
     old, new = stores
     files = load_snapshot(old, DAY)
-    write_packs(tmp_path, DAY, files.snapshot_id, hashlib.sha256(files.csv_bytes).hexdigest())
+    write_packs(tmp_path, DAY, files.snapshot_id, hashlib.sha256(files.csv_bytes).hexdigest(),
+                meta_sha=hashlib.sha256(files.meta_bytes).hexdigest())  # fmt: skip
 
     def market(store):
         inputs = LiveBook1Inputs(tmp_path, store, 0.065, Black76(), lambda d, s: s, lambda m: (None, None, None),

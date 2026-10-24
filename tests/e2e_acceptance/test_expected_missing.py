@@ -1,0 +1,128 @@
+"""Story O11, what is not implemented yet: one strict xfail per missing piece of the core engine or of the go-live
+gate (DESK_DECISIONS row 247), named by the story or owner step that closes it (`docs/CORE_ENGINE_PLAN.md`). When it
+lands, its test passes, the strict xfail fails the suite, and that builder deletes the marker in the same branch (and,
+for `not_built`, writes the real check). The suite is complete when this file holds no xfail."""
+
+import pytest
+
+from fno.cards.recorded_weather import RecordedWeather
+from fno.cards.wiring import build_daily_card
+from fno.config import ROOT, load_app_config
+from fno.constants import BOOK2_HYBRID, BOOK3_AI
+from fno.desk.pack_wiring import PACKED_BOOKS
+from tests.desk.conftest import RecordingAlerts
+
+from . import real_day as rd
+from .replay import Replay
+
+
+class NotBuilt(Exception):
+    """No code and no interface exist yet: the story's builder replaces `not_built` with the real check."""
+
+
+def not_built(story: str):
+    raise NotBuilt(f"{story} is not built")
+
+
+def missing(*stories: str):
+    return pytest.mark.xfail(strict=True, reason=f"not built yet: {', '.join(stories)}")
+
+
+def replayed_decisions(tmp_path, monkeypatch, book_name: str) -> list:
+    Replay(tmp_path, monkeypatch, RecordingAlerts()).run()
+    return sorted((tmp_path / "journal" / book_name / "decisions" / rd.DAY.isoformat()).glob("*/*.json"))
+
+
+@missing("owner: daily.live_from dates (go-live gate)")
+def test_every_o1_step_has_its_live_date():
+    assert all(load_app_config()["daily"]["live_from"].values())
+
+
+def test_the_daily_routine_starts_before_the_1430_forecast_cutoff():
+    section = (ROOT / "CLAUDE.md").read_text(encoding="utf-8").split("## Daily desk routine")[1].split("\n## ")[0]
+    assert "14:33" not in section
+
+
+def test_the_card_shows_m1s_weather_not_a_pending_line():
+    assert isinstance(build_daily_card(ROOT).builder.weather_source, RecordedWeather)  # T1c
+
+
+@missing("O11 part 2: the card step on a git root")
+def test_the_card_is_built_on_the_recorded_day():
+    not_built("the replay's card step (T1 reads committed records from git HEAD; the replay root is no checkout)")
+
+
+@missing("D4", "D5", "F1t")
+def test_books_2_and_3_get_their_private_packs():
+    assert {BOOK2_HYBRID, BOOK3_AI} <= set(PACKED_BOOKS)
+
+
+@missing("F1t", "F5")
+def test_book2_decides_on_the_recorded_day_from_a_fake_ai_answer(tmp_path, monkeypatch):
+    assert replayed_decisions(tmp_path, monkeypatch, BOOK2_HYBRID)
+
+
+@missing("F1t", "F6")
+def test_book3_decides_on_the_recorded_day_from_a_fake_ai_answer(tmp_path, monkeypatch):
+    assert replayed_decisions(tmp_path, monkeypatch, BOOK3_AI)
+
+
+@missing("F5", "F6")
+def test_books_2_and_3_fill_and_exit_in_the_daily_run():
+    not_built("Book 2's and Book 3's OrderBuilder and ExitRules in E3's daily run (F5, F6)")
+
+
+@missing("F1t")
+def test_each_ai_decision_records_the_model_served_and_its_session():
+    not_built("F1t's model reporting (model_served, session_id) in Books 2 and 3's decision records")
+
+
+@missing("G6")
+def test_protocol_v4_is_frozen_so_the_days_v4_rows_are_scored():
+    assert (ROOT / "research" / "forecasts" / "FREEZE_v4.md").is_file()
+
+
+def test_the_ai_books_answer_the_v4_questions_on_the_recorded_day(tmp_path):
+    """G11 C14 (the marker deleted with the story): a real live v4 day, fire to G8's report (`ai_v4_day.py`)."""
+    from fno.forecast_v4.terms import FAMILY_QUESTIONS
+    from fno.forecast_v4_rules import records
+
+    from .ai_v4_day import DAY, replay
+
+    done = replay(tmp_path)
+    rows = {(f, q): records.read(records.path(done["folder"], f, q)).get(DAY.isoformat())
+            for f in ("book2_hybrid_v2", "book3_ai_v2") for q in FAMILY_QUESTIONS}  # fmt: skip
+    assert len(rows) == 10 and all(r is not None and r.pack_sha256 == "d" * 64 for r in rows.values())
+    assert rows[("book3_ai_v2", "v6_abs_move_2pct_next_session")].status == "ok"
+    live = done["report"].cohorts["live"].scores
+    assert live["book3_ai_v2"] is not None and live["book2_hybrid_v2"] is not None  # G8 scores both books' V6a
+
+
+@missing("O10")
+def test_every_capture_failure_leaves_one_committed_error_row_and_an_alert():
+    not_built("O10: one committed row per capture job and day, and an alert on a failure")
+
+
+@missing("O10", "A14")
+def test_a_scheduled_job_that_never_starts_is_alerted_as_stale():
+    not_built("O10's staleness alert on a due job with no run (health-check, nse-margins' early cron, participant-OI)")
+
+
+@missing("F2")
+def test_an_analyst_finding_card_is_written_for_the_day():
+    not_built("F2")
+
+
+@missing("F8c")
+def test_each_ai_book_routine_records_its_own_usage_minutes():
+    not_built("F8c")
+
+
+@missing("T3")
+def test_a_trade_card_carries_the_devils_advocate_objections():
+    not_built("T3")
+
+
+@missing("FL1-2")
+def test_the_0915_lab_report_and_its_0930_paper_fills_on_the_recorded_day():
+    not_built("FL1-2's `lab open` and the 09:30 fills (waits for A22, E8 and A16's universe)")

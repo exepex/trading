@@ -148,3 +148,29 @@ gains a second independent job.
 
 Merge note: part 1 may merge. Criterion 7's run logs can only exist after the merge; cite them in part 2. Whichever of
 O10 and A17 (judge 351) merges second adds `global-cues` and `vix-history` to the watcher's list.
+
+## Addendum 2: 0db3f682 (one commit after the PASS head f3ab7413)
+
+**Verdict: PASS; part 1 may merge at 0db3f682.**
+
+The change: a `news-capture` run (A19's poller) that is cancelled before any step ran counts as replaced, so it gets no
+row and no line. Every other workflow's cancelled-before-start run still records and alerts (judge 350, minor 3
+kept). That answers judge 352 SF2 from O10's side.
+
+The rule is scoped by name (`REPLACEABLE = ("news-capture",)`) and needs both `cancelled` and no step that ran. The
+three tests cover the replaced run, a news run cancelled after a step (still a failure), and another workflow
+cancelled before a step (still a lost slot).
+
+Accepted risk: an owner who cancels a queued news run by hand is also silent. That is harmless, because the kick
+workflow dispatches again.
+
+## Addendum 3: 7aaa0259 (0db3f682 plus a merge of main plus two watched names)
+
+**Verdict: PASS. Merge 7aaa0259.** Against its merge base with main (2451d678), the branch changes only O10's own 18
+files. The one new change is `capture-watch.yml` listing `global-cues` and `vix-history` (A17 merged first, as judge
+351's merge note asked). The builder reports 7852 passed and 15 xfailed on that tree.
+
+Merge notes:
+- O12 is now on main, so the merged tree must pass `tools/check_numbers.py`. `response_254_o10-capture-health.md`
+  needs its registry row: re-seeding is the merger's job, done only with the orchestrator, and never by hand.
+- After O10 merges, A20a and A20b add `fo-masters` and `circulars` to this list, as judges 358 and 359 say.

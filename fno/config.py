@@ -25,8 +25,10 @@ ALLOWED_APP_KEYS = frozenset(
         "scorecard_review",
         "desk",
         "daily",
+        "forecast_lab",
         "budget",
         "health",
+        "school",
     }  # fmt: skip
 )
 

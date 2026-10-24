@@ -3,7 +3,7 @@ nothing here opens an account, fills a trade or places an order."""
 
 from __future__ import annotations
 
-from datetime import date
+from ..models import today_local
 
 _HELP = {
     "freeze": "G4: freeze a planned idea as a registered shadow (commit the files)",
@@ -31,14 +31,14 @@ def question(args) -> list[str]:
 def freeze(args) -> list[str]:
     from .wiring import build_freeze, read_idea
 
-    row = build_freeze().freeze(read_idea(args.idea_id), date.today())
+    row = build_freeze().freeze(read_idea(args.idea_id), today_local())
     return [f"{args.idea_id}: G4 registered ({row.numbers}); commit research/ledger.csv and research/factory/gates.csv"]
 
 
 def verdict(args) -> list[str]:
     from .wiring import build_verdicts, read_idea
 
-    result = build_verdicts().judge(read_idea(args.idea_id), date.today())
+    result = build_verdicts().judge(read_idea(args.idea_id), today_local())
     members = [f"  {m.version}: p {m.p:.4f} ({m.positions} of {m.sample} positions opened after {m.opened_after})"
                for m in result.members]  # fmt: skip
     word = "passed" if result.passed else "failed"

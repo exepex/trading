@@ -134,3 +134,19 @@ Weekday 404s per year are 2019: 17, 2020: 12, 2021: 14 (13 holidays + 30 Mar gap
 6. **Not covered:** commodity segment evening sessions, currency derivatives, and partial-day halts such as the
    24 Feb 2021 outage (trading halted, then extended to 17:00; the bhavcopy exists, so it counts as a normal session
    here).
+
+## TWSE closures (`twse_closures.csv`, story A17f)
+
+Read by `fno/global_cues/market_closures.py` for part B of A17e (`global-cues preopen`): a listed weekday is
+`market closed` for `taiex` and no request is sent. Columns `date,kind,description,source_url,sha256`; kinds:
+- `covers`: one row per year the file is complete for (1 Jan of that year), with the SHA-256 of TWSE's holiday file
+  (`https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule`) it was copied from. A year without it is not
+  used: part B alerts "taiex: TWSE calendar has no <year>" (and, from 1 Dec, "... has no <next year> yet").
+- `holiday`: TWSE's published weekday closures, copied by hand from that file. Its rows naming a first or last
+  "交易日" (trading day) are trading days; settlement-only days ("市場無交易") are closures.
+- `unscheduled`: a closure announced late (a typhoon day), with its own source.
+
+Each new year: save TWSE's file as `tests/fixtures/twse/holiday_schedule_<year>.json`, add the `covers` row with its
+SHA-256 and the year's `holiday` rows; `tests/global_cues/test_twse_closures.py` fails until the rows equal the parser's
+reading of that file. 2026: fetched 24 Oct 2026, 27 rows, 18 weekday closures; 23 Oct 2026 added as `unscheduled`
+(Typhoon Champi: TWSE's 5-second statistics for that day answer "no data").

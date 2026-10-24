@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import csv
 import io
+from collections.abc import Callable
+from functools import partial
 from pathlib import Path
 from typing import Protocol
 
@@ -49,7 +51,15 @@ class AppendOnlyCsv:
             raise self.error(f"{self.path} history is not append-only: {'; '.join(problems)}")
 
     def append(self, values: tuple) -> None:
+        self.prepare(values)()
+
+    def prepare(self, values: tuple) -> Callable[[], None]:
+        """Checks the history now (git reads) and returns the write, which reads nothing: a caller with other writes
+        checks every file first, so a failed git read leaves nothing half written."""
         self.require_append_only()
+        return partial(self._write, values)
+
+    def _write(self, values: tuple) -> None:
         before = self._text() or _render(self.columns)
         self.file.parent.mkdir(parents=True, exist_ok=True)
         self.file.write_text(before + _render(values), encoding="utf-8")

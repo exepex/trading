@@ -10,7 +10,7 @@ from datetime import timedelta
 import pytest
 
 from fno.ai.answer import complete_answer
-from fno.ai.book import answer_labels
+from fno.ai.book_run import answer_labels
 from fno.ai.collect import AiForecastCollector
 from fno.ai.export import build_export
 from fno.ai.fire import AiBookFirer

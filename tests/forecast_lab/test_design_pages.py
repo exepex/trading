@@ -1,0 +1,298 @@
+"""FL1-1d, design part: the signed-off design (d8f0440 on story/fl1-report-design, DESK_DECISIONS 11ef1b23) drawn
+from a PageView. Pins the key elements of both editions: the key, the three big numbers, chart 1 and chart 2, the
+day table's columns, the percentages, the calendar, the trend, the phone drawings; no bands, no bars, no request."""
+
+import re
+
+from fno.forecast_lab.design.evening import render_evening
+from fno.forecast_lab.design.morning import render_morning
+from fno.forecast_lab.design.renderer import DesignRenderer
+
+from .design_builders import nifty, page, unchecked
+
+KEY_WORDS = ("✓ Correct = closed inside “most likely”", "⚠ Close call = outside “most likely”",
+             "✗ Missed = outside “almost certainly”")  # fmt: skip
+TABLE_COLUMNS = ("<th>Date</th>", "<th>Forecast middle</th>", "<th>Most likely</th>", "<th>Almost certainly</th>",
+                 "<th>Actual close</th>", "<th>Gap pts</th>", "<th>Gap %</th>", "<th>Result</th>",
+                 '<th class="reason">Reason</th>')  # fmt: skip
+
+
+def test_the_evening_page_carries_the_key_the_three_numbers_both_charts_the_table_and_the_counts():
+    html = render_evening(page("evening", checked=True))
+    assert all(words in html for words in KEY_WORDS) and html.count("How to read the result") == 1
+    assert "<small>Forecast middle</small>" in html and "<small>Actual close</small>" in html
+    assert "<small>Gap</small>" in html and " pts</b>" in html
+    assert html.count('<svg class="lines"') == 4 and html.count('<svg class="gap"') == 4  # desk + phone, 2 indices
+    assert html.count('<svg class="trend"') == 4 and html.count('class="calgrid"') == 2
+    assert all(column in html for column in TABLE_COLUMNS)
+    assert re.search(r"✓ Correct \d+ \(\d+%\)", html) and "trading days, the last 30" in html
+    assert 'class="phone"' in html and 'class="desk"' in html
+
+
+def test_the_evening_result_card_says_the_result_and_how_far_outside_which_range():
+    html = render_evening(page("evening", indices=(nifty(checked=True),)))
+    assert "⚠ Close call" in html or "✓ Correct" in html or "✗ Missed" in html
+    assert "Closed " in html and ("the forecast middle" in html or "“almost certainly”" in html)
+    assert "Why it was correct" in html or "Why a close call" in html or "Why it missed" in html
+
+
+def test_chart_2_writes_every_miss_with_its_signed_gap_and_chart_1_the_last_values():
+    html = render_evening(page("evening", indices=(nifty(checked=True),)))
+    assert html.count('class="gv red"') == 2 * 3  # three misses, desk and phone
+    assert ">forecast " in html and ">close " in html and "<title>" in html
+
+
+def test_the_morning_page_carries_the_big_numbers_chart_1_with_todays_forecast_and_the_chip():
+    html = render_morning(page("morning", checked=True))
+    assert all(words in html for words in KEY_WORDS)
+    assert "<small>Most likely</small>" in html and "<small>Almost certainly</small>" in html
+    assert "<small>Forecast middle</small>" in html and "1 day in 2" in html and "9 days in 10" in html
+    assert html.count('<svg class="lines"') == 4 and html.count('class="pf"') == 4  # today's forecast point
+    assert "almost certainly</tspan>" in html and 'class="gap"' not in html
+    assert "inside “almost certainly”" in html and "Back-test (29 of the last 30 days)" in html  # plain.record_words
+    assert "Why this forecast" in html and "not available yet" in html  # no cue wired yet: plain words, no guess
+
+
+def test_no_shaded_band_no_bar_no_request_and_one_definition_of_right():
+    for html in (render_morning(page("morning", checked=True)), render_evening(page("evening", checked=True))):
+        assert "<rect" not in html.replace('<rect class="zone"', "")  # the trend's warning zone is the only rect
+        assert "polygon" not in html and "http://" not in html and "https://" not in html and "<link" not in html
+        assert "Right " not in html  # the three words correct / close call / missed, never a bare "right"
+
+
+def test_the_renderer_picks_the_edition_and_serves_the_same_page_as_picture_and_details():
+    renderer = DesignRenderer()
+    evening = page("evening", checked=True)
+    assert renderer.picture(evening) == renderer.details(evening)
+    morning = page("morning", checked=True)
+    if getattr(morning, "edition", "evening") == "morning":  # the model after FL1-1d-1
+        assert "Today’s forecast" in renderer.picture(morning) and "chart 2" not in renderer.picture(morning)
+    assert "Was today’s forecast right?" in renderer.picture(evening)
+
+
+def test_an_index_without_scored_sessions_renders_a_plain_line_instead_of_charts():
+    from dataclasses import replace
+
+    from fno.forecast_lab.page.plain import LIGHT_WORDS
+
+    bare = replace(nifty(), horizons=(), scored=0, right=0, track=None)
+    html = render_evening(page("evening", indices=(bare,)))
+    assert "no scored session yet" in html and "<svg" not in html
+    assert f"{LIGHT_WORDS['none']} · no scored days yet" in render_morning(page("morning", indices=(bare,)))
+
+
+def test_the_result_card_reads_only_the_editions_own_check_never_an_older_day():
+    """Owner, 23 Oct: with no check of today, the page said 21 Oct's result under "Was today's forecast right?"."""
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from fno.forecast_lab.design.values import days_of, result_of
+
+    index = nifty(checked=True)
+    own = index.horizons[0].timeline.points[-5]
+    assert result_of(SimpleNamespace(result=own)).day == own.day  # IndexView.result (FL1-1d-2)
+    assert result_of(replace(index, result=None)) is None and days_of(index, 30)  # never days[-1] instead
+
+
+def test_the_honesty_labels_are_printed_and_never_dropped():
+    """Judge 446: a mutation that drops any of these must fail here."""
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from fno.forecast_lab.design.blocks import result_card
+    from fno.forecast_lab.design.values import day_of
+    from fno.forecast_lab.page.model import Miss
+
+    index = nifty(checked=True)
+    # 1. a reason from the data is escaped, never injected as markup
+    # the hostile reason sits on the newest miss, a red row of the shown day table AND of the misses table (446.1)
+    hostile = replace(index, misses=(Miss(index.misses[-1].day, "above", 60.0, ("<b>bold</b> & co",)),))
+    html = render_evening(page("evening", indices=(hostile,)))
+    assert html.count("&lt;b&gt;bold&lt;/b&gt; &amp; co") == 2 and "<b>bold</b>" not in html
+    # 2. a provisional close says so instead of the date
+    point = index.horizons[0].timeline.points[-1]
+    provisional = SimpleNamespace(day=point.day, close=point.close, band=point.band, inside_50=point.inside_50,
+                                  inside_90=point.inside_90, live=False, provisional=True)  # fmt: skip
+    assert "the official file confirms it in the next morning report" in result_card(day_of(provisional))
+    assert "the official file confirms it" not in result_card(day_of(point))
+    # 3. the back-tested count is on both pages: the evening's note and the morning's chip, and the method line
+    from fno.forecast_lab.page.model import TrackRecord
+
+    tested = replace(index, backtested=7, track=TrackRecord(23, 20, 7, 6, 30, 20))
+    evening = render_evening(page("evening", indices=(tested,)))
+    morning = render_morning(page("morning", indices=(tested,)))
+    assert "7 of the last 30 were scored on a back-fill, not live" in evening
+    assert "Back-test (7 of the last 30 days): 6 of 7" in morning and "back-tested 7 of the last 30 days" in morning
+    assert "Live so far: 23 days, inside “almost certainly” 20 of 23" in evening
+    assert "Method: implied, lowest error on its own history" in evening and "0 of 60 live days scored" in morning
+    none = replace(index, backtested=0, track=TrackRecord(30, 27, 0, 0, 30, 27))
+    assert "back-tested" not in render_morning(page("morning", indices=(none,)))  # none when there is none
+    # 4. system problems are printed on both pages, and "all normal" only when there is none
+    from fno.forecast_lab.page.model import PageView
+
+    broken = PageView(page(checked=True).day, "Live, sealed", (index,), (), ("a forecast is missing: data late",))
+    for html in (render_morning(broken), render_evening(broken)):
+        assert "⚠ a forecast is missing: data late" in html and "All systems normal" not in html
+    assert "All systems normal" in render_evening(page("evening", checked=True))
+
+
+def test_the_result_words_come_from_one_source_shared_with_the_text_lines():
+    from fno.forecast_lab.design.formats import AMBER, GLYPH, GREEN, RED, WORD
+    from fno.forecast_lab.page.plain import RESULTS
+
+    assert f"{GLYPH[GREEN]} {WORD[GREEN]}" == RESULTS[(True, True)] == "✓ Correct"
+    assert f"{GLYPH[AMBER]} {WORD[AMBER]}" == RESULTS[(False, True)] == "⚠ Close call"
+    assert f"{GLYPH[RED]} {WORD[RED]}" == RESULTS[(False, False)] == "✗ Missed"
+
+
+def test_the_evening_verdict_comes_first_in_the_owners_words_then_why_record_and_the_next_forecast():
+    """Owner, 23 Oct: per index, the verdict (close against both ranges, glyph plus word), why, the record with
+    back-tested apart, then the next session's forecast; the words are the FL1 builder's text lines' (FL1-1e)."""
+    from dataclasses import replace
+
+    from fno.forecast_lab.page.plain import VERDICTS
+
+    index = nifty(checked=True)
+    html = render_evening(page("evening", indices=(index,)))
+    card = html[html.index("<h2>NIFTY") : html.index("chart 1")]
+    assert "today: closed <b>" in card and "(NSE&#x27;s official close; G13b&#x27;s score follows)" in card
+    assert "most likely 22,099–22,379 → <b>✅ inside</b>" in card  # the forecast's own edges (FL1-1f), not rounded
+    assert "almost certainly 21,849–22,529 → <b>✅ inside</b>" in card
+    assert 'verdict: <b class="green">✓ right</b>' in card and VERDICTS == {True: "✓ right", False: "✗ wrong"}
+    order = ("verdict:", "<small>Forecast middle</small>", "Why it was correct", "Live so far",
+             "Method: implied", "Next session’s forecast · close")  # fmt: skip
+    assert [card.index(words) for words in order] == sorted(card.index(words) for words in order)
+    # a close outside "almost certainly" is wrong, in red, with "no" on both ranges
+    point = index.horizons[0].timeline.points[-1]
+    missed = replace(index, result=replace(point, close=point.band.q95 + 60, inside_50=False, inside_90=False))
+    wrong = render_evening(page("evening", indices=(missed,)))
+    assert 'verdict: <b class="red">✗ wrong</b>' in wrong and "→ <b>❌ outside by 60.00 points (above)</b>" in wrong
+    # a close call (judge 538 F3): outside "most likely", inside "almost certainly": right, green, over the amber chip
+    amber = replace(index, result=replace(point, close=point.band.q75 + 80, inside_50=False, inside_90=True))
+    call = render_evening(page("evening", indices=(amber,)))
+    card = call[call.index("<h2>NIFTY") : call.index("chart 1")]
+    assert "→ <b>❌ outside by 80.00 points (above)</b>" in card and "→ <b>✅ inside</b>" in card
+    assert card.index('verdict: <b class="green">✓ right</b>') < card.index('<span class="chip amber">⚠ Close call')
+
+
+def test_the_evening_without_a_check_says_so_in_red_first_and_names_the_last_checked_day():
+    from dataclasses import replace
+    from datetime import date
+
+    from fno.forecast_lab.page.model import CLOSE_NOT_READ, NO_FORECAST_TODAY
+
+    not_read = unchecked(nifty(), CLOSE_NOT_READ, "the index list was not published")
+    view = replace(page("evening", indices=(not_read,)), next_session=date(2026, 10, 26))
+    html = render_evening(view)
+    card = html[html.index("<h2>NIFTY") : html.index("chart 1")]
+    red = card.index("<p class=\"nocheck\">⚠️ today: no verdict. Today&#x27;s close could not be read (the index list "
+                     "was not published). The result comes in Monday&#x27;s morning report.</p>")  # fmt: skip
+    assert red < card.index("last checked:") < card.index("Method:")  # judge 538 F2: the red line first
+    assert "<small>today: not checked</small>" in card and "verdict:" not in card and "Why " not in card
+    assert "last checked: Thu 22 Oct, ✓ Correct" in card and "Next session’s forecast" in card
+    none = render_evening(page("evening", indices=(unchecked(nifty(), NO_FORECAST_TODAY, "no issue"),)))
+    assert "❌ today: no verdict. No forecast was issued for today (no issue), so there is nothing to check." in none
+    # no key at all: the plain line, never a guess
+    bare = unchecked(nifty(), "")
+    assert "⚠ today: not checked (no verdict)" in render_evening(page("evening", indices=(bare,)))
+
+
+def test_the_close_label_names_the_morning_report_that_confirms_it_never_tomorrow_on_a_friday():
+    """The name comes from plain.morning_report (the text line's), so the picture and the Slack text match."""
+    from dataclasses import replace
+    from datetime import date
+
+    index = nifty(checked=True)
+    provisional = replace(index, result=replace(index.result, provisional=True))
+    view = replace(page("evening", indices=(provisional,)), next_session=date(2026, 10, 26))  # a Friday's page
+    html = render_evening(view)
+    assert "(NSE&#x27;s close; the official file confirms it in Monday&#x27;s morning report)" in html
+    assert "close as read after 15:30; the official file confirms it in Monday&#x27;s morning report" in html
+    assert "next morning" not in html  # the small note under the close names the same report as the verdict line
+
+
+def test_the_morning_shows_the_previous_sessions_check_in_the_same_words_with_its_day():
+    html = render_morning(page("morning", indices=(nifty(checked=True),)))
+    assert "Last session’s check" in html and "Fri 23 Oct: closed <b>" in html
+    assert "almost certainly 21,849–22,529 → <b>✅ inside</b>" in html
+    assert 'verdict: <b class="green">✓ right</b>' in html
+    from dataclasses import replace
+
+    assert "Last session’s check" not in render_morning(
+        page("morning", indices=(replace(nifty(checked=True), result=None),))
+    )
+
+
+def test_a_past_days_check_is_never_called_today():
+    """Orchestrator, 23 Oct: a past day under "today" without its date label is the fault of the 23 Oct page."""
+    from dataclasses import replace
+
+    index = nifty(checked=True)
+    past = replace(index, result=index.horizons[0].timeline.points[-3])  # Wed 21 Oct on the Fri 23 Oct page
+    html = render_evening(page("evening", indices=(past,)))
+    assert "Wed 21 Oct: closed <b>" in html and "<small>Wed 21 Oct · closed" in html
+    assert "today: closed" not in html and "today · closed" not in html
+    own = render_evening(page("evening", indices=(index,)))
+    assert "today: closed <b>" in own and "<small>today · closed" in own
+
+
+def test_the_record_pill_prints_plains_record_words_and_a_cues_unit_goes_on_the_change_only():
+    """Seen on the 23 Oct dry run: a chip counting over the chart's 10 days beside "25 of 30", and a level printed as
+    "7,663.43%". The record is now plain.record_words (live and back-tested apart, one source with the text)."""
+    from dataclasses import replace
+    from datetime import date
+
+    from fno.forecast_lab.design.page import _cue_words, record_pill
+    from fno.forecast_lab.page.cues import Cue
+    from fno.forecast_lab.page.plain import LIGHT_WORDS, record_words
+
+    index = nifty(checked=True)
+    assert record_pill(index) == f'<span class="pill none"><i></i>{LIGHT_WORDS["none"]} · {record_words(index)}</span>'
+    assert "Live so far: 1 day" in record_pill(index) and "Back-test (29 of the last 30 days)" in record_pill(index)
+    rated = replace(index, track=replace(index.track, live_days=30, live_right=28, live_recent_right=28))
+    assert record_pill(rated).startswith('<span class="pill green"><i></i>Live so far: 30 days')
+    assert _cue_words(Cue("S&P 500", 7000.5, -1.21, "%", date(2026, 10, 22))) == "7,000.5 −1.21%"
+    assert _cue_words(Cue("US 10-year yield", 4.96, -0.17, "pts", date(2026, 10, 22))) == "4.96 −0.17pts"
+    assert _cue_words(Cue("India VIX", 15.76, 0.51, "%", date(2026, 10, 22))) == "15.76 +0.51%"
+
+
+def test_a_provisional_morning_check_says_the_official_file_has_not_confirmed_it_never_a_reports_name():
+    """Judge 538 F4 / 538.1: own_check.py never makes the morning check provisional today; if it did, the label must
+    say so, not "tomorrow's morning report" (that report is the morning page itself)."""
+    from dataclasses import replace
+
+    index = nifty(checked=True)
+    provisional = replace(index, result=replace(index.result, provisional=True))
+    html = render_morning(page("morning", indices=(provisional,)))
+    assert "closed <b>" in html and "(NSE&#x27;s close; the official file has not confirmed it yet)" in html
+    assert "morning report" not in html and "official close" not in html
+    official = render_morning(page("morning", indices=(index,)))
+    assert "official close" in official and "has not confirmed" not in official
+
+
+def test_the_evening_why_rows_carry_the_cause_the_context_and_each_cue_once():
+    """Judge 550: on the rendered evening page, a miss with a measured reason says "Missed because (measured)", a miss
+    without one "no measured cause", a failed source "Context: not available (<its why>)", and a cue appears once."""
+    from dataclasses import replace
+
+    from fno.forecast_lab.page.cues import CONTEXT, FAILED, Cue, SectionView
+    from fno.forecast_lab.page.keypoints import REASON
+    from fno.forecast_lab.page.reasons import NO_REASON
+
+    index = nifty(checked=True)
+    point = index.horizons[0].timeline.points[-1]
+    missed = replace(point, close=point.band.q95 + 60, inside_50=False, inside_90=False)
+    brent = Cue("Brent", 80.0, 1.5, "%", role=CONTEXT)
+    said = replace(index, result=missed, why=(Cue(REASON, text="India VIX jumped from 13.9 to 15.3"), brent))
+    html = render_evening(page("evening", indices=(said,)))
+    card = html[html.index("<h2>NIFTY") : html.index("chart 1")]
+    assert "Missed because (measured): India VIX jumped from 13.9 to 15.3." in card
+    assert "Context (measured, not a cause): Brent +1.50%." in card and card.count("Brent") == 1  # the cue once (T5)
+    unsaid = replace(index, result=missed, why=(Cue(REASON, text=NO_REASON),))
+    assert "Missed (reasoning): no measured cause in our data, so likely noise." in render_evening(
+        page("evening", indices=(unsaid,))
+    )
+    # a failed source: its words, as the text line prints them (T6)
+    failed = SectionView("US close", FAILED, why="the US close file was not read")
+    view = replace(page("evening", indices=(index,)), cues=(failed,))
+    assert "Context: not available (the US close file was not read)." in render_evening(view)

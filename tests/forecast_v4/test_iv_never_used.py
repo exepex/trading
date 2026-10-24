@@ -17,9 +17,11 @@ from fno.forecast_v4_rules.wiring import build_v4_forecasts
 from fno.research_engine.implied_vol import Black76, ImpliedVolModel
 from fno.weather.records import red_share
 from fno.weather.wiring import build_records, build_weather_days
+from tests.forecast_scoring_v4.conftest import no_v4_drive_records  # noqa: F401 (the one fixture, shared)
 
 DAY = date(2026, 10, 15)  # a real session with its committed close
 MADE_AT = "2026-10-15T09:00:00+00:00"
+pytestmark = pytest.mark.usefixtures("no_v4_drive_records")  # the point is no implied vol, not the records
 
 
 class ImpliedVolUsed(AssertionError):

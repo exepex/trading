@@ -2,15 +2,40 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta, timezone
 
 IST = timezone(timedelta(hours=5, minutes=30))
 EXPIRY_CLOSE = time(15, 30)
 
 
+def wall_clock() -> datetime:
+    """The real time, whatever clock is installed (a replay clock is built on it)."""
+    return datetime.now(UTC)
+
+
+_clock: Callable[[], datetime] = wall_clock  # the process's one clock (story REH1: a rehearsal installs its own)
+
+
+def install_clock(clock: Callable[[], datetime]) -> None:
+    """Every clock read of the package goes through here (a test forbids `datetime.now` elsewhere); a rehearsal's
+    replay clock is installed once, at process start, by its composition root."""
+    global _clock
+    _clock = clock
+
+
 def now_ist() -> datetime:
-    return datetime.now(IST)
+    return _clock().astimezone(IST)
+
+
+def now_utc() -> datetime:
+    return _clock().astimezone(UTC)
+
+
+def today_local() -> date:
+    """The container's local date, as `date.today()` gave it (kept for the commands whose default was that)."""
+    return _clock().astimezone().date()
 
 
 @dataclass

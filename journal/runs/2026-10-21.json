@@ -1,0 +1,258 @@
+{
+ "day": "2026-10-21",
+ "kind": "daily_run",
+ "steps": {
+  "quotes": {
+   "started_at": "2026-10-21T14:35:37.328082+05:30",
+   "finished_at": "2026-10-21T14:35:37.328122+05:30",
+   "inputs": {
+    "parts": [
+     "nifty",
+     "nse",
+     "indices"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "started nifty, nse; indices after nifty"
+   }
+  },
+  "margin_check": {
+   "started_at": "2026-10-21T14:35:41.471779+05:30",
+   "finished_at": "2026-10-21T14:35:41.471805+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "no live date set (config.yaml daily.live_from)"
+   }
+  },
+  "weather": {
+   "started_at": "2026-10-21T14:35:44.902480+05:30",
+   "finished_at": "2026-10-21T14:35:44.902505+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "no live date set (config.yaml daily.live_from)"
+   }
+  },
+  "forecasts_v4": {
+   "started_at": "2026-10-21T14:35:48.174554+05:30",
+   "finished_at": "2026-10-21T14:35:48.174581+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "no live date set (config.yaml daily.live_from)"
+   }
+  },
+  "versions": {
+   "started_at": "2026-10-21T14:58:00.000220+05:30",
+   "finished_at": "2026-10-21T14:58:00.010776+05:30",
+   "inputs": {},
+   "result": {
+    "line": "Book 1 has no registered version: the owner registers the first one (D6); its decisions stay unscored"
+   }
+  },
+  "pack": {
+   "started_at": "2026-10-21T14:58:03.674745+05:30",
+   "finished_at": "2026-10-21T14:58:09.382882+05:30",
+   "inputs": {},
+   "result": {
+    "built": true,
+    "sha256": "f6f39f9f55d3ff6471977db208abc7a514a1d460232c4d2a5cfb2a5c1e4eafc4"
+   }
+  },
+  "book1": {
+   "started_at": "2026-10-21T14:58:12.659169+05:30",
+   "finished_at": "2026-10-21T14:58:42.667718+05:30",
+   "inputs": {
+    "command": [
+     "desk",
+     "book1",
+     "--day",
+     "2026-10-21"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "Book 1 2026-10-21: decided (2026-10-21-r1), committed a776bf42511fa3b33629c6495ec2424d95aa12cf",
+    "exit_code": 0,
+    "lines": [
+     "Book 1 2026-10-21: decided (2026-10-21-r1), committed a776bf42511fa3b33629c6495ec2424d95aa12cf"
+    ]
+   }
+  },
+  "decisions": {
+   "started_at": "2026-10-21T15:12:00.000254+05:30",
+   "finished_at": "2026-10-21T15:12:01.228090+05:30",
+   "inputs": {
+    "deadline": "2026-10-21T15:12:00+05:30",
+    "origin": "0b9a51d9d0d3ed9bfa1bf3dae987e23e6c7c6e17"
+   },
+   "result": {
+    "book1_rules": {
+     "run_id": "2026-10-21-r1",
+     "commit": "a776bf42511fa3b33629c6495ec2424d95aa12cf",
+     "committed_at": "2026-10-21T14:58:39+05:30"
+    }
+   }
+  },
+  "snapshot": {
+   "started_at": "2026-10-21T15:15:00.000299+05:30",
+   "finished_at": "2026-10-21T15:17:59.750993+05:30",
+   "inputs": {},
+   "result": {
+    "valid": true,
+    "snapshot_id": "nifty_20261021_151500",
+    "sha256": "03406340458ee0ec09722f9ce6f7730a38e4526f646300a2567f6b35e43c72fc",
+    "attempts": [
+     "nifty_20261021_151500"
+    ]
+   }
+  },
+  "fills": {
+   "started_at": "2026-10-21T15:18:03.390020+05:30",
+   "finished_at": "2026-10-21T15:18:03.466514+05:30",
+   "inputs": {
+    "snapshot_valid": true,
+    "decisions": {
+     "book1_rules": {
+      "run_id": "2026-10-21-r1",
+      "commit": "a776bf42511fa3b33629c6495ec2424d95aa12cf",
+      "committed_at": "2026-10-21T14:58:39+05:30"
+     }
+    }
+   },
+   "result": {}
+  },
+  "exits": {
+   "started_at": "2026-10-21T15:18:06.830164+05:30",
+   "finished_at": "2026-10-21T15:18:14.923555+05:30",
+   "inputs": {},
+   "result": {
+    "book1_rules": {
+     "reviewed": true,
+     "results": []
+    }
+   }
+  },
+  "trade_marks": {
+   "started_at": "2026-10-21T15:18:18.159137+05:30",
+   "finished_at": "2026-10-21T15:18:30.475038+05:30",
+   "inputs": {},
+   "result": {
+    "book1_rules": {
+     "marked": true,
+     "equity_row": true,
+     "trades": []
+    },
+    "shadow:b0-monthly-sc-v1": {
+     "marked": true,
+     "equity_row": true,
+     "trades": []
+    }
+   }
+  },
+  "reviews": {
+   "started_at": "2026-10-21T15:18:33.833084+05:30",
+   "finished_at": "2026-10-21T15:18:36.527318+05:30",
+   "inputs": {
+    "snapshot_id": "nifty_20261021_151500"
+   },
+   "result": {
+    "status": "ok",
+    "reason": "0 scorecards",
+    "lines": [
+     "0 scorecards"
+    ],
+    "marked_contracts": 180,
+    "open_positions": 0
+   }
+  },
+  "quotes_done": {
+   "started_at": "2026-10-21T15:18:39.814192+05:30",
+   "finished_at": "2026-10-21T15:18:39.814258+05:30",
+   "inputs": {},
+   "result": {
+    "status": "ok",
+    "reason": "every part ok",
+    "parts": {
+     "nifty": {
+      "status": "ok",
+      "reason": "recorded: nifty_20261021_145500 (184 contracts, complete=True)",
+      "exit_code": 0,
+      "lines": [
+       "Ready to Groww!",
+       "recorded: nifty_20261021_145500 (184 contracts, complete=True)"
+      ],
+      "commit": "8059901498e0a799221e067c567a94bea2506fd1"
+     },
+     "nse": {
+      "status": "ok",
+      "reason": "recorded: nifty_20261021_145500 (184 contracts, complete=True)",
+      "exit_code": 0,
+      "lines": [
+       "recorded: nifty_20261021_145500 (184 contracts, complete=True)"
+      ],
+      "commit": "0b37051cdcef1b8812059400e8dfdd377e8ba431"
+     },
+     "indices": {
+      "status": "ok",
+      "reason": "MIDCPNIFTY recorded: midcpnifty_20261021_150400 (212 contracts, complete=True)",
+      "exit_code": 0,
+      "lines": [
+       "Ready to Groww!",
+       "BANKNIFTY recorded: banknifty_20261021_150100 (220 contracts, complete=True)",
+       "FINNIFTY recorded: finnifty_20261021_150250 (148 contracts, complete=True)",
+       "MIDCPNIFTY recorded: midcpnifty_20261021_150400 (212 contracts, complete=True)"
+      ],
+      "commit": "55067976a4d1a1a04b9c7ecf861ac17be68f109d"
+     }
+    }
+   }
+  },
+  "card": {
+   "started_at": "2026-10-21T15:18:42.886215+05:30",
+   "finished_at": "2026-10-21T15:18:42.886246+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "no live date set (config.yaml daily.live_from)"
+   }
+  },
+  "candles": {
+   "started_at": "2026-10-21T15:18:46.317497+05:30",
+   "finished_at": "2026-10-21T15:33:23.023695+05:30",
+   "inputs": {
+    "command": [
+     "intraday",
+     "backfill"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "void outside_nse_range: 2020-03-13, 2020-03-23, 2022-03-07, 2024-03-02, 2024-05-18",
+    "exit_code": 0,
+    "lines": [
+     "window 2026-06-22..2026-09-19: 63 sessions already derived, not fetched",
+     "window 2026-09-21..2026-10-19: 495 of 500 session candles (20 sessions)",
+     "sessions 1683: 1 written now, 1682 held before, 0 deferred",
+     "void 19 of 1683 (1.1%); by reason: {'missing_candles': 8, 'no_1m_check': 8, 'no_previous_close': 10, 'outside_nse_range': 5}",
+     "provenance: {'backfilled': 1683}",
+     "pre-open gap above 0.05 on 4 of 1681 sessions with a 1-minute answer: 2020-01-20, 2020-09-18, 2023-09-05, 2023-09-06",
+     "void missing_candles: 2020-03-13, 2020-03-23, 2021-02-24, 2024-03-02, 2024-05-18, 2025-09-26, 2025-10-10, 2026-09-29",
+     "void no_1m_check: 2020-03-13, 2020-03-23, 2021-02-24, 2022-03-07, 2024-03-02, 2024-05-18, 2025-09-26, 2026-09-29",
+     "void no_previous_close: 2020-01-01, 2020-03-16, 2020-03-24, 2021-02-25, 2022-03-08, 2024-03-04, 2024-05-21, 2025-09-29, 2025-10-13, 2026-09-30",
+     "void outside_nse_range: 2020-03-13, 2020-03-23, 2022-03-07, 2024-03-02, 2024-05-18"
+    ]
+   }
+  }
+ }
+}

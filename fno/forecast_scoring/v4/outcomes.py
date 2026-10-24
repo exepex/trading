@@ -9,8 +9,18 @@ import math
 from abc import ABC, abstractmethod
 from datetime import date
 
-from ...constants import V1_RV_1S, V2_RV_5S, V3_RV_20S, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S, V7_VIX_UP_5S
+from ...constants import (
+    V1_RV_1S,
+    V2_RV_5S,
+    V3_RV_20S,
+    V4_RV_BELOW_WEEKLY_IV,
+    V5_INSIDE_STRADDLE,
+    V6_BIG_MOVE_1S,
+    V6_BIG_MOVE_5S,
+    V7_VIX_UP_5S,
+)
 from ...forecast_v4.terms import HORIZON_SESSIONS
+from ...forecast_v4_rules.intraday_series import INTRADAY_SERIES, intraday_horizon_sum, question_of
 from .inputs import Outcome, V4OutcomeSource
 
 VIX_MISSING = "VIX close missing for {day}{more}: fill it via O6 (no v4 report until then)"
@@ -51,9 +61,21 @@ class OutcomeSeries(ABC):
         """A16's live session RV_s per session; None for a void session."""
 
 
+class OptionOutcomeSource(ABC):
+    @abstractmethod
+    def outcomes(self, question: str) -> dict[date, bool | None]:
+        """V4's or V5's resolved outcome per forecast day; None for a void day; unresolved days are absent."""
+
+
+class NoOptionOutcomes(OptionOutcomeSource):
+    def outcomes(self, question: str) -> dict[date, bool | None]:
+        return {}
+
+
 class SeriesOutcomes(V4OutcomeSource):
-    def __init__(self, series: OutcomeSeries):
-        self.series = series
+    def __init__(self, series: OutcomeSeries, options: OptionOutcomeSource | None = None):
+        """`options`: V4's and V5's stored outcomes (G7b completion, part e); none: those questions have none."""
+        self.series, self.options = series, options or NoOptionOutcomes()
 
     def outcomes(self, question: str) -> dict[date, Outcome]:
         sessions = self.series.sessions()
@@ -65,11 +87,14 @@ class SeriesOutcomes(V4OutcomeSource):
         }
 
     def _values(self, question: str, sessions) -> dict[date, tuple[object, bool]]:
-        days, horizon = [s[0] for s in sessions], HORIZON_SESSIONS[question]
+        days, horizon = [s[0] for s in sessions], HORIZON_SESSIONS[question_of(question)]
         found: dict[date, tuple[object, bool]] = {}
         if question in (V6_BIG_MOVE_1S, V6_BIG_MOVE_5S, V7_VIX_UP_5S):
             outcomes = self._binary(question)
             return {day: (outcomes[day], False) for day in days if day in outcomes}
+        if question in (V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE):  # G7b's rules, through their stored records
+            options = self.options.outcomes(question)
+            return {day: (VOID_PLACEHOLDER if v is None else v, v is None) for day, v in options.items() if day in days}
         rv, intraday = self.series.close_proxy_rv(), self.series.intraday_rv()
         for i, day in enumerate(days[: len(days) - horizon]):
             ahead = days[i + 1 : i + 1 + horizon]
@@ -78,6 +103,8 @@ class SeriesOutcomes(V4OutcomeSource):
             elif question == V1_RV_1S and ahead[0] in intraday:
                 void = intraday[ahead[0]] is None
                 found[day] = (VOID_PLACEHOLDER if void else intraday[ahead[0]], void)
+            elif question in INTRADAY_SERIES and (summed := intraday_horizon_sum(intraday, ahead)) is not None:
+                found[day] = (VOID_PLACEHOLDER if summed[1] else summed[0], summed[1])
         return found
 
     def _binary(self, question: str) -> dict[date, bool]:

@@ -1,0 +1,7 @@
+{
+ "book": "book3_ai",
+ "commitment_sha256": "4e70e93a5988a4e81847b35a4557c931958b18fce329166a2e3ee1c6b29e6f3c",
+ "day": "2026-10-23",
+ "export_sha256": "34b5b103623222386c70c9a03d9c935ab2f678b44746f2ec8191ed3c4bdf30fc",
+ "version": "book3_ai/v1/sha256:6917786dac7430c951a7f80027b8d7c5ba40701d21288aebe7cfadccad77259a/isolation:sealed_same_day"
+}

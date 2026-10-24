@@ -4,8 +4,8 @@ content (numbers, hashes, contract names, env-variable names without values) are
 import pytest
 
 from fno.composition import build_record_scanner
-from fno.constants import FNO_DESK_CHANNEL_ID
-from fno.record_scan.catalogue import record_patterns
+from fno.constants import FNO_DESK_CHANNEL_ID, FNO_FORECAST_CHANNEL_ID, FNO_INTRADAY_CHANNEL_ID
+from fno.record_scan.catalogue import ALLOWED_VALUES, record_patterns
 from fno.record_scan.patterns import verhoeff_valid
 
 # Planted values are assembled from pieces so that no complete fake credential sits in the source (GitHub's push
@@ -59,6 +59,14 @@ def test_allow_listed_channel_id_is_not_caught():
         kinds(f"posted to #fno-desk ({FNO_DESK_CHANNEL_ID}): https://x.slack.com/archives/{FNO_DESK_CHANNEL_ID}/p1")
         == []
     )
+
+
+def test_exactly_the_three_fno_channels_are_allowed_and_a_fourth_id_is_caught():
+    """Story FL1: #fno-desk, #fno-forecast and #fno-intraday, nothing else (a fourth channel needs its own decision)."""
+    assert {FNO_DESK_CHANNEL_ID, FNO_FORECAST_CHANNEL_ID, FNO_INTRADAY_CHANNEL_ID} == ALLOWED_VALUES
+    for channel in (FNO_FORECAST_CHANNEL_ID, FNO_INTRADAY_CHANNEL_ID):
+        assert kinds(f"report posted to {channel}") == []
+    assert kinds("posted to C0ZZZ12345Q") == ["Slack user, workspace or channel ID"]
 
 
 @pytest.mark.parametrize(

@@ -46,6 +46,13 @@ the same rules (see `CLAUDE.md`).
   meant for ChatGPT (or from it) are written as Markdown files in the repository, never only in chat, so each side
   reads them directly: ChatGPT writes to `reviews/chatgpt/review_<n>_<name>.md`, Claude to
   `reviews/claude/response_<n>_<name>.md` (questions and proposals included), each folder with a README index.
+  Take `<n>` from the central registry, never "highest plus one": `python tools/claim_number.py <category> <name>
+  --session <id>` (or by hand, as `numbers/README.md` says: the row alone, pushed to `main` before the file from a
+  separate copy of `main`, never your own checkout; if the push is refused, never merge: refresh that copy and take the
+  next number). Story O12.
+- **The ChatGPT loop is paused** (owner, 22 Oct 2026; DESK_DECISIONS "Cut-list accepted"): ChatGPT has not written
+  since 16 Oct, so Claude sessions write no review requests and no merge waits for a ChatGPT review (quality rule 9 in
+  `docs/JUDGE.md`). When ChatGPT returns, it reads the latest decisions and resumes with a review file as above.
 - **Hard lines:** no real orders placed by the tool; nothing illegal (no market manipulation); API keys, passwords
   and tokens never in files or chat.
 
@@ -115,4 +122,5 @@ Follow the code rules in `CLAUDE.md` ("Code" section), mandatory for every agent
 350 lines (break it down, never squeeze it); design for change: high cohesion and loose coupling through design
 patterns, every external service, data source, store and rule behind an interface (CLAUDE.md "Design for change"); small single-purpose modules, interfaces
 for anything that can be swapped (data sources, stores, rules), wiring only in the composition roots, tests and
-linting before pushing.
+linting before pushing. A change of Markdown files only skips the full test suite (owner, 23 Oct 2026): the record
+scan and, unless every file is lane-3, the doc-reading tests (CLAUDE.md "Code", "Text-only changes").

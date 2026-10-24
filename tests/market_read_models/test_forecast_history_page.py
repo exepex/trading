@@ -14,7 +14,8 @@ from fno.market_read_models.publication import PublicationBuilder
 from fno.market_read_models.wiring import build_pinned_contract
 
 DAY = date(2026, 10, 16)
-FILES = sorted((ROOT / SCORES_FOLDER).glob("*.json"))
+# The reports the page may read on DAY: the scorer commits one a day, so later ones exist and must stay out
+FILES = [p for p in sorted((ROOT / SCORES_FOLDER).glob("*.json")) if date.fromisoformat(p.stem) <= DAY]
 LABEL = {"close_proxy": "backfill_exploratory", "live_1500_proxy": "live"}
 
 
@@ -43,7 +44,7 @@ def test_every_point_is_the_reports_own_scored_count_and_mean_brier():
     got = {(ids[q["id"]], s["label"], s["forecaster"], s["backfill_sha256"]):
            [(p["as_of"], p["n"], p["mean_loss"]) for p in s["points"]]
            for q in page["questions"] for s in q["series"]}  # fmt: skip
-    assert got == expected and got  # the three real reports, one point each per series
+    assert got == expected and got  # the real reports up to DAY, one point each per series
     shas = {json.loads(p.read_text())["inputs"]["backfill_sha256"] for p in FILES}
     series = [s for q in page["questions"] for s in q["series"]]
     assert {s["backfill_sha256"] for s in series if s["label"] == "backfill_exploratory"} == shas

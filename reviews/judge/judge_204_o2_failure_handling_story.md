@@ -172,3 +172,60 @@ while one is open":
    when a child step runs git. I am sending this to the orchestrator for O9's builder.
 2. "A routine starts in a fresh container" is from the `fno/desk/daily_run.py` docstring (some evidence). The same-
    checkout test covers the case anyway.
+
+## Addendum 4: the builder's question on criterion 6's `book_test` exception (asked at efd78e12)
+**Ruling: I agree with the direction. It needs a short text amendment, revision 6, before the trade rows are built.**
+The rows that need no trade may go ahead now.
+
+**Why the direction is better.** Fixture data in the test checkout (a paper-status fixture strategy, a Book 1 version
+registered by D6's own code, a fixture market that fires) replaces no code at all. That is closer to criterion 6 than
+`book_test` was. I checked the builder's facts:
+- D3 accepts only the three real books;
+- shadow accounts are real accounts in the private-files path (`fno/desk/private_files.py` lists `journal/shadow/*`,
+  `fno/books/paths.py` `shadow_account`).
+
+Widening D3 for a test would be a production change, and I agree it should be rejected.
+
+**Revision 6 must state:**
+1. **Criteria 5 and 6 and the "One book's failure" row are rewritten.** The second account is Book 1's shadow, and
+   `book_test` is gone. For each of the three injected failures, name how it is caused through an outside seam or
+   fixture data only:
+   - **account write refused:** the Drive fake refuses the shadow's paths;
+   - **exit review raising:** for example a corrupt shadow account file served by the Drive fake;
+   - **orders refused:** `OrdersRefused` is raised today by Book 1's order builder (`fno/books/book1_orders.py`). If it
+     cannot be produced for the shadow without replacing code, say so and name what replaces that case. Do not drop it
+     silently.
+2. **The fixture never reaches the real repository's playbook, registry or ledger.** It lives in the fresh checkout
+   only, with a test that the source tree's playbook and registry files are byte-unchanged after the suite.
+3. **Isolation is checked in both directions:** Book 1 is unchanged by each shadow failure, and the shadow is unchanged
+   by a Book 1 failure. The second is the realistic risk while Book 1 is the only trading book.
+4. **The known limit is named.** As of 16 Oct, production has no registered Book 1 version, so nothing trades. The
+   trade rows test a path that is not live yet (strong evidence, the builder's run log). When Book 2 (F5/F6) trades,
+   its isolation case is added.
+
+The two root fixes the suite found (Book 1's orders and the capture's quote folder ignoring `root`) are production code
+changes. They are lane 1 and are judged with O2's code, each with its own test.
+
+## Addendum 5: O2 story text revision 6 (story/o2-failure-handling at 716e0bf6)
+**Verdict: PASS.** Addendum 4's four points are met. I checked each code claim on main.
+
+| Point | Result | Evidence |
+|---|---|---|
+| Each failure through fixture data or an outside seam only | MET | (a) the shadow's account file served corrupt by the Drive fake at `trade_marks`; (b) Book 1's `OrdersRefused` from a fixture record whose replay differs; (c) a corrupt shadow file read during `desk book1`. A shadow-only orders refusal is stated as not producible: `ReplayedOrders` takes only `Decision.CHOSEN` (`fno/playbook/outcomes.py` 71-72), and `fill` and `review_exits` loop over `self.books` only (`fno/desk/daily_steps.py` 152, 200). It waits for E8 1b |
+| The fixture never reaches the source tree | MET | criterion 6: a test that `playbook/`, `playbook/registry.csv` and `journal/versions.csv` are byte-unchanged |
+| Isolation both ways | MET | criterion 5 rewritten |
+| Not-live limit named | MET | corrected to the true reason: no strategy has status `paper` (`b0-monthly-sc` v1 is `research`, dated 16 Oct) |
+| `AccountWriteRefused` per account | MET | through the real wiring a Drive failure is E2c's `CommitFailed` (a whole-run stop), so Drive (b) tests that, as the text says |
+
+**Case (c) is a real gap, not a test artefact.** In `fno/playbook/evaluate.py` 52-59, the shadow loop sits inside
+Book 1's evaluation with no guard, so one shadow's failure aborts Book 1's whole decision. Production now has a
+registered research shadow (`b0-monthly-sc` v1). It costs nothing today, because Book 1 has no `paper` strategy. Once
+one is approved, a bad shadow file stops Book 1 from trading that day.
+
+**Conditions for the code:**
+- The xfail must be `strict=True` with the gap named, so it fails the moment D2's fix lands and is then turned into the
+  real assertion. A non-strict xfail would hide it.
+- D2's fix needs a WORK_REGISTER row with its owner. I ask the orchestrator to schedule it before the first `paper`
+  approval.
+
+Criterion 8 (two minutes on four cores, from a measured 6-7 s per fixture day) is accepted as some evidence.

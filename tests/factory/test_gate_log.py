@@ -65,3 +65,12 @@ def test_wrong_columns_are_refused(log):
     log.file.write_text(log.file.read_text().replace("numbers", "net"))
     with pytest.raises(GateLogError, match="columns must be"):
         log.rows()
+
+
+def test_a_malformed_earlier_row_refuses_a_new_append(log, tmp_path):
+    log.file.write_text(log.file.read_text() + "2,G9,idea,2026-10-16,abc,\n")
+    commit(tmp_path, "a malformed row, committed: the history stays append-only")
+    before = log.file.read_text()
+    with pytest.raises(GateLogError, match="unknown gate 'G9'"):
+        log.append(idea("3"))
+    assert log.file.read_text() == before

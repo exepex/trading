@@ -4,6 +4,8 @@ with its frozen protocol and then records the first run in the ledger (commit it
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from ..constants import (
     FEATURE_ATM_IV_MINUS_RV20_LIVE,
     FEATURE_EVENT_IN_WINDOW_LIVE,
@@ -12,6 +14,8 @@ from ..constants import (
     PERIOD_DISCOVERY,
 )
 from .experiment_1 import EXPERIMENT_1
+from .ledger import Ledger
+from .results_file import write_results
 
 EXPERIMENTS = {EXPERIMENT_1.folder: EXPERIMENT_1}
 LIVE_FEATURES = (FEATURE_ATM_IV_MINUS_RV20_LIVE, FEATURE_VIX_ABOVE_MEDIAN_LIVE, FEATURE_EVENT_IN_WINDOW_LIVE)
@@ -55,7 +59,6 @@ def _run(args) -> int:
     from ..composition import build_experiment_runner, build_ledger
     from ..config import ROOT, load_app_config
     from .ledger import NotRegistered
-    from .results_file import write_results
     from .trial_guard import ProtocolNotFrozen
 
     experiment = EXPERIMENTS[args.experiment]
@@ -64,11 +67,19 @@ def _run(args) -> int:
     except (NotRegistered, ProtocolNotFrozen) as refusal:
         print(f"refused: {refusal}")
         return 2
-    paths = write_results(ROOT / "research" / experiment.folder, document)
+    decisive = experiment.period(args.period).decisive
+    paths = record_run(build_ledger(), ROOT / "research" / experiment.folder, document, experiment.trial_ids, decisive)
     print("wrote " + " and ".join(str(p.relative_to(ROOT)) for p in paths))
-    if experiment.period(args.period).decisive:
-        ledger = build_ledger()
-        for trial_id in experiment.trial_ids:
-            ledger.mark_run(trial_id)
+    if decisive:
         print("first run recorded in research/ledger.csv: commit it with the results")
     return 0
+
+
+def record_run(ledger: Ledger, folder: Path, document: dict, trial_ids, decisive: bool) -> tuple[Path, Path]:
+    """Writes the results and, for the decisive period, each trial's first run. The run's commit is read before any
+    write, so a failed git read leaves nothing written; a rerun writes both."""
+    run_commit = ledger.git.head() if decisive else ""
+    paths = write_results(folder, document)
+    for trial_id in trial_ids if decisive else ():
+        ledger.mark_run(trial_id, run_commit)
+    return paths

@@ -68,7 +68,8 @@ class DatasetCoverage:
 
 
 def read_exceptions(path: Path) -> dict[tuple[str, date], str]:
-    """(dataset, day) -> reason, for sessions NSE never published a file for; each row needs a source link."""
+    """(dataset, day) -> reason, for sessions whose file is explained instead of archived: NSE never published one, or
+    NSE's own file is refused by the content check (A23: fractional contracts); each row needs a source link."""
     if not path.is_file():
         return {}
     exceptions = {}

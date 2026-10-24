@@ -193,3 +193,23 @@ def test_a_receipt_interrupted_mid_write_is_never_read(tmp_path, monkeypatch):
     monkeypatch.undo()
     assert receipts.read("data/a.csv") is None and receipts.under("data") == []
     assert [f.name for f in (tmp_path / "receipts/data").iterdir()] == [".a.csv.sha256.part"]
+
+
+def test_one_receipted_file_is_synced_by_its_own_path(tmp_path):
+    """A caller asking for one file gets that file, never an empty success (FL1's evening check, 23 Oct 2026)."""
+    store, drive, receipts = make_store(tmp_path)
+    store.put("t/one.csv", b"1")
+    store.put("t/two.csv", b"2")
+    report = DriveCache(drive, receipts, tmp_path / "cache").sync("data/t/one.csv")
+    assert report.complete and report.downloaded == ["data/t/one.csv"]
+    assert not (tmp_path / "cache/data/t/two.csv").exists()
+
+
+def test_a_prefix_with_no_receipt_is_a_problem_never_an_empty_success(tmp_path):
+    store, drive, receipts = make_store(tmp_path)
+    store.put("t/one.csv", b"1")
+    cache = DriveCache(drive, receipts, tmp_path / "cache")
+    for wrong in ("data/t/none.csv", "data/elsewhere", "data/t/one"):
+        report = cache.sync(wrong)
+        assert not report.complete and report.present == 0 and report.downloaded == []
+        assert report.problems == [f"{wrong}: no receipts under it (neither a receipted file nor a folder holding one)"]

@@ -1,0 +1,45 @@
+# Story O12b: one #fno-desk line when main's number check turns red (a numbered file written without a claim, a number
+# used twice), so a stray file cannot sit unseen behind checks.yml's red cross. It fixes nothing and changes nothing.
+# - On every push to main: alert only the problems the commit before the push did not have, so a red main is announced
+#   by the push that made it red, not again by every later push.
+# - By hand (workflow_dispatch): alert every problem, with no baseline. The hourly reminder was cut by the owner on
+#   22 Oct 2026 (DESK_DECISIONS "Cut-list accepted": up to 24 posts a day while red); the push alert stays.
+# Secret: FNO_SLACK_BOT_TOKEN only; it is never printed or written to a file.
+name: number-alert
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the push run reads the commit before the push
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: The commit before the push, as the baseline (push runs only; a missing one means no baseline)
+        id: baseline
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            git worktree add -q --detach "$RUNNER_TEMP/before" "$BEFORE"
+            echo "args=--baseline $RUNNER_TEMP/before" >> "$GITHUB_OUTPUT"
+          fi
+      - name: "Number check; its new problems to #fno-desk"
+        env:
+          FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+        run: python tools/check_numbers.py --alert ${{ steps.baseline.outputs.args }}

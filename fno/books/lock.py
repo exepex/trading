@@ -26,6 +26,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from ..models import now_utc
 from .paths import account_folder, file_in_account
 
 LOCK_FILE = ".lock"
@@ -153,7 +154,7 @@ class AccountLock:
             raise AccountBusy(f"{self.book}: the lock file was replaced while locking; try again")
         text = os.pread(fd, 1 << 16, 0).decode("utf-8", errors="replace")
         lease = Lease.from_text(text)
-        now = datetime.now(UTC)
+        now = now_utc()
         if lease is None and text.strip():  # unreadable lease: assume a holder until the default lease has passed
             written = datetime.fromtimestamp(os.fstat(fd).st_mtime, UTC)
             lease = Lease(
@@ -168,7 +169,7 @@ class AccountLock:
         self.recovered_from = lease
 
     def _write_lease(self) -> None:
-        now = datetime.now(UTC)
+        now = now_utc()
         lease = Lease(self.book, this_holder(), now.isoformat(), _plus(now, self.lease_seconds))
         data = json.dumps(asdict(lease)).encode()
         os.ftruncate(self._fd, 0)

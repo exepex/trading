@@ -15,6 +15,7 @@ from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, BOOK3_FOLDER, JOURN
 from .pack_items import PackError, canonical_json, sha256_hex
 
 SCHEMA_VERSION = 1
+EVALUATION = "evaluation"  # the book's sheet (story E2e), present only for a book that has one
 ALLOWED_FOLDERS = {
     BOOK1_RULES: (f"{JOURNAL_FOLDER}/{BOOK1_RULES}", PLAYBOOK_FOLDER),
     BOOK2_HYBRID: (f"{JOURNAL_FOLDER}/{BOOK2_HYBRID}", PLAYBOOK_FOLDER),  # its envelope lives beside the playbook (D4)
@@ -46,12 +47,15 @@ class PrivatePackBuilder:
     def __init__(self, root: Path, allowed: Mapping[str, Sequence[str]] = ALLOWED_FOLDERS):
         self.root, self.allowed = Path(root), {book: tuple(folders) for book, folders in allowed.items()}
 
-    def build(self, book: str, day: date) -> PrivatePack:
+    def build(self, book: str, day: date, evaluation: Mapping | None = None) -> PrivatePack:
+        """`evaluation`: the book's sheet (story E2e), under "evaluation"; a book without one is unchanged."""
         if book not in self.allowed:
             raise PackError(f"unknown book {book!r}")
         files = [self._file(path, folder) for folder in self.allowed[book] for path in self._paths(book, folder)]
         body = {"schema_version": SCHEMA_VERSION, "kind": "book_private_pack", "book": book, "day": day.isoformat(),
                 "files": sorted(files, key=lambda f: f["path"])}  # fmt: skip
+        if evaluation is not None:
+            body[EVALUATION] = dict(evaluation)
         return PrivatePack(book, day, body)
 
     def _paths(self, book: str, folder: str) -> list[Path]:

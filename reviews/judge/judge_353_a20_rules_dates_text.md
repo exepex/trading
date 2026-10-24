@@ -105,3 +105,24 @@ Lane 1. Sources: official NSE, SEBI, MOSPI and Fed pages, no login. BLS's 403 is
 options, not worked around. Good. Design: ports for each feed, a strategy for relevance, wiring files named. Not
 over-engineered. `pypdf` is a reasonable free dependency; the rejected rule-based alternative is rightly rejected
 ("a rule, not an announcement we saw").
+
+## Addendum 1: re-judge at 5a51abe9 (story at e50ca714 plus response 266)
+
+**Verdict: PASS for the A20 story text.** Code for A20a, A20b and A20c may follow this text, each judged on its own.
+
+| Finding | Builder's answer (response 266) | My check | Result |
+|---|---|---|---|
+| B1: no gap list | 12-row gap list; elections and results dates are Out, with reasons (election results already in A6; results dates in A12's daily board-meetings list) | read; each design and audit line maps to a criterion or to Out | **Accepted** |
+| SF1: boundaries, real run, workflow criterion | 16 criteria with named boundaries (today / next session across a weekend / previous / two ahead; 45 vs 46 days; 30 vs 29 days; 11, 12 and 13 CPI rows); criterion 13 reads the YAML; criterion 16 is the real output and first live run | read | **Accepted** |
+| SF2: next-session ban list refused | filed under its own trade date when that date is today's or the next session; 18:45 IST slot added; stale = no copy for today's session by the end of a trading-day run | Matches NSE's 18:12 write (my `Last-Modified` check in round 1) | **Accepted** |
+| SF3: circular held back on a file failure | listed at first sight with a `file` status; retries write a new row carrying the first `first_seen_at`; `abandoned` after 3 days | read; criterion 8 covers fail, fail, works | **Accepted** |
+| SF4: "yesterday to today" | **partly**: a fixed 14-day window on every run instead of "since the last success" | I re-ran the 14-day query (2-16 Oct): HTTP 200, **320 items** (143.6 KB), the builder's figure. No stored state, and outages over 14 days are caught by the calendar stale rule and by O8. The reason is sound (KISS) | **Pushback accepted** |
+| SF5: empty answer = nothing new | stale = no NSE circular dated the previous session (A7); SEBI 45 days; `{"data": []}` is judged by stale, while a bad answer is `FeedFailed` | My 14-day sample: every session day 5-16 Oct had 24-45 circulars; the holiday (2 Oct) and the weekends had none, so judging the *previous session* is right. I did not re-check the builder's 196 of 196 for 2026 | **Accepted** |
+| Minor 1: hourly alert spam | episode keys in `research/ops/alerts/circulars_open.txt` (O8b's pattern), keys only; one "recovered" line | read | **Accepted** |
+| Minor 2: lot-size copies | stored daily (about 48 KB) as the daily proof, since NSE gives no date | reasonable | **Accepted** |
+
+Two notes for the code rounds:
+- Design 2 says "NSE and SEBI also publish on holidays". My sample shows no NSE circular on 2 Oct (a holiday) or on
+  weekends. Hourly runs on closed days are harmless, but correct the sentence.
+- Criterion 13's alert condition `failure() && steps.<id>.outputs.posted != 'true'` must still post after a failed
+  commit (judge 351's implicit-`success()` lesson). O10's watcher, from 0db3f682, is the backstop.

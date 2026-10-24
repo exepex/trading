@@ -116,3 +116,21 @@ def test_the_nse_listing_used_for_expiries_is_read_only(tmp_path, monkeypatch):
 def test_the_silence_check_reads_githubs_copy():
     beat = wiring.build_heartbeat()
     assert beat.path == "research/data/intraday/heartbeat.json" and beat.branch == "main"
+
+
+def test_the_run_command_gives_the_recorder_the_covered_end_not_the_prompts_end(tmp_path, monkeypatch):
+    """Story A16i: the extra hour is applied where the command runs the loop (judge I, round 1: nothing failed when
+    that one line was removed)."""
+    from datetime import time
+
+    taken = []
+
+    class Recording:
+        def run(self, until):
+            taken.append(until)
+            return []
+
+    monkeypatch.setattr(wiring, "build_intraday_recorder", lambda cfg, folder: Recording())
+    args = Namespace(intraday_cmd="run", dry_run=tmp_path, until=time(12, 5), config="config.yaml")
+    assert cmd_intraday(args) == 0
+    assert taken == [time(13, 5)]

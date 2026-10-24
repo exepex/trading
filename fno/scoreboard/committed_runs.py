@@ -12,7 +12,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..constants import JOURNAL_FOLDER, RUN_LOG_DECISIONS_STEP, RUN_LOG_EXITS_STEP
-from ..desk.run_log import RUNS_FOLDER
+from ..desk.run_log import RUNS_FOLDER, book_results
 from ..playbook.decision_store import INPUTS_FILE, DecisionStore
 from ..playbook.opportunities import SHADOW
 
@@ -44,7 +44,7 @@ class CommittedRuns:
         for day, steps in self.logs():
             snapshot = steps.get(SNAPSHOT_STEP)
             started = datetime.fromisoformat(snapshot["started_at"]) if snapshot else None
-            for book, entry in sorted(steps.get(DECISIONS_STEP, {}).get("result", {}).items()):
+            for book, entry in sorted(_decided(steps).items()):
                 if "run_id" in entry:
                     late = started is None or datetime.fromisoformat(entry["committed_at"]) >= started
                     found.append(DayRun(book, day, entry["run_id"], entry["commit"], not late))
@@ -55,7 +55,7 @@ class CommittedRuns:
         the board, never scored."""
         found: dict[str, list[dict]] = {book: [] for book in books}
         for day, steps in self.logs():
-            for book, entry in sorted(steps.get(DECISIONS_STEP, {}).get("result", {}).items()):
+            for book, entry in sorted(_decided(steps).items()):
                 found.setdefault(book, []).extend({"day": day.isoformat(), **o} for o in entry.get("others", ()))
         return found
 
@@ -87,7 +87,7 @@ class CommittedRuns:
             if i == len(sessions) - 1 and day not in logs:
                 continue  # the report day before its run: not run yet, not missed
             steps = logs.get(day, {})
-            collected = "run_id" in steps.get(DECISIONS_STEP, {}).get("result", {}).get(book, {})
+            collected = "run_id" in _decided(steps).get(book, {})
             why = _unreviewed(steps, book) if i > 0 and held(sessions[i - 1]) else ""
             if not collected or why:
                 found.append({"day": day.isoformat(), "missed_decision": not collected,
@@ -95,12 +95,18 @@ class CommittedRuns:
         return found
 
 
+def _decided(steps: dict) -> dict:
+    """The decisions step's books; none when the step itself failed or was refused (DRY2 R2): every book is then
+    uncollected, never a crash on the failure's own fields."""
+    return book_results(steps.get(DECISIONS_STEP, {}).get("result", {}))
+
+
 def _unreviewed(steps: dict, book: str) -> str:
     """Why the book's exits were not reviewed that day, or "" when they were. E3 writes `reviewed` on every outcome:
     `waiting` means no valid snapshot, so the held trades were not checked against prices (orchestrator, 16 Oct)."""
     if EXITS_STEP not in steps:
         return NO_EXITS_STEP
-    outcome = steps[EXITS_STEP].get("result", {}).get(book, {})
+    outcome = book_results(steps[EXITS_STEP].get("result", {})).get(book, {})
     if outcome.get("reviewed") is True:
         return ""
     if "waiting" in outcome:

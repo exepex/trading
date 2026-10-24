@@ -16,14 +16,20 @@ from .sender import SENT, AlertSender
 POSTED = "posted=true\n"
 
 
+def record_posted(env: Mapping[str, str] = os.environ) -> None:
+    """Marks the Actions step as having spoken: its posted line, or a known problem deliberately not posted again."""
+    path = env.get(ENV_GITHUB_OUTPUT)
+    if path:
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(POSTED)
+
+
 class StepOutputAlerts(AlertSender):
     def __init__(self, inner: AlertSender, env: Mapping[str, str] = os.environ):
         self.inner, self.env = inner, env
 
     def send(self, text: str) -> str:
         outcome = self.inner.send(text)
-        path = self.env.get(ENV_GITHUB_OUTPUT)
-        if outcome == SENT and path:
-            with open(path, "a", encoding="utf-8") as fh:
-                fh.write(POSTED)
+        if outcome == SENT:
+            record_posted(self.env)
         return outcome

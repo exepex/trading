@@ -4,16 +4,16 @@ files in Drive only; a quiet index is never a closed market; an index not record
 import csv
 import io
 import json
-from datetime import datetime
+from datetime import datetime, time
 
 from fno.models import IST
 from fno.quotes.book_fetch import BookFetcher
 from fno.quotes.expiry_listing import ExpiryListUnavailable
 from fno.quotes.indices import INDEX_PER_SECOND, INDEX_WORKERS, IndexRecording, index_slot
 from fno.quotes.indices_cli import record_indices
-from fno.quotes.recorder import NOT_LISTED
+from fno.quotes.recorder import NOT_LISTED, earliest_waiting_start
 from tests.quotes.drive_fakes import FakeDrive
-from tests.quotes.index_fakes import FILE, SPOTS, Clock, IndexProvider, Listing, recorders
+from tests.quotes.index_fakes import FILE, SPOTS, TOO_EARLY, Clock, IndexProvider, Listing, alerted, recorders
 from tests.quotes.test_recorder_calendar import Alerts, NoCalls
 
 AT_1500 = datetime(2026, 10, 13, 15, 0, 30, tzinfo=IST)
@@ -63,7 +63,7 @@ def test_an_index_the_nse_file_no_longer_lists_is_one_incomplete_attempt_never_a
     assert not [c for c in provider.calls if c[0] == "MIDCPNIFTY"]
 
 
-def test_an_unreadable_nse_file_is_reported_once_per_index_and_alerted(tmp_path, capsys):
+def test_an_unreadable_nse_file_is_reported_once_per_index_andalerted(tmp_path, capsys):
     class NoFile(Listing):
         def listed(self, underlying, today):
             raise ExpiryListUnavailable("no NSE F&O file in the 7 days")
@@ -111,7 +111,8 @@ def test_one_alert_names_every_index_not_recorded(tmp_path, capsys):
     recs = recorders(tmp_path, clock, provider=IndexProvider(refuse={"FINNIFTY", "MIDCPNIFTY"}))
     assert record_indices(lambda: recs, alerts, "cal.csv", clock.now, clock.sleep) == 1
     (alert,) = alerts.sent
-    assert "FINNIFTY (incomplete)" in alert and "MIDCPNIFTY (incomplete)" in alert and "BANKNIFTY" not in alert
+    assert "FINNIFTY (incomplete, canonical none)" in alert and "MIDCPNIFTY (incomplete, canonical none)" in alert
+    assert "BANKNIFTY" not in alert
     lines = capsys.readouterr().out.splitlines()
     assert sum(line.startswith(("BANKNIFTY", "FINNIFTY", "MIDCPNIFTY")) for line in lines) == 3
 
@@ -182,3 +183,33 @@ def test_an_index_whose_turn_comes_after_the_window_is_not_asked_anything(tmp_pa
     results, _, _, _ = _run(tmp_path, start=datetime(2026, 10, 13, 15, 12, 40, tzinfo=IST), provider=provider)
     asked = {call[0] for call in provider.calls}
     assert asked == {"BANKNIFTY"} and results["MIDCPNIFTY"].status == "window closed"
+
+
+def test_a_run_too_early_says_not_started_and_never_canonical_none(tmp_path, capsys):
+    """A4c-2 (DRY2 R1): at 14:38 the nifty part had died; 23 minutes early, nothing is recorded and no marker is
+    written, so neither the lines nor the alert may say "canonical none"."""
+    code, sent, lines = alerted(tmp_path, datetime(2026, 10, 13, 14, 38, tzinfo=IST), capsys)
+    assert code == 1 and len(sent) == 1 and "canonical none" not in sent[0]  # exit 1, one alert (judge 568 minor 2)
+    names = "; ".join(f"{name} ({TOO_EARLY})" for name in SPOTS)  # word for word; no sidecar pointer (judge 571)
+    assert sent == [f"3 pm index recorder: not recorded today: {names}. Data only; NIFTY is separate."]
+    index_lines = [line for line in lines if " too early: " in line]
+    assert len(index_lines) == 3 and all(line.endswith(f"- {TOO_EARLY}") for line in index_lines)
+    assert not list(tmp_path.rglob("*"))  # no marker, no sidecar, no file at all
+
+
+def test_the_earliest_start_waits_and_one_second_before_it_is_too_early(tmp_path):
+    """The fake clock moves 1 s at each read, so a clock set at 14:40:59 reads 14:41:00 first."""
+    results, _, _, _ = _run(tmp_path, datetime(2026, 10, 13, 14, 40, 59, tzinfo=IST))
+    assert all(r.complete for r in results.values())
+    early, _, _, _ = _run(tmp_path / "early", datetime(2026, 10, 13, 14, 40, 58, tzinfo=IST))
+    assert {r.status for r in early.values()} == {"too early"}
+
+
+def test_an_index_closed_none_keeps_canonical_none_in_the_alert(tmp_path, capsys):
+    code, sent, _ = alerted(tmp_path, AT_1500, capsys, provider=IndexProvider(refuse={"FINNIFTY"}))
+    assert code == 1 and "FINNIFTY (incomplete, canonical none)" in sent[0] and "BANKNIFTY" not in sent[0]
+
+
+def test_the_earliest_waiting_start_is_the_window_less_a4_s_early_limit():  # criterion 8
+    """A4c-2: the one subtraction O1's start times build on (O1 adds its own margin)."""
+    assert earliest_waiting_start(time(15, 1)) == time(14, 41) and earliest_waiting_start(time(14, 55)) == time(14, 35)

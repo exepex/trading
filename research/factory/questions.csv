@@ -1,0 +1,2 @@
+question_id,question,alpha
+edge1-rule-based-index-option-trades,"EDGE1: has a simple rule-based NIFTY or BANKNIFTY monthly option trade (SC2, SC3, SF x T21, EXP, SL2, TP50) made money after real costs? One Holm family across both indices; exploratory (spent data); protocol research/edge1/PROTOCOL.md frozen 3152ed44",0.05

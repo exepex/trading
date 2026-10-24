@@ -19,8 +19,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from fno.composition import build_alert_sender, build_record_scanner  # noqa: E402
 from fno.record_scan.record_files import NamedFiles, RecordSource, StagedRecords, TrackedRecords  # noqa: E402
+from fno.record_scan.wiring import build_record_scanner, send_alert  # noqa: E402
 
 REFUSED = "record scan: REFUSED, {count} finding(s); do not commit or send these files (values are not shown)"
 CLEAN = "record scan: clean ({files} files)"
@@ -54,7 +54,7 @@ def main(argv: list[str] | None = None, alerts=None) -> int:
     print(REFUSED.format(count=len(findings)))
     if args.alert:
         text = ALERT.format(repository=args.root.resolve().name, count=len(lines), lines="\n".join(lines))
-        print((alerts or build_alert_sender()).send(text))
+        print(send_alert(text, alerts))
     return 1
 
 

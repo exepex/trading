@@ -60,7 +60,7 @@ pilot evidence apart; cash held after the common start counts as an outcome; ove
 **Scope.** In: computation, per segment and overall, uncertainty per the protocol. Out: matched comparison (S3).
 
 **Expected design:** `fno/scoreboard/whole_system.py` reading accounts (E1), fills (E4), ledgers (C1, F8), versions
-(D6), overrides (F4); output `research/scoreboards/B/<date>.json` (deterministic) for P2 and S4.
+(D6); output `research/scoreboards/B/<date>.json` (deterministic) for P2 and S4.
 
 **Acceptance criteria:**
 1. Every number listed above is present for each book and segment.

@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from datetime import date
 from urllib.parse import urlparse
 
+from ..models import today_local
+
 COLUMNS = (
     "date", "type", "scheduled", "announced_on", "announcement_source_url", "revised_from", "description", "source_url",
     "first_announced_on", "first_announcement_source_url", "first_withdrawn_on",
@@ -68,7 +70,7 @@ def read_events(text: str, today: date | None = None) -> list[Event]:
     """Validated events; any bad row raises with its row number (nothing is read partly). An event dated after
     `today` (an upcoming, already announced meeting) may lack the source confirming it happened, never its
     announcement source."""
-    today = today or date.today()
+    today = today or today_local()
     reader = csv.DictReader(io.StringIO(text))
     if tuple(reader.fieldnames or ()) != COLUMNS:
         raise ValueError(f"events columns must be {COLUMNS}")

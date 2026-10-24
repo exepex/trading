@@ -101,3 +101,10 @@ Findings:
   land, their xfails become the in-envelope and out-of-envelope checks.
 - Builder's other mutations (`ALWAYS_NULL` emptied, Book 2 mode set to `PlaybookMode`, O1's alert send dropped): their
   claims are consistent with the tests I read. I re-ran only the envelope plant.
+
+## Addendum 3: bc6a9ec1 (plan and main merged)
+Still PASS. On the tree merged with today's `main`: e2e 12 passed, **18 strict xfails, 0 XPASS**; ruff and format
+clean. The three new xfails are for F5 and F6 (Book 2's and Book 3's orders and exits), F1t (model reporting) and
+O10+A14 (a never-started job alerted as stale). They track the plan's new rows, so the not-implemented list stays
+honest. The builder reported the full suite on this tree at 7,724 passed and 18 xfailed. My own full run at 9601a13e
+(addendum 2) gave 7,724 passed and 15 xfailed; this head adds only xfail tests.

@@ -1,9 +1,10 @@
 # Safety net for parallel sessions pushing to main: the checks CLAUDE.md requires before every push, plus the
 # public-record scan (story O5). No secrets are used.
-# A push that changes only lane-3 files (judge and review files, conversation logs, decision and register rows) skips
-# pytest, ruff and the import check: none of them reads those files. The record scan runs on every push: on every
-# tracked file when code changed, on the changed files otherwise (the rest was scanned when it was committed and pushed,
-# and a lane-3-only push cannot change the scan's own code). `tools/ci_scope.sh` decides; any doubt counts as code.
+# A push that changes only lane-3 files (judge and review files, conversation logs, decision and register rows, number
+# claims) skips pytest, ruff and the import check: none of them reads those files. The record scan runs on every push:
+# on every tracked file when code changed, on the changed files otherwise (the rest was scanned when it was committed
+# and pushed, and a lane-3-only push cannot change the scan's own code). `tools/ci_scope.sh` decides; any doubt counts
+# as code. The number check (story O12) also runs on every push: a review file alone can reuse a number.
 name: checks
 
 on:
@@ -42,3 +43,5 @@ jobs:
         run: python tools/check_records.py
       - if: steps.scope.outputs.code != 'true'
         run: xargs -0 -r python tools/check_records.py < "$RUNNER_TEMP/changed"
+      - if: always() # story O12: every push, last, so a reused number never stops the record scan above
+        run: python tools/check_numbers.py

@@ -121,3 +121,16 @@ New minor findings, for the code round:
 2. **A slow `book1` still loses the AI books.** If `book1` ends after 15:12, the AI runs commit after E3's deadline
    and are late. That is correct, fail closed and alerted, but it is a cost. Report `book1`'s measured duration on
    real days in the claims, so S1's timetable can size it.
+
+## Note: 13653f05 (isolation for trading, found by the builder)
+The builder found a gap that I also missed. Owner's decision, 14 Oct, "AI books' forecast isolation: `sealed_same_day`
+accepted for the forecast contest", condition (3): "trading decisions (slice 4) still need full F1 isolation"
+(`docs/DESK_DECISIONS.md` line 72, quoted exactly). F1t uses `sealed_same_day` for trading decisions.
+
+The text now:
+- states this in its Context;
+- makes the owner's choice a go-live check: (a) `sealed_same_day` for paper trading, labelled, and not scored as an
+  independent comparison, or (b) wait;
+- has sent the question to the owner through the orchestrator.
+No criterion changed, and the code is the same either way. **Accepted; the text PASS stands.** No live switch may be
+set before the owner answers.

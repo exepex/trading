@@ -11,6 +11,8 @@ from .books.cli import add_account_parser
 from .books.versions_cli import add_versions_parser
 from .budget.cli import add_budget_parser
 from .cards.cli import add_card_parser
+from .circulars.cli import add_circulars_parser
+from .close_read.cli import add_closes_parser
 from .config import ROOT, load_app_config
 from .daily.cli import add_daily_parser
 from .desk.cli import add_desk_parser
@@ -18,29 +20,45 @@ from .desk.private_files import PrivateFilesUnavailable
 from .evaluation.cli import add_evaluation_parser
 from .factory.cli import add_factory_parser
 from .filings.cli import add_filings_parser
+from .flow_history.cli import add_flows_parser
+from .fo_masters.cli import add_fo_masters_parser
 from .forecast.cli import add_forecast_parser
+from .forecast_lab.cli import add_lab_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
 from .forecast_scoring.v4.cli import add_forecast_v4_scores_parser
 from .forecast_v4_rules.cli import add_forecast_v4_parser
+from .forecast_v5_v1.cli import add_forecast_v5_v1_parser
 from .global_cues.cli import add_global_cues_parser
 from .health.calendar_stop import calendar_stop, command_name
 from .health.cli import add_health_parser
 from .intraday.cli import add_intraday_parser
+from .itm_chance.cli import add_itmchance_parser
 from .learning.cli import add_postmortem_parser
 from .market_read_models.cli import add_market_parser
+from .models import today_local
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
 from .playbook.cli import add_playbook_parser
+from .premium_ranges.cli import add_premrange_parser
+from .preopen.cli import add_preopen_parser
+from .price_distribution.cli import add_pricedist_parser
+from .price_ranges.cli import add_pricerange_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
+from .record_store.cli import add_records_parser
+from .rehearsal.cli import add_rehearse_parser
 from .research_data.calendar import CalendarError
 from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
 from .role_value.cli import add_role_value_parser
+from .school.cli import add_school_parser
 from .scoreboard.cli import add_scoreboard_parser
+from .storage.cache_cli import add_cache_parser
 from .storage.fingerprints_cli import add_fingerprints_parser
 from .storage.librarian_cli import add_librarian_parser
+from .storage.repair_cli import add_repair_parser
 from .storage.revisions_cli import add_revisions_parser
+from .v4_pack.cli import add_v4_pack_parser
 from .vix_history.cli import add_vix_history_parser
 from .weather.cli import add_weather_parser
 
@@ -158,7 +176,8 @@ def cmd_chain(args) -> int:
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """Every command fno has (`main` parses with it; REH1j's rehearsal walks it to tell a command not built yet)."""
     p = argparse.ArgumentParser(prog="fno", description="Omenix F&O: Indian F&O options research (paper trading).")
     p.add_argument("--config", default=str(ROOT / "config.yaml"))
     p.add_argument("--provider", choices=["nse", "groww", "sample"], help="override the root provider (chain only)")
@@ -180,7 +199,7 @@ def main(argv: list[str] | None = None) -> int:
         "--to",
         dest="end",
         type=date.fromisoformat,
-        default=date.today() - timedelta(days=1),
+        default=today_local() - timedelta(days=1),
         help="YYYY-MM-DD (default: yesterday)",
     )
     v.add_argument("--filings", action="store_true", help="the company filings archive instead (story A12)")
@@ -204,6 +223,7 @@ def main(argv: list[str] | None = None) -> int:
     c.set_defaults(func=cmd_chain)
 
     add_quotes_parser(sub)
+    add_rehearse_parser(sub)  # story REH1
     add_intraday_parser(sub)
     add_account_parser(sub)
     add_desk_parser(sub)
@@ -214,6 +234,9 @@ def main(argv: list[str] | None = None) -> int:
     add_participant_oi_parser(sub)
     add_librarian_parser(sub)
     add_fingerprints_parser(sub)
+    add_cache_parser(sub)
+    add_repair_parser(sub)
+    add_records_parser(sub)
     add_revisions_parser(sub)
     add_market_parser(sub)
     add_research_parser(sub)
@@ -225,6 +248,8 @@ def main(argv: list[str] | None = None) -> int:
     add_budget_parser(sub)
     add_forecast_parser(sub)
     add_forecast_v4_parser(sub)
+    add_forecast_v5_v1_parser(sub)
+    add_v4_pack_parser(sub)
     add_forecast_scores_parser(sub)
     add_forecast_v4_scores_parser(sub)
     add_vix_history_parser(sub)
@@ -235,8 +260,22 @@ def main(argv: list[str] | None = None) -> int:
     add_global_cues_parser(sub)
     add_health_parser(sub)
     add_factory_parser(sub)
+    add_pricedist_parser(sub)
+    add_premrange_parser(sub)
+    add_itmchance_parser(sub)
+    add_pricerange_parser(sub)
+    add_closes_parser(sub)
+    add_lab_parser(sub)
+    add_fo_masters_parser(sub)
+    add_circulars_parser(sub)
+    add_flows_parser(sub)
+    add_preopen_parser(sub)
+    add_school_parser(sub)
+    return p
 
-    args = p.parse_args(argv)
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
     try:
         return args.func(args)
     except PrivateFilesUnavailable as unavailable:  # story E2c: a command that needs the paper records stops, named

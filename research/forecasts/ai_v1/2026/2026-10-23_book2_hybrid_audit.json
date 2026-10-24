@@ -1,0 +1,56 @@
+{
+ "attempted": {
+  "q1_nifty_up_20d": {
+   "probability": 0.6,
+   "reason": "Book1 0.615; NIFTY -0.89% today in a downtrend (22486 vs 23146 on 16 Oct), VIX jumped to 17.02; slight trim toward base rate 0.587."
+  },
+  "q2_nifty_move_3pct_20d": {
+   "probability": 0.48,
+   "reason": "Book1 0.455; IV30 16.4 and VIX 17.02 (above recent 14-15.8 range) imply 20d sd about 4.6%, risk-neutral 0.558; nudge up."
+  },
+  "q3_rv20_above_trailing": {
+   "probability": 0.36,
+   "reason": "Book1 0.342; trailing RV20 16.4 already high but VIX rising +1.26 today; slight nudge up."
+  },
+  "q4_vix_up_10d": {
+   "probability": 0.35,
+   "reason": "Book1 0.383; VIX 17.02 is the highest since June after a +1.26 jump; mean reversion favours lower in 10 days, toward model 0.296."
+  },
+  "q5_rv20_below_atm_iv30": {
+   "probability": 0.72,
+   "reason": "Book1 0.744; IV30 16.38 equals trailing RV20 16.42, so little premium cushion; trim slightly."
+  }
+ },
+ "book": "book2_hybrid",
+ "commitment_received_at": "2026-10-23T09:45:28+00:00",
+ "counted": {
+  "q1_nifty_up_20d": null,
+  "q2_nifty_move_3pct_20d": null,
+  "q3_rv20_above_trailing": null,
+  "q4_vix_up_10d": null,
+  "q5_rv20_below_atm_iv30": null
+ },
+ "day": "2026-10-23",
+ "fire": {
+  "fired": true,
+  "fired_at": "2026-10-23T15:10:19.430461+05:30",
+  "session": "https://claude.ai/code/cse_01KkRLDYA5g7dbKBXo3k67ES",
+  "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+ },
+ "isolation": "sealed_same_day",
+ "model_check": "unverified",
+ "model_reported": "unknown",
+ "notes": [
+  "commitment received 2026-10-23T09:45:28+00:00, after 15:15:00"
+ ],
+ "problems": {
+  "q1_nifty_up_20d": "",
+  "q2_nifty_move_3pct_20d": "",
+  "q3_rv20_above_trailing": "",
+  "q4_vix_up_10d": "",
+  "q5_rv20_below_atm_iv30": ""
+ },
+ "reveal_received_at": "2026-10-23T09:45:33+00:00",
+ "status": "late",
+ "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+}

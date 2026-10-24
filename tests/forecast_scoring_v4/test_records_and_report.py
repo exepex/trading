@@ -1,5 +1,5 @@
 """Story G8 criteria 8-9: EXPLORATORY before the freeze, a look recorded once, look 2's closed set from look 1, and
-"not started" / "not enough data yet" instead of a failure."""
+"not enough data yet" instead of a failure (V4 and V5 too since story G7b completion, part e)."""
 
 import json
 from datetime import date
@@ -8,6 +8,7 @@ import pytest
 
 from fno.constants import (
     V1_RV_1S,
+    V2_RV_5S,
     V4_CLAIM,
     V4_COHORT_CLOSE_PROXY,
     V4_COHORT_LIVE,
@@ -19,11 +20,11 @@ from fno.forecast_scoring.v4.days import DayCounts
 from fno.forecast_scoring.v4.inputs import ForecastValue, Outcome, V4ForecastSource, V4OutcomeSource
 from fno.forecast_scoring.v4.records import EXPLORATORY, LookRecordExists, LookRecords, NoRegistrations, Registration
 from fno.forecast_scoring.v4.render import report_json, report_lines
-from fno.forecast_scoring.v4.scoring import QUESTIONS, STATUS_NO_DATA, STATUS_NOT_STARTED, V4Scoring
+from fno.forecast_scoring.v4.scoring import QUESTIONS, STATUS_NO_DATA, V4Scoring
 from fno.forecast_v4.terms import LOOK_SETTLE_DATE, LOOK_STOP_REVIEW
-from tests.forecast_scoring_v4.helpers import settled_slot_days, values
+from tests.forecast_scoring_v4.helpers import intact, settled_slot_days, values
 
-NO_DAYS = DayCounts(0, 0, 0, 0, 0)
+NO_DAYS = DayCounts(0, 0, 0, 0)
 
 
 def test_a_look_is_recorded_once_and_look_2_reads_the_members_closed_at_look_1(tmp_path):
@@ -60,7 +61,8 @@ def test_the_report_is_exploratory_before_the_freeze_and_never_fails_on_empty_qu
     scoring = V4Scoring(OneForecaster(), Outcomes(), NoRegistrations())
     reports = [scoring.question_report(q) for q in QUESTIONS]
     status = {r.question: r.status for r in reports}
-    assert status[V5_INSIDE_STRADDLE] == STATUS_NOT_STARTED and status[V1_RV_1S] == STATUS_NO_DATA
+    assert status[V5_INSIDE_STRADDLE] == STATUS_NO_DATA and status[V1_RV_1S] == STATUS_NO_DATA
+    assert status[f"{V2_RV_5S}/intraday"] == STATUS_NO_DATA  # part f's series, no rows here
     lines = report_lines(reports, frozen=False, as_of="2025-01-06", days=NO_DAYS)
     assert lines[0] == EXPLORATORY and f"{V1_RV_1S}: {STATUS_NO_DATA}" in lines
     v6b = next(r for r in reports if r.question == V6_BIG_MOVE_5S)
@@ -82,14 +84,21 @@ def test_a_look_before_the_freeze_prints_exploratory_and_writes_nothing_and_afte
     scoring = V4Scoring(OneForecaster(), Outcomes(), NoRegistrations())
     records = LookRecords(tmp_path / "v4_scores", tmp_path / "FREEZE_v4.md")
     at = datetime(2027, 5, 31, 16, 0, tzinfo=timezone(timedelta(hours=5, minutes=30)))
-    assert _look(scoring, records, FrozenToolThresholds(tmp_path), settled_slot_days(), LOOK_STOP_REVIEW, at) == 0
+    assert (
+        _look(
+            scoring, records, FrozenToolThresholds(tmp_path), settled_slot_days(), LOOK_STOP_REVIEW, at, freeze=intact
+        )
+        == 0
+    )
     assert capsys.readouterr().out.startswith(EXPLORATORY) and not records.path(LOOK_STOP_REVIEW).exists()
     (tmp_path / "FREEZE_v4.md").write_text("# Freeze\nFrozen on: 2024-12-31\n")
-    _look(scoring, records, FrozenToolThresholds(tmp_path), settled_slot_days(), LOOK_STOP_REVIEW, at)
+    _look(scoring, records, FrozenToolThresholds(tmp_path), settled_slot_days(), LOOK_STOP_REVIEW, at, freeze=intact)
     recorded = json.loads(records.path(LOOK_STOP_REVIEW).read_text())
     assert recorded["test_a"] == "undecided" and len(recorded["members"]) == 15
     with pytest.raises(LookRecordExists):
-        _look(scoring, records, FrozenToolThresholds(tmp_path), settled_slot_days(), LOOK_STOP_REVIEW, at)
+        _look(
+            scoring, records, FrozenToolThresholds(tmp_path), settled_slot_days(), LOOK_STOP_REVIEW, at, freeze=intact
+        )
 
 
 def test_the_freeze_day_is_read_from_its_record_and_a_record_without_it_is_refused(tmp_path):

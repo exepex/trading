@@ -18,12 +18,13 @@ def add_participant_oi_parser(subparsers) -> None:
     oi = subparsers.add_parser("participant-oi", help="NSE participant open interest: release times and the rule")
     actions = oi.add_subparsers(dest="oi_cmd", required=True)
     watch = actions.add_parser("watch", help="check NSE's archive until the day's file appears; log every check")
-    watch.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: today, IST)")
+    watch.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: today; before noon IST, yesterday)")
     watch.add_argument("--until", type=time.fromisoformat, default=DEFAULT_UNTIL, help="HH:MM IST (default 22:00)")
     watch.add_argument("--every", type=int, default=DEFAULT_EVERY_MINUTES, help="minutes between checks (default 5)")
     watch.add_argument("--evidence-folder", type=Path, default=None, help=EVIDENCE_HELP)
     once = actions.add_parser("check-once", help="one check of the day's file, for a job run every 15 minutes")
     once.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: today; before noon IST, yesterday)")
+    actions.add_parser("due-day", help="print the day whose file is still due (before noon IST, yesterday)")
     actions.add_parser("rule", help="print the availability rule in force and how many days are measured")
     sweep = actions.add_parser(
         "sweep", help="read every recorded file: flag moved write times, keep new versions (A11)"
@@ -43,17 +44,18 @@ def cmd_participant_oi(args) -> int:
         return _compare(PARTICIPANT_OI_RELEASE_LOG, folder / PARTICIPANT_OI_RELEASE_LOG.name)
     if args.oi_cmd == "sweep":
         return _sweep(folder / PARTICIPANT_OI_SWEEPS.name if folder else None)
+    if args.oi_cmd == "due-day":  # one day for every step of a workflow run (judge 350 SF2)
+        print(_due_day(now_ist()).isoformat())
+        return 0
     if args.oi_cmd == "check-once":
-        from .release_check_once import due_day
-
-        return _check_once(args.day or due_day(now_ist()))
+        return _check_once(args.day or _due_day(now_ist()))
     from .release_times import MIN_MEASURED_DAYS, ReleaseLog, first_seen_times
 
     if args.oi_cmd == "rule":
         measured = len(first_seen_times(ReleaseLog(PARTICIPANT_OI_RELEASE_LOG).checks()))
         print(f"rule: {build_participant_oi_rule().describe()}; measured days: {measured} of {MIN_MEASURED_DAYS}")
         return 0
-    day = args.day or now_ist().date()
+    day = args.day or _due_day(now_ist())  # a run GitHub starts after midnight watches the evening before (O10)
     until = datetime.combine(day, args.until, IST)
     recorder = build_release_time_recorder(
         folder / PARTICIPANT_OI_RELEASE_LOG.name if folder else PARTICIPANT_OI_RELEASE_LOG
@@ -67,6 +69,12 @@ def cmd_participant_oi(args) -> int:
     else:
         print(f"{day}: {check.outcome} at {check.checked_at:%Y-%m-%d %H:%M} IST {check.sha256[:12]}".rstrip())
     return 1 if rewritten or (check is not None and check.outcome == RELEASE_UNREACHABLE) else 0
+
+
+def _due_day(now: datetime) -> date:
+    from .release_check_once import due_day
+
+    return due_day(now)
 
 
 def _check_once(day: date) -> int:
