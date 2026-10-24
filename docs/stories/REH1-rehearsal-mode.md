@@ -330,3 +330,15 @@ clean.
   - A planted module with all six forms is caught, while `time.monotonic` and `time.sleep` are not reads.
   - The package has none today.
 - Gates on the branch: 14863 passed; ruff, format, imports, records and numbers clean.
+- **Judge 560 (judge E), round 1: FAIL on three plants nothing caught; all three accepted, each pinned:**
+  - **F1, the HTTP guard installed in a step process.** The same gap as judge 557's SF1, pinned by
+    `tests/rehearsal/test_process.py` (above).
+  - **F2, `--no-verify` on the clone's data commit.** `check_hooks` proved only the config. Now
+    `test_the_clone_s_data_commit_runs_the_record_scan_hook` gives the source a hook that leaves a mark when it runs.
+    The clone's data commit must leave it. Plant: `--no-verify` on that commit fails the test.
+  - **F3, a crashed guard read as clean.** `_guard` stopped the rehearsal on a non-zero exit only when nothing was
+    printed. Now any non-zero exit stops it, whatever was printed: only a clean exit with nothing printed is safe.
+    `test_a_guard_that_crashes_or_exits_non_zero_stops_the_rehearsal_whatever_it_printed` covers a crash, a silent
+    exit 3 and a clean pass. Plant: ignoring the exit code fails the test.
+  - **Minor (for REH1b/c, judge E):** `urllib3` used directly, or raw sockets, would bypass the HTTP guard. Nothing in
+    the daily run uses them today. A `urllib3` backstop comes in REH1b's follow-up; raw sockets stay a stated limit.
