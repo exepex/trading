@@ -727,14 +727,31 @@ always leave its Drive record and delivery metadata. Then a rehearsal proves the
     picks the rehearsal form when `FNO_REHEARSAL` is set. The GitHub `HttpDateClock` is made only inside the real
     form's builder, so a rehearsal never constructs it. `CardIssuer` takes a `CardClocks` in place of its list of
     server clocks.
-- **Nothing after the post stops the records.** In `CardIssuer.issue`, each step after the post is guarded: the
-  clock checks, building the facts, the Drive save (already guarded) and the metadata write (today `OSError` only).
-  - A step that raises becomes its own printed and stored line, by error type only (T1's rule: no message reaches
-    a log).
-  - A clock check that raises anything becomes `unchecked(<server>, "<Type>")`.
-  - A metadata write that raises anything prints T1's existing "delivery metadata NOT written (<Type>); commit it by
-    hand" with the metadata.
-  - The exit code stays T1's: 0 only when sent and saved.
+- **Nothing after the post stops the records (judge 592 finding 1).** Everything in `CardIssuer.issue` after
+  `poster.post` returns is guarded, stage by stage, so a raise in one stage never skips the next. Every failure is
+  named by error type only (T1's rule: no message reaches a log). The stages, in order (today's `issue.py:51-60`):
+  1. **The clock checks** (the Slack check from the post's `ts`, then each server). A check that raises anything
+     becomes `unchecked(<server>, "<Type>")`.
+  2. **The facts** (`_facts`). If building them raises, the issuer uses **minimal facts** instead, then goes on:
+     - `day`, `status`, `reason_code`, `card_sha256`, `test` and `code_commit`;
+     - `slack: {sent, ts, channel, outcome, server_time_utc}` from the post's receipt;
+     - `clock: []`, `missing: []`, `previous_misses: []`, `records_used: []`;
+     - `failure: "facts not built (<Type>)"`.
+     These are the keys the next card's `misses()` reads, so the next card can still name the day's miss and never
+     crashes on it.
+  3. **The Drive record** (`_section` for each section, `_record_name`, `_json(record)`, then `save`). Building it
+     sits inside the same guard as the save. A raise anywhere here gives `saved: false` and "card record NOT saved
+     to Drive: record not built (<Type>)".
+  4. **The delivery metadata** (`_json(delivery)`, then the write). A raise of any kind, not only `OSError`, prints
+     T1's "delivery metadata NOT written (<Type>); commit it by hand:" followed by the metadata. If even the metadata
+     cannot be turned into JSON, it prints the minimal facts of stage 2 instead (always JSON: strings, booleans and
+     null only).
+  - **The exit code.** 0 only when the card was sent, the Drive record saved, the metadata written and no stage
+    failed. Any failed stage gives exit 1: T1's rule plus stages 1-2. A clock that is merely unchecked is not a
+    failure; a clock check that raised is one.
+  - **Where a rehearsal's metadata goes (judge 592 finding 2).** In a rehearsal, the delivery file is written in the
+    rehearsal's checkout. The run's commits go to its own branch, `rehearsal/<day>-<run_id>` (REH1,
+    `fno/rehearsal/checkout.py`), never to `main`. T1f changes nothing there.
 - **The CLI prints its result lines even when the issuer fails.** Today an unexpected raise after `out(text)` loses
   every result line. With the guard above, `issue()` returns on every path. A test plants a raising clock and a
   raising metadata store and checks that the last printed line is the delivery line, never a card line.
@@ -753,15 +770,24 @@ Out, with reasons:
    unchecked entry per server ("Slack" and "GitHub"), each with the rehearsal line and `checked: false`, and no
    WARNING. A real run is unchanged: the same servers are asked, and T1 criterion 7 holds.
 2. In a rehearsal, after a sent post, the Drive record is saved (the dryrun store) and the delivery metadata is
-   written. The step's exit code follows T1: 0 when sent and saved.
+   written in the rehearsal's checkout. It is committed only to the rehearsal's branch, `rehearsal/<day>-<run_id>`,
+   never to `main` (REH1's rule, unchanged). The step's exit code follows T1: 0 when sent and saved.
 3. A clock check that raises any error (not only `requests`' errors) is stored as `unchecked(<server>, "<Type>")`.
    The issuer goes on to the Drive save and the metadata write.
 4. A metadata write that raises any error prints "delivery metadata NOT written (<Type>); commit it by hand:" with
-   the metadata, and exits 1. A raise building the facts is printed and stored the same way. The card is never
-   posted twice: `issue` posts once, first.
+   the metadata (or the minimal facts, if the metadata is not JSON), and exits 1.
+   - A raise while building the facts stores the minimal facts of stage 2, with `failure: "facts not built
+     (<Type>)"`, in both the Drive record and the delivery metadata. It exits 1, and the next card reads that
+     metadata without error.
+   - A raise while building the Drive record gives "card record NOT saved to Drive: record not built (<Type>)", the
+     metadata is still written, and the command exits 1.
+   - The card is never posted twice: `issue` posts once, first.
 5. On every path after the post, the CLI's last printed line is one of the issuer's result lines (the delivery line),
    never a line of the card's text.
-6. With the guard installed and the hook removed, a test fails (the reproduction above, kept as a test).
+6. With the HTTP guard installed and the hook removed, a test fails. The test asserts that in a rehearsal the stored
+   GitHub entry carries the rehearsal line. Without the hook, criterion 3 still catches the refused call, so GitHub
+   is stored as unchecked with "RehearsalCallRefused" in place of the rehearsal line, and the test's assertion
+   fails. It also asserts that no `HttpDateClock` was built (P8).
 7. REH1's guard lists the card's clocks: `guard.builders()` has "the card's clocks" with `build_card_clocks` and
    `RehearsalCardClocks`. In the mode it reports no problem; without the mode, `test_guard.py`'s map names the real
    form and the unlabelled count includes it.
@@ -774,6 +800,10 @@ Out, with reasons:
 2. A raising clock (`OSError`, `ValueError`) is unchecked by type.
 3. A raising metadata store (`TypeError`, `PermissionError`) prints the NOT written line with the metadata, and the
    exit code is 1.
+3b. Facts that raise (a fake `_facts` failure, and a receipt value that is not JSON): both files hold the minimal
+   facts with `failure`, the exit code is 1, and the next day's `misses()` reads the file without error.
+3c. A Drive record that cannot be built (a section that raises in `_section`, or `_json` on a non-JSON value): the
+   NOT saved line with "record not built (<Type>)", the metadata still written, exit 1.
 4. CLI: `cmd_card_daily` with a raising clock prints the delivery line last.
 5. A real run (no `FNO_REHEARSAL`): the GitHub clock is asked as before (T1's tests unchanged).
 6. Guard: `problems()` in the mode is empty with the card's clocks listed; without the mode the card's clocks are
@@ -787,7 +817,9 @@ Out, with reasons:
 - P3: the metadata write guarded for `OSError` only (test 3).
 - P4: the CLI prints the result lines only on success (test 4).
 - P5: the hook active in a real run (test 5).
-- P6: the facts built outside the guard (test 3).
+- P6: the facts built outside the guard (test 3b).
+- P6b: the Drive record built outside the save's guard (test 3c).
+- P6c: the minimal facts without `clock` (test 3b: the next card's `misses()` crashes).
 - P7: the card's clocks left out of `guard.builders()` (test 6).
 - P8: the rehearsal form built from the real one, so a GitHub client is constructed in the mode (test 1: a builder
   spy counts zero `HttpDateClock`s in the mode).
@@ -797,11 +829,23 @@ Out, with reasons:
 | Requirement | Where |
 |---|---|
 | The rehearsal's card step finishes (no refused live call) | criteria 1 and 2 |
-| A posted card always leaves its Drive record and metadata | criteria 2, 3 and 4 |
+| A posted card always leaves its Drive record and metadata: every stage after the post guarded, the facts' fallback defined (judge 592.1) | criteria 2, 3 and 4; tests 3, 3b, 3c |
+| A rehearsal's metadata only on the rehearsal branch (judge 592.2) | criterion 2 |
 | The alert names the real problem, not a card line | criterion 5 (card side); O1's side is Out, proposed to O1's owner |
 | No double post | criterion 4 |
 | A real run unchanged | criterion 1, test 5 |
 | REH1's conditions: the guard proves the card's clocks; no GitHub client in the mode | criteria 1 and 7, tests 1 and 6 |
 
+**Answers to judge 592 (round 1), by number** (this round also carries REH1's owner's two conditions, `2d4e93719`):
+1. **Accepted** (checked: `issue.py:54-57` builds `_section`, `_record_name` and `_json(record)` outside `save`'s
+   guard). Every stage after `poster.post` is now named and guarded, the facts' fallback is defined field by field,
+   with where it is stored and exit 1, and test 3b, test 3c and plants P6, P6b and P6c are added. Found while doing
+   it: the fallback must keep `slack`, `drive` and `clock`, or the next card's `misses()` would crash on the record
+   (P6c).
+2. **Accepted.** Criterion 2 and the Scope say the metadata is committed only to `rehearsal/<day>-<run_id>`, never
+   `main`.
+3. **Accepted.** Criterion 6 states what the test asserts: the rehearsal line on GitHub's entry, which without the
+   hook becomes "RehearsalCallRefused" (and no `HttpDateClock` built).
+
 **Depends:** T1, REH1 (REH1c's hook pattern; REH1's owner agreed on `card_label.py` and `guard.py`, 24 Oct) · **Size:** S ·
-**Status:** text, to judge I
+**Status:** text round 2, to judge I
