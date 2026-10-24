@@ -44,3 +44,27 @@ None: text round, judged by reading (JUDGE.md, text-only changes).
 
 - Look-ahead check: V5 is read only from its written outcome record. Base rates and live rows are written once at capture, so they are point in time by construction. The 15:29:59 / 15:30:00 boundary matches `SETTLEMENT_TIME` (`desk/settlement.py:29`).
 - Applying the 15:10 stop to pack-derived *baselines* is stricter than section 4 requires. Accepted as safe; it can cost baseline-missing days.
+
+## Addendum 1: round 2, `story/g7b-completion` at 644ae68da (judge K, own session)
+
+**PASS (text), lane 1.** Every should-fix is fixed and checked against the code. 3 minor notes for the build. Judged by reading; doc-reading tests on 644ae68da: 829 passed, 15 xfailed.
+
+| Finding | Verdict | Own evidence |
+|---|---|---|
+| SF1 V4 expiry | fixed | `e` only from `pack.v4_expiry`; void `no_v4_expiry` when its ATM legs are missing ("monthly present, weekly missing: void", criterion 9); `v4_expiry_mismatch` re-checks 5 sessions on A7. G10 d4e72f20d (story lines 1110-1127) names `v4_expiry` from the sidecar, never recomputed, and imports `first_v4_expiry` with the same signature (criterion 20) |
+| SF2 traded today | fixed | A4's `traded_today` (`quote_validity.py:11-18`) through an adapter on `last_trade_time`, never copied; G10's `ChainQuote` keeps `last_trade_time` (G10 text line 886). Leaving sizes out is stated plainly: the pack has none |
+| SF3 A11 time | fixed | `CreationTimes` on `NseDailyFoSource.path_for(e)`, then A8's log; raw files never change (`revisions.py:1-8`), so Drive's created time belongs to the first version; W4 dropped; criterion 8 cases |
+| SF4 W3 | fixed | the two options with their costs; B recommended, labelled reasoning only; the owner row is in plain words |
+| SF5 sections 4 and 5 | fixed | gap rows for 4, 5.2, 5.3-5.6; criterion 15 cases; `terms.BLOCK_LENGTH` (V4 10, V5 20) and `comparison.seed_word` exist; 15:10:00 on time and 15:10:01 late match `commitment.on_time` |
+| m1-m5 | fixed | 16 Oct's A16 row is void (`research/data/intraday/rv/2026/nifty_rv_20261016.csv`); `ListedExpiries.listed(u, d)` reads files from `d-1` back (`expiry_listing.py:44-45`), so it is point in time; `monthly_expiries` exists |
+
+**The two dependencies still open with G10:**
+- **(a) Receipt path in `v4_deadline`: stated correctly.** G10's verdict reads `CommitmentTimes.row_received_at`, which works on repository CSV rows. G7b's live rows are Drive files, so they need the receipt path (`file_received_at`). The story asks for exactly this. Until G10 covers it, G8's existing "deadline not checked" count makes the gap visible, never silent (G10 text item 8).
+- **(b) The future's `last_trade_time` or day volume: stated, but incompletely (minor n1).** Interface item 4 states it, and 7cab92b06 carries volume only into the builder's tuples, not into `FutureQuote`. But the "Open" list names only (a). It does not say that without (b) every V5 day is void (`no_trade_today`), so V5's primary baseline never exists.
+
+**Minor (for the build's first commit or claims; none blocks):**
+- n1: add (b) to the Open list, with that consequence. Never relax W5 for the future without the owner.
+- n2: the ratio path `v4/ratios/<question>/<YYYY-MM>.json` has no measure. A B-built V1 ratio would then collide with an A ratio if the owner picks A. Put the measure in the path. Also, "the V2 / V3 window's ratio, at `h` = 1" means the close-proxy method at `h` = 1: say it so.
+- n3: the owner's W2 and W5 rows talk about "option" quotes only; say that the future's mid also needs a trade that day.
+
+Plants: none (text round).

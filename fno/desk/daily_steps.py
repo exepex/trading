@@ -14,6 +14,7 @@ from ..checks.gate import DataGate
 from ..constants import NO_DECISION_LATE
 from .common_pack import CommonPack
 from .daily_ports import (
+    RUN_STOPS,
     AccountSync,
     AccountWriteRefused,
     CommittedDecision,
@@ -23,6 +24,7 @@ from .daily_ports import (
     OrderBuilder,
     OrdersRefused,
     Packs,
+    StepInterrupted,
     ValidityGate,
     VersionKeeper,
 )
@@ -148,7 +150,22 @@ class DeskSteps:
             inputs["blocked"] = dict(blocked)
             what = "; ".join(f"{book} {BLOCKED.format(why=why)}" for book, why in blocked.items())
             self.alerts.send(ALERT.format(day=day, book="entries", what=what))
-        pack, result = self.pack(day), {}
+        result: dict = {}
+        try:
+            self._fill_books(day, snapshot_valid, collected, blocked, result)
+        except RUN_STOPS:
+            raise
+        except Exception as error:  # the trades already written stay in the accounts: the alert says how many
+            written = sum(1 for r in result.values() if "snapshot_id" in r)
+            if written:
+                raise StepInterrupted(written) from error
+            raise
+        return StepOutcome(inputs, result)
+
+    def _fill_books(self, day: date, snapshot_valid: bool, collected: dict, blocked: Mapping[str, str], result: dict
+                    ) -> None:  # fmt: skip
+        """Each book's recorded run filled into `result`, trade by trade, as each is written to its account."""
+        pack = self.pack(day)
         for book in self.books:
             entry = collected.get(book, {})
             if book in blocked:
@@ -170,7 +187,6 @@ class DeskSteps:
                     reason = NOT_WRITTEN.format(reason=refused)
                     result[order.proposal.trade_id] = {"outcome": "not filled", "reason": reason}
                     self.alerts.send(ALERT.format(day=day, book=book, what=reason))
-        return StepOutcome(inputs, result)
 
     def _fill_one(self, pack: CommonPack, decision: CommittedDecision, order, snapshot_valid: bool) -> dict:
         if not snapshot_valid:

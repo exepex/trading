@@ -481,7 +481,8 @@ never read a card without knowing that part of the day did not run.
     in r]`. On that result it gives `['status', 'reason']`, a substring test on a string. The card would then say
     "late or not committed: status, reason" as a final outcome, naming two non-books and hiding the failure.
   - Fix: a decisions result whose status is a problem under O1's rule (the same `problem_steps` status set) gives the
-    final outcome "decisions step <status> today" with code `CARD_DATA_CHECK_FAILED`, and is never read as books.
+    final outcome "decisions step <status>: <reason>" (the orchestrator's wording, 24 Oct; the reason is the logged
+    code, e.g. "raised:NotImplementedError") with code `CARD_DATA_CHECK_FAILED`, and is never read as books.
   - The snapshot check already fails closed ("no valid execution snapshot", `data_check_failed`), so it is
     unchanged.
 
@@ -500,8 +501,9 @@ Out:
 4. The runner's last line is unchanged ("day done with problems: <steps>"), and both the runner and the card use the
    same `problem_steps`.
 5. The card reads the run log only through `RunLogReader` and `problem_steps`, never by matching text.
-6. A `decisions` step logged `failed` (or `refused`) gives T2's decisions outcome "decisions step failed today" (or
-   "refused"), with code `CARD_DATA_CHECK_FAILED`. It never names a book "status" or "reason" (judge 567).
+6. A `decisions` step logged `failed` (or `refused`) gives T2's decisions outcome "decisions step failed: <reason>"
+   (or "refused: <reason>"), with code `CARD_DATA_CHECK_FAILED`. Any other step-level status is shown as it is, with no
+   code. It never names a book "status" or "reason" (judge 567).
 
 **Test plan:**
 1. Positive: a planted committed run log with `snapshot` failed and `fills` refused gives the exact line, in order.
@@ -510,10 +512,10 @@ Out:
 4. Shared rule: the runner's existing tests pass unchanged, and a test shows that the runner and the card list the
    same steps for one log.
 5. Decisions after R2: a planted committed run log with `decisions` = `{"status": "failed", "reason":
-   "raised:NotImplementedError"}` gives "decisions step failed today" and `data_check_failed`, and neither "status" nor
+   "raised:NotImplementedError"}` gives "decisions step failed: raised:NotImplementedError" and `data_check_failed`, and neither "status" nor
    "reason" as a book. A normal per-book result is unchanged (T2's existing tests).
 6. Plants: dropping `refused` from the rule fails test 1; a card that ignores the reader's steps fails test 1;
-   removing the decisions status check fails test 5.
+   removing the decisions status check fails test 5. Built: P1 to P13 in the code claims below.
 
 **Known limits:**
 - Failures in steps after the card are not on it (Out).
@@ -538,5 +540,125 @@ move of the rule into `problem_steps` is asked of them before code.
     candles, the close reads) run after the card is posted, so a failure there is never on the card. It stays in the
     run's last line and its own alert.
 
-**Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety`) · **Size:** S · **Status:** story text, waiting for judge I;
-code after R2 merges
+**Code claims (for judge I; builder session_01Mt6dcBU5kp2htdPN2KmiZH from 24 Oct, replacing 0145TfSwzmpk):**
+- **Built on R2's round 2.** `story/o1-r1r2-step-safety-b` at `2c80be430` (the orchestrator's choice; it supersedes
+  `story/o1-r1r2-step-safety`, whose `f0bb2aa9c` was merged first) is merged in. `fno/desk/` and `fno/daily/` are
+  O1's versions byte for byte (`git diff 2c80be430 -- fno/desk fno/daily` is empty). This branch's earlier `PROBLEMS`/`problem_steps` copy is gone. Beyond the merge, this branch
+  changes only `fno/cards/`, `tests/cards/test_problem_steps.py` and this file (strong: diff).
+- **One rule, O1's.** The card's line calls `run_log.problem_steps` (`fno/cards/problem_steps.py`), and
+  `DecisionOutcome` decides "failed or refused" by calling the same `problem_steps` on its one step, never the
+  `PROBLEMS` set or a copy (`fno/cards/rule_checks.py`, `outcome`). The late books are read from O1's
+  `book_results(result)` (`_decided`) (strong: code).
+- **O1 round 2's run-log shapes (strong: tests write the log with O1's own `RunLog.record`).** A failed step now
+  carries `retry`. A failed step waiting for its retry (`retry: true`, for example `fills`) is still `failed` today,
+  so the card names it, exactly as the runner's last line does. A step retried and then ok replaces its failed entry
+  (it moves last in the log) and is no longer named. A failed decisions step with `retry: false` is unchanged
+  (criterion 6). The reader accepts the new key: it checks only `name -> {"result": {...}}`. Tests:
+  `test_a_failed_step_waiting_for_its_retry_is_named_as_failed`, `test_a_step_retried_and_then_ok_is_no_longer_named`.
+- **A change from the earlier code, on odd shapes.** O1's `problem_steps` assumes `name -> {"result": {...}}`; the
+  dropped copy tolerated `steps` that is not a mapping. Instead of a second, tolerant rule, T2's `RunLogReader` now
+  refuses any other shape once, as "not readable (steps are not name -> {result: {...}})" with `data_check_failed`,
+  so neither O1's rule nor a card rule meets it. The earlier test `test_odd_run_log_shapes_never_crash_the_rule`
+  (which called the rule directly on a list) became `test_odd_run_log_shapes_are_unreadable_at_the_reader_never_a_crash`.
+  Every committed run log, 17 to 23 Oct, has the accepted shape (reviewer 1 checked), so no real day turns unreadable.
+- **Criterion 6, wording as built:** the decisions line keeps T2's C4 part on every path, so a failed decisions step
+  reads "decisions step failed: raised:NotImplementedError, no C4 refusal" (or "..., C4 refused: book1_rules (caps)"),
+  code `data_check_failed`. A step-level result with no reason reads "decisions step <status>". Any other step-level
+  status is shown as it is: no code of its own, but a C4 refusal dated today still gives `hard_rule_breach`.
+- **Gap list (each requirement of the passed text, judge 567 addendum 2):**
+
+  | Requirement | Criterion | Code | Test (`tests/cards/test_problem_steps.py`) | Plant that fails it |
+  |---|---|---|---|---|
+  | One line naming failed and refused steps, with status, in run order | 1 | `ProblemSteps.line`, `RuledStatus.status` | `test_failed_and_refused_steps_are_named_with_their_status_in_run_order`, `test_boundaries_one_failed_one_refused_and_an_empty_log` | P1, P2, P9 |
+  | No line when all `ok`/`not_live`, or no steps | 2 | `ProblemSteps.line` | `test_no_line_when_every_step_is_ok_or_not_live_or_the_desk_has_not_run`, `test_boundaries_...` (empty log) | P12 |
+  | No run log gives no line | 3 | `ProblemSteps.line` (`steps or {}`) | `test_no_line_when_...` (`status_lines({})`) | P13 |
+  | Runner's last line unchanged; runner and card share `problem_steps` | 4 | O1's `runner.py`, `run_log.problem_steps` | `test_the_run_s_last_line_and_the_card_share_o1_s_one_rule`, `test_the_runner_s_last_line_and_the_card_name_the_same_steps_for_one_log` (the real `DayRunner` line and the card's line from one log) | P1, P7 |
+  | The card reads only through `RunLogReader` and `problem_steps`; wired in the app | 5 | `ProblemSteps`, `wiring.build_status` | `test_the_app_s_card_wires_the_problem_line`, odd-shape test | P2, P6, P8 |
+  | A failed or refused decisions step: "decisions step <status>: <reason>", `data_check_failed`, never books | 6 | `DecisionOutcome.outcome`, `_decided` | `test_a_failed_decisions_step_is_...`, `test_a_refused_decisions_step_is_...`, `test_a_decisions_step_with_another_step_level_status_...`, `test_c4_refusals_are_read_on_a_step_level_decisions_result_too`, `test_a_decisions_status_that_is_not_a_string_...` | P3, P4, P10, P11 |
+  | Snapshot check unchanged (fails closed) | Scope | `ExecutionOutcome`, `_verdict` (unchanged) | `test_a_failed_snapshot_fails_closed_with_its_raise_and_is_named_as_failed` | (unchanged code) |
+  | Steps after the card; the reason text; TRADE / NO TRADE | Out | - | - | - |
+
+- **Plants (rule 4), each run on `tests/cards`, `tests/daily`, `tests/timetable`, `tests/scoreboard` (475 tests), then
+  restored:**
+  - P1 `refused` dropped from O1's `PROBLEMS`: caught (10 failed).
+  - P2 the card ignores the reader's steps (`problem_steps({})`): caught (5).
+  - P3 the decisions status check removed (`if "status" in result` never true): caught (5).
+  - P4 the `rule_checks.py:97` path of judge 570 addendum 1 (no status check, the raw result iterated as books):
+    caught (5; it gives "late or not committed: status, reason").
+  - P5 `book_results` dropped, status check kept: **survives, equivalent.** Every result `book_results` empties has a
+    top-level `status`, which `_decided` has already taken. It is kept because it is O1's reader for per-book
+    results (the orchestrator's step 2), not because a test needs it.
+  - P6 the reader's shape check removed: caught (1).
+  - P7 the runner keeps its own rule without `refused`: caught (5, two of them O1's own `test_day_run` cases).
+  - P8 the wiring drops `ProblemSteps`: caught (1).
+  - P9 the line shows the reason: caught (5).
+  - P10 C4 refusals skipped on a step-level decisions result: caught (1).
+  - P11 a failed decisions step not a data check failure: caught (3).
+  - P12 a line even when nothing failed: caught (2).
+  - P13 no run log handed to the rule as `None`: caught (1).
+- **Cases (rule 5):** none (all `ok`/`not_live`, an empty log, no log), one failed, one refused, both in run order,
+  a failed and a refused decisions step, another step-level status, a non-string status, a failed snapshot, a C4
+  refusal on a step-level result, a failed step waiting for its retry, one retried and then ok, and four odd shapes (`steps` a list, a step a string, a `result` a list, no
+  `result`).
+- **Output sample (rule 6),** made by the committed code from the tests' planted logs (`status_lines` in
+  `tests/cards/test_problem_steps.py`; the books are test names):
+
+  ```
+  Status: NO TRADE (data_check_failed)
+  Reason: no strategy has passed
+  Paper trades so far: 0
+  Rule checks: a rule refused, or a record could not be read
+  - decisions: late or not committed: book2_hybrid, no C4 refusal
+  - execution: no valid execution snapshot (raised:NotImplementedError)
+  Steps with problems today: snapshot (failed), fills (refused)
+  ```
+  and for a failed decisions step:
+  ```
+  - decisions: decisions step failed: raised:NotImplementedError, no C4 refusal
+  Steps with problems today: decisions (failed)
+  ```
+
+**Builder self-review (quality rule 3):** two independent review sessions (correctness, session_013i9e85; silent
+failures, session_014ubpsF), each given only the diff and this story's Scope, criteria and test plan.
+- FIXED:
+  - both: a step-level decisions result returned before C4's refusals were read, so a refusal dated today was lost
+    (with a status other than failed or refused the card said "no breach"). Now read on every path (P10);
+  - correctness: the failed check tested the `PROBLEMS` set itself, a second place for the rule; now it calls O1's
+    `problem_steps`;
+  - correctness: test plan 4 was half there (identity only); the real `DayRunner` last line and the card's line are
+    now built from one log;
+  - correctness: the failed-snapshot test asserted "no line says C3", which can never fail; replaced with the
+    `data_check_failed` reason and the step's own raise;
+  - silent failures: `{"status": None}` crashed the card (`"run_id" not in None`); any top-level `status` is now a
+    step-level result.
+- KEPT, with reasons:
+  - correctness: `book_results` is redundant after the status check (P5, equivalent). Kept as O1's reader (above).
+  - both: a malformed previous-day log makes today's execution line "not readable" with yesterday's path, and a bad
+    shape hides the problem line. Both fail closed with `data_check_failed` and T2's line names the file; the
+    stricter reader makes it a little more likely. Older than T1d (T2's `_last`), left to T2's next change.
+  - silent failures: when only a non-ruled step fails (for example `exits`), the card still says "Rule checks: no
+    breach" with T1's reason code, and the problem line comes last. That is the passed text (the status is
+    unchanged, Out). **For the orchestrator:** whether a problem step should change the reason code is a story
+    decision, not a code fix.
+  - for O1's builder (correctness reviewer): `_refused` counted only `STEP_FAILED` inputs. Round 2 (`2c80be430`)
+    now reads them through `problem_steps`, so a refused input refuses too: resolved on O1's side.
+
+**Known limits:**
+- A step that records its failure without a `status` (an exit review's per-book `error`, `trade_marks`
+  `{"marked": False}`, `pack` `{"built": False}`) is not named, by the card or the run's last line: that is O1's rule.
+  Each still sends its own alert to #fno-desk.
+- Failures in steps after the card are never on it (Out).
+- This branch touches no O1 file beyond the merges, so a newer O1 head merges cleanly unless O1 renames
+  `problem_steps`, `book_results` or `RETRY`.
+
+**Gates on the merged tree (code at `a432d5a91`, merged with `2c80be430`; this note added after):** `ruff check fno
+tests tools` clean; `ruff format --check` 2445 files formatted; `check_imports` clean (2574 files); `check_records`
+clean (8995 files); `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -p no:cacheprovider -n auto`: 15168 passed, 15
+xfailed, 1 failed. The one failure, `tests/books/test_account_processes.py::test_a_live_holder_keeps_its_lock_after_its_lease_expires`,
+is a timing test (a child process must take the lock within a 2-second sleep) in a file this branch does not touch,
+run while the machine's load average was about 20 from other sessions' suites. Rerun alone: that file, 7 passed.
+(Earlier, at `e26d7f9a3` merged with `f0bb2aa9c`: 15138 passed, 15 xfailed, 0 failed.)
+
+**Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety-b`) · **Size:** S · **Status:** text PASS (judge 567); code
+merged onto R2's round 2 at `2c80be430`, to judge I (session_01MvZneCLZqBuiGyNxawdVee); merges in one batch with
+R2's -b head

@@ -1,7 +1,7 @@
 """Groww's candles in a rehearsal (story REH1b), behind A16b's `IntradayCandleSource`: the answer Groww gave the day
 for the same window, read back from the real record (the manifest of the record checkout, the bytes from the real
-Drive, checked against the row's SHA-256). As for A4h's read, the answer served is the one fetched at or just after
-now (within `NEAREST`), once the replay clock reaches its fetch time. A window the day never asked for is not
+Drive, checked against the row's SHA-256). As for A4h's read, the answer served is the one fetched near now
+(`serving.is_near`), once the replay clock reaches its fetch time. A window the day never asked for is not
 recorded: `CandleCallFailed`, the back-fill's own failure, so it is recorded and alerted as any failed call."""
 
 from __future__ import annotations
@@ -12,12 +12,12 @@ import hashlib
 import io
 import json
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 
 from ..intraday.candle_source import FIFTEEN_MINUTES, ONE_MINUTE, CandleAnswer, CandleCallFailed, IntradayCandleSource
+from .serving import is_near
 
-NEAREST = timedelta(minutes=10)
 MANIFEST = "nifty-{kind}.csv"
 NOT_RECORDED = "rehearsal:NOT_RECORDED Groww {kind} {start}..{end} at {at}: the day fetched no such answer near then"
 DAMAGED = "rehearsal: the recorded Groww answer {path} is missing from Drive or differs from its manifest row"
@@ -52,5 +52,5 @@ class RecordedCandles(IntradayCandleSource):
         manifest = self.manifests / MANIFEST.format(kind=kind)
         rows = list(csv.DictReader(io.StringIO(manifest.read_text(encoding="utf-8")))) if manifest.is_file() else []
         near = [r for r in rows if (r["kind"], r["start"], r["end"]) == (kind, start.isoformat(), end.isoformat())
-                and now - timedelta(seconds=5) <= datetime.fromisoformat(r["fetched_at"]) <= now + NEAREST]  # fmt: skip
+                and is_near(now, datetime.fromisoformat(r["fetched_at"]))]  # fmt: skip
         return min(near, key=lambda r: r["fetched_at"], default=None)
