@@ -106,3 +106,58 @@ check_numbers all clean; **16,335 passed, 1 skipped, 14 xfailed** (token kept).
   entries. `fno/forecast/wiring.py` and `golden.py` are gone from the classes (no longer reached). `release_times.py`
   is recorded (V5's `first_seen_at` fallback). `availability.py` is not deciding: `release_times.first_seen_times`,
   the function V5 uses, does not call it (read).
+
+## Addendum 4: the whole freeze, head b6ccadf80 (one round)
+
+**FAIL (1 blocking; everything else MET). Lane 1.** I ran the gates on a trial merge into origin/main a54f1016d (clean,
+c8c1c4fc2; a full clone). ruff, format (2,631), imports (2,760), record scan (9,268) and check_numbers are clean;
+**1 failed**, 16,553 passed, 1 skipped, 13 xfailed (token kept).
+
+| Check | Result | My evidence |
+|---|---|---|
+| Owner's answers | MET | DESK_DECISIONS row 342 (25 Oct): S = Mon 26 Oct, `Frozen on: 2026-10-25`, W1, W2, W5, W6, W7 signed, W3 and W8 decided, W4 dropped, the AI instruction files registered and hashed |
+| Protocol commit 1712a476b, W1-W8 | MET | each added wording says what the signed plain-words table says (W1 intraday `RV_s`; W2 the future at mid, 5% spread, else void; W3 both yardsticks, never pooled; W5 bid > 0, ask >= bid, a trade that day, legs and the future; W6 V4's start and the pack's SHA-256; W7 the intraday series' rules; W8 the back-fill only as the scale, with the drift alert). The rest is the planned status line, `pricing.py`, section 10 (the three classes, the append-only slot registry) and ChatGPT's review paused. Nothing extra |
+| Protocol commit in history | MET | an ancestor of the merge, and the last commit touching `PROTOCOL_v4.md` (`git log`); `check()` on the merge: "v4 freeze: intact" |
+| Section split 5e99d5782 | MET | pins only under "## Frozen files", drift only under "## Recorded" (the AI `###` table stays inside); a missing heading reads the whole record (fails closed). Plants: AI table cut off (3 failed), pins from the whole record (4), drift from the wrong section (2), a missing heading read as no pins (11); all caught. Live check: `pricing.py` 0.065 to 0.066 gives "v4 freeze BROKEN: fno/forecast_v4/pricing.py: changed since the freeze"; a recorded `iv30.py` edit gives one drift line, intact |
+| Slots, Frozen on | MET | `build_slot_registry().registered()`: 15 members, all effective 2026-10-26 (after `Frozen on: 2026-10-25`, `registered_on` 25 Oct ≤ start; `slot_file`'s refusals pass). AI rows `book2_hybrid_v2`, `book3_ai_v2` = G11's `current_version(..., "v4").forecaster`; both prompts' SHA-256 in the record |
+| Ledger 101-108, settings | MET | eight `forecasts-v4` rows naming 1712a476b; `hypothesis` yes for V1, V2, V6a, V6b; `ai_books_v4` and `forecasts_v4_pack` set to "2026-10-26" |
+| Forecast lab (ruling (a)) | MET | shows v4 frozen with its commit only from `Frozen on:` (point in time); plant "frozen before its day" caught (3) |
+
+## Finding
+
+1. **Blocking B1: the freeze commit's own test depends on test order, and fails alone.**
+   `tests/forecast_scoring_v4/test_slot_file.py::test_since_the_freeze_the_repository_registers_the_15_members_from_its_first_counted_session`
+   fails in my full trial-merge run, and alone on the exact head three times out of three (1 failed, 9 passed). It
+   passes only when an earlier test in the same worker has filled the process-wide `@cache` on
+   `fno/forecast_scoring/v4/wiring.py:132` `_forecasts()` from a fake Drive. Run cleanly, `build_slot_registry()` reaches
+   `_first_eligible` → `_forecasts` → `build_drive_records(...).files()` → `build_drive_cache()`. That raises "set
+   FNO_GDRIVE_... to use the Drive data store", because G7b's back-fill receipts (6a480457c, `receipts/data/v4/records/
+   backfill/...`) are on main, and the test sandbox strips the Drive settings. So CI is red at random, and when the test
+   passes it reads another test's fake data. Fix:
+   - give this test its no-Drive seam (patch `build_drive_records`, or `_forecasts`, with an empty source);
+   - clear `_forecasts.cache_clear()` around every test that patches it (an autouse fixture);
+   - rerun the full suite with `-p no:randomly` and also the file alone.
+
+   Production is not affected: a command builds `_forecasts` once, with Drive.
+
+## Addendum 5: B1's fix and the 14:32 capture start, head 631a47c28 (the owner: "B checks it")
+
+**PASS (1 note). Lane 1.** I ran the gates on a trial merge into origin/main 54890d75e (clean, 022ec3a42). ruff,
+format (2,631), imports (2,760), record scan (9,275) and check_numbers are clean; **16,554 passed, 0 failed, 1
+skipped, 13 xfailed** (token kept).
+
+- **B1: FIXED.** `tests/forecast_scoring_v4/conftest.py` clears `wiring._forecasts` before and after every test in the
+  folder (autouse), and the 15-members test takes the `no_v4_drive_records` seam. The test file alone: 10 passed, 3 of
+  3 runs. Plant: the seam removed gives 1 failed alone.
+- **No frozen constant moved.** `git diff b6ccadf80 631a47c28` touches nothing in `fno/forecast_v4/`, `fno/v4_pack/` or
+  `fno/quotes/`. `V4_CAPTURE_START` 14:30:00 and `V4_PACK_WINDOW_END` 14:40:00 are unchanged (my run). The capture's
+  own window is now `quotes.windows.v4` 14:32:00-14:40:00. The part starts at 14:29 (`v4_part._shortly_before`), and
+  its early floor is 14:05.
+- **Protocol and record.** a6da6f2b2 rewords only line 45 and the 1.6 row ("the window opens at 14:30:00; the capture
+  starts inside it at 14:32:00, after A16's 14:30 mark"). `FREEZE_v4.md` names a6da6f2b2, which is an ancestor and the
+  last commit touching the protocol; `check()` on the merge reads "v4 freeze: intact". Ledger 101-108 now name
+  a6da6f2b2; those rows were never on main, so nothing written once is edited.
+- **Note (timing, some evidence):** the measured full attempt is 2 min 38 s for 180 quotes (23 Oct), plus about 80 s
+  for G10's extras, so about 14:32-14:36. A16's mark ends about 14:31:25 (85 s, 22 Oct). A retry after an incomplete
+  first attempt now has about 4 minutes, not 6, and a slow one is cut at 14:40:00 (no request after it). One retry
+  usually fits; two do not. The first live day's sidecar (G10 criterion 10) is the evidence to read.

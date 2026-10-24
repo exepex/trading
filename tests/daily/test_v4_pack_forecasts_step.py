@@ -16,9 +16,11 @@ def test_the_step_runs_right_after_the_release_and_before_the_desk():
     assert order.index(V4_PACK_FORECASTS_STEP) == order.index("v4_release") + 1 < order.index("versions")
 
 
-def test_the_built_step_is_not_live_and_commits_only_g7bs_receipts(monkeypatch):
+def test_the_built_step_is_live_from_the_first_counted_session_and_commits_only_g7bs_receipts(monkeypatch):
+    """Set live with the v4 freeze (orchestrator, 25 Oct 2026: the owner's 24 Oct rule and G7b's builder's dry run)."""
     step = _built_steps(monkeypatch)[V4_PACK_FORECASTS_STEP]
-    assert isinstance(step, Alerted) and isinstance(step.step, LiveFrom) and step.step.live_from is None
+    assert isinstance(step, Alerted) and isinstance(step.step, LiveFrom)
+    assert step.step.live_from == date(2026, 10, 26)
     command = step.step.step
     assert isinstance(command, CommandStep) and command.arguments(date(2026, 10, 26)) == FORECASTS_V4_PACK
     assert FORECASTS_V4_PACK == ("forecast-v4", "capture-pack")
