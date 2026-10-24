@@ -16,11 +16,10 @@ from ..constants import (
     FORECAST_PROTOCOL_V4,
     FORECAST_QUESTIONS,
     ISOLATION_SEALED_SAME_DAY,
-    V6_BIG_MOVE_1S,
-    V6_BIG_MOVE_5S,
 )
+from ..forecast_v4.terms import FAMILY_QUESTIONS
 
-V4_AI_QUESTIONS = (V6_BIG_MOVE_1S, V6_BIG_MOVE_5S)  # what prompt v2 defines: v4 freezes with V6a and V6b (16 Oct)
+V4_AI_QUESTIONS = FAMILY_QUESTIONS  # what prompt v2 defines: every family question the rules slot answers (G11 C1)
 
 
 class VersionRefused(ValueError):
@@ -38,6 +37,7 @@ class BookVersion:
     isolation: str = ISOLATION_SEALED_SAME_DAY  # how the routine is isolated: part of the version (D6)
     questions: tuple[str, ...] = FORECAST_QUESTIONS  # what its prompt defines; it is never asked anything else
     protocol: str = FORECAST_PROTOCOL_V2  # the protocol it answers: v2 and v4 run side by side until the v4 freeze
+    point_envelope_width: float | None = None  # Hybrid, v4's point questions: the relative widening (G11 C3)
 
     @property
     def forecaster(self) -> str:
@@ -63,10 +63,10 @@ VERSIONS = (
     BookVersion(BOOK3_AI, 1, "agents/forecast/book3_ai_v1.md",
                 "6917786dac7430c951a7f80027b8d7c5ba40701d21288aebe7cfadccad77259a", "claude-opus-5-5", None),
     BookVersion(BOOK2_HYBRID, 2, "agents/forecast/book2_hybrid_v2.md",
-                "8997f1aa72fffcd442bb4c659a8ddea05fbe1ca6fbb64bc435bfd99bf1c9ffc4", "claude-opus-5-5", 0.10,
-                questions=V4_AI_QUESTIONS, protocol=FORECAST_PROTOCOL_V4),
+                "37b4e3dbf1e9ebfc9273763eca2da08fdf71dce3c336a40a7cca36f246a3cb03", "claude-opus-5-5", 0.10,
+                questions=V4_AI_QUESTIONS, protocol=FORECAST_PROTOCOL_V4, point_envelope_width=0.25),
     BookVersion(BOOK3_AI, 2, "agents/forecast/book3_ai_v2.md",
-                "2b1d63ef2ae27c266f75904e0b697b5bd022a3c7705a947a3d229edf246ad6ad", "claude-opus-5-5", None,
+                "c8ee48c1c5850160bfb1391773f19303ee69dc2bba4403da2faee72972a05dde", "claude-opus-5-5", None,
                 questions=V4_AI_QUESTIONS, protocol=FORECAST_PROTOCOL_V4),
 )  # fmt: skip
 

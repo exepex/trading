@@ -68,12 +68,23 @@ def v4_live_from(cfg: dict | None = None) -> date | None:
     return date.fromisoformat(str(raw)) if raw else None
 
 
+def build_v4_book_inputs() -> V4BookInputs:
+    """The books' v4 inputs from G8's own sources: the slot registrations, G7's forecast files and G8's outcome series
+    (the official closes and A16's live rv rows), so each measure has one definition."""
+    from ..forecast_scoring.v4.g7_series import G7Series
+    from ..forecast_scoring.v4.wiring import CLOSES_FILE as V4_CLOSES
+    from ..forecast_scoring.v4.wiring import FORECASTS_FOLDER, INTRADAY_FOLDER, build_slot_registry
+    from ..intraday.rv_table import RvTable
+
+    series = G7Series(V4_CLOSES.read_text(encoding="utf-8"), RvTable(INTRADAY_FOLDER).rows)
+    return V4BookInputs(ROOT, build_slot_registry(), ForecastFiles(FORECASTS_FOLDER), series)
+
+
 def build_v4_firer(env=os.environ) -> V4BookFirer:
-    from ..forecast_scoring.v4.wiring import FORECASTS_FOLDER, build_slot_registry
     from ..v4_pack.wiring import build_released_packs
 
     triggers = {book: build_book_trigger(book, env) for book in ROUTINES}
-    inputs = V4BookInputs(ROOT, build_slot_registry(), ForecastFiles(FORECASTS_FOLDER))
+    inputs = build_v4_book_inputs()
     return V4BookFirer(ROOT, triggers, lambda: build_released_packs(env), inputs, build_alert_sender(), now_ist,
                        v4_live_from(), v4_sessions_before)  # fmt: skip
 
@@ -92,12 +103,11 @@ def v4_sessions_before(day: date) -> list[date]:
 
 
 def build_v4_collector(env=os.environ) -> V4BookCollector:
-    from ..forecast_scoring.v4.wiring import FORECASTS_FOLDER, build_slot_registry
     from ..v4_pack.wiring import build_released_packs
 
     history = RepoHistory(ROOT)
     receipts = GitHubActivityReceipts(env.get(GITHUB_REPOSITORY_VARIABLE, ""), env.get(ENV_GITHUB_TOKEN, ""), history)
-    inputs = V4BookInputs(ROOT, build_slot_registry(), ForecastFiles(FORECASTS_FOLDER))
+    inputs = build_v4_book_inputs()
     return V4BookCollector(ROOT, history, receipts, inputs, lambda: build_released_packs(env), now_ist,
                            v4_live_from())  # fmt: skip
 

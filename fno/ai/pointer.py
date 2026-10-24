@@ -84,5 +84,10 @@ def _rules(value, book: str) -> Rules | None:
     return value
 
 
+def is_number(value) -> bool:
+    """A finite JSON number (never a bool)."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
 def is_probability(value) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 1
+    return is_number(value) and 0 <= value <= 1

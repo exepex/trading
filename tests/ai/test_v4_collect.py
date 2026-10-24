@@ -24,7 +24,7 @@ from fno.constants import BOOK2_HYBRID, BOOK3_AI, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.inputs import ForecastFiles
 from fno.forecast_v4_rules import records
 from tests.ai.fakes import ROOT, FakeReceipts, git
-from tests.ai.test_v4_fire import DAY, Ledger, Released, at, write_rules
+from tests.ai.test_v4_fire import DAY, Ledger, Released, Series, at, write_rules
 from tests.pipeline.fakes import FakeTrigger, RecordingAlerts
 
 SETTLED = {DAY.isocalendar()[:2]: WeekSeed("2026-W44", "2026-10-30", "25000.0", "e" * 64)}  # the week is drawn
@@ -42,7 +42,7 @@ class V4Desk:
         git(root, "commit", "-q", "-m", "closes")
         self.triggers = {BOOK2_HYBRID: FakeTrigger(BOOK2_HYBRID), BOOK3_AI: FakeTrigger(BOOK3_AI)}
         self.v4 = write_rules(root / "research/forecasts/v4")
-        self.inputs = V4BookInputs(root, Ledger(), ForecastFiles(self.v4))
+        self.inputs = V4BookInputs(root, Ledger(), ForecastFiles(self.v4), Series())
 
     def fire(self, now=None):
         firer = V4BookFirer(self.root, self.triggers, lambda: Released(), self.inputs, self.alerts,

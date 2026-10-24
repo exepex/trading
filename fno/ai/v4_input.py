@@ -9,8 +9,12 @@ collection rebuilds it from the same pack to check.
   row beyond those quotes.
 - **The closes** of the last 260 sessions and the same derived facts as v2, with the pack's 14:30 spot standing for
   today (`export.py`'s own helpers, reused).
-- **Hybrid only:** per question, the rules slot's own value and the primary baseline's, both committed before the
-  14:30 cutoff, and the envelope around the primary baseline (`terms.PRIMARY_BASELINE`; Book 3 sees no rule's answer).
+- **Each point question's history in its own measure** (protocol 1.1; G11 C4): V1 the intraday `RV_s` of A16's
+  committed sessions before the day (a void session shown as void, never filled), V2 the `close_proxy` `RV_s` of the
+  regular sessions before it, from the official closes; nothing dated the day itself.
+- **Hybrid only:** per question, the rules slot's own value (under its forecaster's name) and the primary baseline's
+  (`primary_baseline`, the series G8 uses that day, V1's one-way switch to HAR intraday included), both committed
+  before the 14:30 cutoff, and the envelope spanning them (`Envelope.span`; Book 3 sees no rule's answer).
 """
 
 from __future__ import annotations
@@ -20,15 +24,16 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 
-from ..forecast_v4.terms import PRIMARY_BASELINE
 from ..v4_pack.model import ChainQuote, Pack
 from .envelope import Envelope
 from .export import RV_RETURNS, canonical, realised_vol_points
 
 NEAR_SPOT = 0.05  # the chain's strikes shown: within 5% of spot, nearest expiry only
 CE, PE = "CE", "PE"
+PRIMARY = "primary_baseline"  # Hybrid's input names the primary baseline's value under this key (its name can change)
 
 Rules = Mapping[str, Mapping[str, float | None]]  # question -> forecaster -> its value (None: no forecast)
+History = Mapping[str, Sequence[Mapping]]  # point question -> [{"date": ..., "rv_s": ... or None}], oldest first
 
 
 @dataclass(frozen=True)
@@ -43,9 +48,9 @@ class V4InputFor:
 
 
 def build_v4_input(who: V4InputFor, pack: Pack, closes: Sequence[tuple[str, float, float]], rules: Rules | None,
-                   envelope_width: float | None) -> dict:  # fmt: skip
-    """The book's input; `rules` and `envelope_width` are Hybrid's only (both or neither)."""
-    if (rules is None) != (envelope_width is None):
+                   widths: tuple[float, float] | None, history: History) -> dict:  # fmt: skip
+    """The book's input; `rules` and `widths` (probability, point) are Hybrid's only (both or neither)."""
+    if (rules is None) != (widths is None):
         raise ValueError(f"{who.book}: rules belong to Hybrid's input only")
     if pack.day != who.day:
         raise ValueError(f"the pack is for {pack.day}, the input for {who.day}")
@@ -58,11 +63,12 @@ def build_v4_input(who: V4InputFor, pack: Pack, closes: Sequence[tuple[str, floa
         "pack": pack_summary(pack),
         "closes_before_day": [{"date": d, "nifty": n, "vix": v} for d, n, v in closes],
         "derived": derived_facts(pack, closes),
+        "history": {q: [dict(row) for row in rows] for q, rows in sorted(history.items())},
     }
     if rules is not None:
         asked = {q: dict(rules.get(q, {})) for q in who.questions}
-        baseline = {q: asked[q].get(PRIMARY_BASELINE[q]) for q in who.questions}
-        built["rules"] = {"by_question": asked, "envelope": Envelope.around(baseline, envelope_width).as_json()}
+        spans = {q: [v for v in asked[q].values() if v is not None] for q in who.questions}
+        built["rules"] = {"by_question": asked, "envelope": Envelope.span(spans, *widths).as_json()}
     return built
 
 

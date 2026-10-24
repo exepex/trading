@@ -10,11 +10,12 @@ import pytest
 from fno.ai.run_terms import V4_TERMS
 from fno.ai.v4_book_inputs import V4BookInputs
 from fno.ai.v4_fire import V4BookFirer
+from fno.ai.v4_input import PRIMARY
 from fno.ai.v4_pointer import parse_v4_pointer
 from fno.constants import (
     BOOK2_HYBRID,
     BOOK3_AI,
-    V1_RV_1S,
+    V3_RV_20S,
     V4_BASELINE_BASE_RATE,
     V4_SLOT_AI,
     V4_SLOT_HYBRID,
@@ -52,6 +53,16 @@ class Released:
         return a_pack()
 
 
+class Series:
+    """G8's outcome series as the input reads it: each point question's history (none asked in these tests)."""
+
+    def close_proxy_rv(self):
+        return {}
+
+    def intraday_rv(self):
+        return {}
+
+
 class Ledger(SlotRegistry):
     def __init__(self, extra=()):
         self.extra = extra
@@ -77,7 +88,7 @@ class Desk:
         self.root, self.alerts = root, RecordingAlerts()
         self.triggers = {BOOK2_HYBRID: FakeTrigger(BOOK2_HYBRID), BOOK3_AI: FakeTrigger(BOOK3_AI)}
         v4 = write_rules(root / "research/forecasts/v4")
-        inputs = V4BookInputs(root, ledger or Ledger(), ForecastFiles(v4))
+        inputs = V4BookInputs(root, ledger or Ledger(), ForecastFiles(v4), Series())
         packs = released or Released()
         self.firer = V4BookFirer(root, self.triggers, lambda: packs, inputs, self.alerts,
                                  lambda: now or at(14, 33), live_from, lambda day: [])  # fmt: skip
@@ -92,7 +103,7 @@ def test_both_books_are_fired_once_with_their_whole_input_in_the_pointer(tmp_pat
     hybrid = parse_v4_pointer(desk.triggers[BOOK2_HYBRID].fired[0].to_text())
     assert hybrid.input["rules"]["by_question"][V6_BIG_MOVE_1S] == {
         WEATHER_MODEL_VIX: 0.06,
-        V4_BASELINE_BASE_RATE: 0.04,
+        PRIMARY: 0.04,  # the base rate, through G8's primary series
     }
     assert "rules" not in parse_v4_pointer(desk.triggers[BOOK3_AI].fired[0].to_text()).input
     entry = desk.log()["books"][BOOK3_AI]
@@ -146,7 +157,7 @@ def test_a_refused_trigger_is_not_fired_and_never_retried(tmp_path):
 
 
 def test_a_registered_question_the_prompt_does_not_define_is_refused_loudly(tmp_path):
-    desk = Desk(tmp_path, ledger=Ledger(extra=[(V1_RV_1S, V4_SLOT_AI)]))
+    desk = Desk(tmp_path, ledger=Ledger(extra=[(V3_RV_20S, V4_SLOT_AI)]))
     desk.firer.fire(DAY)
     assert "does not define" in desk.log()["books"][BOOK3_AI]["reason"] and desk.triggers[BOOK2_HYBRID].fired
 

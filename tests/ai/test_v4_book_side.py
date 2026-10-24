@@ -22,8 +22,9 @@ def at(hh, mm, ss=0):
     return datetime.combine(DAY, time(hh, mm, ss), IST)
 
 
-def draft(values=(0.05, 0.18)):
-    forecasts = {q: {"probability": p, "reason": f"why {q}"} for q, p in zip(QUESTIONS, values, strict=True)}
+def draft(values=(9.5e-05, 4.5e-04, 0.05, 0.4, 0.47)):
+    keys = ("value", "value", "probability", "probability", "probability")
+    forecasts = {q: {k: v, "reason": f"why {q}"} for q, k, v in zip(QUESTIONS, keys, values, strict=True)}
     return {"model_reported": "claude-opus-5-5", "forecasts": forecasts}
 
 
@@ -32,9 +33,9 @@ def desk(tmp_path):
     return make_desk_repo(tmp_path)
 
 
-def sealed_routine(desk, book=BOOK3_AI, sealed_at=None, values=(0.05, 0.18)):
+def sealed_routine(desk, book=BOOK3_AI, sealed_at=None):
     routine = FakeRoutine(desk, Clock(at(14, 41)))
-    routine.run(pointer(book).to_text(), draft(values), sealed_at or at(14, 45), reveal=False)
+    routine.run(pointer(book).to_text(), draft(), sealed_at or at(14, 45), reveal=False)
     return routine
 
 
@@ -85,7 +86,7 @@ def test_one_early_reveal_waits_at_most_nine_minutes_and_says_to_run_it_again(de
     assert routine.clock.now == at(15, 10, 10)
     revealed = (desk / V4_TERMS.reveal_path(DAY, BOOK3_AI)).read_text(encoding="utf-8")
     commitment = Commitment.from_text((desk / V4_TERMS.commitment_path(DAY, BOOK3_AI)).read_text(encoding="utf-8"))
-    assert open_reveal(revealed, commitment)["forecasts"][QUESTIONS[1]]["probability"] == 0.18
+    assert open_reveal(revealed, commitment)["forecasts"][QUESTIONS[1]]["value"] == 4.5e-04
 
 
 @pytest.mark.parametrize(("now", "published"), [(at(15, 1, 10), True), (at(15, 1, 9), False)])
@@ -107,4 +108,5 @@ def test_a_reveal_after_its_time_publishes_at_once(desk):
 def test_hybrids_seal_keeps_v4s_envelope(desk):
     routine = FakeRoutine(desk, Clock(at(14, 41)))
     with pytest.raises(BookStepRefused, match="outside the envelope"):
-        routine.run(pointer(BOOK2_HYBRID).to_text(), draft((0.95, 0.18)), at(14, 45), reveal=False)
+        routine.run(pointer(BOOK2_HYBRID).to_text(), draft((9.5e-05, 4.5e-04, 0.95, 0.4, 0.47)), at(14, 45),
+                    reveal=False)  # fmt: skip

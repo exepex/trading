@@ -12,14 +12,16 @@ from datetime import date
 
 from ..constants import AI_BOOKS, BOOK2_HYBRID, FORECAST_PROTOCOL_V4, V4_QUESTIONS
 from ..constants_operations import ROUTINE_POINTER_MAX_BYTES
+from ..forecast_v4.terms import POINT_QUESTIONS
 from .envelope import Envelope
-from .pointer import SHA256, PointerRefused, is_probability
+from .pointer import SHA256, PointerRefused, is_number, is_probability
 from .v4_input import input_sha256
 from .versions import VersionRefused, current_version
 
 KIND = "forecast_v4"
 POINTER_FIELDS = ("input", "kind")
-INPUT_FIELDS = ("book", "closes_before_day", "day", "derived", "pack", "pack_sha256", "questions", "version")
+INPUT_FIELDS = ("book", "closes_before_day", "day", "derived", "history", "pack", "pack_sha256", "questions", "version")
+HISTORY_FIELDS = ["date", "rv_s"]
 TOO_LONG = "the pointer is {size} bytes, over the {cap}-byte cap: not fired, never truncated"
 
 
@@ -98,8 +100,29 @@ def _check_input(built) -> None:
         raise PointerRefused("questions must be a non-empty list of v4 questions")
     if not set(questions) <= set(registered.questions):
         raise PointerRefused(f"{registered.label} does not define {sorted(set(questions) - set(registered.questions))}")
+    _check_history(built["history"], questions)
     if book == BOOK2_HYBRID:
         _check_rules(built["rules"], questions)
+
+
+def _check_history(history, questions: list) -> None:
+    """Each asked point question's history: rows of a date and an `RV_s` (a number >= 0, or null for a void session)."""
+    if not isinstance(history, dict) or not set(history) <= set(questions) & POINT_QUESTIONS:
+        raise PointerRefused("history must hold only the day's point questions")
+    for rows in history.values():
+        if not isinstance(rows, list):
+            raise PointerRefused("a question's history must be a list")
+        for row in rows:
+            if not isinstance(row, dict) or sorted(row) != HISTORY_FIELDS or not _rv(row["rv_s"]):
+                raise PointerRefused("a history row must be exactly date and rv_s (a number >= 0 or null)")
+            try:
+                date.fromisoformat(row["date"])
+            except (TypeError, ValueError):
+                raise PointerRefused("a history row's date must be YYYY-MM-DD") from None
+
+
+def _rv(value) -> bool:
+    return value is None or (is_number(value) and value >= 0)
 
 
 def _check_rules(rules, questions: list) -> None:
@@ -108,6 +131,11 @@ def _check_rules(rules, questions: list) -> None:
     by_question = rules["by_question"]
     if not isinstance(by_question, dict) or sorted(by_question) != sorted(questions):
         raise PointerRefused("rules must name exactly the day's questions")
-    for by_name in by_question.values():
-        if not isinstance(by_name, dict) or not all(is_probability(p) or p is None for p in by_name.values()):
-            raise PointerRefused("a rule's value must be a probability in [0, 1] or null")
+    for question, by_name in by_question.items():
+        kind = (lambda v: is_number(v) and v > 0) if question in POINT_QUESTIONS else is_probability
+        if not isinstance(by_name, dict) or not all(v is None or kind(v) for v in by_name.values()):
+            raise PointerRefused(f"{question}: a rule's value must be a {_unit(question)} or null")
+
+
+def _unit(question: str) -> str:
+    return "variance above 0" if question in POINT_QUESTIONS else "probability in [0, 1]"
