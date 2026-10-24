@@ -10,8 +10,8 @@ from .report import PracticeReport
 NOT_ARCHIVED = "local only, not archived: no practice result may be shown to the owner, reported or used in a decision"
 NEVER_TUNES = "practice results are never used to choose, tune or rank a counted driver"
 NOT_ENOUGH_SESSIONS = (
-    "not enough sessions yet: the best-quoted spread bucket has {best} of the {needed} recorded sessions a bucket "
-    "needs, so {legs} of {all} legs read 'insufficient spread data' and are not priced"
+    "not enough sessions yet: {buckets} spread buckets are short of the {needed} recorded sessions a bucket needs "
+    "(shortest {lowest}, longest {highest}), so {legs} of {all} legs read 'insufficient spread data' and are not priced"
 )
 NOT_VALUED = "positions still open at the window's end are not valued"
 TOP_BUCKETS = 8
@@ -54,10 +54,11 @@ def _coverage_lines(report: PracticeReport) -> list[str]:
                   f"untraded {total('untraded')}, impossible {total('impossible')} ({total('impossible') / legs:.0%}), "
                   f"unsellable {total('unsellable')}, insufficient spread data {total('insufficient')}")]  # fmt: skip
     if total("insufficient"):
-        lines.append(line(NOT_ENOUGH_SESSIONS.format(best=report.best_bucket_sessions, needed=MIN_QUOTED_SESSIONS,
-                                                     legs=total("insufficient"), all=legs)))  # fmt: skip
+        lines.append(line(_not_enough_sessions(report, total("insufficient"), legs)))
     for bucket, count in report.insufficient_buckets.most_common(TOP_BUCKETS):
-        lines.append(line(f"insufficient spread data: {bucket}: {count} legs"))
+        sessions = report.short_buckets.get(bucket)
+        have = f", {sessions} of {MIN_QUOTED_SESSIONS} sessions" if sessions is not None else ""
+        lines.append(line(f"insufficient spread data: {bucket}: {count} legs{have}"))
     return lines
 
 
@@ -65,3 +66,12 @@ def left_out_lines(skipped) -> list[str]:
     """The recorded captures the spread model could not use, one line per road and reason with the dates."""
     head = f"{len(skipped.reasons)} recorded captures were left out of the spread model (missing or failed a check)"
     return [line(head), *(line(f"  left out: {text}") for text in skipped.lines())]
+
+
+def _not_enough_sessions(report: PracticeReport, insufficient: int, legs: int) -> str:
+    """Only the buckets still short of the sessions they need are counted, so no count is ever above the 30."""
+    short = report.short_buckets.values()
+    if not short:
+        return f"{insufficient} of {legs} legs read 'insufficient spread data' and are not priced"
+    return NOT_ENOUGH_SESSIONS.format(buckets=len(short), needed=MIN_QUOTED_SESSIONS, lowest=min(short),
+                                      highest=max(short), legs=insufficient, all=legs)  # fmt: skip

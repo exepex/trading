@@ -73,6 +73,8 @@ class HistoricalRoadSource:
         found = self.spreads.scenarios(bucket) if bucket else None
         if not found or isinstance(found, InsufficientSpreadData):
             coverage.insufficient[str(bucket)] += 1
+            if isinstance(found, InsufficientSpreadData):
+                coverage.short_buckets[str(bucket)] = found.sessions
             return no_quote(row.close)
         quote = practice_quote(row.close, found.half_spread(self.scenario))
         if quote.two_sided:

@@ -15,6 +15,7 @@ class Coverage:
     impossible: int = 0  # EDGE1's rule on the closes
     unsellable: int = 0  # priced, but the bid rounds to nothing
     insufficient: Counter = field(default_factory=Counter)
+    short_buckets: dict[str, int] = field(default_factory=dict)  # bucket text -> its recorded sessions (under 30)
 
     @property
     def unpriced(self) -> int:

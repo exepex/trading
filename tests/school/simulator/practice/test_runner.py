@@ -280,31 +280,53 @@ def test_the_report_header_says_practice_is_never_used_to_tune_a_counted_driver(
     assert lines[1] == f"{PRACTICE_LABEL} | {NEVER_TUNES}" and "never used to choose, tune or rank" in lines[1]
 
 
-def thin_model(sessions: int):
-    """Every bucket of the full model, cut to `sessions` recorded sessions (the real archive has about 8)."""
+def cut_model(sessions_of) -> SpreadModel:
+    """The full model with each bucket cut or extended to `sessions_of(bucket)` recorded sessions."""
     full = tf.parts().spreads
-    return SpreadModel({bucket: dict(list(days.items())[:sessions]) for bucket, days in full.by_session.items()})
+    out = {}
+    for bucket, days in full.by_session.items():
+        wanted, kept = sessions_of(bucket), dict(days)
+        first = min(kept)
+        kept.update({first - timedelta(days=i): 0.01 for i in range(1, 60)})  # more days than any bucket needs
+        out[bucket] = dict(sorted(kept.items(), reverse=True)[:wanted])
+    return SpreadModel(out)
 
 
-def test_a_run_with_too_few_recorded_sessions_says_so_plainly_with_the_count_it_has(tmp_path):
+def test_a_run_with_too_few_recorded_sessions_names_the_short_buckets_with_their_counts(tmp_path):
     """Dry run 1 (23 Oct): 0 of 39,422 legs priced looked like a silent zero. It is the 30-session rule at work."""
-    report = runner(tmp_path, tf.parts(spreads=thin_model(8))).run(ONE_SESSION)
-    assert report.best_bucket_sessions == 8
+    report = runner(tmp_path, tf.parts(spreads=cut_model(lambda bucket: 8))).run(ONE_SESSION)
     insufficient = sum(c.insufficient for c in report.coverage)
     legs = sum(c.legs for c in report.coverage)
-    expected = (f"{PRACTICE_LABEL} | not enough sessions yet: the best-quoted spread bucket has 8 of the 30 recorded "
-                f"sessions a bucket needs, so {insufficient} of {legs} legs read 'insufficient spread data' and are "
-                "not priced")  # fmt: skip
-    assert insufficient and expected in render(report)
+    text = render(report)
+    assert insufficient and set(report.short_buckets.values()) == {8}
+    expected = (f"{PRACTICE_LABEL} | not enough sessions yet: {len(report.short_buckets)} spread buckets are short of "
+                f"the 30 recorded sessions a bucket needs (shortest 8, longest 8), so {insufficient} of {legs} legs "
+                "read 'insufficient spread data' and are not priced")  # fmt: skip
+    assert expected in text
+    assert any(t.endswith(", 8 of 30 sessions") for t in text if "insufficient spread data: " in t)
 
 
-def test_with_no_recorded_session_at_all_the_best_bucket_has_zero(tmp_path):
-    report = runner(tmp_path, tf.parts(spreads=SpreadModel({}))).run(ONE_SESSION)
-    assert report.best_bucket_sessions == 0
-    assert any("the best-quoted spread bucket has 0 of the 30" in text for text in render(report))
+def test_with_unequal_buckets_only_the_short_ones_are_named_and_no_count_exceeds_30(tmp_path):
+    """Judge 556: a best-bucket count printed "35 of the 30" when another bucket was short."""
+    from fno.school.simulator.spreads.bucket import DaysToExpiry
+
+    def sessions(bucket):
+        return {DaysToExpiry.WEEK: 8, DaysToExpiry.MONTH: 12}.get(bucket.dte, 35)
+
+    report = runner(tmp_path, tf.parts(spreads=cut_model(sessions))).run(ONE_SESSION)
+    text = "\n".join(render(report))
+    assert set(report.short_buckets.values()) == {8, 12}  # the 35-session buckets priced their legs, so none is named
+    assert "shortest 8, longest 12" in text and "of 30 sessions" in text
+    assert not any(f"{n} of 30 sessions" in text for n in range(30, 99)) and "35" not in text
+
+
+def test_the_summary_counts_only_buckets_with_legs_that_could_not_be_priced(tmp_path):
+    report = runner(tmp_path, tf.parts(spreads=cut_model(lambda bucket: 35))).run(ONE_SESSION)
+    assert not report.short_buckets
+    assert "not enough sessions yet" not in "\n".join(render(report))
 
 
 def test_the_line_is_absent_when_every_leg_could_be_priced():
-    report = PracticeReport(sb.SESSION, sb.SESSION, (), best_bucket_sessions=30)
+    report = PracticeReport(sb.SESSION, sb.SESSION, ())
     report.coverage.append(RoadDayCoverage(sb.SESSION, RoadCode.NIFTY_MONTHLY, 10, 10, 0, 0, 0, 0))
     assert not any("not enough sessions yet" in text for text in render(report))
