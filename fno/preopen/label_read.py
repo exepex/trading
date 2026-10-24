@@ -11,6 +11,7 @@ from .problems import Problem
 
 STEP = "open check labels"
 NOT_IN_TIME = "not read by the day row; flat values labelled unverified"
+FINISH_WITHIN_SECONDS = 600  # after the capture's commits nothing waits on it; bounded so the routine always ends
 
 
 class LabelRead:
@@ -25,6 +26,11 @@ class LabelRead:
             self._labels = read()
         except Exception as error:  # a thread's error is lost unless kept: it becomes the run's problem line
             self._error = error
+
+    def finish(self) -> None:
+        """Waits (bounded) for a late read before the open check uses the same Drive cache, so the two never write the
+        same cached file at once."""
+        self._thread.join(FINISH_WITHIN_SECONDS)
 
     def taken(self) -> tuple[dict[str, str], list[Problem]]:
         """The labels now, without waiting: empty (all `unverified`) with its problem while not ready or failed."""

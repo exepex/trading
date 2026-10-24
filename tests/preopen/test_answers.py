@@ -77,7 +77,13 @@ def test_index_preopen_without_the_0909_candle_is_incomplete(data, detail):
 
 
 @pytest.mark.parametrize(
-    "data", [b'{"x": 1}', b'{"candles": [["2026-10-22T09:09:00+05:30", 1, 1, 1, 1]]}', b'{"candles": [["t"]]}']
+    "data",
+    [
+        b'{"x": 1}',
+        b'{"candles": [["2026-10-22T09:09:00+05:30", 1, 1, 1, 1]]}',
+        b'{"candles": [["t"]]}',
+        b'{"candles": [{"t": "2026-10-22T09:09:00"}]}',
+    ],
 )
 def test_index_candles_outside_their_layout_are_refused(data):
     with pytest.raises(BadAnswer):

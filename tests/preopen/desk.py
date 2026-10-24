@@ -81,6 +81,19 @@ class Sender:
         return SENT
 
 
+class ReadAtOnce:
+    """The label read run in the caller's thread, so a test never races the real background one (`LabelRead`)."""
+
+    def __init__(self, read):
+        self.labels = read()
+
+    def taken(self):
+        return self.labels, []
+
+    def finish(self):
+        pass
+
+
 class StoreFiles(PreopenFiles):
     """A22's files as the open check sees them, over the test's Drive folder and receipts; `on_read` runs per read."""
 
@@ -129,15 +142,15 @@ class Desk:
         self.files = StoreFiles(self.drive, ReceiptFolder(self.root / "receipts"), self.on_read)
         return OpenCheck(previous_weekday, self.files, self.official.get, self.store())
 
-    def recorder(self, **label_read) -> PreopenRecorder:
-        """`label_read`: the recorder's label reader when a test must not race the real background one."""
+    def recorder(self, label_read=ReadAtOnce) -> PreopenRecorder:
+        """`label_read`: at once by default; a test of the background read passes `LabelRead` itself."""
 
         def run(done):
             return PreopenRun(self.parts, self.clock.now, self.clock.sleep, done)
 
         return PreopenRecorder(self._trading, run, self.store(), self.errors, self.committers, self.sender,
                                lambda: self.clock_warning, self.early, self.open_check(), self.out.append,
-                               **label_read)  # fmt: skip
+                               label_read)  # fmt: skip
 
     def plant_day_row(self, day: date, nifty: str = "", banknifty: str = "", basis: str = "flat_0915_unverified",
                       old_header: bool = False) -> None:  # fmt: skip

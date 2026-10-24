@@ -15,19 +15,21 @@ from .fixtures import DAY, flat_0915, index_close, ist
 D21, D20, D19, D16, D15 = (date(2026, 10, d) for d in (21, 20, 19, 16, 15))
 
 
-class ReadAtOnce:
-    """The label read run in the caller's thread: a test that needs the labels ready must not race a real thread."""
+def releasing(release: threading.Event):
+    """The real background read, whose stuck Drive read is let go once the capture is over (`finish`), so the test
+    shows the open check waiting for it instead of racing it."""
 
-    def __init__(self, read):
-        self.labels = read()
+    class Releasing(LabelRead):
+        def finish(self):
+            release.set()
+            super().finish()
 
-    def taken(self):
-        return self.labels, []
+    return Releasing
 
 
 def test_d1_the_23_oct_shape_gives_an_ok_value_labelled_unverified(tmp_path):
     desk = Desk(tmp_path, nifty=flat_0915(close=7777.25))
-    assert desk.recorder(label_read=ReadAtOnce).record(DAY) == 0
+    assert desk.recorder().record(DAY) == 0
     row = desk.day_row()
     nifty = (row["nifty_status"], row["nifty_preopen"], row["nifty_preopen_basis"])
     assert nifty == ("ok", "7777.25", "flat_0915_unverified")
@@ -42,19 +44,22 @@ def test_d6_five_matched_checks_label_todays_flat_value_verified(tmp_path):
         desk.official[day] = index_close()
         desk.plant_day_row(day, nifty="5555.5", banknifty="6666.5")
     desk.open_check().run(DAY)
-    desk.recorder(label_read=ReadAtOnce).record(DAY)
+    desk.recorder().record(DAY)
     assert desk.day_row()["nifty_preopen_basis"] == "flat_0915_verified"
 
 
 def test_d5_a_mismatch_has_its_own_alert_and_o10_row_and_leaves_the_capture_alone(tmp_path):
     desk = Desk(tmp_path, official={D21: index_close(nifty_open=5000.0)})
     desk.plant_day_row(D21, nifty="5555.5")
-    assert desk.recorder(label_read=ReadAtOnce).record(DAY) == 1
+    assert desk.recorder().record(DAY) == 1
     assert "pre-open recorded" in desk.out and desk.day_row()["nifty_status"] == "ok"
-    line = "nifty open check mismatch: flat_0915_unverified value differs from NSE's official open on 2026-10-21"
+    line = "nifty open check mismatch: flat 09:15 candle differs from NSE's official open on 2026-10-21"
     assert desk.sender.sent == [f"A22 open check 2026-10-22: {line}"]  # the capture had no problem: no alert of its own
     assert desk.out[-2] == f"open check with problems: {line}"
-    assert [(e.step, e.kind) for e in desk.errors.rows()] == [("nifty open check", "mismatch")]
+    assert [(e.step, e.kind, e.message) for e in desk.errors.rows()] == [
+        ("nifty open check", "mismatch", "flat 09:15 candle differs from NSE's official open on 2026-10-21")
+    ]
+    assert not any(v in desk.committed_text() for v in ("5555", "5000", "555.5"))  # O10 file and receipts
     assert not any(v in desk.sender.sent[0] for v in ("5555", "5000", "555.5"))
 
 
@@ -70,11 +75,11 @@ def test_d7_a_slow_store_never_moves_gifts_0840_read_and_the_check_follows_the_c
             commits_before_check.append(len(desk.committers[1].calls))
             desk.clock.at += timedelta(minutes=10)  # each check read takes 10 minutes
         else:
-            release.wait(5)  # the label read is stuck in Drive for the whole capture
+            release.wait(60)  # the label read is stuck in Drive for the whole capture
 
     desk.on_read = slow
     try:
-        assert desk.recorder().record(DAY) == 1
+        assert desk.recorder(label_read=releasing(release)).record(DAY) == 1
     finally:
         release.set()
     assert desk.early.at == [ist(8, 40)]  # GIFT read and pushed at 08:40:00
@@ -99,3 +104,31 @@ def test_the_background_label_read_gives_its_labels_or_its_error_kind():
     failed._thread.join()
     labels, [problem] = failed.taken()
     assert labels == {} and problem.line() == "open check labels failed: OSError"
+
+
+def test_d7_a_check_that_cannot_read_drive_exits_1_and_leaves_the_capture_alone(tmp_path):
+    def down(path):
+        raise RuntimeError("Drive down")
+
+    desk = Desk(tmp_path, official={D21: index_close()}, on_read=down)
+    desk.plant_day_row(D21, nifty="5555.5")
+    assert desk.recorder().record(DAY) == 1
+    assert desk.out.index("pre-open recorded") < desk.out.index("open check with problems: open check failed: "
+                                                                 "2026-10-21: RuntimeError")  # fmt: skip
+    assert desk.day_row()["nifty_status"] == "ok" and desk.check_rows(D21) == []
+    assert desk.sender.sent == ["A22 open check 2026-10-22: open check failed: 2026-10-21: RuntimeError"]
+    assert [c.calls for c in desk.committers] == [["pre-open 2026-10-22"] * 2] * 2
+
+
+def test_a_late_label_read_on_a_day_with_no_flat_value_is_no_problem(tmp_path):
+    release = threading.Event()
+    desk = Desk(tmp_path, official={D21: index_close()})
+    desk.plant_day_row(D21, nifty="5555.5")
+    desk.open_check().run(DAY)
+    desk.on_read = lambda path: release.wait(60) if threading.current_thread() is not threading.main_thread() else None
+
+    try:
+        assert desk.recorder(label_read=releasing(release)).record(DAY) == 0  # both indices from their 09:09 candles
+    finally:
+        release.set()
+    assert desk.sender.sent == [] and desk.day_row()["nifty_preopen_basis"] == "candle_0909"

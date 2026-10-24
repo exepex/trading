@@ -24,10 +24,13 @@ CHECK_FILE = "preopen/check/{day:%Y}/{day:%m}/{day:%Y-%m-%d}.csv"
 CHECK_COLUMNS = ("date", "index", "basis", "result", "difference")
 OFFICIAL_ROWS = {"nifty": "NIFTY 50", "banknifty": "NIFTY BANK"}  # A22's index prefix -> its index-close row
 LOOK_BACK, TRUST_AFTER = 10, 5  # sessions checked (a long weekend, a late archive); matches before `verified`
-MATCH, MISMATCH = "match", "mismatch"
+MATCH, MISMATCH, NO_OFFICIAL = "match", "mismatch", "no official value"  # only `match` counts toward the label
 STEP = "open check"
 CHECKED = "open check: {checked} checked, {waiting} waiting for NSE's file"
-MISMATCH_MESSAGE = "{basis} value differs from NSE's official open on {day}"
+MISMATCH_MESSAGE = "{what} differs from NSE's official open on {day}"
+FLAT_VALUE, OTHER_VALUE = "flat 09:15 candle", "pre-open value"
+NO_OFFICIAL_MESSAGE = "no readable {row} row in NSE's index-close file of {day}"
+NOT_CHECKED = "{day}: NSE's index-close file still not archived after {sessions} sessions; it leaves the look-back"
 CHECK_ERRORS = (OSError, RuntimeError, ValueError, CalendarError)  # Drive, its settings, an unreadable file or row
 
 
@@ -49,10 +52,10 @@ class OpenCheck:
             sessions = self._sessions(today)
         except CalendarError as error:
             return CHECKED.format(checked=0, waiting=0), [Problem(STEP, "failed", str(error))]
-        for day in sessions:
-            if self.files.has(check_file(day)) or not self.files.has(day_file(day)):
-                continue
+        for n, day in enumerate(sessions, start=1):
             try:
+                if self.files.has(check_file(day)) or not self.files.has(day_file(day)):
+                    continue
                 outcome = self._check(day)
             except RawFileConflict:
                 problems.append(Problem(STEP, "taken", f"{day}: check file already written by another run"))
@@ -62,6 +65,8 @@ class OpenCheck:
                 continue
             if outcome is None:
                 waiting += 1
+                if n == LOOK_BACK:  # its last morning in the look-back: never dropped silently
+                    problems.append(Problem(STEP, "not checked", NOT_CHECKED.format(day=day, sessions=LOOK_BACK)))
             else:
                 checked += outcome[0]
                 problems += outcome[1]
@@ -96,12 +101,19 @@ class OpenCheck:
             return None
         lines, problems = [], []
         for index, (value, basis) in values.items():
-            difference = round(value - read_nse_day(official, OFFICIAL_ROWS[index]).open, 2)
+            try:
+                official_open = read_nse_day(official, OFFICIAL_ROWS[index]).open
+            except ValueError:  # one index's row missing never hides the other's result
+                lines.append((day.isoformat(), index, basis, NO_OFFICIAL, ""))
+                problems.append(Problem(f"{index} {STEP}", NO_OFFICIAL,
+                                        NO_OFFICIAL_MESSAGE.format(row=OFFICIAL_ROWS[index], day=day)))  # fmt: skip
+                continue
+            difference = round(value - official_open, 2)
             result = MISMATCH if beyond(difference) else MATCH
             lines.append((day.isoformat(), index, basis, result, f"{difference:.2f}"))
             if result == MISMATCH:
-                problems.append(Problem(f"{index} {STEP}", MISMATCH,
-                                        MISMATCH_MESSAGE.format(basis=basis or "pre-open", day=day)))  # fmt: skip
+                what = FLAT_VALUE if basis.startswith(BASIS_FLAT) else OTHER_VALUE
+                problems.append(Problem(f"{index} {STEP}", MISMATCH, MISMATCH_MESSAGE.format(what=what, day=day)))
         self.store.put(check_file(day), _csv(lines))
         return 1, problems
 

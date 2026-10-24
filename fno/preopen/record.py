@@ -15,11 +15,12 @@ from ..research_data.calendar import CalendarError
 from ..storage.data_store import DataStore
 from ..storage.manifest_commit import ManifestRecorder
 from ..storage.raw_store import RawFileConflict
+from .answers import BASIS_FLAT
 from .day_row import EARLY_FILES, day_file, day_row, early_file, early_row, raw_file
 from .label_read import LabelRead
 from .open_check import OpenCheck
 from .problems import Problem
-from .run import OK, PartResult, PreopenRun
+from .run import LATE, OK, PartResult, PreopenRun
 
 JOB = "preopen"
 NOT_TRADING = "not a trading day"
@@ -60,8 +61,10 @@ class PreopenRecorder:
                                       detail=f": {result.detail}" if result.detail else ""))  # fmt: skip
         problems += [Problem(r.part, r.status, r.detail) for r in results if r.status != OK]
         flat_labels, label_problems = labels.taken()
-        problems += label_problems + self._save_day_row(day, warning or "ok", results, flat_labels)
+        problems += (label_problems if _has_flat_value(results) else []) + self._save_day_row(
+            day, warning or "ok", results, flat_labels)  # fmt: skip
         captured = self._finish(day, problems)
+        labels.finish()
         summary, check_problems = self.check.run(day)
         checked = self._finish(day, check_problems, (summary, CHECK_WITH_PROBLEMS, CHECK_ALERT))
         return max(captured, checked)
@@ -116,3 +119,9 @@ class PreopenRecorder:
         self.out(with_problems.format(problems=named))
         self.out(self.alerts.send(alert.format(day=day, problems=named)))
         return 1
+
+
+def _has_flat_value(results: list[PartResult]) -> bool:
+    """A late label read matters only on a day with a flat 09:15 value to label."""
+    return any(r.status in (OK, LATE) and r.answer.reading.values.get(f"{r.part}_preopen_basis") == BASIS_FLAT
+               for r in results)  # fmt: skip

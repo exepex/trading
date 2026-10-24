@@ -14,7 +14,7 @@ from fno.preopen.day_row import columns, day_row
 from fno.preopen.parts import Answer
 from fno.preopen.run import INCOMPLETE, OK, PartResult
 
-from .desk import Desk
+from .desk import Desk, previous_weekday
 from .fixtures import DAY, index_close, ist
 
 D21, D20, D19, D16, D15, D14 = (date(2026, 10, d) for d in (21, 20, 19, 16, 15, 14))
@@ -28,10 +28,16 @@ def _row(data: bytes) -> dict:
     return next(csv.DictReader(io.StringIO(data.decode())))
 
 
+A22_HEADER = ("date", "clock", *(f"{part}_{cell}" for part in ("gift", "fo_list", "nifty", "banknifty")
+                                 for cell in ("status", "reads", "seen_at", "source_time", "detail")),
+              "gift_level", "gift_contracts", "gift_expiry", "fo_stocks", "fo_with_iep", "nifty_preopen",
+              "banknifty_preopen")  # fmt: skip  # the day row's header before A22d (23 Oct's)
+
+
 def test_d4_the_day_row_gains_one_basis_column_per_index_after_its_value():
     names = columns()
+    assert tuple(n for n in names if not n.endswith("_preopen_basis")) == A22_HEADER
     assert names[-4:] == ("nifty_preopen", "nifty_preopen_basis", "banknifty_preopen", "banknifty_preopen_basis")
-    assert names[:-4] == tuple(n for n in names if not n.endswith(("_preopen", "_preopen_basis")))
 
 
 def test_d4_a_flat_value_carries_its_label_and_a_0909_value_its_basis():
@@ -61,7 +67,7 @@ def test_d5_one_tick_is_a_match_more_is_a_mismatch(tmp_path, difference, result)
     assert (rows["nifty"]["result"], rows["banknifty"]["result"]) == (result, "match")
     assert rows["nifty"]["difference"] == f"{difference:.2f}" and rows["nifty"]["basis"] == "flat_0915_unverified"
     assert (desk.root / "receipts/data/preopen/check/2026/10/2026-10-21.csv.sha256").is_file()
-    expected = [] if result == "match" else ["nifty open check mismatch: flat_0915_unverified value differs from "
+    expected = [] if result == "match" else ["nifty open check mismatch: flat 09:15 candle differs from "
                                              "NSE's official open on 2026-10-21"]  # fmt: skip
     assert [p.line() for p in problems] == expected  # no value and no difference in the line
 
@@ -124,7 +130,8 @@ def _checked_sessions(desk: Desk, days: list[date], mismatched: tuple[date, ...]
      ([D21, D20, D19, D16, D15], (), "verified"),  # boundary: 5
      ([D21, D20, D19, D16, D15], (D21,), "unverified"),  # the newest mismatched
      ([D21, D20, D19, D16, D15], (D15,), "unverified"),  # a mismatch among the 5
-     ([D21, D20, D19, D16, D15, D14], (D14,), "verified")],  # 5 fresh matches after a mismatch
+     ([D21, D20, D19, D16, D15, D14], (D14,), "verified"),  # 5 fresh matches after a mismatch
+     ([D21, D20, D19, D16, D15, D14], (D21,), "unverified")],  # a mismatch is never skipped to reach 5 matches
 )  # fmt: skip
 def test_d6_a_flat_value_is_verified_only_after_5_matched_checks(tmp_path, days, mismatched, label):
     desk = Desk(tmp_path)
@@ -132,8 +139,83 @@ def test_d6_a_flat_value_is_verified_only_after_5_matched_checks(tmp_path, days,
     assert desk.open_check().labels(DAY) == {"nifty": label, "banknifty": "verified" if len(days) >= 5 else label}
 
 
+def test_d6_old_header_checks_with_a_blank_basis_never_count(tmp_path):
+    desk = Desk(tmp_path)
+    for day in (D21, D20, D19, D16, D15):
+        desk.official[day] = index_close()
+        desk.plant_day_row(day, nifty="5555.5", old_header=True)
+    desk.open_check().run(DAY)
+    assert desk.open_check().labels(DAY)["nifty"] == "unverified"
+
+
 def test_d6_no_check_file_and_0909_values_leave_flat_values_unverified(tmp_path):
     desk = Desk(tmp_path)
     assert desk.open_check().labels(DAY) == {"nifty": "unverified", "banknifty": "unverified"}
     _checked_sessions(desk, [D21, D20, D19, D16, D15], basis="candle_0909")
     assert desk.open_check().labels(DAY) == {"nifty": "unverified", "banknifty": "unverified"}
+
+
+def test_d5_a_banknifty_or_0909_mismatch_names_its_own_index_and_kind(tmp_path):
+    desk = Desk(tmp_path, official={D21: index_close(bank_open=6000.0)})
+    desk.plant_day_row(D21, nifty="5555.5", banknifty="6666.5", basis="candle_0909")
+    assert [p.line() for p in desk.open_check().run(DAY)[1]] == [
+        "banknifty open check mismatch: pre-open value differs from NSE's official open on 2026-10-21"
+    ]
+
+
+def test_d5_a_missing_bank_row_is_its_own_problem_and_nifty_is_still_checked(tmp_path):
+    no_bank = b"\n".join(line for line in index_close().split(b"\n") if not line.startswith(b"Nifty Bank"))
+    desk = Desk(tmp_path, official={D21: no_bank})
+    desk.plant_day_row(D21, nifty="5555.5", banknifty="6666.5")
+    assert [p.line() for p in desk.open_check().run(DAY)[1]] == [
+        "banknifty open check no official value: no readable NIFTY BANK row in NSE's index-close file of 2026-10-21"
+    ]
+    assert [(r["index"], r["result"]) for r in desk.check_rows(D21)] == [
+        ("nifty", "match"),
+        ("banknifty", "no official value"),
+    ]
+
+
+def test_d5_a_session_still_waiting_on_its_last_look_back_morning_is_named(tmp_path):
+    days, day = [], DAY
+    for _ in range(10):
+        day = previous_weekday(day)
+        days.append(day)
+    desk = Desk(tmp_path)
+    desk.plant_day_row(days[-1], nifty="5555.5")
+    desk.plant_day_row(days[-2], nifty="5555.5")
+    summary, problems = desk.open_check().run(DAY)
+    assert summary == "open check: 0 checked, 2 waiting for NSE's file"
+    assert [p.line() for p in problems] == [f"open check not checked: {days[-1]}: NSE's index-close file still not "
+                                            "archived after 10 sessions; it leaves the look-back"]  # fmt: skip
+
+
+def test_d5_a_receipt_that_cannot_be_read_is_one_failed_line(tmp_path, monkeypatch):
+    desk = Desk(tmp_path, official={D21: index_close()})
+    desk.plant_day_row(D21, nifty="5555.5")
+    check = desk.open_check()
+
+    def broken(path):
+        raise ValueError("malformed receipt")
+
+    monkeypatch.setattr(check.files, "has", broken)
+    assert check.run(DAY)[1][0].line() == "open check failed: 2026-10-21: ValueError"
+
+
+def test_d5_a_check_file_written_differently_by_another_run_is_taken(tmp_path):
+    desk = Desk(tmp_path, official={D21: index_close()})
+    desk.plant_day_row(D21, nifty="5555.5")
+    desk.drive.put("data/preopen/check/2026/10/2026-10-21.csv", b"another run's check\n")  # no receipt here
+    assert [p.kind for p in desk.open_check().run(DAY)[1]] == ["taken"]
+
+
+def test_d5_the_look_back_is_10_sessions_the_11th_is_not_checked(tmp_path):
+    days, day = [], DAY
+    for _ in range(11):
+        day = previous_weekday(day)
+        days.append(day)
+    desk = Desk(tmp_path, official={d: index_close() for d in days})
+    for d in days:
+        desk.plant_day_row(d, nifty="5555.5")
+    assert desk.open_check().run(DAY)[0] == "open check: 10 checked, 0 waiting for NSE's file"
+    assert desk.check_rows(days[-1]) == [] and desk.check_rows(days[-2]) != []

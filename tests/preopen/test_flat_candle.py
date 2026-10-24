@@ -79,3 +79,11 @@ def test_d3_the_0909_candle_wins_over_a_flat_0915_candle():
     reading = read_index_preopen(json.dumps({"candles": rows}).encode(), DAY, "nifty", ist(9, 10))
     assert reading.values == {"nifty_preopen": "5555.5", "nifty_preopen_basis": "candle_0909"}
     assert reading.source_time == ist(9, 10)
+
+
+def test_d1_a_utc_seen_at_is_read_in_ist():
+    from datetime import UTC
+
+    seen = ist(9, 10).astimezone(UTC)  # Groww's `received_at` may come in UTC: 03:40 UTC is 09:10 IST
+    assert read_index_preopen(flat_0915(), DAY, "nifty", seen).complete
+    assert not read_index_preopen(flat_0915(), DAY, "nifty", ist(9, 15).astimezone(UTC)).complete
