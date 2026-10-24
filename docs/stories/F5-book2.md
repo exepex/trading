@@ -1,6 +1,8 @@
 # F5. Book 2: AI decisions inside the envelope (design v2)
 
-**Repository:** trading · **Owner session:** 01SFDjjZx7JYziM3jqJytG2z · **Judge:** E · **Status:** story text
+**Repository:** trading · **Owner session:** session_01B3RARTgoiGJwBKXRCgGRe8 (from 25 Oct 2026; text by
+01SFDjjZx7JYziM3jqJytG2z, out of reach) · **Judges:** the orchestrator's two (Book 2's paper trades) · **Status:**
+story text PASS (judge 307 add. 5); revision for the owner's Q11 (25 Oct), below
 
 **Description:** As the owner, I want Book 2's AI to take, each day, the rule default or one alternative its envelope
 allows, with a reason, so that scoreboard A can show whether **AI veto and width selection within the same registered
@@ -13,6 +15,13 @@ playbook** beat the rules alone.
   - DESK_DECISIONS "D4/D5: the five design questions accepted as recommended" (16 Oct), item 4: no owner override
     on paper;
   - "build Books 2 and 3 end to end": the orchestrator's assignment of 16 Oct.
+- **Owner, 25 Oct 2026 (DESK_DECISIONS, "9 yes, 10 yes, 11 yes"):** Book 2's envelope v1 is approved (Q9); and Q11:
+  "for Book 2 only, D2's registered research candidates count as eligible rule defaults; each trade labelled 'strategy
+  not yet passed'; D2's unproven limit (fewer than 20 trades: at most 1 open trade); Book 1 unchanged. Paper only."
+  Why it was needed (strong evidence, code on `main`): D2 trades only `paper` and `paused` versions and evaluates a
+  registered `research` version as a shadow (`fno/playbook/activation.py`); the only rule, `b0-monthly-sc` v1, is
+  `research` (`playbook/registry.csv`); and D4 refuses any trade the rules did not offer. Without Q11 Book 2 could
+  never trade. See "Revision for Q11" below.
 - This text replaces the earlier F5 text in `F-ai-layer.md`. That text predates design v2: it had the red team and
   owner overrides as inputs.
 
@@ -21,6 +30,28 @@ their lots, the AI's real interventions are vetoes, width choices, lot reduction
 version. Every report names the estimand **"AI veto and width selection within the same registered playbook"**
 (`BOOK2_ESTIMAND` in `fno/constants.py`, read by S3), never "AI judgement adds value". The rule default is the paired
 control. A zero difference is "inconclusive".
+
+## Revision for Q11 (25 Oct 2026): Book 2's tradable versions
+
+- **One definition, used everywhere for Book 2:** `book2_tradable(playbook) -> frozenset[VersionKey]`
+  (`fno/book2/tradable.py`): the versions D2 approves for paper (`paper`, `paused`) **plus** the registered `research`
+  versions (a row in `playbook/registry.csv`, the same candidates D2 already evaluates as shadows; an unregistered
+  research file is never included, as D1's loader already rules). Book 1 never calls it: Book 1's approved set is
+  unchanged.
+- **The sheet** (Part 1) runs D2's `RuleEvaluator` over `book2_tradable`, so a registered research rule that fires
+  with a valid candidate under Book 2's own limits is in `opportunities`, can be the `rule_default`, and is
+  `eligible` when it reaches C2. Each opportunity carries `strategy_status` (its registry status at the decision's
+  base commit).
+- **C4** (Part 3, step 3): Book 2's proposal's `approved` set is `book2_tradable` at the decision's base commit, read
+  by the same function, so `PlaybookMode`'s `permitted` check, the envelope, the eligible check and the unproven
+  limit run unchanged. The envelope of that version must be registered in D6 (approved v1 for `b0-monthly-sc` v1).
+- **D2's unproven limit** applies as built: a strategy with fewer than 20 completed paper trades holds at most 1 open
+  trade (at D2 and again at C4's `unproven` check, Part 3 step 4). Every research version is unproven.
+- **Label:** every D3 record that chooses a trade writes `served["strategy_status"]` (F1t revision 2's strategy label:
+  F1t's run check refuses a chosen trade without it, and F1t's outcome record says "strategy not yet passed" when the
+  status is not `paper`). The scoreboards report the two apart (S2, S3).
+- **Criterion 6 changes, on the owner's word:** "with no approved version" becomes "with no Book 2 tradable version
+  (no `paper` or `paused` version and no registered `research` version)". Nothing else passed is changed.
 
 ## Scope
 
@@ -50,7 +81,8 @@ control. A zero difference is "inconclusive".
   - Wiring: `SHEETS = {book: sheet}` in `fno/desk/pack_wiring.py`. F5 adds Book 2's line when it merges, and Book 3's
     sheet is F6's.
 - **F5 builds only Book 2's sheet** against that port.
-- **Book 2's sheet** (`fno/book2/sheet.py`): D2's `RuleEvaluator` at the cutoff over Book 2's approved versions, with
+- **Book 2's sheet** (`fno/book2/sheet.py`): D2's `RuleEvaluator` at the cutoff over Book 2's tradable versions
+  (`book2_tradable`, "Revision for Q11"), with
   Book 2's own book and counts. It writes:
   - `opportunities`: every book-mode outcome, with its ID, version, decision, reason, and built terms (width, lots,
     structure);
@@ -194,7 +226,8 @@ control. A zero difference is "inconclusive".
 4. A choice of an approved version that did not reach C2 (the rule did not fire, its own threshold, or the unproven
    limit) is refused by C4. So is a pick that breaks the unproven limit, whatever the allocator did.
 5. Every record passes `validate_record`, and D3's replay reproduces the run from `inputs.json`.
-6. With no approved version, Book 2 writes the day's "no trade" record ("no approved strategy"), like Book 1.
+6. With no Book 2 tradable version (no `paper` or `paused` version and no registered `research` version), Book 2
+   writes the day's "no trade" record ("no approved strategy"), like Book 1 (revised for Q11, owner 25 Oct).
 7. A Book 2 decision failing C4 never becomes a fill (end-to-end negative test through E4).
 8. `decide()` takes at most 30 s on the test day (measured and reported).
 9. Book 2's entry orders and exits use Book 1's `ReplayedOrders` and `PlaybookExitRules`, parametrised, not copied.
@@ -213,6 +246,13 @@ control. A zero difference is "inconclusive".
     - Book 2's half of `test_books_2_and_3_fill_and_exit_in_the_daily_run` (with F6).
 
     Unsure cases go to O11's builder (01FWkBH4).
+
+13. **Q11 (owner, 25 Oct).** With only the registered research version `b0-monthly-sc` v1 (status `research`): Book 2's
+    sheet has its fired opportunity as `rule_default` and in `eligible`, and a `follow_rule` answer gives a chosen
+    trade with `served.strategy_status` = `research`, passing C4 (`permitted` from `book2_tradable`); a research file
+    with no registry row is never in the sheet; with that version holding 1 open Book 2 trade and fewer than 20
+    completed, a second pick fails D2's limit and C4's `unproven` check; Book 1's evaluation and C4 results on the same
+    day are byte-identical to today's (Book 1 trades nothing from a research version) (tests).
 
 ## Test plan
 
