@@ -97,7 +97,8 @@ value or raises `Unresolved`.
   The rule runs one way only: a cited pointer never obliges the text to write its number, so a reason may rest on a
   private value (cited) without quoting it, as F1t's `seal` requires for account figures (F6, 16 Oct).
 
-**3. The verdict (`fno/judge/verdict.py`).** `status`: `pass` (both checks passed), `fail` (a check failed),
+**3. The verdict (`fno/judge/verdict.py`: builds and writes the full verdict file below, and returns F1t's small
+`JudgeVerdict(status, blocks, reason)` from `fno/ai_trading/ports.py` inside `Judged`; judge 628 SF1).** `status`: `pass` (both checks passed), `fail` (a check failed),
 `unavailable` (the judge did not decide: an exception, its model equal to the author's, or over its 5 s budget; an
 abstention). `blocks` is true exactly when the book is Book 2 and the status is not `pass`; for Book 3 it is always
 false (verdicts are evidence) and `unavailable` reads "judge unavailable". While approvals are suspended (design 5),
@@ -111,8 +112,13 @@ The verdict carries no private pack value.
 
 **4. The port and its timing (the port in F1t's `fno/ai_trading/ports.py`; F4's `fno/judge/step.py` implements it,
 built by `fno/judge/wiring.py`):** one port, one owner (F1t revision 2, 25 Oct): `JudgeCase`, `Judged` and the
-`JudgeStep` interface are F1t's, exactly as below, and F4 defines no second copy. Until F4's code merges, F1t wires
-`NoJudge` (always `unavailable`, "judge not built (F4)"), so Book 2 never trades without this judge.
+`JudgeStep` interface, and the verdict type `ai_collect` reads, `JudgeVerdict(status, blocks, reason)`, are F1t's,
+exactly as below, and F4 defines no second copy (judge 628 SF1). Until F4's code merges, F1t wires `NoJudge`: it writes
+the verdict file once to `journal/ai_decisions/<YYYY>/<d>_<book>_judge.json` with design 3's fields where they apply
+(`judge` `none:not-built`, `status` `unavailable`, `blocks` true for Book 2 and false for Book 3, `reason` "judge not
+built (F4)", `checks` empty, the decision and pack hashes) and returns `Judged(JudgeVerdict("unavailable", blocks,
+"judge not built (F4)"), path)`. So Book 2 never trades without this judge, and its no-trade day has its verdict
+record (judge 628 m1); the same bytes again are accepted, different bytes refused, as for F4's own file.
 
 ```python
 @dataclass(frozen=True)
@@ -121,8 +127,16 @@ class JudgeCase:
     decision: Mapping; common: Mapping; private: Mapping   # accepted.decision, common_pack.body, private_pack.body
     common_sha256: str; private_sha256: str
 
+@dataclass(frozen=True)
+class JudgeVerdict:                                       # what ai_collect reads; the file holds the rest (design 3)
+    status: str; blocks: bool; reason: str                # "pass" | "fail" | "unavailable"; one-line reason
+
+@dataclass(frozen=True)
+class Judged:
+    verdict: JudgeVerdict; path: str                      # the verdict file, repository-relative (D3 `judge`)
+
 class JudgeStep:                                          # build_judge_step(root) in fno/judge/wiring.py
-    def run(self, case: JudgeCase) -> Judged: ...         # Judged(verdict, path); never raises for a bad case
+    def run(self, case: JudgeCase) -> Judged: ...         # never raises for a bad case
 ```
 
 F1t's `ai_collect`, for each book-day that passed its own checks and before `decide()`: (1) `judged =
@@ -230,3 +244,9 @@ the audit after a fix that passes lifts it.
 0bb574de, F6 c625151e, F1t revision 2 (`story/f1t-runner-v2`, 25 Oct: the `JudgeStep` call before `decide()`,
 `judge` and `judge_blocks`, `judge_failed`, criterion 16): judge 308.1's last item, for re-check; code after F1t's text
 PASS. Builder's claims: the story file's Claims section (process of 22 Oct), plus the older response 271.
+
+## Claims
+
+Text round 2 (judge 628, both findings accepted; judge 308.2 PASS unchanged): SF1, the verdict type `JudgeVerdict`
+joins F1t's port beside `Judged` (design 3 and 4 here, one line in F1t's "The judge"); m1, `NoJudge` writes a
+write-once verdict file "judge not built (F4)" whose path is `AcceptedDecision.judge` (design 4 here, one line in F1t).
