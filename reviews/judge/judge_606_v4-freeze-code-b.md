@@ -87,3 +87,22 @@ xfailed** (token kept); the walk passes.
 - **Minor m1:** the decider of a budget stop is `fno/budget/cap.py` plus the setting `budget.cap`, both outside the
   walk (injected by a composition root). Name `budget.cap` (value `none`) in the record's "settings v4 reads" with that
   sentence, so that a later cap (an owner decision) is known to start AI `not_fired` misses. Not a code change.
+
+## Addendum 3: main merged in (G7b, MS-P1j2, A22e), head 56cd033eb
+
+**PASS. Lane 1.** I judged only the merge resolution, m1's text and the class changes. My gates on a trial merge into
+origin/main 0cdfdfe97 (clean, 2b14202fb): ruff, format (2,600), imports (2,729), record scan (9,212) and
+check_numbers all clean; **16,335 passed, 1 skipped, 14 xfailed** (token kept).
+
+- **`cli.py` (3451f75c0): both sides kept, nothing lost.** Against the freeze side, the merge adds only G7b's
+  `build_diagnostic_lines`, `diagnostics` passed to `report_lines` and `report_json`, and `_report(...,
+  diagnostics=(), *, freeze)`. Against G7b's side, it adds only the freeze parts: freeze lines first in the report, `|
+  {"freeze": ...}` in the JSON, `_look`'s refusal and its `"freeze"` key, and `freeze` keyword-only with no default.
+  Both diffs read.
+- **m1: FIXED** (cce85cbcf). `budget.cap` (none) is among the settings v4 reads, with the sentence that a later cap
+  starts AI `not_fired` misses.
+- **Class changes: MET** (my run on the merge). 149 byte-checked, 63 recorded, 54 not deciding. `rate_readers()` is
+  empty, `unmatched()` is empty, and no `PENDING_G7B` is left in `fno/` or `tools/`. The walk is clean with no stale
+  entries. `fno/forecast/wiring.py` and `golden.py` are gone from the classes (no longer reached). `release_times.py`
+  is recorded (V5's `first_seen_at` fallback). `availability.py` is not deciding: `release_times.first_seen_times`,
+  the function V5 uses, does not call it (read).
