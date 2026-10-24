@@ -114,3 +114,17 @@ def test_the_seal_needs_a_committed_unchanged_file_with_a_nominee(tmp_path):
 
 def test_the_fakes_expiry_is_a_weekday():
     assert EXPIRY.weekday() < 5
+
+
+def test_the_family_has_six_variants_with_holm_and_a_report_line():
+    from f1study import report
+
+    weeks = [f"2024-{1 + i // 28:02d}-{1 + i % 28:02d}" for i in range(60)]
+    rows = [row(100.0 + (i % 5), expiry=w, index="NIFTY" if i % 2 else "BANKNIFTY", ratio=1.0 + i / 60)
+            for i, w in enumerate(weeks)]  # fmt: skip
+    runs = {code: {"pad1": rows, "pad2": rows, "hist": rows} for code in ("WF", "WC")}
+    found = summary.family(runs)
+    assert len(found) == 6 and all("holm" in r for r in found.values())
+    assert found["EDGE2-F1-WF-G0"]["taken"] == 60 and found["EDGE2-F1-WF-G15"]["gated"] == 30
+    text = report.tables({"variants": found, "trials": dict.fromkeys(found, 101)})
+    assert text.count("\n| EDGE2-F1-") == 6

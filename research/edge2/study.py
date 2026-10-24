@@ -21,7 +21,7 @@ ROOT = HERE.parents[1]
 sys.path[:0] = [str(ROOT), str(HERE), str(ROOT / "research" / "edge1")]
 
 from edge1study.stt_history import charges_on  # noqa: E402
-from f1study import seal, summary  # noqa: E402
+from f1study import report, seal, summary  # noqa: E402
 from f1study.cycles import weekly_cycles  # noqa: E402
 from f1study.inputs import IndexCloses, cycle_inputs  # noqa: E402
 from f1study.trades import STRUCTURES, run_structure  # noqa: E402
@@ -110,6 +110,23 @@ def run(mode: str, symbols, closes_of, held_out_open: bool, extra: dict, schedul
             "variants": rows, **extra}  # fmt: skip
 
 
+def inputs_check() -> int:
+    """The discovery cycles' counts and skip reasons only: no trade is priced and no settlement is compared."""
+    inputs, skips, checks = index_inputs(seal.DISCOVERY_SYMBOLS, discovery_closes, False)
+    by_index = Counter(i.cycle.index for i in inputs)
+    print(
+        json.dumps(
+            {
+                "tradeable": dict(by_index),
+                "skipped": dict(sorted(skips.items())),
+                "settlement_checks": len(checks),
+                "settlement_disagree": sum(not ok for _, ok in checks),
+            }
+        )
+    )
+    return 0
+
+
 def discovery() -> dict:
     result = run("discovery", seal.DISCOVERY_SYMBOLS, discovery_closes, False, {})
     result["nominated"] = summary.nominated(result["variants"])
@@ -131,12 +148,15 @@ def held_out() -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("discovery", "heldout"))
+    parser.add_argument("mode", choices=("discovery", "heldout", "inputs"))
     mode = parser.parse_args().mode
+    if mode == "inputs":
+        return inputs_check()
     result = discovery() if mode == "discovery" else held_out()
     OUT.mkdir(exist_ok=True)
     path = OUT / f"{mode}.json"
     path.write_text(json.dumps(result, indent=1, sort_keys=True, default=str) + "\n", encoding="utf-8")
+    (OUT / f"{mode}_tables.md").write_text(report.tables(result), encoding="utf-8")
     print(f"{path.relative_to(ROOT)}: nominated {result['nominated']}" + (
         f", passed {result['passed']}" if mode == "heldout" else ""))  # fmt: skip
     return 0
