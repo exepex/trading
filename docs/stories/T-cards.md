@@ -1295,7 +1295,27 @@ Out, with reasons:
   - `ruff format --check`: 2520 files formatted;
   - `check_imports`: clean (2649 files);
   - `check_records`: clean (9105 files).
-- **Real output sample (rule 6):** the labelled 23 Oct card step, added below once REH1's owner confirms.
+- **Real output sample (rule 6),** made by the committed code at `754be3446`, 24 Oct about 15:55 UTC, after REH1's
+  owner confirmed that nothing else was rehearsing and their own run (`20261024T151531Z-97c17d`) had ended.
+  - The command: `FNO_REHEARSAL=<a fresh Rehearsal.new for 2026-10-23, replay clock started at 15:20 IST> python -m
+    fno card daily --on 2026-10-23 --post`, the card step alone, with the real Slack token and the owner's Drive
+    settings. It made one labelled post to #fno-desk, saved its record to the dryrun Drive area, and committed
+    nothing. The delivery file it wrote in the checkout was deleted.
+  - Its result lines (the card text above them is unchanged and not repeated):
+
+    ```
+      research/forecasts/scores/2026-10-22.json 6241c90b9e85bc9e64951db6d102b7057e681aac2b0879b4cae0bbb70e243880
+    alert sent to #fno-desk
+    clock NOT CHECKED: host vs Slack (rehearsal: replay clock, not checked against GitHub's and Slack's servers)
+    clock NOT CHECKED: host vs GitHub (rehearsal: replay clock, not checked against GitHub's and Slack's servers)
+    card record saved to Drive: 2026/10/2026-10-23_1792857308300989.json
+    delivery metadata written: research/cards/deliveries/2026/2026-10-23-a1.json (commit and push it: its push receipt is the second issuance witness)
+    exit 0
+    ```
+  - The metadata held `slack.sent: true`, `drive.saved: true`, two clock entries with `checked: false` and no
+    WARNING, and no `failure`. stderr was empty.
+  - The same step on `main` (REH1's owner's run, also 24 Oct) still ended "card failed: research/forecasts/scores/
+    2026-10-22.json <sha>", the failure this story fixes.
 
 **Depends:** T1, REH1 (REH1c's hook pattern; REH1's owner agreed on `card_label.py` and `guard.py`, 24 Oct) · **Size:** S ·
 **Status:** text PASS (judge 592 addendum 1); code at `8f4a1e540`, to judge I
