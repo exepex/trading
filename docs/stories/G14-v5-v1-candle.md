@@ -132,8 +132,10 @@ The question is what the forecast for day `d` may read, point in time, at `d`'s 
 
 ### Registration (R1)
 
-- A measurement card, `research/forecasts/v5/CARD_V5V1.md`, with a `factory` block (`measurement: yes`,
-  `hypothesis: no`, question `v1-next-session-rv`).
+- A measurement card, `research/ideas/CARD_V5V1.md` (ledger trial 100), with a `factory` block (`measurement: yes`,
+  `hypothesis: no`, question `v1-next-session-rv`). Moved from `research/forecasts/v5/` when built: `factory register`
+  finds a card not yet in the ledger only in `research/ideas/` (`fno/factory/card_paths.py`, `card_path`), and a
+  factory change is out of this story's scope.
 - `python -m fno factory register` writes its ledger trial and gate-log row in the same commit as the card, before
   any code runs.
 
@@ -222,9 +224,11 @@ A16b's candle back-fill fills option A's ratio window"; G7b completion text, W8)
 
 **6. "No partial v5" (owner, 24 Oct), settled.** The owner wrote "close v4 full first and then we'll work on v5 and
 no partial implementation". The orchestrator checked the owner's later words the same day: "Consider v4 sign off. So
-activate all the features which were waiting for v4 sign off" and "I want to run v5 dry run tests on weekend". G14's
-step is named among those held items (sign-off row), so G14 goes ahead; no further owner question (orchestrator, 24
-Oct).
+activate all the features which were waiting for v4 sign off" (DESK_DECISIONS 24 Oct, "The owner signs off protocol
+v4", which names "G14's v5 side-by-side step (built and judged first)" among the held items), and later: "I want to run
+v5 dry run tests on weekend. So I want to make sure that we have all the necessary and required features developed so
+that we could run multiple dry runs on weekend" (`conversations/2026-10-24.md`, line 290, commit cd9b555f3). So G14
+goes ahead; no further owner question (orchestrator, 24 Oct; judge 596 m2).
 
 **Round 2 (judge 596).** S1: accepted; response 113 row 56 reads general, so section 5 now cites the owner's 23 Oct
 row as the authority and calls this an exception. S2: accepted and widened: the import walk also finds
