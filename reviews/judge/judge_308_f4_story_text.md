@@ -117,3 +117,23 @@ Doc-reading tests with the token kept: 922 passed, 14 xfailed.
 ## Findings
 
 None blocking, none should-fix, none minor. The code follows on F1t's port.
+
+## Addendum 3
+
+**F4 story text, round 2 (story/f4-ai-judge @ 1ca9b691): PASS; 308.2 holds. Lane 1.** Judge E, judge 1 of 2;
+judge K's verdict 628 not read (its two findings came to me through the orchestrator). Since fe5721d3, F4 changes by
+28 lines and F1t's "The judge" by two sentences. The rest of the diff is main merged in: `git diff origin/main...1ca9b691`
+shows only F4, F-ai-layer, F1t (+3/-3) and response 271. Doc-reading tests with the token kept: 922 passed, 14
+xfailed.
+
+- **The verdict type has one owner.** `JudgeVerdict(status, blocks, reason)` now sits in F1t's `ports.py` beside
+  `Judged(verdict, path)`. F4's `verdict.py` writes the full file and returns that small type. F1t's `ai_collect`
+  reads `judged.verdict.blocks` and `judged.path`: the same names on both sides, and no second shape for `NoJudge`.
+- **`NoJudge` leaves a record.** It writes the day's verdict file once, with design 3's fields where they apply
+  (`none:not-built`, `unavailable`, `blocks` true for Book 2 and false for Book 3), and its path is
+  `AcceptedDecision.judge`. So Book 2's fail-closed day is recorded like any judged day, with the same write-once rule.
+- **Unchanged:** criteria 1-10, the gap list and the owner's decisions. 308.2's reasons all still hold.
+
+## Findings
+
+None blocking, none should-fix, none minor.
