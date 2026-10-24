@@ -52,3 +52,13 @@ The 4 blocking self-review fixes are present (P3, P11 caught; pipefail and the f
 - G10 (5bde718c1) conflicts only in `config.yaml` (adjacent keys: keep both) and `forecast_scoring/v4/wiring.py`. There, keep G10's body with G11's `build_slot_registry` name. My resolved three-way tree: ai, v4_pack, e2e, scoring_v4, budget, daily and rehearsal tests, 925 passed. G10 changes no name G11 reads (`ReleasedPacks.release`/`pack`/`pack_bytes` unchanged).
 - Before go-live, the daily #fno-desk line gains two "v4 not live" lines.
 - Each 18-19 KB pointer is retyped by the model, up to three tries: a time and cost risk for 15:10 (reasoning only).
+
+## Addendum 1: gates re-run with FNO_SLACK_BOT_TOKEN set (owner rule, DESK_DECISIONS at 69d75ac1c)
+- The verdict is unchanged: FAIL (F1, F2).
+- The same trial merge (main 88d94efb8 + d8aabba4c), full suite with the token set: 15,566 passed, 1 skipped, 14 xfailed. Run 13:26:37-13:34:35 UTC.
+- #fno-forecast and #fno-intraday: no post in that window.
+- #fno-desk: 3 posts at 13:33-13:34 UTC, all "DRY RUN, 2026-10-22/23 replay" rehearsal lines (v4 quote part, margin_check, A22 pre-open).
+- Re-runs with the token set posted nothing:
+  - tests/rehearsal, daily, preopen, e2e and e2e_acceptance: 380 passed;
+  - tests/ai, v4_pack, budget, forecast_scoring_v4 and pipeline: 572 passed.
+- So I attribute those 3 posts to the orchestrator's dry run running at the same time (some evidence, not proven). No test of this suite is shown to post.
