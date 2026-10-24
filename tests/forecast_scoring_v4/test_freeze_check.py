@@ -20,6 +20,28 @@ def test_the_list_covers_the_protocol_g7_g8_a16_and_m1_and_records_the_shared_fi
     assert "fno/constants.py" not in listed and "- `fno/constants.py`" in freeze_check.recorded()
 
 
+def test_the_list_covers_the_pack_the_iv30_files_and_the_ai_books_and_records_only_shared_files():
+    """Story G6 freeze, criterion 1: G10's pack (V2's IV30 input, day labels, deadline), G1 v2's IV30 files and G11's
+    AI files are byte-checked; the shared files stay recorded only, `iv30.py` no longer among them."""
+    listed = freeze_check.byte_checked(ROOT)
+    for path in ("fno/v4_pack/model.py", "fno/v4_pack/release_run.py", "fno/v4_pack/deadline.py",
+                 "fno/research_engine/live_features.py", "fno/forecast/iv30.py", "fno/ai/v4_rows.py",
+                 "fno/ai/scoring_gate.py", "fno/ai/outcome.py", "fno/ai/stop_rule.py",
+                 "fno/ai/versions.py"):  # fmt: skip
+        assert path in listed, path
+    for pattern in ("fno/ai/v4_*.py", "agents/forecast/book2_hybrid_v2.md", "agents/forecast/book3_ai_v2.md"):
+        assert pattern in freeze_check.BYTE_CHECKED_GLOBS, pattern  # G11's, matched once they are on main
+    shared = set(freeze_check.RECORDED_NOT_CHECKED)
+    assert not shared & set(listed) and "fno/forecast/iv30.py" not in shared
+    assert {"fno/constants.py", "fno/desk/settlement.py", "fno/research_engine/implied_vol.py"} <= shared
+    assert not any(p.startswith(("fno/ai/book", "fno/ai/cli", "fno/weather/cli")) for p in listed)  # not deciding
+
+
+def test_an_empty_byte_checked_folder_adds_nothing(tmp_path):
+    (tmp_path / "fno" / "v4_pack").mkdir(parents=True)
+    assert freeze_check.byte_checked(tmp_path) == []
+
+
 def test_a_fresh_table_shows_no_problem_on_this_repository():
     assert freeze_check.problems(ROOT, freeze_check.table(ROOT)) == []
 

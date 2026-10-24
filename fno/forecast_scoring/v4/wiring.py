@@ -100,6 +100,16 @@ def build_look_records() -> LookRecords:
     return LookRecords(SCORES_FOLDER, FREEZE_FILE)
 
 
+def build_freeze_problems() -> list[str]:
+    """What breaks protocol v4's freeze on this tree (`freeze_check`); none before the record exists (exploratory)."""
+    from ...research_engine.ledger import Git
+    from .freeze_check import freeze_problems
+
+    if not FREEZE_FILE.is_file():
+        return []
+    return freeze_problems(ROOT, FREEZE_FILE.read_text(encoding="utf-8"), Git(ROOT))
+
+
 def build_thresholds() -> FrozenToolThresholds:
     return FrozenToolThresholds(ROOT / "tools")
 

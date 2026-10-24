@@ -36,14 +36,21 @@ def iv30_method() -> str:
     return f"{IV30_METHOD}/sha256:{digest}"
 
 
+def build_iv30_rule():
+    """G1 v2's live ATM IV30 rule at the protocol's rate (`model.PACK_RISK_FREE_RATE`), never the config's."""
+    from ..research_engine.implied_vol import Black76
+    from ..research_engine.live_features import LiveAtmIvMinusRealised
+    from .model import PACK_RISK_FREE_RATE
+
+    return LiveAtmIvMinusRealised(None, PACK_RISK_FREE_RATE, Black76())
+
+
 def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> ReleaseRun:
     from ..daily.wiring import live_dates
     from ..forecast_v4.sessions import is_scored_session
     from ..models import now_ist
     from ..quotes.recorder import DATASET
     from ..quotes.window import named_window
-    from ..research_engine.implied_vol import Black76
-    from ..research_engine.live_features import LiveAtmIvMinusRealised
     from ..storage.quote_wiring import build_drive_only_quote_store
     from ..storage.wiring import QUOTES_FOLDER, build_session_calendar
     from .builder import PackBuilder
@@ -51,7 +58,7 @@ def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> Release
 
     dataset = named_window(cfg, V4_WINDOW).dataset(DATASET)
     capture = StoredV4Capture(build_drive_only_quote_store(QUOTES_FOLDER, env, dataset=dataset), dataset)
-    rule = LiveAtmIvMinusRealised(None, cfg["risk_free_rate"], Black76())
+    rule = build_iv30_rule()
     calendar, store = build_session_calendar(), build_data_store(RELEASE_WRITER, env=env)
 
     from ..rehearsal.v4_pack import rehearsed_release_excuse

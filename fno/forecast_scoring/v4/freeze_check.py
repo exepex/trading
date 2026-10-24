@@ -8,10 +8,12 @@ import hashlib
 import re
 from pathlib import Path
 
+from ...research_engine.ledger import Git
 from ...weather.wiring import METHOD_FILES as M1_METHOD_FILES
 
+PROTOCOL = "research/forecasts/PROTOCOL_v4.md"
 BYTE_CHECKED_GLOBS = (
-    "research/forecasts/PROTOCOL_v4.md",
+    PROTOCOL,
     "research/forecasts/PROTOCOL_v4_calibration.md",
     "fno/forecast_v4/*.py",  # every rule of the protocol
     "tools/v4_*.py",  # the calibration tools
@@ -25,6 +27,18 @@ BYTE_CHECKED_GLOBS = (
     "fno/intraday/session_rv.py",
     "fno/intraday/status.py",
     "fno/intraday/slots.py",
+    "fno/v4_pack/*.py",  # G10: the pack, its release, the day labels, the 15:10 deadline; the pack's IV30 feeds V2
+    "fno/research_engine/live_features.py",  # G1 v2's live ATM IV30 rule, the pack's IV30 (V2's raw implied input)
+    "fno/forecast/iv30.py",  # its interpolation and the EOD proxy `PanelAtmIv30` (premium ratio window)
+    "fno/ai/v4_*.py",  # G11: which AI book-days become rows or misses, the pack binding, the slots' registration
+    "fno/ai/scoring_gate.py",
+    "fno/ai/outcome.py",
+    "fno/ai/stop_rule.py",
+    "fno/ai/versions.py",  # the AI forecaster versions and their prompt hashes
+    "fno/ai/run_terms.py",
+    "fno/ai/fire.py",
+    "agents/forecast/book2_hybrid_v2.md",  # the AI books' v4 prompts: the registered forecasters themselves
+    "agents/forecast/book3_ai_v2.md",
 )
 RECORDED_NOT_CHECKED = (  # shared and changed by other stories; their behaviour is locked by v4's tests
     "fno/constants.py",
@@ -32,9 +46,9 @@ RECORDED_NOT_CHECKED = (  # shared and changed by other stories; their behaviour
     "fno/research_data/calendar.py",
     "fno/research_engine/implied_vol.py",
     "fno/intraday/rv_table.py",
-    "fno/forecast/iv30.py",
 )
 ROW = re.compile(r"^\| `([^`]+)` \| `([0-9a-f]{64})` \|$", re.MULTILINE)
+PROTOCOL_COMMIT = re.compile(r"^Protocol commit: `([0-9a-f]{40})`\s*$", re.MULTILINE)
 
 
 def byte_checked(root: Path) -> list[str]:
@@ -71,3 +85,26 @@ def problems(root: Path, record: str) -> list[str]:
             found.append(f"{path}: changed since the freeze (a change is a new version, never an edit)")
     found += [f"{path}: added after the freeze" for path in byte_checked(root) if path not in pinned]
     return found
+
+
+def protocol_problems(record: str, git: Git) -> list[str]:
+    """The record's protocol commit is in this history and the protocol text at it is the one the table pins (the
+    commit "that adds this text in its final form", protocol section 10). Empty: it holds."""
+    found = PROTOCOL_COMMIT.search(record)
+    if found is None:
+        return ["the record has no 'Protocol commit: `<40-hex sha>`' line"]
+    if git.is_shallow():
+        return ["shallow clone: run git fetch --unshallow origin main, then check again"]
+    commit = found.group(1)
+    if not git.commit_exists(commit) or not git.is_ancestor(commit, git.head()):
+        return [f"protocol commit {commit[:10]} is not in this history"]
+    text = git.committed_text(PROTOCOL, commit)
+    pinned = dict(ROW.findall(record)).get(PROTOCOL)
+    if text is None or hashlib.sha256(text.encode("utf-8")).hexdigest() != pinned:
+        return [f"{PROTOCOL} at the protocol commit {commit[:10]} is not the text the record pins"]
+    return []
+
+
+def freeze_problems(root: Path, record: str, git: Git) -> list[str]:
+    """Everything that breaks the freeze: the files (`problems`) and the protocol commit (`protocol_problems`)."""
+    return problems(root, record) + protocol_problems(record, git)
