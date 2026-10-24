@@ -33,3 +33,24 @@ merges cleanly with current main.
   failed only on that second call would raise unguarded. The same read has just succeeded, so this is reasoning only.
 - With `--since`, an unreadable store gives one alert per session in the window (up to about five on a morning). That
   is loud but repetitive.
+
+## Addendum 1
+
+**Verdict: PASS** on story/dr1-1d-one-read-one-alert at 9f068cee7 (from main 8214a5d5). It closes both of my notes.
+
+- **One guarded read:** `ClosesRules._official(day)` reads each official file once per run. A file not yet archived is
+  cached as None; a failure is never cached and raises `SourceUnreadable`. `_agreement` and the certified `choose()`
+  both go through it, so `choose()` no longer reads outside the guard.
+- **One alert per run:** `cmd_certify` collects every alerting line and announces once, with the lines joined. The
+  exit code is unchanged.
+- **My plants (`tests/record_store`):**
+
+  | Plant | Result |
+  |---|---|
+  | `choose()` re-reading unguarded | caught |
+  | no cache | caught |
+  | one alert per session | caught |
+  | no alert at all | 3 failed |
+
+- **Gates on 9f068cee7 (run by me):** 14,908 passed, 1 skipped, 15 xfailed; ruff, format and check_imports clean. It
+  merges cleanly with current main.
