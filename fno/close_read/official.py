@@ -1,7 +1,7 @@
 """NSE's official values for a day, from the index-close file: the copy archived in Drive (the version first archived,
-which G13b scores), else NSE's own archive, as every reader of these files gets it (`fno/storage/wiring.py`
-`build_index_close_files`, never writing to Drive). Each index has its open, high, low and close (A4h-2). Behind an
-interface so a test or another archive swaps in one class."""
+which G13b scores), as every reader of these files gets it (`fno/storage/wiring.py` `build_stored_index_close_files`:
+the stores only, never NSE and never a Drive write; a file not yet archived reads as missing). Each index has its
+open, high, low and close (A4h-2). Behind an interface so a test or another archive swaps in one class."""
 
 from __future__ import annotations
 
