@@ -53,7 +53,8 @@ not `config.yaml`):
 | Requests in flight | one at a time | one at a time |
 | Minimum gap between request starts | 1.0 s (Groww's Live Data limit is 10 a second, 300 a minute: we stay at or under 60 a minute) | 3.0 s (three times the project's `SHARED_PACER` 1.0 s) |
 | Daily cap (counted across reruns of the day) | 240 | 50 |
-| HTTP 429 | wait 60 s, retry that one request once; a second 429 the same day stops the source for the day | same |
+| HTTP 429 | the first 429 stops Groww for the day, no retry (orchestrator's Groww audit, 24 Oct: the owner's "never exceed its rate limit") | wait 60 s, retry that one request once; a second 429 the same day stops NSE for the day |
+| Sign-in | one sign-in per run; a failed sign-in is kept and stops Groww for the run, never retried per call (audit: `GrowwProvider.api` retries on every call, `fno/providers/groww.py:139-145`, fixed globally by session_01GsPm29fZzfH3DiErKAdBVk) | none |
 | HTTP 403, or an empty 200 body where JSON is expected | the source stops for the day at once, no retry | same |
 | 5xx or timeout (20 s) | one retry after 30 s; then that row is `missing` and the slot goes on | same |
 | A source stopped on 2 sessions | the probe stops for that source for good; the owner decides | same |
@@ -106,10 +107,12 @@ grow, keep or stop, per source.
    Groww, 3.0 s NSE; boundary exactly at the gap; a second caller waits; zero requests: no wait).
 2. **Cap:** the 241st Groww and 51st NSE request of a day is refused before it is sent, with one named line; the
    count includes an earlier run's counts file (rerun boundary; empty file: count 0).
-3. **Refusals:** a 429 waits 60 s and retries once; a second 429 that day, any 403 or an empty 200 body stops the
-   source for the day, sends one alert and writes one O10 row; nothing more reaches that source (fake source counts
+3. **Refusals:** on Groww the first 429 stops it for the day with nothing more sent; on NSE a 429 waits 60 s and
+   retries once, and a second 429 that day stops it; any 403 or an empty 200 body stops the source for the day, sends one alert and writes one O10 row; nothing more reaches that source (fake source counts
    calls). A 5xx retries once after 30 s, then `missing`.
-4. **Stop for good:** a source stopped on 2 sessions is refused on the third, with its line.
+4. **Sign-in:** one run signs in to Groww at most once; a failed sign-in stops Groww's part of the run with one line
+   and no second sign-in (fake provider counts sign-ins: good, failed, never-called on a day with no Groww slot left).
+4b. **Stop for good:** a source stopped on 2 sessions is refused on the third, with its line.
 5. **Times:** refuses a non-trading day, 26 Oct and each A16h day, a slot more than 2 min late, and a sixth session;
    a slot stops hard at slot + 6 min with its unread rows `missing`.
 6. **Read-only:** the Groww source holds only `ReadOnlyGroww`; no module of the package names `GrowwAPI`
@@ -169,10 +172,11 @@ grow, keep or stop, per source.
 3. A missing lot or expiry is never guessed (`lot_unknown` / not captured).
 4. Groww's written question stays unasked; an open risk (section 9).
 5. Blackout days 26 and 27 Oct (28 Oct if A16h slips), confirmed by the orchestrator (A16h's owner out of reach).
-6. **Pending:** the owner's newest word (25 Oct, through the orchestrator): Groww must never exceed its rate limit in
-   any situation. P0b's Groww calls must fit one shared budget with the project's other Groww readers. The slot times
-   and the Groww gap in sections 3-4 are held until the orchestrator's load audit returns; any change goes in round 2
-   or the code round.
+6. **Groww load audit (orchestrator, 24 Oct):** binding limits 300 quote calls a minute and 150 sign-ins per 24 h,
+   no limiter shared across sessions; A16's marks take about 85 s from :00/:15/:30/:45. The slots 10:07, 11:37, 13:07
+   and 14:07 at <=60 a minute with a hard stop at slot + 6 min sit clear of every mark and window: kept. Two
+   conditions, now in section 3 and criteria 3-4: one sign-in per run with a failed sign-in kept, and Groww stops for
+   the day at its first 429.
 
 ## Claims
 
