@@ -41,3 +41,16 @@ The should-fix is a wording fix only: no new data is needed, and the numbers abo
 - Scope: only 915f276d9..5caa04e0c in `docs/stories/G-forecasts.md` (73 lines changed); no code was read for this verdict.
 - Pilot-mode rule (69d75ac1c): the doc tests ran with the token set; no test posted to Slack (none of these tests posts).
 - W8 is a protocol wording for the owner. My "enough to propose" covers only that the evidence is honestly labelled and adequate for the owner to decide; it is not a ruling that W8 is right.
+
+## Addendum 1: W8 decided by the owner (DESK_DECISIONS fa605291a, "W8 - yes"), same head 5caa04e0c
+
+**FAIL stands, with the should-fix reduced to text consistency.**
+- **The substance is decided.** The owner's row states the narrowed reading in its own words: A16b's rows go into the ratio window, labelled `backfill_window`, "never a forecast input, outcome or base rate". So the owner saw and approved what SF1 asked to be shown. Judged as decided, W8's protocol text is clear, carries its labels and drift line, and needs nothing more.
+- **What is left (still should-fix, wording only):** the story text now contradicts itself.
+  - W8's bullet says "decision 56 unchanged".
+  - The G7 V1-HAR rule still says A16b rows never count toward "any live input" (G-forecasts.md, about line 297).
+  - A builder or judge following that line would refuse yardstick A's live rows. Fix in round 2:
+    - W8's row and bullet cite the owner's row (fa605291a);
+    - "unchanged" becomes "decision 56 read as never a forecast input, outcome or base rate (owner, 24 Oct)";
+    - the G7 line gets the same exception, "except a baseline's ratio window, W8".
+- m1 and m2 are unchanged (minor).
