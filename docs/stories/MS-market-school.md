@@ -659,10 +659,12 @@ the sign-off, "re-checked on current main and re-judged". The held 22 Oct commit
 `quotes_done`; it conflicts with main and was never judged, so it is rebuilt here. This story adds the step only:
 `school.enabled` and `school.reports` stay false (a separate switch commit, the orchestrator's, with the owner).
 
-**Files owned:** one row in `DAILY_RUN_STEPS` (`fno/constants_operations.py`); `school_run` and the `school` step in
-`fno/daily/wiring.py`; the school's three reason codes in `fno/daily/reason_codes.py`; the O2 harness's school command
-(`tests/e2e/harness.py`); `tests/e2e/test_school_step.py`, `tests/school/test_rehearsed_stores.py`; the tuple's
-copies in `tests/daily/test_day_run.py` and `tests/health/test_desk_and_data_checks.py`.
+**Files owned:** one row in `DAILY_RUN_STEPS` (`fno/constants_operations.py`); `school_run`, `SCHOOL_STARTS_BY`,
+`SCHOOL_NOT_RETRIED` and the `school` step in `fno/daily/wiring.py`; `StartsBy` and `Alerted`'s `note` in
+`fno/daily/steps.py`; the school's four reason codes in `fno/daily/reason_codes.py`; the O2 harness's school command
+(`tests/e2e/harness.py`); `tests/e2e/test_school_step.py`, `tests/daily/test_starts_by.py`,
+`tests/school/test_rehearsed_stores.py`; the tuple's copies in `tests/daily/test_day_run.py` and
+`tests/health/test_desk_and_data_checks.py`; `FAILED_ALERT`'s one use in `tests/e2e_acceptance/test_replay_failures.py`.
 
 **Why this place (measured on main's run logs, `journal/runs/`):** `quotes_done` started at 15:18:39 (21 Oct),
 15:22:05 (22 Oct) and 15:18:28 (23 Oct), after the desk's 15:15 snapshot and fills. Two things refuse after 15:30:
@@ -670,8 +672,8 @@ law 6 (no school fill after the close) and G13d's `premium_ranges` (sealed by 15
 `card` to `premium_ranges` took 21 s (22 Oct) and 40 s (23 Oct) in all; a school run of 23 Oct replayed on the real
 data took 77 s (42 decisions, 16 fills, no Drive write and no push; a recording run adds those, unmeasured). So the school goes right
 after `premium_ranges`: G13d keeps its margin and the school loses well under a minute. The card runs before the
-school, so the card's warning (T1e) never names the school: the card speaks for the desk, and the school's own alert
-goes to #fno-desk. "After v4's" (j's first text) is read as "outside v4's frozen files": v4's `v4_deadline` now sits
+school, so the card's warning (T1e) never names the school. That is intended (orchestrator, 24 Oct): the school is
+not the desk, and its own alert goes to #fno-desk. "After v4's" (j's first text) is read as "outside v4's frozen files": v4's `v4_deadline` now sits
 after the score steps, which ran until 15:32 on 22 Oct, so a school after it would meet law 6 on most days.
 
 **Acceptance criteria:**
@@ -682,8 +684,10 @@ after the score steps, which ran until 15:32 on 22 Oct, so a school after it wou
 3. **Switch off.** With `school.enabled` false the step is `ok` with the code `school:OFF`, and nothing under
    `research/school/` reaches `origin`.
 4. **A stop or a raise.** Exit 1 (a stop or a warning) or a raise in the parent fails the step alone: one #fno-desk
-   alert, the run goes on, the day ends "day done with problems: school". A same-day rerun never runs it again: no
-   later run decides a session's paper trades (the owner's fills rule of 24 Oct, applied to the school).
+   alert ending "; a rerun today will not retry it: a later run never decides the session's paper trades" (desk's
+   `RERUN_FINAL` words, orchestrator, 24 Oct: not retried, with a named reason), the run goes on, the day ends "day
+   done with problems: school". A same-day rerun never runs it again (the owner's fills rule of 24 Oct, applied to
+   the school).
 5. **A hang.** A run past the command limit is stopped and failed (`o1:STOPPED_AT_LIMIT`); a run ending just inside
    the limit is its own result; the day's later steps all run.
 6. **Public log.** The committed log holds the codes `school:OFF`, `school:NOT_A_SESSION`, `school:STOPPED` (any
@@ -691,14 +695,29 @@ after the score steps, which ran until 15:32 on 22 Oct, so a school after it wou
 7. **Closed day.** The run records `skipped`; the school is never started.
 8. **Rehearsal.** In a REH1 rehearsal the school's Drive writes (the dashcam's sealed files and the paper accounts)
    go under `dryrun/<run_id>/` only; a replace of a real file is refused before Drive. Outside a rehearsal they reach
-   the real Drive.
+   the real Drive. A child started in the rehearsal's clone (`python -m fno`, its working folder the clone) takes the
+   clone as its checkout for all three git writers (the dashcam's receipts, the counts, the accounts' checkout), so
+   it commits and pushes only to the clone's `origin`, a local bare repository, never GitHub.
+9. **A late start.** The step never starts after 15:25 IST on its own day (`StartsBy`): a killed run rerun at 15:45,
+   or a past day's run, is `refused` with `school:TOO_LATE`, alerted once with the same named line, and nothing is
+   sealed. A start at 15:25:00 runs. Why 15:25: law 6 refuses fills after 15:30 and a recording run takes about 2-4
+   minutes (reasoning only: the 77 s replay plus Drive writes and pushes); without it, a fresh first run after the
+   close seals the whole session's decisions and law 6 then refuses every fill (`SchoolFleet._run` marks
+   `LATE_RERUN` only when a seal exists). The value is revisited from the first enabled sessions' run logs.
+10. **The suite never reads the repository's switch.** The O2 harness's school child runs on its own settings file
+   with `school.enabled` false, so turning the switch on in `config.yaml` never builds the real fleet, Drive or git
+   of this checkout inside the tests.
 
 **Gap list.** Every requirement above has a criterion. Out of scope, with the reason: the switch itself
 (`school.enabled`, `school.reports`) and `school.first_counted` (the orchestrator's switch commit with the owner;
 `CARD_P1.md` section 5: first_counted is set when the 10-session gate passes); `RETRIED_ON_RERUN` and `NOT_RETRIED`
 (the desk's own; `Alerted` handles every school failure before it, see criterion 4); the school's receipts in a
 rehearsal (they are pushed to the rehearsal clone's local `origin`, REH1's checkout design, unchanged); the duration
-of a recording run (first measured on the first enabled session, from its run log).
+of a recording run (first measured on the first enabled session, from its run log); a manual `school run` started
+after the close (the fleet itself has no first-seal cutoff: j's runner, raised with the orchestrator); a run that
+starts in time and runs past 15:30 (its late fills are `stale_seal`, visible; O1's generic command limit is kept, as
+a stop mid-write is worse than a late finish); a whole rehearsal of the day through `rehearse daily` with the switch
+on (it needs the switch; the seams it rests on are criterion 8's tests and REH1's own).
 
 ### MS-P1m The roads' margins · lane 1 (money limits: C2's margin room; two judges) · model tier: H · depends on nothing in P1
 
@@ -3335,3 +3354,40 @@ maker's, made in the same run (`plain(edition)`): "the school wrapper changes no
 goldens (`golden/morning.txt`, `evening.txt`) stay: they pin the wrapper's own output. `golden/files.json` is deleted. Plant:
 a wrapper that drops a page file fails the two flag-on tests. Checked on main and on the designer's branch.
 
+
+### MS-P1j2 Claims (round 1, branch `story/ms-p1j-daily-steps-r2`; builder session_01K3PspS7VhXM39Ccyhut4S7; the SHA is in the commit carrying this text)
+
+| # | Code | Tests | Plants (each caught) |
+|---|---|---|---|
+| 1 Place | `DAILY_RUN_STEPS` row | `test_the_step_sits_after_every_quote_part_and_g13d_...`, `tests/daily/test_day_run.py` (two order lists), `tests/health/...test_the_check_reads_the_daily_run_s_own_tuple` | the row before `quotes_done`; the row after `close_recheck` |
+| 2 Command | `school_run`, the `school` step | `test_a_session_runs_the_school_once_for_its_day_...` | `("school", "run")` without the session |
+| 3 Switch off | `fno/school/cli.py` (j's, unchanged) | same test: `school:OFF`, no `research/school/` file on `origin` | the step wrapped in `LiveFrom(..., None)` |
+| 4 Stop or raise | `Alerted(..., note=SCHOOL_NOT_RETRIED)` | `test_a_school_stop_fails_its_step_...`, `test_a_school_step_that_raises_...` | the note dropped; every failed step retried (`run_log._retried` without `retry`); the step unalerted |
+| 5 Hang | O1's `CommandStep` limit | `..._past_the_command_limit_...`, `..._just_inside_the_limit_...` | `wait` with no limit |
+| 6 Public log | four templates in `reason_codes.py` | the three tests above, `test_any_other_last_line_is_o1_s_command_code_...` (ok and exit 1), `tests/daily/test_public_log.py` (no template matches twice) | `school:OFF`, `school:STOPPED`, `school:TOO_LATE` removed, each alone |
+| 7 Closed day | O1's skip (unchanged) | `test_a_closed_day_never_starts_the_school` (log holds only `skipped`) | — (O1's own tests plant it) |
+| 8 Rehearsal | REH1's `rehearsed_drive`, `REPOSITORY`, `ROOT` (unchanged) | `tests/school/test_rehearsed_stores.py` (dryrun only, real replace refused, real Drive outside a rehearsal, the clone's checkout and `origin`) | `rehearsed_drive` bypassed; `REPOSITORY` fixed to one folder |
+| 9 Late start | `StartsBy`, `SCHOOL_STARTS_BY` | `tests/daily/test_starts_by.py` (15:00, 15:24:59, 15:25:00 run; 15:25:00.000001, 15:45, next day refused; UTC clock), `test_a_run_reaching_the_school_after_15_25_...` | `>` as `>=`; the guard removed from the wiring |
+| 10 Harness | `school_runs` on `school_off.yaml` | `test_the_harness_s_school_never_reads_the_repository_s_switch` | the child without its settings file |
+
+**Self-review (an independent review agent on the diff).** 1. The harness ran `cmd_run` on the repository's
+`config.yaml` (should fix): accepted, checked by reading `cli.py:37` and `wiring.build_fleet` (root `ROOT`); fixed,
+criterion 10. 2. No start guard, so a late first run seals a session law 6 then refuses (should fix): accepted, checked
+in `runner.py` (`LATE_RERUN` only when a seal exists); fixed in the daily run, criterion 9. The same gap in a manual
+`school run` is j's runner and is raised with the orchestrator, not widened here. 3. O1's 10-minute limit is longer
+than the time to 15:30 (should fix): partly accepted. The start guard bounds the start; killing a run at 15:29 would
+stop it mid-write (a Drive file without its receipt, adopted only by a later run), worse than a late finish whose
+fills are `stale_seal` and visible. Fills are local work after the seal (the 77 s replay includes them), so a split
+session is unlikely; kept as stated in the gap list. 6. A warning as the last line gives `command:exit_1`: test added.
+7. No `rehearse daily` run with the switch on: out of scope (needs the switch), gap list. 8. The closed day's
+`skipped` is now asserted; a normal tally gives `command:ok` (test added); the limit's exact second is O1's generic
+`wait`, already tested by O1, not repeated.
+
+**Real output sample** (the committed code, O2 harness, a fixture day; no live strike, range or secret):
+- switch off: `day done`; run log `{"status": "ok", "reason": "school:OFF", "exit_code": 0}`; private log `["school off"]`.
+- a planted stop: `day done with problems: school`; run log `{"status": "failed", "reason": "school:STOPPED",
+  "exit_code": 1}`; #fno-desk: `F&O daily run 2026-10-14: step school failed: stopped: dashcam stuck: planted; the run
+  goes on; a rerun today will not retry it: a later run never decides the session's paper trades`.
+- a real-data replay of 23 Oct (`school run --replay <folder> --session 2026-10-23`, 77 s): 42 decisions sealed, 16
+  fills; no_trade by reason: n0 x5, no_expiry_in_window x3, no_valid_quotes x6, not_enough_history x12; trade x16; no
+  road refused for quotes.
