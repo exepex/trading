@@ -475,6 +475,15 @@ never read a card without knowing that part of the day did not run.
   - A run log that cannot be read is already reported by T2's rule checks ("unreadable"), so T1d adds no second line
     for it.
 - `not_live`, `ok` and every other status are not problems, exactly as O1's rule says.
+- **T2's decisions check after R2** (judge 567 should-fix, checked: `fno/cards/rule_checks.py:97`).
+  - Since R2, a decisions step that raises is committed as `{"status": "failed", "reason": "raised:<Type>"}`.
+  - `DecisionOutcome` treats every key of the step's result as a book: `[b for b, r in result.items() if "run_id" not
+    in r]`. On that result it gives `['status', 'reason']`, a substring test on a string. The card would then say
+    "late or not committed: status, reason" as a final outcome, naming two non-books and hiding the failure.
+  - Fix: a decisions result whose status is a problem under O1's rule (the same `problem_steps` status set) gives the
+    final outcome "decisions step <status> today" with code `CARD_DATA_CHECK_FAILED`, and is never read as books.
+  - The snapshot check already fails closed ("no valid execution snapshot", `data_check_failed`), so it is
+    unchanged.
 
 Out:
 - **Steps after the card in `DAILY_RUN_STEPS`** (G13's records and scores, the candles, the close reads) run after the
@@ -491,6 +500,8 @@ Out:
 4. The runner's last line is unchanged ("day done with problems: <steps>"), and both the runner and the card use the
    same `problem_steps`.
 5. The card reads the run log only through `RunLogReader` and `problem_steps`, never by matching text.
+6. A `decisions` step logged `failed` (or `refused`) gives T2's decisions outcome "decisions step failed today" (or
+   "refused"), with code `CARD_DATA_CHECK_FAILED`. It never names a book "status" or "reason" (judge 567).
 
 **Test plan:**
 1. Positive: a planted committed run log with `snapshot` failed and `fills` refused gives the exact line, in order.
@@ -498,7 +509,11 @@ Out:
 3. Empty: no run log gives no line.
 4. Shared rule: the runner's existing tests pass unchanged, and a test shows that the runner and the card list the
    same steps for one log.
-5. Plants: dropping `refused` from the rule fails test 1; a card that ignores the reader's steps fails test 1.
+5. Decisions after R2: a planted committed run log with `decisions` = `{"status": "failed", "reason":
+   "raised:NotImplementedError"}` gives "decisions step failed today" and `data_check_failed`, and neither "status" nor
+   "reason" as a book. A normal per-book result is unchanged (T2's existing tests).
+6. Plants: dropping `refused` from the rule fails test 1; a card that ignores the reader's steps fails test 1;
+   removing the decisions status check fails test 5.
 
 **Known limits:**
 - Failures in steps after the card are not on it (Out).
@@ -518,7 +533,8 @@ move of the rule into `problem_steps` is asked of them before code.
   - "through O1's own interface" is criteria 4 and 5;
   - refused steps are included because O1's own rule counts them as problems; the orchestrator confirmed this on
     24 Oct ("a refused fills step matters to the owner as much as a failed one");
-  - Known limit, stated for the judge: steps after the card in `DAILY_RUN_STEPS` (G13's records and scores, the
+  - Judge 567's should-fix is in scope as criterion 6 (T2's `DecisionOutcome` is mine, T2).
+- Known limit, stated for the judge: steps after the card in `DAILY_RUN_STEPS` (G13's records and scores, the
     candles, the close reads) run after the card is posted, so a failure there is never on the card. It stays in the
     run's last line and its own alert.
 
