@@ -35,7 +35,8 @@ def v4_part(window: QuoteWindow) -> QuotePart:
 
 
 def _shortly_before(window: QuoteWindow):
-    """O1's margin before the window's start, never earlier than A4e's own early limit: the recorder then waits
-    minutes, not half an hour (a rehearsal runs at real speed while a recorder runs, REH1)."""
+    """O1's margin before the window's start, never earlier than the parts' one early limit (`earliest_start`, A4's
+    shared `earliest_waiting_start`): the recorder then waits minutes, not half an hour (a rehearsal runs at real speed
+    while a recorder runs, REH1)."""
     shortly = (datetime.combine(date.min, window.start) - START_MARGIN).time()
-    return max(shortly, earliest_start(window.start, window.max_early_wait_seconds))
+    return max(shortly, earliest_start(window.start))

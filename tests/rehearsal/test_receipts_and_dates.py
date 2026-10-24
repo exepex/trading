@@ -1,7 +1,6 @@
 """REH1b round 2 (judge 562): with the mode set, the push receipts the seals and packs read are the rehearsal origin's
 push log, never GitHub's; and the rehearsal's commits are dated by the replay clock through the child's PATH."""
 
-import re
 import subprocess
 from datetime import date, datetime
 from pathlib import Path
@@ -14,8 +13,11 @@ from fno.models import IST
 from fno.rehearsal.mode import Rehearsal
 from fno.rehearsal.push_receipts import PUSH_LOG, LocalPushReceipts
 
+from .wrapped_calls import calls, unwrapped
+
 PACKAGE = Path(__file__).resolve().parents[2] / "fno"
 DAY = date(2026, 10, 23)
+RECEIPTS, CHOICE = "GitHubActivityReceipts", "rehearsed_receipts"
 
 
 def test_with_the_mode_set_a_real_builder_reads_the_rehearsal_s_push_log(monkeypatch, tmp_path):
@@ -29,13 +31,12 @@ def test_with_the_mode_set_a_real_builder_reads_the_rehearsal_s_push_log(monkeyp
 
 
 def test_every_builder_of_github_s_receipts_hands_them_to_the_rehearsal_s_choice():
-    builders = [
-        p for p in PACKAGE.rglob("*.py") if "GitHubActivityReceipts(" in p.read_text() and p.name != "receipts.py"
-    ]
+    """Every call in every file (REH1i): one wrapped call no longer hides an unwrapped one beside it."""
+    texts = {p: p.read_text() for p in PACKAGE.rglob("*.py")}
+    builders = {p: text for p, text in texts.items() if calls(text, RECEIPTS)}
     assert len(builders) == 5
-    for path in builders:
-        text = path.read_text()
-        assert re.search(r"rehearsed_receipts\(\s*GitHubActivityReceipts\(", text), path  # built, then handed over
+    found = {str(p.relative_to(PACKAGE)): unwrapped(text, RECEIPTS, CHOICE) for p, text in builders.items()}
+    assert {path: lines for path, lines in found.items() if lines} == {}  # built, then handed over, every time
 
 
 class History:
