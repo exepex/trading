@@ -9,9 +9,8 @@ from pathlib import Path
 
 from .allocation import ALLOCATED_LABEL, DEVELOPMENT_LABEL, FORMULA, UNMEASURED, Allocation
 from .cap import BASIS_MEASURED, MEASURED_LIMIT, CapReading, shown_pct
-from .constants import ITEM_CLAUDE_PLAN, PURPOSE_DEVELOPMENT, USAGE_PURPOSES
+from .constants import ITEM_CLAUDE_PLAN, NO_SEAL_UPPER_BOUND, PURPOSE_DEVELOPMENT, USAGE_PURPOSES
 from .items import ItemLine
-from .self_timed import UPPER_BOUND_SOURCE
 from .stop_rule_tracker import ZERO_SHADOWS, ReviewDate, stop_test_status
 
 NOT_RECORDED = "not recorded"
@@ -83,7 +82,7 @@ def _usage_lines(rows: list[dict]) -> list[str]:
 def _wait_lines(rows: list[dict]) -> list[str]:
     waits = [float(r["wait_minutes"]) for r in rows if r["wait_minutes"] != ""]
     lines = [WAIT_LINE.format(minutes=sum(waits), runs=len(waits)) if waits else NO_WAIT]
-    bounds = sum(1 for r in rows if r["source"] == UPPER_BOUND_SOURCE)
+    bounds = sum(1 for r in rows if NO_SEAL_UPPER_BOUND in r["source"])  # the rule's name, whatever the wording
     return lines + ([UPPER_BOUNDS.format(runs=bounds)] if bounds else [])
 
 

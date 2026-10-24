@@ -145,14 +145,25 @@ def meter_text(tmp_path, rows):
 
 def test_the_meter_shows_the_wait_apart_and_none_when_no_row_has_one(tmp_path):
     assert "AI books' reveal wait (not capped): none recorded" in meter_text(tmp_path, [])
-    rows = ledger_rows(tmp_path)
-    second = tmp_path / "second"
-    second.mkdir()
-    rows += ledger_rows(second, session_id="session_01BOOKabc", sealed_at="2026-10-14T15:10:40+05:30")
-    UsageLedger(tmp_path)._write(rows)  # two runs: 26.17 and a measured 0.00 wait
-    text = meter_text(tmp_path, rows)
+    ledger_rows(tmp_path)
+    rows = ledger_rows(tmp_path, session_id="session_01BOOKabc", sealed_at="2026-10-14T15:10:40+05:30")
+    text = meter_text(tmp_path, rows)  # two runs: 26.17 and a measured 0.00 wait
     assert "AI books' reveal wait (not capped): 26.17 minutes over 2 run(s)" in text
     assert "books and roles 33.17 of 500.00 minutes" in text  # 3.50 + 29.67: never a wait
+
+
+def test_one_run_with_a_zero_wait_counts_as_one_run(tmp_path):
+    rows = ledger_rows(tmp_path, sealed_at="2026-10-14T15:10:40+05:30")
+    assert "AI books' reveal wait (not capped): 0.00 minutes over 1 run(s)" in meter_text(tmp_path, rows)
+
+
+def test_the_two_parts_add_up_to_the_whole_run_and_the_record_line_names_the_wait(tmp_path):
+    run = reader(tmp_path, started_at="2026-10-14T14:41:00+05:30", sealed_at="2026-10-14T14:41:20+05:30",
+                 ended_at="2026-10-14T14:41:40+05:30")  # fmt: skip
+    (day,) = run.days()
+    assert (day.minutes, day.wait_minutes) == (0.33, 0.34)  # 20 s each, 0.67 minutes in all
+    lines = UsageLedger(tmp_path).record(run.days(), Attribution("books_and_roles", "book2_hybrid"), date(2026, 10, 15))
+    assert "recorded 0.33 minutes (and a wait of 0.34 minutes apart, not capped), 1 turns" in lines[0]
 
 
 def test_the_meter_counts_the_never_sealed_upper_bounds(tmp_path):

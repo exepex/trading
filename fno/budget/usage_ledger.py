@@ -28,6 +28,7 @@ COLUMNS = ("date", "purpose", "book", "role_or_bundle", "session_id", "model", "
 TOKENS_BASIS = "main-loop usage of result events (side calls not included)"
 NOT_COMPLETE = "{day} is not complete in this reading (complete days are before {before}): record it from a later one"
 BAD_ROW = "{file} line {line}: minutes {minutes!r} is not a number >= 0, or complete_before is not a date"
+WAIT_APART = " (and a wait of {wait} minutes apart, not capped)"  # BG1-w
 BAD_WAIT = "{file} line {line}: wait_minutes {wait!r} is not blank or a number >= 0"
 SESSION_ID = re.compile(r"session_[A-Za-z0-9]+")  # get_session's id form
 
@@ -90,7 +91,10 @@ class UsageLedger:
                 lines.append(f"{usage.day} {usage.session_id}: already recorded (never rewritten)")
             else:
                 new.append(_row(usage, who, before))
-                lines.append(f"{usage.day} {usage.session_id}: recorded {usage.minutes} minutes, {usage.turns} turns")
+                wait = "" if usage.wait_minutes is None else WAIT_APART.format(wait=usage.wait_minutes)
+                lines.append(
+                    f"{usage.day} {usage.session_id}: recorded {usage.minutes} minutes{wait}, {usage.turns} turns"
+                )
         if new:
             self._write(rows + new)
         return lines

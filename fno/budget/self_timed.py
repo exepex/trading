@@ -17,12 +17,12 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from . import constants
-from .constants import NO_SEAL_RULES, NO_SEAL_UNKNOWN
+from .constants import NO_SEAL_RULES, NO_SEAL_UNKNOWN, NO_SEAL_UPPER_BOUND
 from .usage_reader import DayUsage, ExportRefused, SessionUsageReader, ist_time, shaped
 
 SOURCE = "self-timed by the routine (start to end of its run)"
 SPLIT_SOURCE = "self-timed by the routine (start to seal; the wait to the end apart)"
-UPPER_BOUND_SOURCE = "self-timed by the routine (no_seal_upper_bound: never sealed; start to end counted)"
+UPPER_BOUND_SOURCE = f"self-timed by the routine ({NO_SEAL_UPPER_BOUND}: never sealed; start to end counted)"
 SEALED_AT = "sealed_at"
 MAX_RUN = timedelta(hours=24)  # longer is a typo, not a run: refused, never recorded
 LATER_THAN_TODAY = "ended_at {day} is after today ({today}): a run cannot end in the future"
@@ -75,7 +75,8 @@ class SelfTimedUsageReader(SessionUsageReader):
             raise ExportRefused(
                 SEAL_OUTSIDE.format(seal=seal.isoformat(), start=start.isoformat(), end=end.isoformat())
             )
-        return _minutes(start, seal), _minutes(seal, end), SPLIT_SOURCE
+        working = _minutes(start, seal)
+        return working, round(_minutes(start, end) - working, 2), SPLIT_SOURCE  # the two parts add up to the run
 
 
 def _minutes(start: datetime, end: datetime) -> float:
