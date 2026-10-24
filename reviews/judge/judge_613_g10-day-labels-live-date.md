@@ -40,3 +40,23 @@ with the Slack token set:
 - `LiveDayLabels.labels()` still returns every stored record, including one dated before `live_from`. None can exist
   now: the catch-up no longer writes them, and no receipt is on main. If a rehearsal ever pushed such a record with a
   receipt, the real report would drop that day. Today this is safe, by data only.
+
+## Addendum 1: follow-up `story/g10-labels-follow-up` at d9c7d08a5 (round 1 of 2, judge K)
+
+**PASS, lane 1.** It closes m1 and the note above; no findings. A trial merge of
+d9c7d08a565981d886d842e4fd0bd24f91d65321 into origin/main 6a480457c is clean (6 files). Gates on it, with the Slack
+token set:
+- `pytest -n auto`: 16,391 passed, 1 skipped, 14 xfailed, exit 0.
+- ruff check and format clean; `check_imports` (2,737 files), `check_records` and `check_numbers` clean.
+- **No test posted to Slack:** all three channels are empty for 18:27:40-18:38:31 UTC.
+
+| Item | Verdict | Own evidence |
+|---|---|---|
+| `LiveDayLabels.labels()` drops stored records before `live_from`; `{}` when not live | MET | `days.py:105-114`. My plants are all caught: `>=` to `>` (the boundary record lost); the filter removed; the records returned while not live |
+| m1: the deadline catch-up's start is pinned | MET | `test_the_deadline_s_catch_up_starts_at_the_forecasts_live_date_not_the_pack_s` builds the real `build_deadline_run`. My 613 survivor (`live["v4_pack"]` in `v4_pack/wiring.py:88`) is now caught |
+| The `test_release_days.py` fixture pins `label_start` to 22 Oct | does not hide a regression | No assertion changed. The fixture's four tests cover reading, verification and stopping on a tampered or missing Drive record, not the start date. Without the pin, the new filter would ignore their 22 Oct record and the tests would test nothing. The date rule stays pinned in `test_label_start.py` (613's plant "label_start back on forecasts_v4" is caught there). The pin also frees the tests from `config.yaml`'s live date, which can move |
+
+**Plants:** 4 of mine, 4 caught.
+
+- **Note:** `records.labels()` still verifies every stored record before the date filter, so a tampered record dated
+  before the live date still stops the report. That is loud, never silent; no change is needed.
