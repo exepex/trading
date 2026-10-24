@@ -46,3 +46,35 @@ A trial merge into origin/main (56bb0f05e) is clean. Gates on that merge: `pytes
 ## Notes
 
 - No look-ahead found otherwise: the window points are resolved before the refit day; V4's resolution date is the latest A16 row's first-seen date; base rates count only outcomes resolved strictly before `d`.
+
+## Addendum 1: round 2 of b1 and step 3, `story/g7b-completion` at 87793cc92 (judge K, own session)
+
+**PASS, lane 1 (b1 and step 3).** Every round-1 finding is closed. 1 new minor. Gates are listed in Addendum 2: one trial merge of 87793cc92 covers both slices.
+
+| Finding | Verdict | Own evidence (my plant against the new tests) |
+|---|---|---|
+| SF1a: V5's base outcome dated by the expiry | fixed | the plant "dated by the expiry" is now caught |
+| SF1b: A8's log before Drive's time | fixed | the plant "A8 first" is now caught |
+| SF1c: a later monthly accepted as V5's `e` | fixed | the plant `future_expiry not in after` is now caught |
+| m1: refit ratio missing from the inputs hash | fixed | the plant "ratio dropped" is now caught |
+| m2, m3 | in Known limits | the dates are right: V5 is void from 29 Dec 2026 (`e` = January 2027's monthly), V4 from 22 Dec. The text says my m3 "estimated mid-December"; it did not. It said "days whose monthly is in 2027", the same rule |
+| Ruling, own method hash | criterion 21 added | the row names the nine files, has a gate test and a planted break; it is built with the live capture |
+| Ruling, HAR fold | test added | `test_v4rules_refit_day_agrees_with_har.py` covers all 120 months of the calendar (2017-2026) |
+
+- **New minor (m4):** the plant `first_seen_at.date()` (the datetime's own date, not the IST date) survives. The SF1a test builds its 00:30 IST time in IST, but Drive's `createdTime` is UTC (`creation_times.py:28`). A file first seen at 00:30 IST is 19:00 UTC the day before. The code is right (`astimezone(IST)`). Fix: give that test a UTC-aware created time. The builder can fold this into the next code step.
+
+## Addendum 2: build step 4 (part f and part e's first piece), round 1 of 2, at 87793cc92 (judge K)
+
+**PASS, lane 1 (step 4).** 1 minor. A trial merge of 87793cc92 into origin/main (9643e1f73) is clean. Gates on it, with `FNO_SLACK_BOT_TOKEN` set (the pilot-mode rule at 69d75ac1c): `pytest -n auto` 15,421 passed, 1 skipped, 15 xfailed, exit 0; ruff check and format clean; `check_imports` (2,608 files), `check_records` and `check_numbers` clean. **No test posted to Slack:** #fno-desk, #fno-forecast and #fno-intraday hold no message in the run's window (13:08:09-13:17:10 UTC) other than the orchestrator's labelled 23 Oct dry-run line.
+
+| Criterion | Verdict | Own evidence |
+|---|---|---|
+| 17: part f outcome, the sum of live A16 `RV_s` | MET | `intraday_series.intraday_horizon_sum`; plants caught: "void skipped", "missing row tolerated", "mean not sum" |
+| 17: the series starts at the first full window | MET | `scoring._started`; plants "no start filter" and "scored without a window" caught; 16 Oct's void row makes 15 Oct the start (Addendum 1 of 578) |
+| 17: never pooled, never a member, own seed | MET | the plant "V2's seed word" is caught; `member_comparisons` reads only registered (question, slot) keys |
+| W3 switch (option B default, open owner choice) | MET | plants "switch ignored" and "B gives no baseline" caught; option B = V2's and V3's own premium-adjusted rows, which matches the passed text |
+| 15 (first piece): `NOT_STARTED` removed | MET | V4 and V5 read "not enough data yet" with no rows; the lane-1 test edit is stated in the Claims; LR1's reader iterates `questions` generically (`forecast_section.py:45-71`), so the new keys read fine |
+| Claims honesty | MET | "Not yet" names V4's and V5's outcome sources, the Drive reader, proxy drift and the labels. The module moved out of `series.py` and the Claims say why: `series.py` is hashed |
+
+- **Minor (s1):** the passed text put the W3 switch "in the wiring". It sits in `intraday_series.py` as a module constant. One place, said plainly, so it is acceptable. Name it in the W3 owner row when the owner signs.
+- **Note:** for a V4 or V5 forecaster row that appears before part e's outcome sources exist, every day reads "unresolved", never a wrong score. No such row exists today.
