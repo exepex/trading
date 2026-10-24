@@ -562,5 +562,32 @@ those still sends its own alert to #fno-desk.
 `Steps with problems today: snapshot (failed), fills (refused)`, and for criterion 6
 `- decisions: decisions step failed: raised:NotImplementedError` with `Status: NO TRADE (data_check_failed)`.
 
+**Status at handover (24 Oct 2026, 12:16 IST; builder 0145TfSwzmpk, owner's usage limit):**
+- **Text:** PASS, judge 567 addendum 2 (on main).
+- **Code:** on `story/t1d-failed-steps` at the commit after `faefa1855` (this note), **built on `main`, NOT yet on R2**.
+  It works and passes the full suite (15,119 passed): `fno/cards/problem_steps.py`, the status-section line, the
+  decisions fix, and `tests/cards/test_problem_steps.py` (7 tests, mutations checked). It has not been sent to
+  judge I.
+- **It must not merge as it is.** It adds its own `problem_steps` and `PROBLEMS` to `fno/desk/run_log.py` and edits
+  `fno/daily/runner.py`. O1's builder has since put the same helper, and `book_results(result)`, on R2's branch
+  (`story/o1-r1r2-step-safety` at `f0bb2aa9c`), and runner.py already uses it there. Keeping both would make a
+  second copy and a merge conflict.
+- **Next, in order:**
+  1. `git merge origin/story/o1-r1r2-step-safety` (at least `f0bb2aa9c`) into this branch. Resolve
+     `fno/desk/run_log.py` and `fno/daily/runner.py` by keeping **O1's** versions, and drop this branch's
+     `PROBLEMS`/`problem_steps` from run_log.py.
+  2. Point `fno/cards/problem_steps.py` and `fno/cards/rule_checks.py` at O1's `problem_steps` and its status set,
+     never a copy (judge I's code note). In `DecisionOutcome`, read the late books from
+     `book_results(steps[RUN_LOG_DECISIONS_STEP]["result"])`. For a failed or refused step, show "decisions step
+     <status>: <reason>" with `CARD_DATA_CHECK_FAILED`, as the passed criterion 6 says. Keep this branch's
+     "any other step-level status is shown as it is" guard.
+  3. Run `tests/cards/test_problem_steps.py`. Its `run_log.problem_steps` tests must pass against O1's helper; adjust
+     them only if O1's helper differs on odd shapes (e.g. `steps` not a mapping), and say so.
+  4. Run the full gates on the merged tree, then send it to judge I (session_01MvZneCLZqBuiGyNxawdVee), copying the
+     orchestrator. It merges in one batch with R2.
+- **Self-review finding for O1's builder** (session_014zYLf18PgCzR7YoHs1X5Dp), kept as a Known limit: some desk steps
+  record a problem without a `status` (an exit review's per-book `error`, `trade_marks` `{"marked": False}`, `pack`
+  `{"built": False}`). Neither the run's last line nor this card line names them.
+
 **Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety`) · **Size:** S · **Status:** story text, waiting for judge I;
 code after R2 merges
