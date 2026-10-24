@@ -165,3 +165,24 @@ Written 21 Oct 2026 (owner's handover order). Everything is committed and pushed
    `python tools/check_numbers.py`. Then send round 2a to Judge B with the claims sections named in (d).
 3. Check on GitHub that `health-check.yml` has scheduled runs since 16 Oct and that its messages look right. Then
    confirm with O10's builder that judge F's verdict on `story/o10-part2-freshness-trial` landed.
+
+## Addendum, 24 Oct 2026 (second handover)
+
+**Merged since 21 Oct:**
+- **C5d:** merged 6601ec4b (judge 404 PASS; S1's owner agreed the PROTOCOL.md line).
+- **O8d:** the desk-run check judges the decisions step's start within E3's `COLLECTION_GRACE`. Merged by the
+  orchestrator after judge 552.1 PASS.
+- **O8e:** E3's COLLECTED_LATE verdict wins; a mixed log is named "run log inconsistent". Merged 0bef81e6 after judge
+  552.2 PASS.
+
+**Reviews done:**
+- A22's O8 witness row (`fno/health/preopen_checks.py`) was approved at a1130dcd: push time, deadline 09:15 (FL1's
+  read), one receipt per day. Set its `live_from` after A22's first live morning.
+
+**Open follow-ups:**
+- O8 does not read the books' own `NO_DECISION_LATE` as a problem (judge 552 minor 3; in the register row).
+- When FL1 defines a cut-off constant, A22's `PREOPEN_RECEIPT_BY` should import it.
+- LM1 rounds 2a and 2b stay parked (owner's scope freeze, 21 Oct) on `story/lm1-code`, until the orchestrator says
+  paper positions need the monitor.
+
+Nothing is uncommitted. No branch of mine awaits a merge.
