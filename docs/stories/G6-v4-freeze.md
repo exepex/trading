@@ -217,7 +217,8 @@ archives. Each row's own provenance and the readers' checks protect them; the re
 5. **Main green** with the merged tree (full gates once, `docs/JUDGE.md` merge procedure).
 6. **Known pending changes to byte-checked files land first** (judge 597 SF3): G10's `story/v4pack-rehearsed-live`
    (`fno/v4_pack/wiring.py`) **landed on 24 Oct and is merged into this branch** (one conflict beside
-   `build_iv30_rule`, both kept; `tests/rehearsal/test_v4_pack_live.py` and `tests/v4_pack` pass); any other open branch touching a byte-checked file is listed by the freeze tool from the
+   `build_iv30_rule`, both kept; `tests/rehearsal/test_v4_pack_live.py` and `tests/v4_pack` pass); any other open
+   branch touching a byte-checked file is listed by the freeze tool from the
    register and the branches at the freeze, and either lands or waits for v5.
 
 **Said plainly:** Sunday holds only if item 1 passes judge K on Sunday. If not, nothing is frozen early: `Frozen on:`
@@ -493,8 +494,8 @@ not the final-text commit (criterion 2), and the disclosure's robustness and Dri
 Criteria 5-8 and 10 are the freeze commit's (the record, the slot and ledger rows, the freeze date, the protocol
 commit); they are built when G7b and G11 are on `main`.
 
-- **Code:** `fno/forecast_scoring/v4/freeze_classes.py` (new: the three classes; on the tree merged with `main` of 24 Oct
-  evening, G11, G10's rehearsed live dates and G7b (432071d63) included: 149 byte-checked files, 63 recorded with
+- **Code:** `fno/forecast_scoring/v4/freeze_classes.py` (new: the three classes; on the tree merged with `main` of 24
+  Oct   evening, G11, G10's rehearsed live dates and G7b (432071d63) included: 149 byte-checked files, 63 recorded with
   their lock, 54 not deciding with a reason);
   `freeze_check.py` (`FreezeCheck`, `check`, `unmatched`, `recorded` with G11's own "AI registration" table, `drift`,
   `protocol_problems`, `rate_readers`);
