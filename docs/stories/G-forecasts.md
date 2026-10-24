@@ -1385,4 +1385,94 @@ judge.
 - m2: `fno/constants.py` 349/350; the v2 minutes include the reveal wait; 2,743 commits (counted 24 Oct, after more
   merges to `main`); the fire-to-receipt times are now taken from the audit files' GitHub receipts (35-309 s).
 
-**Claims:** none yet (text only).
+**Claims** (stage 2, builder session_01Rga1fe3C4rmnrmmE1p3diE; branch `story/g11-ai-books-v4`, head given in the
+message to the judge). Lane 1, one judge (not a money piece: C15). Nothing runs live: `daily.live_from.ai_books_v4`
+stays null.
+
+*Commits on top of the merge of `main` (7334ec2b; full suite there 15,215 passed):* 85df1067 C12; e3c6cb35 C5-C6;
+881ba676 C1-C4; 2c69136a C8, C9, C17, C19; dfb26381 C13-C16; then the self-review's fixes 8e34b29a (A), 8d896bf3 (B),
+99a916f2 (C).
+
+*Per criterion (code; tests; the builder's plants, every one caught):*
+- C1 `versions.py` (`V4_AI_QUESTIONS` = the family), prompts v2; `test_v4_versions.py`, `test_v4_fire.py`; plant: V7
+  dropped (20 failures).
+- C2 `answer.py` (`VARIANCE_CAP` per question); `test_v4_five_questions.py`; plants: 0 accepted, caps at 1.
+- C3 `envelope.py` (`Envelope.span`), `v4_book_inputs.py` (G8's `primary_values`), `v4_input_check.py` (recomputed);
+  `test_v4_input.py`, `test_v4_five_questions.py`, `test_v4_pointer.py`; plants: no point branch, static primary
+  baseline, envelope not recomputed.
+- C4 `v4_book_inputs._history`, `v4_input.py`; plants: day d's `RV_s` let in, free-text label.
+- C5-C6 `book.py`, `book_run.py`, `run_timing.py`; `test_v4_book_side.py`; plants: no cap, v2 reveal time, v2
+  path, no sealed-day check.
+- C7 `v4_fire.py`; `test_v4_fire.py` (whole-second 14:55, no log on no pack); plants: 14:55:01, log on no pack.
+- C8 `budget_stop.py`; `test_v4_budget_stop.py`; plant: stop on any `stop`.
+- C9 `v4_rows.py`; `test_v4_rows.py`; plant: rows without the release SHA.
+- C10 `run_terms.V4_TERMS` and `outcome.judge`, the same constant as G10's `commitment.on_time`, pinned equal at
+  15:09:59, 15:10:00, 15:10:01 (`test_v4s_deadline_is_g10s_receipt_rule`). It is not the same function (the book
+  side must stay standard library only, and `commitment.py` is not); the judge decides whether the pin is enough.
+- C11 `v4_collect.py`, `v4_settle.py`; `test_v4_collect.py`; plants: never-fired day skipped, no catch-up, lost log
+  as `not_fired`, no too-early check, no containment.
+- C12 `run_terms.py`, `stop_rule.py`, `audit_plan.py`, `transcript_audit.py`, `scoring_gate.py`, `cli.py`;
+  `test_v4_round_2c.py`, `test_v4_wiring.py`; plants: gate, stop rule, fire-log shape, settler glob, v4 weeks
+  dropped, audits-due v2 only.
+- C13 `v4_register.py`, `ai register-v4-slots`; `test_v4_register.py`; plants: after 09:15, a later start, exit 0
+  on refusal, a conflicting forecaster.
+- C14 `tests/e2e_acceptance/ai_v4_day.py`, O11's marker deleted; see the sample.
+- C15 `tests/ai/test_v4_not_a_money_piece.py` (imports by AST and path strings; planted import found).
+- C16 `v4-fire.yml` (from `story/g10-part2b-release`), `forecast-capture.yml`, `capture-watch.yml`;
+  `tests/v4_pack/test_fire_workflow.py` (the day step and the commit step run as GitHub runs them, offline);
+  plants: fire on any receipt, no pipefail, no alert.
+- C17 `v4_cost.py`; `test_v4_cost.py`; plants: missing seal as 0, uncounted calls.
+- C18 gates below; largest file in `fno/ai` 171 lines.
+- C19 `v4_collect.py` (`Waiting`, `ReceiptUnknown`); plants: unknown receipt judged late.
+
+*Changes from the passed text, each for a reason found while building or by the self-review:*
+1. C2's caps are per question, not "at most 1": V1 0.01, V2 0.05. Strong evidence: NIFTY's closes 2017-2026, the
+   largest realised one-session close-proxy variance 0.0193 (23 Mar 2020), five sessions 0.0287, median 2.6e-5.
+   Percent squared, annualised figures and volatility points are refused; a standard deviation for V1 (about 0.008)
+   still passes, a known gap.
+2. C8 reads BG1's own meter, not the signal file: no schedule writes `accounting/budget/<month>_signal.json`.
+3. C14 replays 22 Oct 2026, not O11's 16 Oct: v4's rule rows are live only from 22 Oct (the back-fill ends 15 Oct).
+4. C4: the input is written as columns (closes, histories, the chain), not one object per row, and each `RV_s` to 6
+   significant digits: 33 KB became 18-19 KB, because the routine's model retypes the text into `brief`.
+5. The pointer carries its input's SHA-256; `brief` refuses a mis-copied text ("copy it again exactly"). The owner's
+   step 3 must let the model retry that one refusal: the exact text is in `F1-G5-owner-checklist.md` (the
+   orchestrator puts it to the owner with step 4).
+6. Collect no longer rebuilds the input: the fire log keeps the labels and Hybrid's envelope (rule numbers only),
+   because the files an input is built from can still change after the fire (the self-review's blocking finding).
+7. v4's first 10 fired days need a recorded transcript audit before they score, as v2's did (before round 2c the
+   gate read v2's fire logs only). Someone must record them: `ai audit-record --protocol v4`.
+8. `register-v4-slots` registers per rules row (a question whose rules row lands later is added by a later run).
+
+*Self-review (quality rule 3):* three independent agents on dfb26381 (protocol logic, book side and prompts,
+workflows and wiring), then a fourth on the fixes. Accepted and fixed, each with a test: collect's rebuild from
+changing files (blocking); `v4-fire.yml` failing every session before go-live on `git add` of a missing folder
+(blocking); a fire step whose failure `tee` hid (blocking); the pointer retyped with no copy check; unchecked fields
+shown by `brief`, an editable envelope; weak variance caps; tracebacks on odd values; v2 collect writing
+`no_submission` after go-live; a refused question crashing settle; a lost fire log becoming `not_fired`; a failed
+pack read unalerted; v4 runs missing from BG1's capture coverage; the alert step's name cut by YAML at ` #`; ten
+mutations that survived. Not changed: C10's pin (above).
+
+*Real output sample* (`tests/e2e_acceptance/ai_v4_day.py` on 22 Oct 2026: the committed closes, rule and baseline
+rows and A16 rows; a fixture pack, scripted routines, recorded receipts):
+
+```
+Omenix F&O AI forecasts v4 (GitHub Actions): 2026-10-22: fired book2_hybrid, book3_ai of book2_hybrid, book3_ai
+Omenix F&O AI forecasts v4 (GitHub Actions): 2026-10-22: book2_hybrid on_time: collected; its rows land once its audit settles
+Omenix F&O AI forecasts v4 (GitHub Actions): 2026-10-22: book3_ai on_time: collected; its rows land once its audit settles
+Omenix F&O AI forecasts v4: 10 v4 row(s) added; 0 day(s) awaiting audit
+book2_hybrid_v2 v1_rv_next_session: invalid (no rules value and no baseline that day: no envelope, null; no miss)
+book2_hybrid_v2 v6_abs_move_2pct_next_session: ok 0.064 / book3_ai_v2 ...: ok 0.04
+G8, V6a, live cohort, n 1: Brier book2_hybrid_v2 0.004096, book3_ai_v2 0.0016, weather_vix_v1 0.000784, base_rate 0.000711
+Omenix F&O AI v4 slots: refused, nothing written: FREEZE_v4.md does not exist: the AI slots are registered after the freeze
+```
+
+*Waiting on others (none of these tests fail now; they use fakes of the agreed interfaces):* G10's real daily
+release (`ReleasedPacks`, the receipt push that starts `v4-fire.yml`) and G8's move from `research/data/v4_days/`;
+the freeze builder's `FREEZE_v4.md` and rules rows (then `register-v4-slots`); G7b's V2 primary baseline. The
+rule-8 end-to-end run needs G10's release on a live day.
+
+*Open for the owner (through the orchestrator):* BG1 "forecasters last" and fail open (C8); whether the reveal wait
+counts in BG1's cap (C17 shows working, waiting and calls apart); steps 3 and 4 of both routines' stored prompt.
+
+*Gates:* see the message to the judge (full suite, ruff, format, `check_imports`, `check_records` on the head;
+`check_numbers` on `main` at merge).
