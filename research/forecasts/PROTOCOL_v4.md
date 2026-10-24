@@ -42,7 +42,8 @@ Evidence labels as the project uses them: **strong evidence**, **some evidence**
 
 ### 1.2 The questions
 `d` is the forecast day (a scored session, section 2); the cutoff is **every field observed by 14:40:00 IST on `d`,
-captured from 14:30:00, each with its real `observed_at`** (section 1.6; G1 v2 keeps 15:00 for its own questions);
+captured in the window that opens at 14:30:00, each with its real `observed_at`** (the capture starts inside it at
+14:32:00, section 1.6; G1 v2 keeps 15:00 for its own questions);
 `d+n` is the n-th scored session after `d`.
 
 | Id | Name | Type | Outcome | Block L |
@@ -118,7 +119,7 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
 
 | Time (IST, on `d`) | What happens |
 |---|---|
-| 14:30:00 | The pack's capture starts (A4e's named window: spot, the future of `e`, India VIX, the chains, IV30); an incomplete capture retries |
+| 14:30:00 | The pack's capture window opens; the capture starts inside it, at 14:32:00, after A16's 14:30 mark, so the two never hit Groww's 300-a-minute cap together (A4e's named window: spot, the future of `e`, India VIX, the chains, IV30); an incomplete capture retries until the cutoff |
 | 14:40:00 | **The pack's cutoff:** a field is in the pack only if its answer was received by 14:40:00 |
 | right after the capture ends, by 14:45:00 | **One release:** one pack, one SHA-256, to every family at the same moment; a release record written after 14:45:00 makes the day `system_late` ("released late"; G10 completion, decision D1, owner decided 24 Oct (DESK_DECISIONS)) |
 | 15:10:00 | **One deadline:** a commitment counts only if GitHub received its push by then (GitHub's receipt time, never a commit's own time) |
