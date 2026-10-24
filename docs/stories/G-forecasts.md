@@ -2953,7 +2953,9 @@ outside service). Research only: nothing here places an order.
 **How it is run** (after the PASS and merge; the orchestrator decides who): Actions → `routine-fire-probe` → Run
 workflow, outside 14:00-15:30 IST on a session day, after the owner pasted the new prompts. Read the line "fired
 24,576 bytes to book3_ai: <link>" or "NOT fired (...): <reason>"; open the link: the session's final message must be
-"pointer refused (not one line of JSON)". A 4xx such as 413 means the cap is wrong for v4.
+"pointer refused (not one line of JSON)", and the session's first message shows the whole 24,576-character text (the
+quote proves the end arrived, the length the middle). A cut text ends instead on "refused: longer than any pointer"
+or "refused: not JSON (...)". A 4xx such as 413 means the cap is wrong for v4.
 
 **Claims** (builder):
 - `fno/ai/fire_probe.py` (`ProbeText`, `fire_probe`), `fno/ai/cli.py` (`ai fire-probe`), the workflow, and
@@ -2965,3 +2967,9 @@ workflow, outside 14:00-15:30 IST on a session day, after the owner pasted the n
   the line; exit 0 on a refusal.
 - Size 24 KiB, not 19.5 KB as first proposed: 19.5 KB is the largest v4 pointer measured; 24 KiB proves that size with
   about 25% margin for a day with more chain rows, still under a third of the cap (reasoning only).
+- Self-review (an independent agent on 428e21dc6), each checked: blocking, `test_every_job_is_watched` failed (every
+  workflow must be watched or named): the probe is in its `NOT_WATCHED`, since a deliberate refusal is the probe's
+  answer, never a failed capture for O8/O10. Minor, fixed: the two secrets moved from the job onto the fire step, so
+  `pip install` never holds the token (test pinned). Minor, kept as docs: the 14:00-15:30 rule has no code guard (a
+  probe beside a real run is a second session, traced harmless: no shared state). Minor, said here: the probe
+  session's few minutes are recorded nowhere (usage rows come from reveal timing files only).

@@ -102,7 +102,10 @@ def test_the_workflow_runs_only_by_hand_reads_only_and_pushes_nothing():
     assert "python -m fno ai fire-probe" in runs and "git " not in runs
 
 
-def test_the_workflow_holds_book_3s_two_secrets_only():
-    env = _workflow()["jobs"]["probe"]["env"]
+def test_the_workflow_holds_book_3s_two_secrets_only_and_only_on_the_fire_step():
+    job = _workflow()["jobs"]["probe"]
+    holding = [step for step in job["steps"] if "env" in step]
+    assert "env" not in job and len(holding) == 1 and "fire-probe" in holding[0]["run"]  # never during the install
+    env = holding[0]["env"]
     assert set(env) == {ENV_ROUTINE_BOOK3_TRIGGER_ID, ENV_ROUTINE_BOOK3_TOKEN}
     assert all(value == f"${{{{ secrets.{name} }}}}" for name, value in env.items())
