@@ -32,6 +32,7 @@ on:
       - postmortem-weekly
       - quote-recorder-nse
       - recorder-watch
+      - routine-watch
       - stress-factor
       - vix-history
     types: [completed]

@@ -1,0 +1,41 @@
+# Story O13: the routine watcher. Every hour it reads today's routine run logs in the owner's Drive
+# (logs/routines/<day>/<routine>/<run>/, written by `python -m fno routine-log` inside each routine) and posts one
+# #fno-desk line for each expected run that is missing, stuck or failed, with the failing step and its last lines.
+# Each finding is alerted once (a marker in Drive's logs/routines/<day>/_alerts/). A failed step is already alerted by
+# the routine itself the moment it fails; this job is the safety net for runs that never started or died silently.
+# GitHub's schedule can start late, so a late run only delays the safety net, never the in-run alert.
+# Secrets: the Drive and Slack ones the other jobs use; none is printed or written to a file. Never trades.
+name: routine-watch
+
+on:
+  schedule:
+    - cron: "17 * * * *" # every hour
+  workflow_dispatch:
+
+permissions:
+  contents: read # reads the code and NSE's calendar; the markers live in Drive
+
+concurrency:
+  group: routine-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FNO_GDRIVE_FOLDER_ID: ${{ secrets.FNO_GDRIVE_FOLDER_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_ID: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_ID }}
+      FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
+      FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
+      FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Alert every missing, stuck or failed routine run of today (once each)
+        run: python -m fno routine-log watch

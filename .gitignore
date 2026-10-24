@@ -46,3 +46,4 @@ research/school/counts/**/.*.part
 
 # Story MS-SIM: the practice simulator's records (practice only; never the paper record)
 /work/school_practice/
+/work/routine-logs/
