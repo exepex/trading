@@ -280,4 +280,31 @@ conditional on the reader's module.
 
 ## Claims
 
-(Filled by the builder for the judge.)
+### Part 1 (24 Oct 2026, session 011SsKz4): NOT complete, not for merge
+
+Built: registration (`research/ideas/CARD_V5V1.md`, trial 100, commit 5868f95d7), `fno/forecast_v5_v1/` (history,
+capture, records, method, report, gap) and 45 tests in `tests/forecast_v5_v1/`. **Not built, waiting:** G7b's candle
+reader and W8 pairing (interface sent through the orchestrator, 24 Oct), so no `wiring.py`, `cli.py`, freeze record
+or freeze check yet; criteria 5 (the gap from G7b's pairing), 9, 11's import half and 12's record are open.
+
+| Criterion | Status | Code | Test (plant caught) |
+|---|---|---|---|
+| 1 splice | MET | `history.splice` | `test_v5v1_history.py` on real 16-23 Oct rows (`<` to `<=` at the cutoff; candle priority dropped) |
+| 2 no v4 change | MET | diff touches no byte-checked path | `git diff --name-only` vs main; full suite |
+| 3 equals G7 | MET | `capture.V5Day` runs v4's `DayForecasts` and `capture_day` | `test_each_value_equals_g7s_own_function_on_the_same_series` (G7's `Ewma`, `Har`, `trailing_previous_session`, `close_blend`) |
+| 4 label, hash | MET | `records.V5Record` | `test_every_row_carries_...` |
+| 5 gap | PARTLY | `gap.gap_table` prints given pairs | real 19/21/22 Oct = 0.962/0.997/1.009 with test-built pairs; G7b's pairing not on main |
+| 6 live outcomes | MET | `report.score` | target agrees with v4's `SeriesOutcomes` V1 rule (`s > d` to `s >= d` caught) |
+| 7 O1 step | later | branch `story/g14-o1-step` after step 3 | - |
+| 8 registration first | MET | - | `test_v5v1_registration_first.py` on real history plus two bad repositories |
+| 9 freeze refusal | open | - | - |
+| 10 size, ruff, suite | MET | largest file 82 lines | ruff, full suite |
+| 11 one reader | PARTLY | package names neither candle files nor their table | `test_the_package_never_names_...`; the import half needs G7b's reader |
+| 12 freeze coverage | PARTLY | `method.freeze_files`, `SHARED` (fail closed) | walk = checked plus `SHARED` (dropping a `SHARED` entry caught); record not written |
+
+Self-review (independent agent): no blocking finding. Fixed: the target now tested against v4's own V1 outcome
+rule (its finding 2), a misnamed test (3), a dead `SHARED` entry (7), Monday 26 Oct's missing trailing (8), the
+`not_started` pin (9), the source-count wording (6). Waiting for wiring: the reader and `wiring.py` in the method
+hash (1; the freeze already lists every package file). Stated, unchanged as v4: special sessions in the candle
+history enter HAR intraday as v4's live rows would (5); a past session with no A16 row stays pending (10).
+Deviation: the card lives in `research/ideas/` (Registration, above).
