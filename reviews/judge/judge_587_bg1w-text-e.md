@@ -54,3 +54,38 @@ cap, the basis and C8. Until G11 merges, main's timing files have no `sealed_at`
 
 None (text round). The text's plants: the wait into the cap and into the basis, a never-sealed run as 0 and as start
 to end, the migrated values against `git show`.
+
+## Addendum 1
+
+**BG1-w story text, round 2 of 2 (story/bg1w-reveal-wait @ 57736a342): PASS. Lane 1.** Judge E. The only story change
+is `docs/stories/BG-budget.md` (`git diff origin/main...57736a342 --stat`: that one file, +124); the rest is main merged
+in. Judged by reading. Doc-reading tests with the token kept: 853 passed, 15 xfailed.
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF1: the no-seal rule called the owner's; its cost unstated | **Accepted, fixed** | Context now says only Option A is the owner's. The rule is "the builder's choice, one switch, for the owner", with both rules and their costs: under `no_seal_unknown`, the month reads `unknown` until it ends and C8 fails open, citing `usage_record.py:5` and `cap.py:94-95` as I found them. Criterion 2 tests both rules (G, E, B), with plants for the default, a row written as 0, and the unknown rule writing a row. The 14 Oct case is cited |
+| m1: 7 book rows | Fixed | Matches the ledger: book2_hybrid 4, book3_ai 3, plus 3 post-mortem rows |
+| m2: the basis reason | Fixed | It now gives the owner's "working minutes only" and the smaller cap (`cap.py:73-79`) |
+| m3: "byte for byte" | Fixed | "the same values ..., with `wait_minutes` blank" |
+| m4: who writes the C8 test | Fixed | This story's test checks that the meter's rows carry only working minutes in `minutes`. The `MeterBudgetStop` test is assigned to G11's builder session. C8 sums `row["minutes"]` (`budget_stop.py` on G11's branch) |
+| m5: gap-list omissions | Fixed | The contract (`fno-budget.yaml:19`, `x-fill: not_built` at line 11, true), the `usage_gaps` alert text, the repeated refused line, and plants for criteria 3, 4 and 6 are all named |
+
+**Ruling on the constant instead of a config key: accepted.** BG1's tunable numbers live in `config.yaml`'s `budget`
+section (`CapSettings.from_config`). This is a rule choice that changes once, when the owner answers, and is lane 1
+either way. As a config key it would have to be passed to every place that builds the reader, and one of them is
+G11/F8c's `usage_record.py:47` (`SelfTimedUsageReader(path)`), which BG1-w does not edit. A named value in
+`fno/budget/constants.py` (that module's own constants file, by its docstring) is one line to change and keeps
+`fno/ai/` untouched. Condition for the code round: the tests pass each rule explicitly, not only the default.
+
+**Ruling on the default `no_seal_upper_bound` (reasoning only, pending the owner).** It is safe for the budget: an
+over-count makes the books stop earlier, never later. It keeps the level known. It caps idle minutes only of runs
+that never sealed. Those runs have no seal-to-reveal split, so Option A's "the wait is never capped" has nothing to
+apply to; the text says so. The owner's answer decides.
+
+## Findings
+
+None blocking, none should-fix, none minor.
+
+## Plants
+
+None (text round). The text's plants: one per criterion, plus the switch flipped. The code round runs them.
