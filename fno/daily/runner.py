@@ -7,16 +7,14 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
-from ..constants import STEP_FAILED, STEP_REFUSED
 from ..desk.daily_ports import Waiter
 from ..desk.daily_run import DailyRun, RunStopped
-from ..desk.run_log import RunLog
+from ..desk.run_log import RunLog, problem_steps
 from .quote_parts import QuoteParts
 
 DAY_DONE = "day done"
 WITH_PROBLEMS = "day done with problems: {steps}"
 NO_CARD = "; no card today"
-PROBLEMS = (STEP_FAILED, STEP_REFUSED)
 QUOTES_STEP, QUOTES_DONE_STEP = "quotes", "quotes_done"
 
 
@@ -58,7 +56,7 @@ class DayRunner:
             self._finish_parts(day)
             return 1, f"{stopped}{NO_CARD}"
         self._finish_parts(day)  # a closed day records only `skipped`: its parts (each "not a trading day") end here
-        problems = [name for name, step in log.steps.items() if step["result"].get("status") in PROBLEMS]
+        problems = [name for name, _ in problem_steps(log.steps)]
         return (1, WITH_PROBLEMS.format(steps=", ".join(problems))) if problems else (0, DAY_DONE)
 
     def _finish_parts(self, day: date) -> None:

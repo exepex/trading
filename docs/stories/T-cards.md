@@ -481,7 +481,8 @@ never read a card without knowing that part of the day did not run.
     in r]`. On that result it gives `['status', 'reason']`, a substring test on a string. The card would then say
     "late or not committed: status, reason" as a final outcome, naming two non-books and hiding the failure.
   - Fix: a decisions result whose status is a problem under O1's rule (the same `problem_steps` status set) gives the
-    final outcome "decisions step <status> today" with code `CARD_DATA_CHECK_FAILED`, and is never read as books.
+    final outcome "decisions step <status>: <reason>" (the orchestrator's wording, 24 Oct; the reason is the logged
+    code, e.g. "raised:NotImplementedError") with code `CARD_DATA_CHECK_FAILED`, and is never read as books.
   - The snapshot check already fails closed ("no valid execution snapshot", `data_check_failed`), so it is
     unchanged.
 
@@ -500,8 +501,9 @@ Out:
 4. The runner's last line is unchanged ("day done with problems: <steps>"), and both the runner and the card use the
    same `problem_steps`.
 5. The card reads the run log only through `RunLogReader` and `problem_steps`, never by matching text.
-6. A `decisions` step logged `failed` (or `refused`) gives T2's decisions outcome "decisions step failed today" (or
-   "refused"), with code `CARD_DATA_CHECK_FAILED`. It never names a book "status" or "reason" (judge 567).
+6. A `decisions` step logged `failed` (or `refused`) gives T2's decisions outcome "decisions step failed: <reason>"
+   (or "refused: <reason>"), with code `CARD_DATA_CHECK_FAILED`. Any other step-level status is shown as it is, with no
+   code. It never names a book "status" or "reason" (judge 567).
 
 **Test plan:**
 1. Positive: a planted committed run log with `snapshot` failed and `fills` refused gives the exact line, in order.
@@ -510,7 +512,7 @@ Out:
 4. Shared rule: the runner's existing tests pass unchanged, and a test shows that the runner and the card list the
    same steps for one log.
 5. Decisions after R2: a planted committed run log with `decisions` = `{"status": "failed", "reason":
-   "raised:NotImplementedError"}` gives "decisions step failed today" and `data_check_failed`, and neither "status" nor
+   "raised:NotImplementedError"}` gives "decisions step failed: raised:NotImplementedError" and `data_check_failed`, and neither "status" nor
    "reason" as a book. A normal per-book result is unchanged (T2's existing tests).
 6. Plants: dropping `refused` from the rule fails test 1; a card that ignores the reader's steps fails test 1;
    removing the decisions status check fails test 5.
@@ -537,6 +539,28 @@ move of the rule into `problem_steps` is asked of them before code.
 - Known limit, stated for the judge: steps after the card in `DAILY_RUN_STEPS` (G13's records and scores, the
     candles, the close reads) run after the card is posted, so a failure there is never on the card. It stays in the
     run's last line and its own alert.
+
+**Builder self-review (quality rule 3; code on `story/t1d-failed-steps`):** two independent agents (correctness,
+silent failures).
+- FIXED:
+  - a decisions result with any other step-level `status` (for example a later desk freeze) was still read as books;
+    now any string `status` is a step-level result, which gives data_check_failed only when it is a problem status;
+  - a run log whose `steps` is not a mapping crashed the line; `problem_steps` now returns `[]`;
+  - one assertion passed by construction;
+  - the wiring had no test (dropping `ProblemSteps` now fails one).
+- KEPT, reported to O1's builder: some desk steps report a problem without a `status` field (an exit review's
+  per-book `error`, `trade_marks`' `{"marked": False}`, `pack`'s `{"built": False}`). O1's rule does not count them,
+  so neither the run's last line nor this card line names them. Changing what a problem is belongs to O1's rule,
+  not the card (Known limit below).
+- KEPT: the shared-rule test checks the identity of `problem_steps` in the runner and calls it on one log, rather than
+  running the whole `DayRunner`.
+
+**Known limit (self-review):** a step that records its failure without a `status` (see above) is not named. Each of
+those still sends its own alert to #fno-desk.
+
+**Output sample** (the test's planted run log, `tests/cards/test_problem_steps.py`):
+`Steps with problems today: snapshot (failed), fills (refused)`, and for criterion 6
+`- decisions: decisions step failed: raised:NotImplementedError` with `Status: NO TRADE (data_check_failed)`.
 
 **Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety`) · **Size:** S · **Status:** story text, waiting for judge I;
 code after R2 merges

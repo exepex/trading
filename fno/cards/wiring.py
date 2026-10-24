@@ -29,6 +29,7 @@ from .deliveries import RepoDeliveryFiles
 from .forecasts import LiveCaptureForecasts
 from .issue import CardIssuer
 from .posting import CardPoster, NoCardPoster, SlackCardPoster
+from .problem_steps import ProblemSteps
 from .record_store import CardRecordStore, DriveCardRecords, NoCardRecords
 from .recorded_weather import RecordedWeather
 from .render import SlackTextRenderer
@@ -77,7 +78,7 @@ def build_status(records: GitHeadRecords, root: Path = ROOT) -> RuledStatus:
         DecisionOutcome(records, runs, timetable),
         ExecutionOutcome(runs, timetable, lambda d: previous.answer(d).previous),
     )
-    return RuledStatus(RegistryStatus(records, DownloadedRecords(root)), RuleChecks(rules))
+    return RuledStatus(RegistryStatus(records, DownloadedRecords(root)), RuleChecks(rules), ProblemSteps(runs))
 
 
 def build_card_poster(env=os.environ) -> CardPoster:

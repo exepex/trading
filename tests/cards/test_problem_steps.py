@@ -1,0 +1,72 @@
+"""Story T1d: the card names the steps that failed or were refused today, with O1's own rule, read through T2's
+run-log reader (criteria 1-5); and since O1's R2 a failed decisions step is never read as books (criterion 6)."""
+
+from fno.cards.problem_steps import ProblemSteps
+from fno.cards.rule_checks import DecisionOutcome, ExecutionOutcome, RunLogReader, run_log_path
+from fno.cards.ruled_status import REFUSED, RuleChecks, RuledStatus
+from fno.constants import CARD_DATA_CHECK_FAILED, STEP_FAILED, STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
+from fno.daily import runner
+from fno.desk import run_log
+
+from .fakes import FakeRecords
+from .test_rule_checks import BEFORE, DAY, ON_TIME, TODAY_TIMES, Base, _log
+
+FAILED_SNAPSHOT = {"status": STEP_FAILED, "reason": "raised:NotImplementedError"}
+REFUSED_FILLS = {"status": STEP_REFUSED, "reason": "needs snapshot, which failed today"}
+
+
+def status_lines(files: dict) -> tuple[str, ...]:
+    records = FakeRecords(files)
+    runs = RunLogReader(records)
+    rules = (DecisionOutcome(records, runs, TODAY_TIMES, ("book1_rules", "book2_hybrid")),
+             ExecutionOutcome(runs, TODAY_TIMES, lambda d: BEFORE))  # fmt: skip
+    return RuledStatus(Base(), RuleChecks(rules), ProblemSteps(runs)).status(DAY).section.lines
+
+
+def test_failed_and_refused_steps_are_named_with_their_status_in_run_order():
+    log = _log(weather={"status": STEP_OK}, decisions=ON_TIME, snapshot=FAILED_SNAPSHOT, fills=REFUSED_FILLS,
+               exits={"status": STEP_OK})  # fmt: skip
+    lines = status_lines({run_log_path(DAY): log})
+    assert lines[-1] == "Steps with problems today: snapshot (failed), fills (refused)"
+    assert "needs snapshot" not in lines[-1]  # the reason stays in the step's own alert
+
+
+def test_no_line_when_every_step_is_ok_or_not_live_or_the_desk_has_not_run():
+    log = _log(weather={"status": STEP_OK}, forecasts_v4={"status": STEP_NOT_LIVE}, decisions=ON_TIME)
+    assert not any(line.startswith("Steps with problems") for line in status_lines({run_log_path(DAY): log}))
+    assert not any(line.startswith("Steps with problems") for line in status_lines({}))
+
+
+def test_the_run_s_last_line_and_the_card_share_o1_s_one_rule():
+    """Criterion 4: one rule, moved not copied: the runner calls `run_log.problem_steps`, and has no rule of its own."""
+    assert runner.problem_steps is run_log.problem_steps and not hasattr(runner, "PROBLEMS")
+    steps = {"snapshot": {"result": FAILED_SNAPSHOT}, "fills": {"result": REFUSED_FILLS}, "exits": {"result": {}}}
+    assert run_log.problem_steps(steps) == [("snapshot", STEP_FAILED), ("fills", STEP_REFUSED)]
+
+
+def test_a_failed_decisions_step_is_a_data_check_failure_never_late_books_status_and_reason():
+    """Criterion 6 (judge 567): O1's R2 commits a raised decisions step as {status, reason}."""
+    lines = status_lines({run_log_path(DAY): _log(decisions=FAILED_SNAPSHOT)})
+    assert f"Status: NO TRADE ({CARD_DATA_CHECK_FAILED})" == lines[0] and REFUSED in lines
+    assert "- decisions: decisions step failed: raised:NotImplementedError" in lines
+    assert not any("late or not committed" in line for line in lines)
+    assert lines[-1] == "Steps with problems today: decisions (failed)"
+
+
+def test_a_decisions_step_with_another_step_level_status_is_shown_as_it_is_never_as_books():
+    """Self-review: any step-level `status` (a later desk freeze, say) is never read as book names."""
+    lines = status_lines({run_log_path(DAY): _log(decisions={"status": "frozen", "reason": "desk frozen"})})
+    assert "- decisions: decisions step frozen: desk frozen" in lines and lines[0].endswith("(no_approved_strategy)")
+
+
+def test_odd_run_log_shapes_never_crash_the_rule():
+    assert run_log.problem_steps([]) == [] and run_log.problem_steps({"x": "text", "y": {"result": []}}) == []
+
+
+def test_the_app_s_card_wires_the_problem_line():
+    """Self-review: dropping `ProblemSteps` from the wiring must fail a test, not silently remove the line."""
+    from fno.cards.committed import GitHeadRecords
+    from fno.cards.wiring import build_status
+    from fno.config import ROOT
+
+    assert isinstance(build_status(GitHeadRecords(ROOT), ROOT).problems, ProblemSteps)

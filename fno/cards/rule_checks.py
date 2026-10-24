@@ -22,7 +22,7 @@ from ..constants import (
     RUN_LOG_DECISIONS_STEP,
     VALIDITY_FAILURES_FILE,
 )
-from ..desk.run_log import RUNS_FOLDER
+from ..desk.run_log import PROBLEMS, RUNS_FOLDER
 from ..desk.timetable import Timetable
 from .committed import CommittedRecords
 from .sections import UsedRecord
@@ -31,6 +31,7 @@ SNAPSHOT_STEP = "snapshot"  # the desk's execution capture, where C3's checks ru
 NOT_RUN = "not yet decided: the desk has not run today"
 PENDING = "not yet decided (final at {at:%H:%M} IST)"
 UNREADABLE = "{path}: not readable ({why})"
+STEP_PROBLEM = "decisions step {status}: {reason}"  # O1's R2 result, the orchestrator's wording (T1d)
 
 
 @dataclass(frozen=True)
@@ -94,7 +95,12 @@ class DecisionOutcome(RuleSource):
         steps, used = self.runs.steps(day)
         if steps is None or RUN_LOG_DECISIONS_STEP not in steps:
             return RuleOutcome(self.name, False, _pending(steps, self.at), used=used)
-        late = [b for b, r in steps[RUN_LOG_DECISIONS_STEP]["result"].items() if "run_id" not in r]
+        result = steps[RUN_LOG_DECISIONS_STEP]["result"]
+        if isinstance(result.get("status"), str):  # a step-level result (O1's R2 and later), never books (T1d)
+            line = STEP_PROBLEM.format(status=result["status"], reason=result.get("reason", ""))
+            return RuleOutcome(self.name, True, line, CARD_DATA_CHECK_FAILED if result["status"] in PROBLEMS else "",
+                               used)  # fmt: skip
+        late = [b for b, r in result.items() if "run_id" not in r]
         refused, files = self._refusals(day)
         parts = [f"late or not committed: {', '.join(late)}" if late else "every book on time"]
         parts.append("C4 refused: " + "; ".join(f"{b} ({', '.join(c)})" for b, c in refused.items()) if refused
