@@ -42,3 +42,27 @@ no exercised line: the edition is live on 23 Oct. Read back from #fno-forecast: 
 
 11 planted: 8 caught; 3 survived. Two of the three are equivalent in practice (one post per command; preview under
 the mode). The third is finding 1.
+
+## Addendum 1
+
+**REH1k code, round 2 of 2 (story/reh1k-lab-editions @ cd7cf403d): PASS. Lane 1.** Judge E, judge 1 of 2; judge
+B's verdict not read.
+
+- **No code changed this round.** `git diff 34aad0d85 cd7cf403d -- fno/forecast_lab fno/rehearsal` is empty. The two
+  `fno/forecast_v5_v1/` files in `git diff -- fno/` come from main, by the G14 amendment 2 merge (110cfae03, the
+  branch's second parent, on main). The round changes `tests/rehearsal/test_lab_editions.py` and the Claims only.
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF1: an exercised command that succeeds was untested | **Accepted, fixed** | `test_a_not_live_command_that_exits_0_is_exercised_ok_and_nothing_failed` asserts exercised `{"status": "ok"}`, "2 commands done" and the line "... lab open ok". My K7 (exit 0 recorded as failed): **1 failed**, caught |
+| m1: preview under the mode | Fixed | My K6 (preview built without the real dates): **2 failed**, caught |
+
+K4 (one post per command) still passes, and stays equivalent: each routine has exactly one live-key command.
+
+**Gates** on trial merge a2530415b with origin/main e982de095: ruff clean, format clean (2,629 files), imports clean
+(2,758 files), record scan clean (9,257 files). Full suite with the token kept: **16,533 passed, 14 xfailed, 0
+failed**, matching the builder's count.
+
+## Findings
+
+None blocking, none should-fix, none minor.
