@@ -707,6 +707,216 @@ first live day (rule 8); no Groww quote file in the repository.
 
 **Depends:** A4, A4b, A5 · **Size:** M · **Status:** story text for the judge's check, revision 3 (15 Oct 2026: three indices, owner; judge 151's should-fix and minor)
 
+### A4c-2. The alert says what happened to each index (DRY2 R1, 24 Oct 2026)
+
+**Why.** DRY2 (`docs/dryruns/DRY2_2026-10-23.md`, row d8 and R1): the nifty part died at 14:38, so the indices part
+started at once, more than 20 minutes before 15:01. `IndexRecording` returned "too early" for every index and wrote no
+none marker (`close_day` is skipped for it). But the alert said "not recorded today (canonical none)", because
+`INDEX_ALERT` hard-codes that phrase for every index not recorded. A false alert misleads whoever reads it: a reader
+of "canonical none" thinks the day is closed and a rerun is pointless, when in fact a rerun before 15:13 would record.
+
+**What changes (A4c's own code only):**
+- The alert names each index's own outcome:
+  - an index whose day was closed none (incomplete at the window's end, the window closed, not listed, no weekly)
+    keeps "canonical none" with its reason;
+  - an index not started because the run came too early says `not started: too early (before 14:41); a rerun from
+    14:41 to 15:13 records it` (judge 568 minor 1).
+    - 14:41 is 15:01 minus `MAX_EARLY_WAIT_SECONDS` (20 minutes), from one function in A4's recorder,
+      `earliest_waiting_start(window_start)`, never typed.
+    - O1 builds its start time on the same function: 14:44 = 14:41 + its `START_MARGIN` (agreed with the O1
+      builder, 24 Oct). Whichever branch merges second switches O1's `earliest_start` to it, leaving O1's pinned
+      14:38 and 14:44 unchanged.
+    - 15:13 is `INDEX_WINDOW_END`.
+- Its result line says the same, for every index of the run, A4f's NIFTY weekly slot included (one `IndexRecording`).
+- The exit code is unchanged: too early stays exit 1, so O1 records the part's problem and the day's last line names
+  it, as now.
+- The fixed wording moves into one place, so the line and the alert cannot disagree.
+
+**Out of scope, with the reason:**
+- **The root cause:** the indices part starting before 14:41 lies in O1's `fno/daily/quote_parts.py`, which has
+  `starts_after="nifty"` and no `not_before`. It is proposed to the O1 builder (a `not_before` of 14:41).
+- **Never waiting longer than 20 minutes** stays: a hand run started an hour early still stops, now with a true line.
+
+**Acceptance criteria:**
+1. A run at 14:38 (23 minutes early) on a session: every index's line and the one alert say `not started: too early
+   (before 14:41)`. The alert does not hold "canonical none", and no none marker is written.
+2. **Boundaries:**
+   - a run at 14:41:00 waits and records;
+   - a run at 14:40:59 is "too early".
+3. An index incomplete at 15:13 keeps "canonical none" in the alert, beside a "too early" one if both occur.
+4. A quiet day (not a trading day, already recorded) still sends no alert, as now.
+5. The unsent-alert test prints the new text.
+6. Too early stays exit 1 with exactly one alert (judge 568 minor 2).
+7. The NIFTY weekly slot (`WEEKLY_NAME`), run too early with the others, gets the same line and alert wording.
+8. `earliest_waiting_start` gives 14:41 for 15:01 and 14:35 for 14:55.
+9. Gates: full suite, ruff, `check_imports`; no file over 350 lines.
+
+**Gap list (quality rule 2):**
+
+| Rule or requirement (source) | Where |
+|---|---|
+| A4c's alert contract: one alert for every index not recorded, exit 1 | criteria 1, 3, 6 |
+| O1's part contract: a non-zero exit is the part's problem, named in the day's last line | unchanged (criterion 6 keeps exit 1); O1's own tests |
+| O2's unsent-alert text (an alert Slack did not take is printed with its text) | criterion 5 |
+| Named constants, no second literal (CLAUDE.md "Code") | criteria 1, 8; `TOO_EARLY_REASON`, `CLOSED_NONE`, `earliest_waiting_start` |
+| The public record: `journal/runs` lines hold no level | the new text holds times only; criterion 1 checks the full lines |
+| A4f's weekly slot gets the same wording | criterion 7 |
+| No file over 350 lines | criterion 9 |
+| Broken-code proof (quality rule 4) | claims at code time: planted bugs per criterion |
+| Good, bad, boundary and empty cases (quality rule 5) | criteria 1-4 (empty: a quiet day, criterion 4) |
+| A real output sample (quality rule 6) | claims: DRY2's 14:38 case, replayed in a test, its exact lines |
+| An end-to-end run after merge (quality rule 8) | the next 3 pm run's indices lines; a too-early case only if one happens, else said so |
+| The root cause (the part's start time) | Out: O1's R1 (story/o1-r1r2-step-safety), with judges B and E |
+
+**Lane:** 1 (an alert to #fno-desk), judge F · **Size:** S · **Status:** text PASS (judge 568 add. 1, a2e3061e); code round 1 FAIL (judge 571); code round 2 for judge F (24 Oct 2026)
+
+**Claims (code at cf90bfac, branch `story/a4c-alert-outcome`):**
+- **Code:**
+  - `fno/quotes/recorder.py` `earliest_waiting_start`;
+  - `fno/quotes/indices.py` `EARLIEST_START`, `TOO_EARLY_REASON`, `CLOSED_NONE`, and the too-early result carrying its reason;
+  - `fno/quotes/indices_cli.py` `_why` and `INDEX_ALERT` without the hard-coded "(canonical none)".
+- **Tests:**
+  - `tests/quotes/test_index_recording.py`: 14:38 (criteria 1 and 6); the 14:40:59 and 14:41:00 edges (the fake clock moves 1 s per read: criterion 2); a closed-none index (3); `earliest_waiting_start` (8).
+  - `tests/quotes/test_weekly.py`: the weekly slot (7).
+  - `tests/quotes/test_unsent_alert_text.py`: criterion 5.
+  - The quiet-day tests are unchanged (4).
+- **Gates:** full suite 15114 passed, 15 xfailed; ruff, format and `check_imports` clean; recorder.py 327 lines.
+- **Planted bugs: 5 of 5 caught:**
+
+  | Planted bug | Tests failing |
+  |---|---|
+  | "canonical none" for every index | 2 |
+  | no too-early reason | 2 |
+  | closed-none silent | 3 |
+  | the wait limit off by a minute | 2 |
+  | no rerun hint | 1 |
+
+- **DRY2's 14:38 case, replayed (test fakes, the run started at 14:38; exit 1), refreshed in round 2 from the committed code (2100b22f), word for word:**
+  ```
+  BANKNIFTY too early: - (0 contracts, complete=False) - not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it
+  FINNIFTY too early: - (0 contracts, complete=False) - not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it
+  MIDCPNIFTY too early: - (0 contracts, complete=False) - not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it
+  alert: 3 pm index recorder: not recorded today: BANKNIFTY (not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it); FINNIFTY (not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it); MIDCPNIFTY (not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it). Data only; NIFTY is separate.
+  ```
+  The same fakes at 15:00:30 with FINNIFTY refused (an attempted index closed none):
+  ```
+  BANKNIFTY recorded: banknifty_20261013_150104 (12 contracts, complete=True)
+  FINNIFTY recorded: finnifty_20261013_151250 (0 contracts, complete=False) - incomplete, canonical none
+  MIDCPNIFTY recorded: midcpnifty_20261013_150136 (12 contracts, complete=True)
+  alert: 3 pm index recorder: not recorded today: FINNIFTY (incomplete, canonical none). Data only; NIFTY is separate; the sidecars in research/data/quotes/groww/ say why for FINNIFTY.
+  ```
+- **O1's pinned times:**
+  - O1's branch is untouched by this change. Its 14:38 and 14:44 stay as pinned.
+  - Whichever branch merges second switches O1's `earliest_start` to `earliest_waiting_start(w) + START_MARGIN`, the same values (agreed with the O1 builder, 24 Oct).
+- **After merge (quality rule 8):** the next 3 pm run's indices lines. A too-early case is checked only if one happens; otherwise that is said.
+
+**Round 2 (judge 571's FAIL; builder session 01Mt6dcBU5kp2htdPN2KmiZH, replacing 01MKtUHByHsR9cNwaP5KhFYH; code at 2100b22f):**
+- **Should-fix 1 (rule 3, no self-review): fixed.** Two independent review sessions, given only the branch's diff
+  against `main` and this story (not this builder's conclusions), reviewed the code at 0b8eaaef. Their findings and
+  what was done are in "Builder self-review" below.
+- **Should-fix 2 (the pointer to sidecars that do not exist): fixed.**
+  - `INDEX_ALERT` no longer ends with a fixed pointer. `index_alert` (`fno/quotes/indices_cli.py`) adds
+    `SIDECAR_POINTER` ("; the sidecars in research/data/quotes/groww/ say why for <names>") naming only the
+    indices whose result is an attempt (`ATTEMPTED`, status "recorded").
+  - Why that status: every `_attempt` writes its `.meta.json` before it returns, and only `_attempt` returns
+    "recorded"; "too early" and "window closed" (an index never asked) write none.
+  - Tests (`tests/quotes/test_index_alert_outcome.py` unless named):
+    - the 14:38 alert, word for word, with no pointer and no file at all (`test_index_recording.py`, criterion 1);
+    - an attempted, failed FINNIFTY keeps "say why for FINNIFTY" and its sidecar exists;
+    - boundary: from 15:12:40, BANKNIFTY (attempted) is named, while FINNIFTY and MIDCPNIFTY ("window closed,
+      canonical none", never asked) are not;
+    - a run at 15:13: no pointer at all;
+    - the unsent-alert text, word for word with the pointer (`test_unsent_alert_text.py`).
+- **Minor 1 (the line and the alert built apart): fixed.**
+  - One function, `outcome(result)`, gives the text both print: empty for a complete recording, else the reason
+    and the raw-file error, else "incomplete" or the status, plus "canonical none" exactly when `closes_none`.
+  - `closes_none` (`fno/quotes/indices.py`) is also the test `IndexRecording.run` uses to call `close_day`, so the
+    words "canonical none" and the none marker come from one rule.
+  - A closed-none index's line now says so: `FINNIFTY recorded: ... (0 contracts, complete=False) - incomplete,
+    canonical none`.
+  - Tests:
+    - for six cases (too early, refused, not listed, no NSE file, turn after the window, after the window), the
+      alert holds every failed index, in order, with exactly its line's tail;
+    - the closed-none line and the too-early line, word for word;
+    - the empty cases: a complete day and a quiet day have no tail on any line.
+  - One change of form: the line joined a reason and a raw-file error with " - "; it now uses ", ", as the alert
+    always did. Nothing parses these lines: `grep -rln "contracts, complete" fno tools --include=*.py` finds only the two writers (`fno/quotes/indices_cli.py`, and `fno/quotes/cli.py` for NIFTY, unchanged).
+- **Minor 2 (the too-early decision repeated the rule): fixed, with one deviation stated.**
+  - Both decisions (`QuoteSnapshotRecorder.record`, `IndexRecording.run`) now call
+    `earliest_waiting_moment(day, window_start, max_early_wait)`, the one subtraction. `earliest_waiting_start` is
+    that function's time of day, for the texts and O1.
+  - Why not `earliest_waiting_start` itself, as asked: the recorder's wait is per window. A4e's
+    `max_early_wait_minutes` in `config.yaml` has no upper bound (`fno/quotes/window.py`), and a `time` built from
+    `date.min` raises `OverflowError` once the wait passes the time of day. Reproduce:
+    `python -c "from datetime import *; datetime.combine(date.min, time(14,30)) - timedelta(minutes=900)"`.
+    The old `start - now > wait` test handled such a wait; the new rule computes on the real day and keeps it
+    (`test_a_wait_longer_than_the_time_of_day_lands_on_the_day_before_and_never_fails`).
+  - Today's behaviour is kept to the second. `now < start - wait` equals the old `now < start and start - now > wait`
+    for any wait of 0 or more. Tests (`tests/quotes/test_early_limit.py` and the existing ones):
+    - the indices: 14:41:00 waits, 14:40:59 is too early;
+    - A4's window: 14:35:00 waits, 14:34:59 is too early;
+    - A4e's v4 window with its own 30 minutes: 14:00:00 waits, 13:59:59 is too early and asks nothing.
+- **Minor 3 (the docstring's "one place" claim): fixed.** `earliest_waiting_start`'s docstring now says it is not
+  yet the only place: on `main`, O1's `quote_parts.py` `EARLIEST_START` still subtracts on its own. It names O1's
+  switch as what completes it, with judge 571's exact change (also in the handover below); the switch removes the
+  note. `fno/daily/` is untouched.
+- **Criterion 3, read again (self-review B4):** "beside a too early one if both occur" cannot happen in one run.
+  `IndexRecording.run` returns "too early" for every index or for none (one clock read before any attempt). So
+  criterion 3 is tested as "a closed-none index keeps canonical none"; the two outcomes never share an alert.
+- **Planted bugs, round 2: 14 of 14 caught.** Each was run alone on `tests/quotes` and `tests/daily` (286 tests),
+  then restored:
+
+  | Planted bug | Tests failing |
+  |---|---|
+  | the pointer for every index not recorded | 4 |
+  | the pointer never | 3 |
+  | a never-asked ("window closed") index counted as attempted | 2 |
+  | the line builds its own text again (round 1's `_line`) | 6 |
+  | "canonical none" in the alert only | 13 |
+  | "canonical none" never | 6 |
+  | too early closed none (`closes_none` ignores the statuses) | 4 |
+  | the index runner's `<` made `<=` (14:41:00 too early) | 1 |
+  | the recorder's `<` made `<=` (14:35:00 too early) | 2 |
+  | the recorder ignores a named window's own wait | 2 |
+  | the rule off by one second | 9 |
+  | the rule built from `date.min` (overflow on a long wait) | 1 |
+  | an outcome tail on every line, quiet days included | 2 |
+  | "too early" dropped from `DONE_WITHOUT_ATTEMPT` | 3 |
+
+- **Gates (round 2), on a trial merge of the branch with `main` (fca1bd3f):** full suite (`env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -p no:cacheprovider -n auto`) 15135 passed, 15 xfailed; `ruff check`, `ruff format --check`, `check_imports` and `check_records` clean; `fno/daily/` untouched. Largest files: recorder.py 338, test_index_recording.py 215 lines (limit 350).
+
+**Builder self-review (quality rule 3; round 2).** Two independent review sessions (session_015TXt4cs8LT9DUh1DiHgd54:
+correctness; session_01WoVjvtpvG4LVHTvGAS5TEu: design and tests) read the diff at 0b8eaaef against `main` and this
+story only. Neither found a bug. Each finding, with what was done:
+
+| # | Finding (reviewer) | Done |
+|---|---|---|
+| A1 | "a rerun from 14:41 to 15:13 records it" promises more than a late rerun can do: from 15:12:40 only BANKNIFTY gets an attempt (correctness, minor) | Not changed: it is the story's own wording, passed in judge 568, so a change is the judge's call. Put to judge F: "a rerun from 14:41, well before 15:13, can record it" |
+| A2 | "canonical none" is printed when `closes_none` is true, but `close_day` writes "none" only if no marker exists: a second hand run beside the first could record the index in between (correctness, minor) | Not changed: it needs two runs at once, which O1's day lock prevents for the routine; the reviewer also judged no change was needed |
+| A3, B3 | The docstring carries a merge instruction for another branch that goes stale (both) | Kept on the orchestrator's instruction (minor 3: "give the instruction"); it now says the switch removes the note, and the handover holds the same instruction |
+| A4, B8 | `earliest_waiting_start` raises `OverflowError` for a window before 00:20 (both, nit) | One docstring line says so; a test pins 00:20 to 00:00 |
+| A5, B1 | `QUIET_STATUSES`, `DONE_WITHOUT_ATTEMPT` and "recorded" typed in two modules (both; should-fix in B) | Fixed: `ATTEMPTED`, `QUIET_STATUSES` and `DONE_WITHOUT_ATTEMPT = (*QUIET_STATUSES, "too early")` live once in `indices.py`, and `IndexRecording.run` uses `ATTEMPTED`. Naming every status beside `RecordResult` across the recorder is wider than A4c-2: not done |
+| B2 | Test helpers and cases repeated: `_alerted` copied, `at` rewritten, the too-early text twice, criteria 1 and 8 tested twice (design, should-fix) | Fixed: `alerted` and `TOO_EARLY` live in `tests/quotes/index_fakes.py`, `at` comes from `window_fakes`, the word-for-word 14:38 alert is merged into criterion 1's test, and criterion 8 is tested once. Criterion 3's three tests check different things (the alert's text, the pointer, the line), so they stay |
+| B4 | Criterion 3's "beside a too early one" cannot happen in one run (design, minor) | True; said in Round 2 above |
+| B5 | The quiet-day tests did not check the lines (design, minor) | Fixed: `test_a_quiet_day_has_no_outcome_on_any_line` (its planted bug caught) |
+| B6 | The agreement test builds its expected text from the printed lines (design, minor) | Its docstring now says it checks only that the two agree; the word-for-word tests check the texts |
+| B7 | The v4 window test's docstring named times one second off its parameters (design, minor) | Fixed: it explains the 1-second fake clock |
+| B9 | `CLOSED_NONE` is defined in `indices.py` but used in `indices_cli.py` (design, nit) | Kept: it belongs to the recording's rule (`closes_none`), and `ATTEMPTED` now sits beside it |
+
+**Handover (24 Oct, owner's usage limit; builder session 01MKtUHByHsR9cNwaP5KhFYH stops here):**
+- The code is complete and sent to judge F for the code round.
+- **Next:** judge F's answer. After a PASS, merge with the full procedure, never 14:00-16:15.
+- **If O1's story/o1-r1r2-step-safety merged first:** in the merge, set O1's `earliest_start(w)` to
+  `return (datetime.combine(date.min, earliest_waiting_start(window_start)) + START_MARGIN).time()` (judge 571),
+  import `earliest_waiting_start` from `..quotes.recorder`, drop the then-unused `MAX_EARLY_WAIT_SECONDS` import,
+  and keep O1's tests (14:38 and 14:44) passing. Round 2 (session 01Mt6dcBU5kp2htdPN2KmiZH) takes over from here.
+- **Other open items of this builder:**
+  - A4h-2: being merged by the orchestrator inside DR1's branch. Its first session's lines are owed from Mon 26 Oct 15:40 (no levels).
+  - A9c (story/oss1-second-host): code PASS (judge 472); merge on or after 26 Oct; expect a WORK_REGISTER conflict.
+  - RECHECK1 (story/recheck1-text, e5e11f03): text with judge E. Agreed design: a shared side-neutral `fno/research_engine/price_validity.py`, agreed with the EDGE1 builder.
+  - A4h: the first 5 live sessions' lines are owed.
+  - O9's read-only index-close change (story/o9-readonly-index-close): its close_read line is reviewed and approved.
+
 ---
 
 ## A4e. A named quote window for protocol v4's 14:30-14:40 pack (A4 behind config)

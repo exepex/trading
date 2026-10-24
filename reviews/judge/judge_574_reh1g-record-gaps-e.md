@@ -58,3 +58,42 @@ E1 `saved >= last`, E2 strict lower edge in `is_near`, E4 tie to the later copy,
 
 - G4 edges also checked by reading: each URL and each pre-open part has its own `ServedOnce`; one cue session per
   process (`global_cues/wiring.py:275-284`); self-review item 5 holds (`routines.py:35`: the only cue job).
+
+## Addendum 1
+
+**REH1g code, round 2 of 2 (story/reh1g-record-gaps @ f1f37f3a5): PASS. Lane 1.** Judge E, own session
+(session_01Sp5rJyPberRttZaJ4WwW26; DESK_DECISIONS 24 Oct, own sessions). Trial merge with origin/main d5ee18d02
+(lane-3 files only between them). The gates need full history: the clone was shallow, so `fetch --unshallow` first
+(a shallow blame dated every row 24 Oct 06:20:57 UTC).
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF1: revision and filings `path` rows dated files | **Accepted, fixed** | `_index` reads `path` rows only from the files directly in `global-cues/` and `groww-candles/` (`manifest_rows.py:65`, names imported from the writers, `:76-81`); A9 rows only from `RAW_SOURCES` manifests (`:69`). Real record, my script: 16 Oct close 22:40:15, 12 Oct 01:54:09 (13 Oct), 21 Oct 18:34:05, 23 Oct 17:01:15 UTC; span-bod 21 Oct 20 Oct 02:23:12 UTC; KOSPI 03:23:35. All five revision rows now give their A9 time, each before its `found_at`. The 12 Oct row's time comes from blame following the A9 file's rename from `tools/nse_raw_download/` (85d3bac2c, on first-parent main): right. Headers: only `filings/outside-layout.csv` and `revisions/*.csv` carry `path` outside the two logs; `global-cues/attempts/` has none; 0 duplicate path or A9 keys |
+| SF2: committer time not pinned | **Accepted, fixed** | `test_the_time_is_the_committer_time_not_an_older_author_time` (author 03:20:00, committer 03:23:35); my E3 (`author-time`) now fails it |
+| m1: three manifests and `filings/` out of view | Accepted | In the gap list with a true reason (no `RAW_SOURCES` entry; `rehearsal/routines.py` runs none) |
+| m2: E5 first answer, E7 earliest row | Accepted, fixed (one half) | E5 and E7 now caught. Half of the claim "whichever is read first" is unpinned: minor 1 |
+
+## Gates (trial merge 1074034f1)
+
+ruff clean; format clean (2,443 files); imports clean (2,572 files); record scan clean (9,007 files); full suite
+**15,150 passed, 1 skipped, 15 xfailed, 0 failed** (7 min 25 s). `tests/rehearsal`: 105 passed. `manifest_rows.py` 113 lines; no file over 350.
+
+## Findings
+
+None blocking, none should-fix.
+
+## Minor
+
+1. `_keep`'s earliest-commit rule is pinned in one read order only. My E7b (`_keep` always overwrites: the last row
+   read wins) passed all 105 rehearsal tests, because `test_of_two_rows_for_one_file_the_earlier_commit_counts` puts
+   the later row in the log read first. C2c's "whichever is read first" needs the other order too (the later row
+   appended after the earlier in the same log). Errs late only (the earliest commit is the minimum), and the record
+   has no duplicate key today (my count: 0 of 4,549 path keys, 0 of 12,619 A9 keys).
+
+## Plants (each alone on `tests/rehearsal`, restored with `git checkout`, `__pycache__` cleared)
+
+12 planted, 8 caught, 1 survived, 3 equivalent. Caught: E3 author time, E5 latest answer, E7 latest commit, E9 `rglob` (subfolders), E10 path
+rows from every manifest (3 failed), E13 no `--first-parent`, E14 blame of `HEAD`, E16 day dropped from the A9 key (6
+failed). Survived: E7b (minor 1). Equivalent on any input: E11 and E12 (no `path` row starts with `raw/`, and path
+and A9 keys never name one file), E15 (A9 loop over every top-level manifest: a non-source manifest's key is never
+asked). The builder's R1-R5b reproduced where they overlap mine (R1 = E10, R1b = E9, R2 = E3, R4 = E7, R5 = E5).

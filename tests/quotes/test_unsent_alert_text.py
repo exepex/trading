@@ -7,11 +7,14 @@ import pytest
 
 from fno.alerts.sender import SENT, NoAlertSender
 from fno.quotes.cli import RAW_FILE_ALERT, cmd_quotes
-from fno.quotes.indices_cli import INDEX_ALERT
 from fno.quotes.recorder import RecordResult
 from fno.research_data.calendar import CalendarError
 
 DOWN = "Slack answered HTTP 503"
+INDEX_TEXT = (
+    "3 pm index recorder: not recorded today: FINNIFTY (incomplete, canonical none). Data only; NIFTY is separate; "
+    "the sidecars in research/data/quotes/groww/ say why for FINNIFTY."
+)  # A4c-2: the attempted index keeps its sidecar pointer, word for word
 RAW = RecordResult("recorded", "nifty_20261019_145500", False, 0, raw_file_error="raw quote file not saved: DriveDown",
                    raw_file_detail="HTTP 503 from Drive")  # fmt: skip
 
@@ -70,7 +73,7 @@ def test_a_calendar_stop_slack_did_not_take_is_printed_with_its_text(monkeypatch
 def test_the_index_alert_slack_did_not_take_is_printed_with_its_text(monkeypatch, capsys):
     code, lines = _run(monkeypatch, capsys, NoAlertSender(DOWN), quotes_cmd="record-indices")
     [line] = _unsent(lines)
-    assert code == 1 and line == f"alert NOT sent: {DOWN} | " + INDEX_ALERT.format(names="FINNIFTY (incomplete)")
+    assert code == 1 and line == f"alert NOT sent: {DOWN} | " + INDEX_TEXT
 
 
 @pytest.mark.parametrize("quotes_cmd", ["record", "record-indices"])

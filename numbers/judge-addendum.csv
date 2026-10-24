@@ -713,3 +713,14 @@ number,name,session,claimed_at_utc
 571.1,a4c2-code-round2,session_01Mt6dcBU5kp2htdPN2KmiZH,2026-10-24T09:49:17Z
 569.2,o1-r1r2-round2,session_01Mt6dcBU5kp2htdPN2KmiZH,2026-10-24T09:53:39Z
 570.2,o1-r1r2-round2-retry,session_01Mt6dcBU5kp2htdPN2KmiZH,2026-10-24T09:56:22Z
+572.1,reh1g-round2-b,session_01A5eN1mc54x9Db1TjJssgYr,2026-10-24T10:44:20Z
+573.1,reh1h-text-round2-b,session_01A5eN1mc54x9Db1TjJssgYr,2026-10-24T10:44:26Z
+574.1,reh1g-round2-e,session_01Sp5rJyPberRttZaJ4WwW26,2026-10-24T10:45:33Z
+575.1,reh1h-text-round2-e,session_01Sp5rJyPberRttZaJ4WwW26,2026-10-24T10:45:38Z
+571.2,a4c2-recheck-own-session,session_01A8XfbTUVgeeEpqatHaWbtP,2026-10-24T10:49:33Z
+576.1,t1d-code-own-session-recheck,session_01CHtddAzFcEdQh4HFiz3mqU,2026-10-24T10:51:17Z
+579.1,g11-delta-a3de25b,session_013gvtjtZJEjpki7qkbzU5kK,2026-10-24T10:57:31Z
+577.1,t1e-text-round-2,session_01CHtddAzFcEdQh4HFiz3mqU,2026-10-24T11:02:40Z
+579.2,g11-text-round2,session_013gvtjtZJEjpki7qkbzU5kK,2026-10-24T11:07:30Z
+578.1,g7b-completion-text-r2,session_01Sikvmfgvs25V6W2XotPYPX,2026-10-24T11:07:35Z
+580.1,g10-text-round2-b,session_01A5eN1mc54x9Db1TjJssgYr,2026-10-24T11:12:25Z
