@@ -662,3 +662,163 @@ run while the machine's load average was about 20 from other sessions' suites. R
 **Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety-b`) · **Size:** S · **Status:** text PASS (judge 567); code
 merged onto R2's round 2 at `2c80be430`, to judge I (session_01MvZneCLZqBuiGyNxawdVee); merges in one batch with
 R2's -b head
+
+---
+
+## T1e. Any failed or refused step turns the card's headline into a warning
+
+**Repository:** trading · **Asked by:** the owner, 24 Oct 2026 (DESK_DECISIONS "The card warns when any step
+failed") · **Lane:** 1 (judge I) · **Builds on:** T1d (`story/t1d-failed-steps`, head `5cbd3c4c7`), which merges
+first with O1's R2 (`story/o1-r1r2-step-safety-b`)
+
+**Description:** As the owner, I want the card to open with a clear warning whenever a desk step failed or was refused
+today, "so that we could understand and know that there was some issue instead of hiding is plainly or not
+highlighting it" (owner, 24 Oct 2026).
+
+**Context and why (strong evidence: T1d's code, `fno/cards/ruled_status.py` and `fno/cards/problem_steps.py` at
+`5cbd3c4c7`, read 24 Oct 2026):**
+- Since O1's R2, a step that raises fails only itself; the run goes on and the card is still posted.
+- T1d names such steps, but only on the status section's **last** line ("Steps with problems today: ...").
+- The headline does not change. When only a step outside T2's rule checks fails (for example `exits`), the card
+  still reads "Status: NO TRADE (no_approved_strategy)" and "Rule checks: no breach". A phone reader who stops
+  there sees an all-clear. T1d's own self-review flagged this as a story decision.
+- The card's first line is fixed by T1 criterion 1 (it must say PAPER ONLY), so the warning goes on the line right
+  under it. That is the first line of the status section, which the renderer prints straight after the first line.
+
+**Scope.** In (all inside `fno/cards/` and one constant in `fno/constants.py`; never `fno/desk/` or `fno/daily/`):
+- **Trigger: O1's one rule, unchanged.** A step is a problem exactly when O1's `problem_steps` returns it: status
+  `failed` or `refused` in today's committed run log, read through T2's `RunLogReader` (T1d's path). This counts:
+  - a failed step waiting for its retry (`retry: true`), since it is still `failed`;
+  - a failed or refused `decisions` or `snapshot` step, which already make a rule check fail too.
+  A step retried and then ok, and `ok`, `not_live` or any other status, is not a problem.
+- **The warning line, exact wording.** It is the second line of the card, directly under the PAPER ONLY line:
+  - Steps found:
+    "⚠️ WARNING: part of today's desk run did not work. Steps with problems today: exits (failed), fills (refused).
+    Their alerts in #fno-desk give the reasons."
+  - The step list keeps T1d's format and run order: `<name> (<status>)`, joined by ", ". It never shows a reason
+    code (the committed log holds only codes; each step's own alert carries the reason).
+  - Today's run log exists but cannot be read (T2's `UnreadableRecord`):
+    "⚠️ WARNING: today's run log could not be read, so this card cannot say which desk steps worked. See #fno-desk."
+    (T1d showed no line in this case. The rule checks already say "a record could not be read", but further down.)
+  - The glyph is `⚠️` (U+26A0 U+FE0F, the forecast lab's warning glyph) and the word is `WARNING`, both always
+    there. The card is plain text, so there is no colour at all; meaning never rests on colour.
+- **T1d's bottom line moves.** It becomes this headline, so the step list is shown once, never twice.
+- **The status reason code.** A new code, `step_problems` (`CARD_STEP_PROBLEMS`, "a desk step failed or was refused
+  today"). It joins T2's severity order below the two existing codes:
+  `data_check_failed` > `hard_rule_breach` > `step_problems` > T1's reason (`no_approved_strategy` or
+  `trade_fields_not_built`).
+  - So a day where only `exits` failed reads "Status: NO TRADE (step_problems)".
+  - A failed `snapshot` keeps `data_check_failed`, the more specific code; the warning line is shown either way.
+  - The code is stored in the delivery metadata as today's codes are; no card text goes there (T1 criterion 9).
+  - No other module reads the card's code (checked: `grep -rn reason_code fno` outside `fno/cards/` finds only
+    `fno/market_read_models/run_status.py`, an unrelated table).
+- **How it combines with the rule-check summary:**
+
+  | Rule checks | Problem steps | Summary line | Reason code | Warning line |
+  |---|---|---|---|---|
+  | all final, none refused | none | "Rule checks: no breach" (unchanged) | T1's | none |
+  | all final, none refused | some | "Rule checks: no breach (rule checks only; see the warning above)" | `step_problems` | steps |
+  | not complete, none refused | none | "Rule checks: not complete" (unchanged) | T1's | none |
+  | not complete, none refused | some | "Rule checks: not complete" (unchanged) | `step_problems` | steps |
+  | a rule refused or unreadable | none | "Rule checks: a rule refused, or a record could not be read" (unchanged) | `data_check_failed` or `hard_rule_breach` | none |
+  | a rule refused or unreadable | some | the same refused line | `data_check_failed` or `hard_rule_breach` | steps |
+  | run log unreadable | - | the same refused line | `data_check_failed` | unreadable |
+
+  The summary changes only where it would otherwise say a plain "no breach" beside a failed step.
+- **Design (KISS, behind T1d's existing class):** `ProblemSteps` returns what it found: the problem steps, or that the
+  run log is unreadable, or nothing. `RuledStatus` turns that into the warning line, the code and the summary.
+  `SlackTextRenderer` is unchanged, since the status section's first line is already printed second. No new wiring
+  beyond what T1d's `build_status` already wires.
+
+Out, with reasons:
+- **Steps after the card in `DAILY_RUN_STEPS`** (G13's records and scores, the candles, the close reads): they run
+  after the card is posted, so they cannot be on it (as T1d). They stay in the run's last line and their own alerts.
+- **Failures logged without a `status`.** This is the gap closest to the owner's words. Examples: an exit review's
+  per-book `error`, `trade_marks` `{"marked": false}`, `pack` `{"built": false}`. O1's rule does not count them, so
+  the run's last line misses them too. Fixing it means O1 logs them as `failed`. That is O1's code (`fno/desk/`),
+  which T1e must not touch. **Open for the orchestrator:** route it to O1's builder. Until then, each still sends its
+  own #fno-desk alert.
+- **Problems that are not desk steps:** a card source that raised (already in "Missing: ..."), the previous card's
+  delivery misses ("Previous card: ...") and a clock WARNING. They are already named on the card, but not in the
+  headline. **Open for the orchestrator:** whether the owner's words ("some issue") should raise the headline for
+  these too. That would be a separate small story touching `card.py` and `render.py`. T1e keeps to the steps it was
+  asked for.
+- **The status itself failing** (`STATUS_FAILED`: the status source raised). The card already says "the status could
+  not be read" with `data_check_failed`, and names the failure in "Missing:". No step list is possible then.
+- **TRADE / NO TRADE:** unchanged; card v1 is always NO TRADE (T1 slice B).
+
+**Acceptance criteria:**
+1. When today's committed run log has steps logged `failed` or `refused`, the card's second line is the steps-found
+   warning, with the exact wording above, naming each step with its status in run order. The first line is
+   unchanged.
+2. The warning always has both the word `WARNING` and the glyph `⚠️`, and never a reason code.
+3. With problem steps, the status reason code is `step_problems` unless a rule check gives `data_check_failed` or
+   `hard_rule_breach`, which win in that order. Without problem steps, the code is exactly what T2 gives today.
+4. With problem steps and every rule check final with no refusal, the summary reads "Rule checks: no breach (rule
+   checks only; see the warning above)". In every other combination the summary is T2's line, unchanged (the table
+   above).
+5. With no problem step (all `ok` or `not_live`, a step retried then ok, or an empty log), or with no run log yet,
+   there is no warning line, and the card is line for line what T1d gives minus its bottom line.
+6. A run log that exists but cannot be read gives the unreadable warning as the second line and `data_check_failed`.
+7. The step list is on the card once: T1d's bottom line "Steps with problems today: ..." no longer appears on its
+   own.
+8. The trigger is O1's `problem_steps` through `RunLogReader`, never a copy of the status set and never text
+   matching. The runner's last line and the card's warning name the same steps for one log (T1d's test, kept).
+9. The delivery metadata stores `step_problems` as `reason_code` on such a day, and holds neither the warning text
+   nor the glyph.
+
+**Test plan** (`tests/cards/test_card_warning.py`, new; T1d's tests in `tests/cards/test_problem_steps.py` are
+updated only where its bottom line moved). Every run log is written with O1's own `RunLog.record` (T1d's way).
+1. Good: only `exits` failed (rule checks clean). Line 2 is the exact warning; the code is `step_problems`; the
+   summary is the "rule checks only" line.
+2. Good: `snapshot` failed and `fills` refused. One warning naming both, in run order; the code is
+   `data_check_failed`; the summary is the refused line.
+3. Good: a failed `decisions` step gives the warning and `data_check_failed`.
+4. Good: a C4 refusal today plus a failed `exits` gives `hard_rule_breach` and the warning.
+5. Boundary: one failed step only; a failed step waiting for its retry (named); a step retried then ok (not named, no
+   warning); decisions not yet run plus a failed `pack` (summary "not complete", code `step_problems`).
+6. Bad: an unreadable run log (bad JSON, and a malformed shape) gives the unreadable warning and `data_check_failed`.
+7. Empty: all `ok` and `not_live`; an empty `steps`; no run log. No warning, T2's summary and code unchanged.
+8. Render: `SlackTextRenderer` output. Line 1 is the PAPER ONLY line, line 2 the warning, which holds `⚠️` and
+   `WARNING`. "Steps with problems today:" appears exactly once, and no reason code appears.
+9. Delivery: on an `exits`-failed day, the written delivery file has `reason_code: step_problems`, and no line of the
+   warning and no `⚠️`.
+10. Shared rule: T1d's runner-versus-card test, kept on the warning line.
+
+**Planned plants (each must fail a named test, then be restored):**
+- W1: the warning kept as T1d's bottom line, not prepended (tests 1, 8).
+- W2: the glyph dropped (test 8).
+- W3: the word dropped (test 8).
+- W4: `step_problems` left out of the severity order (tests 1, 5).
+- W5: `step_problems` ranked above `data_check_failed` (tests 2, 3).
+- W6: the summary left as a plain "no breach" beside a problem step (test 1).
+- W7: the summary changed even with no problem step (test 7).
+- W8: an unreadable run log gives no warning (test 6).
+- W9: a card-side filter that drops `refused` (test 2).
+- W10: a warning on a no-run-log day (test 7).
+- W11: the delivery metadata keeps T1's code instead of the status's (test 9).
+- W12: the reason code shown in the step list (tests 2, 8).
+
+**Gap list (the owner's decision and the orchestrator's ask, each covered or out):**
+
+| Requirement | Where |
+|---|---|
+| Any failed or refused step changes the headline to a clear warning | criteria 1, 3, 6 |
+| Keep the word and the glyph; never colour alone | criterion 2 (plain text, no colour) |
+| Which steps trigger it | Scope "Trigger", criterion 8 |
+| How it combines with the rule-check result | table, criteria 3 and 4 |
+| No warning on a clean day (no false alarm) | criterion 5 |
+| Not hidden at the bottom, not shown twice | criteria 1 and 7 |
+| No card text in the repository | criterion 9 |
+| Steps after the card; failures with no `status`; non-step problems; the status source failing | Out, with reasons (two open for the orchestrator) |
+| Do not touch `fno/desk/` or `fno/daily/` | Scope (the diff is checked: `git diff 5cbd3c4c7 -- fno/desk fno/daily` empty) |
+
+**Real output sample:** in the code claims, made by the committed code from a test's planted log.
+
+**Known limits:**
+- The warning sits on line 2, not line 1, because T1 criterion 1 fixes line 1. A Slack phone notification shows about
+  the first 100 characters, so it may show only the PAPER ONLY line. The warning is the first thing in the opened
+  card. Putting it on line 1 would mean changing T1's first-line rule; that is the owner's call, not T1e's.
+- Failures logged without a `status` stay unwarned until O1 logs them (Out).
+
+**Depends:** T1, T2, T1d, O1 R2 · **Size:** S · **Status:** text, to judge I
