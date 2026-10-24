@@ -10,6 +10,7 @@ from dataclasses import replace
 from datetime import date
 
 from ..constants import CARD_DATA_CHECK_FAILED, CARD_HARD_RULE_BREACH
+from .problem_steps import ProblemSteps
 from .rule_checks import RuleOutcome, RuleSource, UnreadableRecord
 from .sections import StatusReading, StatusSource
 
@@ -46,14 +47,17 @@ def reason_code(base: str, outcomes: Sequence[RuleOutcome]) -> str:
 
 
 class RuledStatus(StatusSource):
-    def __init__(self, base: StatusSource, checks: RuleChecks):
-        self.base, self.checks = base, checks
+    """`problems`: story T1d's line naming today's failed or refused steps, after the rule checks."""
+
+    def __init__(self, base: StatusSource, checks: RuleChecks, problems: ProblemSteps | None = None):
+        self.base, self.checks, self.problems = base, checks, problems
 
     def status(self, day: date) -> StatusReading:
         reading, outcomes = self.base.status(day), self.checks.outcomes(day)
         code = reason_code(reading.reason_code, outcomes)
         _, *rest = reading.section.lines  # T1's first line is the status line; the reason may change it
+        problem = self.problems.line(day) if self.problems else None
         lines = (f"Status: {reading.status} ({code})", *rest, summary(outcomes),
-                 *(f"- {o.name}: {o.line}" for o in outcomes))  # fmt: skip
+                 *(f"- {o.name}: {o.line}" for o in outcomes), *((problem,) if problem else ()))  # fmt: skip
         used = reading.section.used + tuple(u for o in outcomes for u in o.used)
         return StatusReading(reading.status, code, replace(reading.section, lines=lines, used=used))

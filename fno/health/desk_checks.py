@@ -84,7 +84,7 @@ def _starts(text, prefix: str) -> bool:
 
 def _problems(log: RunLog) -> str:
     """Steps not run, and O1 steps that failed or were refused with their reasons; empty when there are none."""
-    missing = [step for step in DAILY_RUN_STEPS if not log.done(step)]
+    missing = [step for step in DAILY_RUN_STEPS if step not in log.steps]  # a failed step awaiting its retry ran
     results = {name: step["result"] for name, step in log.steps.items()}
     bad = [f"{name} {r['status']}: {r.get('reason', '')}" for name, r in results.items()
            if r.get("status") in (STEP_FAILED, STEP_REFUSED)]  # fmt: skip
