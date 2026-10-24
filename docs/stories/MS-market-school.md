@@ -511,7 +511,7 @@ Runs on a's fakes here; story j must pass it with the real wiring.
 - `fno/school/fleet/`;
 - `fno/school/wiring.py` (the composition root);
 - the reserved line in `fno/cli.py` that registers `python -m fno school`;
-- later (blocked) the new step rows in `DAILY_RUN_STEPS`, after v4's, never inside its frozen files.
+- later the new step row in `DAILY_RUN_STEPS`, never inside v4's frozen files: MS-P1j2 below.
 
 **Implements:** `FleetRunner.run(session, mode)` (a's contract; it passes `check_fleet` and MS-P1i's harness):
 - **requirement from MS-P1f:** the `check(decision, accepted)` given to `tickets.rules.classify` builds its
@@ -599,7 +599,7 @@ Runs on a's fakes here; story j must pass it with the real wiring.
   `school.enabled`.
 - `tests/school/acceptance/real_rig.py`: i's harness on the real fleet, with b's captures written as files and the
   archived listing and lot files as fixtures; the dashcam is c's store on a local Drive folder and a local git remote.
-- The daily-run steps are a separate branch, `story/ms-p1j-daily-steps`, not merged until the v4 sign-off.
+- The daily-run step is MS-P1j2 below (the held `story/ms-p1j-daily-steps` is superseded by it).
 
 **Runbook: a new card version (Judge H, judge 495 addendum 1; orchestrator, 22 Oct 2026).** Any new comparison-card
 version needs new D6 rows that name it. That covers a charges change (which `config.yaml` makes CI demand) and any
@@ -651,6 +651,54 @@ the stored file:
 3. A rerun seals nothing twice.
 4. i's harness passes on the real wiring, including one recorded session replayed twice with identical records.
 5. The end-to-end dry run on a recorded day, recorded in Claims.
+
+### MS-P1j2 The daily step · lane 1 (fills and an outside service's schedule; two judges) · model tier: H · `story/ms-p1j-daily-steps-r2` · depends on j (on `main`)
+
+Owner, 24 Oct 2026 (DESK_DECISIONS "The owner signs off protocol v4"): MS-P1j's daily steps are switched on after
+the sign-off, "re-checked on current main and re-judged". The held 22 Oct commit (3287b128e) put the step right after
+`quotes_done`; it conflicts with main and was never judged, so it is rebuilt here. This story adds the step only:
+`school.enabled` and `school.reports` stay false (a separate switch commit, the orchestrator's, with the owner).
+
+**Files owned:** one row in `DAILY_RUN_STEPS` (`fno/constants_operations.py`); `school_run` and the `school` step in
+`fno/daily/wiring.py`; the school's three reason codes in `fno/daily/reason_codes.py`; the O2 harness's school command
+(`tests/e2e/harness.py`); `tests/e2e/test_school_step.py`, `tests/school/test_rehearsed_stores.py`; the tuple's
+copies in `tests/daily/test_day_run.py` and `tests/health/test_desk_and_data_checks.py`.
+
+**Why this place (measured on main's run logs, `journal/runs/`):** `quotes_done` started at 15:18:39 (21 Oct),
+15:22:05 (22 Oct) and 15:18:28 (23 Oct), after the desk's 15:15 snapshot and fills. Two things refuse after 15:30:
+law 6 (no school fill after the close) and G13d's `premium_ranges` (sealed by 15:30). The three steps from
+`card` to `premium_ranges` took 21 s (22 Oct) and 40 s (23 Oct) in all; a school run of 23 Oct replayed on the real
+data took 77 s (42 decisions, 16 fills, no Drive write and no push; a recording run adds those, unmeasured). So the school goes right
+after `premium_ranges`: G13d keeps its margin and the school loses well under a minute. The card runs before the
+school, so the card's warning (T1e) never names the school: the card speaks for the desk, and the school's own alert
+goes to #fno-desk. "After v4's" (j's first text) is read as "outside v4's frozen files": v4's `v4_deadline` now sits
+after the score steps, which ran until 15:32 on 22 Oct, so a school after it would meet law 6 on most days.
+
+**Acceptance criteria:**
+1. **Place.** One `school` row, right after `premium_ranges`, after `quotes_done` (all five roads recorded), before
+   `v4_deadline`; A4h's `close_read` and `close_recheck` stay last.
+2. **Command.** The step runs `python -m fno school run --session D` once as a child (`CommandStep`, no pathspecs:
+   the command commits its own records, as `desk book1` does), under O1's command limit.
+3. **Switch off.** With `school.enabled` false the step is `ok` with the code `school:OFF`, and nothing under
+   `research/school/` reaches `origin`.
+4. **A stop or a raise.** Exit 1 (a stop or a warning) or a raise in the parent fails the step alone: one #fno-desk
+   alert, the run goes on, the day ends "day done with problems: school". A same-day rerun never runs it again: no
+   later run decides a session's paper trades (the owner's fills rule of 24 Oct, applied to the school).
+5. **A hang.** A run past the command limit is stopped and failed (`o1:STOPPED_AT_LIMIT`); a run ending just inside
+   the limit is its own result; the day's later steps all run.
+6. **Public log.** The committed log holds the codes `school:OFF`, `school:NOT_A_SESSION`, `school:STOPPED` (any
+   "stopped: <reason>" status), or O1's command code for any other line; the school's text stays in the private log.
+7. **Closed day.** The run records `skipped`; the school is never started.
+8. **Rehearsal.** In a REH1 rehearsal the school's Drive writes (the dashcam's sealed files and the paper accounts)
+   go under `dryrun/<run_id>/` only; a replace of a real file is refused before Drive. Outside a rehearsal they reach
+   the real Drive.
+
+**Gap list.** Every requirement above has a criterion. Out of scope, with the reason: the switch itself
+(`school.enabled`, `school.reports`) and `school.first_counted` (the orchestrator's switch commit with the owner;
+`CARD_P1.md` section 5: first_counted is set when the 10-session gate passes); `RETRIED_ON_RERUN` and `NOT_RETRIED`
+(the desk's own; `Alerted` handles every school failure before it, see criterion 4); the school's receipts in a
+rehearsal (they are pushed to the rehearsal clone's local `origin`, REH1's checkout design, unchanged); the duration
+of a recording run (first measured on the first enabled session, from its run log).
 
 ### MS-P1m The roads' margins · lane 1 (money limits: C2's margin room; two judges) · model tier: H · depends on nothing in P1
 
