@@ -25,13 +25,19 @@ class VixLevel:
 
 @dataclass(frozen=True)
 class FutureQuote:
-    """The future of expiry `e`, the nearest monthly expiry strictly after the day (protocol 1.5, V5's expiry)."""
+    """The future of expiry `e`, the nearest monthly expiry strictly after the day (protocol 1.5, V5's expiry). `last`
+    and `volume` come from NSE's level read (`observed_at`); `bid`, `ask` and `last_trade_time` from the provider's own
+    quote (`quoted_at`; all None when that quote failed). `last_trade_time` and `volume` serve the traded-today rule
+    only (G7b's ask; A4's `traded_today`), never as a time of observation."""
 
     expiry: date
     last: float | None
     bid: float | None
     ask: float | None
     observed_at: datetime
+    last_trade_time: datetime | None = None
+    volume: int | None = None
+    quoted_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -73,11 +79,13 @@ class Pack:
     india_vix: VixLevel
     chain: tuple[ChainQuote, ...]
     iv30: Iv30
+    v4_expiry: date | None = None  # the expiry G7b's rule chose at the capture (None: none chosen), never recomputed
 
     def observed_by(self) -> datetime:
         """The latest `observed_at` of any field: the release record's `observed_by`."""
         times = [self.spot.observed_at, self.future.observed_at, self.india_vix.observed_at, self.iv30.observed_by]
-        return max(times + [quote.observed_at for quote in self.chain])
+        quoted = [self.future.quoted_at] if self.future.quoted_at else []
+        return max(times + quoted + [quote.observed_at for quote in self.chain])
 
 
 FIELD_NAMES = {

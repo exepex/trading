@@ -15,6 +15,7 @@ from ..forecast.iv30 import interpolate_30d
 from ..forecast.live_pack import NSE_TIME_FORMATS
 from ..intraday.clock import CLOCK_OK
 from ..models import IST
+from ..quotes.v4_extras import FUTURE_KIND
 from ..research_data.panel_reader import FutureQuote as PanelFuture
 from ..research_data.quote_snapshots import CutoffSnapshot, LiveQuote
 from ..research_engine.live_features import LiveAtmIvMinusRealised
@@ -29,6 +30,7 @@ SOURCE = "a4e_named_window_v4"
 class Built:
     pack: Pack | None  # None: the day is system_late
     reasons: tuple[str, ...]  # why there is no pack (empty when there is one)
+    notes: tuple[str, ...] = ()  # what the release alerts beside its label (a V4 expiry the capture could not choose)
 
 
 def late(*reasons: str) -> Built:
@@ -59,19 +61,19 @@ class PackBuilder:
         ) if absent]  # fmt: skip
         if missing:
             return late(*missing)
-        quotes = tuple(
-            _quote(r) for r in capture.rows if r.get("valid") == "true" and inside(_time(r["response_received_at"]))
-        )
+        valid = [r for r in capture.rows if r.get("valid") == "true" and inside(_time(r["response_received_at"]))]
+        quotes = tuple(_quote(r) for r in valid if r["type"] in (OPTION_CALL, OPTION_PUT))
         if not _has_atm_pair(quotes, expiry[0], float(spot)):
             return late("no valid ATM call and put of e in the window")
         iv30 = self._iv30(day, float(spot), float(meta["india_vix"]), quotes, _futures(meta), levels_at)
         if iv30 is None:
             return late("IV30 not computable from the window's quotes")
-        future = FutureQuote(expiry[0], expiry[1], None, None, levels_at)
+        future = _future(expiry, levels_at, _future_row(capture.rows, expiry[0], inside))
         vix = VixLevel(float(meta["india_vix"]), levels_at, _nse_time(str(meta.get("india_vix_time", ""))))
         pack = Pack(day, V4_DAY_A, SOURCE, meta.get("provider") or "groww", f"{capture.dataset}/{capture.snapshot_id}",
-                    self.clock(), Level(float(spot), spot_at), future, vix, quotes, iv30)  # fmt: skip
-        return Built(pack, ())
+                    self.clock(), Level(float(spot), spot_at), future, vix, quotes, iv30,
+                    _date(meta.get("v4_expiry")))  # fmt: skip
+        return Built(pack, (), tuple(note for note in (meta.get("v4_expiry_note"),) if note))
 
     def _iv30(self, day, spot, vix, quotes, futures, levels_at) -> Iv30 | None:
         live = tuple(LiveQuote(q.expiry, q.strike, q.kind, q.bid, q.ask, True) for q in quotes)
@@ -125,3 +127,22 @@ def _nse_time(text: str) -> datetime | None:
 
 def _number(text: str | None) -> float | None:
     return float(text) if text else None
+
+
+def _future_row(rows: tuple[dict, ...], expiry: date, inside) -> dict | None:
+    """The capture's own quote of `e`'s future (A4e's `FUT` row), received inside the window; None when none came."""
+    found = [r for r in rows if r["type"] == FUTURE_KIND and r["expiry"] == expiry.isoformat()
+             and inside(_time(r["response_received_at"]))]  # fmt: skip
+    return found[0] if found else None
+
+
+def _future(expiry: tuple[date, float, int], levels_at: datetime, row: dict | None) -> FutureQuote:
+    """NSE's last and day volume at the level read; the quote's bid, ask and last trade time at its own answer time."""
+    if row is None:
+        return FutureQuote(expiry[0], expiry[1], None, None, levels_at, None, expiry[2])
+    return FutureQuote(expiry[0], expiry[1], _number(row["bid"]), _number(row["ask"]), levels_at,
+                       _time(row.get("last_trade_time")), expiry[2], _time(row["response_received_at"]))  # fmt: skip
+
+
+def _date(text: str | None) -> date | None:
+    return date.fromisoformat(text) if text else None
