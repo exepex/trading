@@ -3452,3 +3452,7 @@ is sealed (fail closed; a boundary of a few seconds, stated rather than hidden).
 **Real output sample** (the committed code, the fleet's test rig, a fixture session):
 `stopped: too late for a first seal: 15:45:00 IST is after the slot's last start, 15:25 IST on <session>; nothing
 sealed`; `school run` exits 1 on it (`cli.py`: any "stopped:" status), and the daily run's log code is `school:STOPPED`.
+
+**Gates at a1c4a1fe9** (the code; the Claims text on top is Markdown only): `python -m pytest -q -p no:cacheprovider -n
+auto` 16556 passed, 1 skipped, 14 xfailed (FNO_SLACK_BOT_TOKEN kept set); `ruff check` and `ruff format --check`
+clean; `check_imports` clean (2760 files); `check_records` clean (9260 files); `check_numbers` at the merge, on `main`.
