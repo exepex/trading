@@ -7,7 +7,17 @@ import pytest
 
 from fno.close_read.constants import READ, RECHECK
 from fno.record_store.constants import CERTIFIED, PROVISIONAL
-from tests.record_store.helpers import DAY, LEVELS, SESSION, Official, World, answer
+from tests.record_store.helpers import (
+    DAY,
+    LEVELS,
+    OFFICIAL,
+    PREVIOUS_OFFICIAL,
+    SESSION,
+    Official,
+    World,
+    answer,
+    official_values,
+)
 
 
 @pytest.fixture
@@ -64,7 +74,7 @@ def test_the_certified_record_chooses_the_read_that_agrees_with_the_official_fil
     assert outcome.recorded and outcome.record.chosen.path.endswith(".recheck.raw.json")
     assert "1 of 2 version(s) passed; closest to NSE's official file ind_close_all_23102026.csv" in outcome.line
     failed = [v for v in outcome.record.verdicts if not v.passed][0]
-    assert failed.failure() == "official file: NIFTY 50 differs by 3.75"
+    assert failed.failure() == "official file: NIFTY 50 last differs by 3.75"
 
 
 def test_no_official_file_yet_means_no_certified_record(tmp_path):
@@ -80,8 +90,15 @@ def test_no_official_file_yet_means_no_certified_record(tmp_path):
         (answer("23-Oct-2026 15:20"), "stamp and indices: NSE stamp 23-Oct-2026 15:20 is before 15:30"),
         (answer("22-Oct-2026 15:30"), "is not today's session"),
         (answer(levels={k: v for k, v in LEVELS.items() if k != "NIFTY BANK"}), "NIFTY BANK missing"),
-        (answer(levels={**LEVELS, "NIFTY 50": (0.0, 22700.0)}), "sanity: NIFTY 50 is not positive"),
-        (answer(levels={**LEVELS, "NIFTY BANK": (70000.0, 54900.0)}), "closed more than 20% from its open"),
+        (
+            answer(levels={**LEVELS, "NIFTY 50": (0.0, 22700.0)}, ranges={"NIFTY 50": (22760.0, 0.0)}),
+            "sanity: NIFTY 50 is not positive",
+        ),
+        (
+            answer(levels={**LEVELS, "NIFTY BANK": (70000.0, 54900.0)}, ranges={"NIFTY BANK": (70010.0, 54880.0)}),
+            "closed more than 20% from its open",
+        ),
+        (answer(levels={**LEVELS, "NIFTY BANK": (55100.0, 54900.0)}), "NIFTY BANK: last outside the day's high-low"),
         (answer(levels={**LEVELS, "INDIA VIX": (-1.0, 13.5)}), "sanity: INDIA VIX is not positive"),
         (b"<html>busy</html>", "layout: not JSON"),
     ],
@@ -130,3 +147,29 @@ def test_the_certifiers_official_file_comes_from_the_stores_only_never_from_nse(
     assert not (tmp_path / "archive").exists()
     store.put(NseIndexCloseSource.path_for(DAY), b"Index Name,Closing Index Value\n")
     assert files.get(DAY) == ("ind_close_all_23102026.csv", b"Index Name,Closing Index Value\n")
+
+
+@pytest.mark.parametrize(
+    "official, words",
+    [
+        (Official(official_values(ranges={"NIFTY 50": (22762.5, 22690.0)})), "NIFTY 50 high differs by 2.50"),
+        (Official(official_values(ranges={"NIFTY BANK": (55010.0, 54875.0)})), "NIFTY BANK low differs by 5.00"),
+        (
+            Official(OFFICIAL, {**PREVIOUS_OFFICIAL, "Nifty 50": {"close": 22700.0}}),
+            "NIFTY 50 previous_close differs by 12.40",
+        ),
+        (Official(OFFICIAL, None), "no official index-close file in Drive for the previous session"),
+    ],
+)
+def test_the_certified_record_checks_the_day_range_and_previous_close_too(tmp_path, official, words):
+    """Rules version 2 (A4h-2): FL1-1f's evening reads the high, low and previous close, so they are certified."""
+    world = World(tmp_path, official)
+    world.a4h_saves(READ, answer())
+    outcome = world.certifier().certify(SESSION, CERTIFIED)
+    assert not outcome.recorded and words in outcome.line
+
+
+def test_india_vixs_range_is_recorded_never_certified(tmp_path):
+    world = World(tmp_path, Official(official_values(ranges={"INDIA VIX": (15.0, 12.0)})))
+    world.a4h_saves(READ, answer())
+    assert world.certifier().certify(SESSION, CERTIFIED).recorded
