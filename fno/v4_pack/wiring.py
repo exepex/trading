@@ -76,8 +76,7 @@ def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> Release
     builder = PackBuilder(rule, iv30_method(), now_ist)
     excuse = rehearsed_release_excuse(_recorded_v4(dataset), env)
     in_drive = lambda path: store.drive.get(path) is not None  # noqa: E731
-    return ReleaseRun(store, in_drive, capture, builder, sessions, live[V4_PACK_LIVE_KEY], now_ist,
-                      live["forecasts_v4"], excuse)  # fmt: skip
+    return ReleaseRun(store, in_drive, capture, builder, sessions, live[V4_PACK_LIVE_KEY], now_ist, excuse)  # fmt: skip
 
 
 def build_deadline_run(cfg: dict, env: Mapping[str, str] = os.environ) -> DeadlineRun:

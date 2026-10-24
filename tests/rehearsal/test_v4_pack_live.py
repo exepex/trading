@@ -14,7 +14,8 @@ from fno.rehearsal.v4_pack import NO_CAPTURE, rehearsed_release_excuse
 from fno.storage.data_store import DataStore
 from fno.storage.receipts import ReceiptFolder
 from fno.v4_pack import wiring
-from fno.v4_pack.release_run import CAUGHT_UP, EXCUSED, NOT_LIVE, ReleaseRun
+from fno.v4_pack.paths import release_path
+from fno.v4_pack.release_run import EXCUSED, NOT_LIVE, ReleaseRun
 from tests.v4_pack.test_release import FakeDrive
 from tests.v4_pack.test_release_run import Capture, NoPack, at, label, weekdays
 
@@ -60,13 +61,14 @@ def release(tmp_path, env):
     store = DataStore(drive, "data", ReceiptFolder(tmp_path / "receipts"), "v4-release", "run-1")
     excuse = rehearsed_release_excuse(lambda record, day: False, env)  # the record holds no `v4` attempt
     run = ReleaseRun(store, lambda path: drive.get(path) is not None, Capture(ended=True), NoPack(), weekdays,
-                     live["v4_pack"], lambda: at(DAY, 14, 46), live["forecasts_v4"], excuse)  # fmt: skip
+                     live["v4_pack"], lambda: at(DAY, 14, 46), excuse)  # fmt: skip
     return run, drive
 
 
 def test_rl3_a_rehearsal_exercises_the_release_and_a_real_run_stays_not_live(tmp_path):
     run, drive = release(tmp_path, rehearsing(tmp_path))
-    assert run.run(DAY) == [CAUGHT_UP.format(day=FORECASTS), EXCUSED.format(day=DAY, note=NO_CAPTURE)]
-    assert label(drive, FORECASTS) == label(drive, DAY) == "system_late" and not run.failed
+    assert run.run(DAY) == [EXCUSED.format(day=DAY, note=NO_CAPTURE)]  # no catch-up before the pack's (rehearsed) date
+    assert label(drive, DAY) == "system_late" and not run.failed and set(drive.files) == {
+        f"data/{release_path(DAY)}"}  # fmt: skip
     run, drive = release(tmp_path / "real", {})
     assert run.run(DAY) == [NOT_LIVE] and drive.files == {} and not run.failed

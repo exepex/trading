@@ -48,16 +48,14 @@ def never_excused(day: date) -> str | None:
 class ReleaseRun:
     def __init__(self, store: DataStore, in_drive: Callable[[str], bool], capture: CaptureSource,
                  builder: PackBuilder, sessions: Callable[[date, date], list[date]], live_from: date | None,
-                 clock: Callable[[], datetime], labels_from: date | None = None,
-                 excused: Callable[[date], str | None] = never_excused):  # fmt: skip
+                 clock: Callable[[], datetime], excused: Callable[[date], str | None] = never_excused):  # fmt: skip
         """`in_drive(path)`: whether the data store's Drive area holds `path`; `sessions(a, b)`: scored sessions in
-        [a, b]; `live_from`: the release's own live date (`daily.live_from.v4_pack`); `labels_from`: the first live v4
-        session the catch-up settles (`daily.live_from.forecasts_v4`, decision D2; default `live_from`);
+        [a, b]; `live_from`: the release's own live date (`daily.live_from.v4_pack`), also the first session the
+        catch-up settles (D2 revised: a day before it had no pack to release, so it has no label);
         `excused(day)`: a note when today's `system_late` is no failure (a rehearsal of a day with no recorded capture;
         chosen by the composition root only)."""
         self.store, self.in_drive, self.capture, self.builder = store, in_drive, capture, builder
         self.sessions, self.live_from, self.clock, self.excused = sessions, live_from, clock, excused
-        self.labels_from = labels_from or live_from
         self.refused = self.late_today = self.waiting = False
         self.notes: list[str] = []  # today's alerts beside the label (a V4 expiry the capture could not choose)
 
@@ -69,7 +67,7 @@ class ReleaseRun:
     def run(self, today: date) -> list[str]:
         if self.live_from is None or today < self.live_from:
             return [NOT_LIVE]
-        lines = [self._catch_up(day, today) for day in self.sessions(self.labels_from, today - timedelta(days=1))]
+        lines = [self._catch_up(day, today) for day in self.sessions(self.live_from, today - timedelta(days=1))]
         lines = [line for line in lines if line]
         if today in self.sessions(today, today):
             lines.append(self._today(today))
@@ -77,7 +75,7 @@ class ReleaseRun:
 
     def _catch_up(self, day: date, today: date) -> str:
         """A past session without a record gets `missing_label`'s answer, written once (the readers' same rule)."""
-        if self._released(day) or missing_label(day, self.labels_from, today) != V4_DAY_SYSTEM_LATE:
+        if self._released(day) or missing_label(day, self.live_from, today) != V4_DAY_SYSTEM_LATE:
             return ""
         return self._publish(day, None)[0] or CAUGHT_UP.format(day=day)
 
