@@ -5,7 +5,7 @@ decisions step failed, the fills step is refused naming the decisions, and no fi
 import pytest
 
 from fno.constants import BOOK1_RULES, STEP_FAILED, STEP_REFUSED
-from fno.desk.daily_run import NEEDS_FAILED, NOT_RETRIED, RERUN_FINAL, DailyRun
+from fno.desk.daily_run import NEEDS_FAILED, NEEDS_MISSING, NEEDS_REFUSED, NOT_RETRIED, RERUN_FINAL, DailyRun
 from fno.desk.run_log import RETRY, RunLog
 from tests.desk.builders import at
 
@@ -68,3 +68,31 @@ def test_a_needed_step_awaiting_its_retry_refuses_as_failed_not_as_missing(tmp_p
         log.record(name, AT, AT, {}, result)
     refused = DailyRun._refused(None, log, "fills")
     assert refused.result == {"status": STEP_REFUSED, "reason": NEEDS_FAILED.format(needed="snapshot")}
+
+
+OK_DECISIONS = {BOOK1_RULES: {"run_id": "r1"}}
+OK_SNAPSHOT = {"valid": True, "snapshot_id": "exec_20261014_151500"}
+REFUSED = {"status": STEP_REFUSED, "reason": "planted refusal"}
+FAILED = {"status": STEP_FAILED, "reason": PLANTED, RETRY: False}
+BOTH = f"{NEEDS_FAILED.format(needed='snapshot')}; {NEEDS_REFUSED.format(needed='decisions')}"
+MISSING_AND_REFUSED = f"{NEEDS_MISSING.format(needed='snapshot')}; {NEEDS_REFUSED.format(needed='decisions')}"
+
+
+@pytest.mark.parametrize(
+    ("steps", "reason"),
+    [
+        ({"decisions": OK_DECISIONS, "snapshot": OK_SNAPSHOT}, None),  # good: both inputs ok
+        ({"decisions": OK_DECISIONS, "snapshot": REFUSED}, NEEDS_REFUSED.format(needed="snapshot")),
+        ({"decisions": REFUSED, "snapshot": OK_SNAPSHOT}, NEEDS_REFUSED.format(needed="decisions")),
+        ({"decisions": REFUSED, "snapshot": FAILED}, BOTH),  # boundary: two problems, each named by its status
+        ({"decisions": REFUSED}, MISSING_AND_REFUSED),
+        ({}, NEEDS_MISSING.format(needed="snapshot, decisions")),  # empty: nothing ran
+    ],
+)
+def test_an_input_step_refused_or_with_any_problem_status_refuses_the_fills(tmp_path, steps, reason):
+    """The orchestrator's finding (24 Oct): an input with any problem status of `problem_steps`, not only failed."""
+    log = RunLog.open(tmp_path, NORMAL)
+    for name, result in steps.items():
+        log.record(name, AT, AT, {}, result)
+    refused = DailyRun._refused(None, log, "fills")
+    assert (refused.result if refused else None) == ({"status": STEP_REFUSED, "reason": reason} if reason else None)

@@ -457,6 +457,12 @@ recorded `{"status": "failed", "reason", "retry": true|false}`. `retry` is true 
 decisions, which failed today", and no fill is made, before or after a rerun. Judge B's plant
 `NEEDS = {"fills": ("snapshot",)}` now fails that test.
 
+*The orchestrator's finding (24 Oct, on c9fba7584): any problem status of an input refuses the fills.* `_refused`
+counted only a `failed` input, so a `refused` input step would have let the fills run on it. That had no effect
+today, because only the fills have `NEEDS` and neither input is ever refused, but it broke "never run on a missing
+input". Now an input that has not run, or that has any status `problem_steps` names (failed or refused, O1's one
+rule), refuses the fills: "needs snapshot, which was refused today" or "needs snapshot, which failed today".
+
 *Judge E's minor 2.* `DeskSteps.fill` counts the trades whose account write finished (`snapshot_id` in their result).
 On an unexpected error after N > 0 of them it raises `StepInterrupted(N)`, caused by the error. `CommitFailed` and
 `GitFailed` (`RUN_STOPS`) still pass through unwrapped. The alert says "... FAILED (<type>: <line>) after N trades were
@@ -473,7 +479,7 @@ recorded in their accounts; those records stay there, check them; ...". With N =
   goes on, the steps that need it are refused; a rerun today retries it (nothing it wrote is done twice)`.
 
 *Criteria, tests, cases and plants.* Each plant was put into the code, checked to fail the named test, then
-restored. All 17 were caught (run on tests/timetable, health, daily, desk and scoreboard).
+restored. All 18 were caught (run on tests/timetable, health, daily, desk and scoreboard).
 
 | Criterion (code) | Tests (good / bad / boundary / empty) | Plant, caught by |
 |---|---|---|
@@ -488,6 +494,7 @@ restored. All 17 were caught (run on tests/timetable, health, daily, desk and sc
 | alert says whether a rerun retries | the exits, fills and final tests (`endswith`) | P11 the rerun clause dropped |
 | retried on its own day only | `test_a_failed_step_is_retried_on_its_own_day_only` (boundary: the next day) | P16 dropped |
 | an input awaiting its retry is "failed" | `test_a_needed_step_awaiting_its_retry_refuses_as_failed_not_as_missing` | P17 called missing |
+| an input refused, or with any problem status, refuses the fills (`_refused` through `problem_steps`) | `test_an_input_step_refused_or_with_any_problem_status_refuses_the_fills`: both ok (good); snapshot refused, decisions refused (bad); one refused and one failed, one missing and one refused (boundary); nothing ran (empty) | P18 only a failed input refuses |
 | O8 health names it failed, not missing | `test_the_health_check_names_a_step_awaiting_its_retry_failed_not_missing` | P12 listed as not run |
 
 *Gap list (round 2).* Each requirement of SF1, SF2 and judge E's minors has a criterion above, except these, which

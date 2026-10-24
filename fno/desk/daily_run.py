@@ -55,7 +55,7 @@ from .daily_ports import RUN_STOPS, CommitFailed, DayStep, StepInterrupted, Wait
 from .daily_steps import DeskSteps, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
 from .private_files import PrivateFiles
-from .run_log import RETRY, RunLog
+from .run_log import RETRY, RunLog, problem_steps
 from .step_recorder import AsGiven, StepRecorder
 from .trade_marking import MarkingStep
 
@@ -88,6 +88,8 @@ NOT_RETRIED = {
 NOT_A_DESK_STEP = "only the desk's own steps are retried"
 NEEDS_FAILED = "needs {needed}, which failed today"
 NEEDS_MISSING = "needs {needed}, which has not run today"
+NEEDS_REFUSED = "needs {needed}, which was refused today"
+NEEDS_PROBLEM = {STEP_FAILED: NEEDS_FAILED, STEP_REFUSED: NEEDS_REFUSED}  # each status `problem_steps` names
 # DRY2 R2 (24 Oct): the steps that read another step's logged result, and which; the rest read their own inputs (the
 # exits and the marks check the snapshot through the gate themselves, so risk-reducing exits always run)
 NEEDS = {"fills": ("snapshot", RUN_LOG_DECISIONS_STEP)}
@@ -219,16 +221,17 @@ class DailyRun:
         self._guarded(log.day, f"step {name}", step)
 
     def _refused(self, log: RunLog, name: str) -> StepOutcome | None:
-        """A step whose input step has not run or failed today is refused, never run on a missing input (fail
-        closed); the reason names which."""
+        """A step whose input step has not run today, or failed or was refused (O1's one rule, `problem_steps`), is
+        refused, never run on a missing input (fail closed); the reason names which."""
         needs = NEEDS.get(name, ())
         missing = [needed for needed in needs if needed not in log.steps]  # a failed step awaiting its retry ran
-        failed = [needed for needed in needs if needed in log.steps and _failed(log.result(needed))]
-        if not (missing or failed):
+        problems = problem_steps({needed: log.steps[needed] for needed in needs if needed in log.steps})
+        if not (missing or problems):
             return None
-        reasons = ([NEEDS_MISSING.format(needed=", ".join(missing))] if missing else []) + (
-            [NEEDS_FAILED.format(needed=", ".join(failed))] if failed else []
-        )
+        reasons = [NEEDS_MISSING.format(needed=", ".join(missing))] if missing else []
+        for status, template in NEEDS_PROBLEM.items():
+            names = [needed for needed, problem in problems if problem == status]
+            reasons += [template.format(needed=", ".join(names))] if names else []
         return StepOutcome({}, {"status": STEP_REFUSED, "reason": "; ".join(reasons)})
 
     def _run_step(self, day: date, name: str, action: Callable[[], StepOutcome]) -> StepOutcome:
