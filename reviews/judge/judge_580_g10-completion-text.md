@@ -54,11 +54,9 @@
 
 ## Plants
 
-None (text). The planned plants are sound; add: the narrowed NIFTY glob widened again in CLAUDE.md only (criterion 9
-catches it), and `v4_release` run with the mode on and no capture (finding 1).
+None (text). Add to the planned plants: the NIFTY glob widened in CLAUDE.md only; `v4_release` in a rehearsal (finding 1).
 
 ## Notes
 
-- D1 and D3 are clear enough for the owner to answer. I do not rule on them. D2 (catch-up from 22 Oct) matches 1.6's
+D1 and D3 are clear enough for the owner to answer. I do not rule on them. D2 (catch-up from 22 Oct) matches 1.6's
   "no release record at all".
-- The builder session_011hvvn9CahAD5dCPHS3kowN and the orchestrator share no context with this judge.
