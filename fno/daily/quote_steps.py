@@ -6,11 +6,12 @@ from __future__ import annotations
 
 import time as clock_time
 from collections.abc import Callable
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from ..constants import STEP_FAILED, STEP_OK
 from ..desk.daily_ports import DayStep, Waiter
 from ..desk.daily_steps import StepOutcome
+from ..models import IST
 from .quote_parts import QuotePart, QuoteParts
 
 POLL_SECONDS = 5.0
@@ -59,3 +60,23 @@ class FinishQuoteParts(DayStep):
         bad = [name for name, result in results.items() if result["status"] != STEP_OK or result.get("commit_error")]
         reason = f"not ok: {', '.join(bad)}" if bad else "every part ok"
         return StepOutcome({}, {"status": STEP_FAILED if bad else STEP_OK, "reason": reason, "parts": results})
+
+
+WAITING_FOR_PART = "waiting for the {name} quote part to end, at most until {by:%H:%M} IST (never a hang)"
+
+
+class AfterPart(DayStep):
+    """Runs its step once the quote part `name` has ended and its commit was made or tried, at most at `by` IST: a part
+    still running then is stopped (G10's `v4_release` after the `v4` capture, by 14:45). The wait is announced once,
+    as every wait of the run is (story O1-day-lock: a silent wait reads as a hang)."""
+
+    def __init__(self, step: DayStep, parts: QuoteParts, name: str, by: time, waiter: Waiter,
+                 announce: Callable[[str], None] = print):  # fmt: skip
+        self.step, self.parts, self.name, self.by, self.waiter, self.announce = step, parts, name, by, waiter, announce
+
+    def run(self, day: date) -> StepOutcome:
+        by = datetime.combine(day, self.by, IST)
+        if self.parts.waits_for(self.name):
+            self.announce(WAITING_FOR_PART.format(name=self.name, by=by))
+        self.parts.await_part(self.name, by, self.waiter.until)
+        return self.step.run(day)

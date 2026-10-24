@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import posixpath
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -52,13 +53,17 @@ def late(day: date) -> ReleaseRecord:
     return ReleaseRecord(day, V4_DAY_SYSTEM_LATE, "", "", None)
 
 
-def publish(store: DataStore, day: date, pack: Pack | None) -> ReleaseRecord:
-    """Writes the pack, then its release record (a day with no complete pack: a system_late record only). Committing
-    the two receipts is the caller's step; the record's receipt push is what starts the AI fire."""
+def publish(store: DataStore, day: date, pack: Pack | None,
+            in_time: Callable[[], bool] = lambda: True) -> ReleaseRecord:  # fmt: skip
+    """Writes the pack, then its release record (a day with no complete pack: a system_late record only). `in_time()`
+    is asked after the pack's upload, right before the small record is written (G10 completion, judge 584 m2): a slow
+    upload past the release-by time makes the record `system_late` and leaves the pack unreleased (write-once, named by
+    no record). Committing the receipts is the caller's step; the record's receipt push is what starts the AI fire."""
     record = late(day)
     if pack is not None:
-        data, record = released(pack)
-        store.put(record.pack_path, data)
+        data, ready = released(pack)
+        store.put(ready.pack_path, data)
+        record = ready if in_time() else record
     store.put(release_path(day), record.to_bytes())
     return record
 

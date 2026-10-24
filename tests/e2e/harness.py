@@ -230,6 +230,8 @@ def quote_parts_script(day_: Day) -> dict:
         ("quotes", "record"): Background(nifty),
         ("quotes", "record", "--source", "nse"): Background(nse),
         ("quotes", "record-indices"): Background(indices),
+        # G10's `v4` part (live only in a rehearsal here): as REH1b's recorded recorder ends a day with no v4 attempt
+        ("quotes", "record", "--window", "v4"): Foreground(0, lambda: (0, ["window closed: no recorded v4 attempt"])),
         ("desk", "book1"): book1_decides(day_),
         ("intraday", "backfill"): Foreground(0, lambda: (0, ["nothing to catch up"])),  # A16b: no Groww candles here
     }

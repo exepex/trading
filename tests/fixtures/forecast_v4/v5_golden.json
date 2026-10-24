@@ -1,0 +1,10 @@
+{
+  "about": "Protocol v4 section 3.1: V5's option-implied probability, computed with 50-digit decimals and an erf Taylor series (not by fno code). ln S_T ~ N(ln F - s^2 tau / 2, s^2 tau); p = N(z(K + P)) - N(z(K - P)), z(x) = (ln(x / F) + s^2 tau / 2) / (s sqrt(tau)).",
+  "forward": 26080,
+  "strike": 26000,
+  "premium": 680,
+  "iv": 0.14,
+  "calendar_days": 27,
+  "variance": "0.0014498630136986301369863013698630136986301369863014",
+  "probability": "0.50685288731716385363145439346114521329649385893567"
+}

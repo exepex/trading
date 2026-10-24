@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from ..models import now_utc
 from ..storage.receipts import ReceiptFolder
 from .drive import DryrunDrive
+from .manifest_rows import ManifestRows
 from .mode import rehearsal
 from .visibility import Visibility
 
@@ -19,4 +20,5 @@ def rehearsed_drive(drive, env: Mapping[str, str] = os.environ):
     mode = rehearsal(env)
     if mode is None or drive is None:
         return drive
-    return DryrunDrive(drive, mode.drive_root, Visibility(ReceiptFolder(mode.record / RECEIPTS), now_utc))
+    visible = Visibility(ReceiptFolder(mode.record / RECEIPTS), now_utc, ManifestRows(mode.record))
+    return DryrunDrive(drive, mode.drive_root, visible)

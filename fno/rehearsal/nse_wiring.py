@@ -1,11 +1,14 @@
-"""NSE's archive in a rehearsal (story REH1b), chosen by `build_nse_source`: every file the record does not already
-hold in Drive is "not recorded". The rehearsal's session never sends a request; it fails at once as a request that
-could never be sent, so the library's own rule applies (no retry, no wait, nothing archived) and the step's line says
-why. A file Drive already holds is read from Drive as in a real run."""
+"""NSE's archive in a rehearsal, chosen by `build_nse_source`: the session never sends a request. REH1b's
+`NotRecordedSession` fails every request at once as one that could never be sent, so the library's own rule applies
+(no retry, no wait, nothing archived) and the step's line says why. REH1h's `RecordedArchiveSession`, the session a
+rehearsal gets, extends it: a file the day's own routine archived is served from the record near its row's commit
+(`recorded_archive`); every other request is still "not recorded". A file Drive already holds is read from Drive as in
+a real run."""
 
 from __future__ import annotations
 
 import os
+import time
 from collections.abc import Mapping
 
 import requests
@@ -31,4 +34,13 @@ class NotRecordedSession:
 
 
 def rehearsed_session(session, env: Mapping[str, str] = os.environ):
-    return session if rehearsal(env) is None else NotRecordedSession()
+    mode = rehearsal(env)
+    if mode is None:
+        return session
+    from ..models import now_ist
+    from ..storage.wiring import RAW_AREA
+    from .manifest_rows import ManifestRows
+    from .record_drive import RecordFiles
+    from .recorded_archive import RecordedArchiveSession
+
+    return RecordedArchiveSession(ManifestRows(mode.record), mode.day, RecordFiles(RAW_AREA), now_ist, time.sleep)

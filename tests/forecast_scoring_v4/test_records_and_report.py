@@ -1,5 +1,5 @@
 """Story G8 criteria 8-9: EXPLORATORY before the freeze, a look recorded once, look 2's closed set from look 1, and
-"not started" / "not enough data yet" instead of a failure."""
+"not enough data yet" instead of a failure (V4 and V5 too since story G7b completion, part e)."""
 
 import json
 from datetime import date
@@ -8,6 +8,7 @@ import pytest
 
 from fno.constants import (
     V1_RV_1S,
+    V2_RV_5S,
     V4_CLAIM,
     V4_COHORT_CLOSE_PROXY,
     V4_COHORT_LIVE,
@@ -19,7 +20,7 @@ from fno.forecast_scoring.v4.days import DayCounts
 from fno.forecast_scoring.v4.inputs import ForecastValue, Outcome, V4ForecastSource, V4OutcomeSource
 from fno.forecast_scoring.v4.records import EXPLORATORY, LookRecordExists, LookRecords, NoRegistrations, Registration
 from fno.forecast_scoring.v4.render import report_json, report_lines
-from fno.forecast_scoring.v4.scoring import QUESTIONS, STATUS_NO_DATA, STATUS_NOT_STARTED, V4Scoring
+from fno.forecast_scoring.v4.scoring import QUESTIONS, STATUS_NO_DATA, V4Scoring
 from fno.forecast_v4.terms import LOOK_SETTLE_DATE, LOOK_STOP_REVIEW
 from tests.forecast_scoring_v4.helpers import settled_slot_days, values
 
@@ -60,7 +61,8 @@ def test_the_report_is_exploratory_before_the_freeze_and_never_fails_on_empty_qu
     scoring = V4Scoring(OneForecaster(), Outcomes(), NoRegistrations())
     reports = [scoring.question_report(q) for q in QUESTIONS]
     status = {r.question: r.status for r in reports}
-    assert status[V5_INSIDE_STRADDLE] == STATUS_NOT_STARTED and status[V1_RV_1S] == STATUS_NO_DATA
+    assert status[V5_INSIDE_STRADDLE] == STATUS_NO_DATA and status[V1_RV_1S] == STATUS_NO_DATA
+    assert status[f"{V2_RV_5S}/intraday"] == STATUS_NO_DATA  # part f's series, no rows here
     lines = report_lines(reports, frozen=False, as_of="2025-01-06", days=NO_DAYS)
     assert lines[0] == EXPLORATORY and f"{V1_RV_1S}: {STATUS_NO_DATA}" in lines
     v6b = next(r for r in reports if r.question == V6_BIG_MOVE_5S)

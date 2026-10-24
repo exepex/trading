@@ -26,6 +26,7 @@ from ..research_data.expiries import MONTHLY_LISTING_DAYS
 from ..research_data.expiries import monthly_expiries as last_expiry_of_each_month
 from ..storage.raw_store import RawFileStore
 from .book_fetch import BookFetcher
+from .capture_extras import CaptureExtras
 from .capture_log import CaptureLog
 from .expiry_listing import ExpiryHistory, ListedExpiries
 from .market_levels import LevelSource
@@ -56,11 +57,8 @@ def earliest_waiting_moment(day: date, window_start: time, max_early_wait: int =
 
 def earliest_waiting_start(window_start: time) -> time:
     """That moment as a time of day, with A4's 20 minutes: 14:41 for 15:01, 14:35 for 14:55 (for texts and O1's start
-    times). Not yet the only place: on main, O1's `fno/daily/quote_parts.py` `EARLIEST_START` still subtracts on its
-    own. O1's switch completes it: whichever of A4c-2 and O1's R1 merges second makes O1's `earliest_start` return
-    `(datetime.combine(date.min, earliest_waiting_start(window_start)) + START_MARGIN).time()`, imports this function
-    from `..quotes.recorder` and drops its then-unused `MAX_EARLY_WAIT_SECONDS` import; that switch removes this note.
-    A window opening before 00:20 has no such time of day (OverflowError); no window does."""
+    times); O1's `fno/daily/quote_parts.py` `earliest_start` builds on it. A window opening before 00:20 has no such
+    time of day (OverflowError); no window does."""
     return earliest_waiting_moment(date.min, window_start).time()
 
 
@@ -114,7 +112,7 @@ class QuoteSnapshotRecorder:
                  fallback: ListedExpiries | None = None, calendar: SessionCalendar | None = None,
                  history: ExpiryHistory | None = None, levels: LevelSource | None = None,
                  dataset: str = DATASET, slot: Slot = NIFTY_SLOT, window: QuoteWindow = DEFAULT_WINDOW,
-                 log: CaptureLog | None = None):  # fmt: skip
+                 log: CaptureLog | None = None, extras: CaptureExtras | None = None):  # fmt: skip
         """The app always passes `calendar` and `history` (fno/composition.py). Without them (the A4 tests and
         byte-identical baseline), A4's rules stay: weekends are closed, a day with no same-day trade is a holiday, and
         the monthly is the last listed expiry of each month."""
@@ -122,6 +120,7 @@ class QuoteSnapshotRecorder:
         self.fallback, self.calendar, self.levels, self.dataset = fallback, calendar, levels, dataset
         self.monthly_check = PointInTimeMonthlies(history) if history else None
         self.slot, self.underlying, self.window, self.log = slot, slot.underlying, window, log  # log: A4e only
+        self.extras = extras  # G10: the `v4` window's V4 expiry and future quote, never counted for completeness
         self.pacer = RatePacer(slot.per_second) if slot.per_second else None  # one per recorder, across attempts
 
     @staticmethod
@@ -219,7 +218,7 @@ class QuoteSnapshotRecorder:
         if self.log:
             self.log.begin()
         snapshot_id = f"{self.slot.stem}_{started:%Y%m%d_%H%M%S}"
-        failures, rows, chains, expiry_source, check = [], [], [], {"source": self.provider.name}, {}
+        failures, rows, chains, expiry_source, check, found = [], [], [], {"source": self.provider.name}, {}, ([], [])
         universe = self._universe(day, failures) if self.slot.check_listed else None
         try:
             if failures:
@@ -232,6 +231,7 @@ class QuoteSnapshotRecorder:
                     months = self._nearest_monthlies(listed, day, check)
                 except Exception as exc:
                     failures.append(withheld("expiry fallback", exc))
+            found = (listed, months)  # for the extras, asked only after every required field (judge 584 SF2)
             for expiry in self._targets(listed, months, day, failures):
                 chains.append(self.provider.chain(self.underlying, expiry))
         except _NotRecorded:
@@ -247,11 +247,13 @@ class QuoteSnapshotRecorder:
                     continue
                 rows.append(snapshot_row(snapshot_id, self.provider.name, got, chain, day))
                 traded = traded or traded_today(got.book, day)
+        asked = bool(self.extras and chains)  # G10's optional extras: last, and only on an attempt that got a chain
+        extra = self.extras.capture(snapshot_id, day, *found) if asked else []
         if rows and not traded and self.slot.cross_check:
             if self.calendar is None:
                 return RecordResult("not a trading day", snapshot_id)  # A4 inference: no contract traded, closed
             failures.append(NO_SAME_DAY_TRADES)  # kept and retried; the day ends "none" if it persists to 15:10
-        csv_bytes = snapshot_csv(rows)
+        csv_bytes = snapshot_csv([*rows, *extra])
         raw_file_error, raw_file_detail = self._save_quote_file(self._path(day, f"{snapshot_id}.csv"), csv_bytes)
         if raw_file_error:
             failures.append(raw_file_error)
@@ -269,6 +271,7 @@ class QuoteSnapshotRecorder:
             meta[RAW_FILE_SAVED] = False
         if self.log:
             meta.update(self.log.finish())  # A4e: each field's own times and the clock check
+        meta.update(self.extras.meta() if asked else {})  # never an earlier attempt's
         if universe is not None:
             meta["universe"] = universe  # the NSE file that listed (or did not list) the underlying
         if self.monthly_check is not None:
