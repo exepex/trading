@@ -90,3 +90,59 @@ usage at 100%). The next judge finishes round 2 (the last allowed) on the builde
    `NEEDS = {"fills": ("snapshot",)}` still passes `tests/daily`, `tests/timetable`, `tests/desk` and
    `tests/scoreboard` on f0bb2aa9c (489 passed). It must fail.
 3. **The full gates** on the head, and the merge with main (and with T1d, which merges together).
+
+## Addendum 2
+
+Judge B, 24 Oct 2026, round 2 of 2 (the last). Head judged: **story/o1-r1r2-step-safety-b at 2c80be430** (contains
+main 404452481). c9fba7584 is superseded and was not judged. Addendum 1's checks were re-run here, not taken on trust.
+
+**Verdict: FAIL, round 2 of 2: one should-fix (SF3). After two rounds the owner decides.** SF1 and SF2 are fixed.
+
+| Item | Verdict | My evidence |
+|---|---|---|
+| SF1: a failed step retried by a same-day rerun | ACCEPTED | `run_log.py`: `done` is false only for `failed` with `retry is True`; `record` pops only that entry. `RETRIED_ON_RERUN` holds fills, exits and trade_marks; the other desk steps stay final, each with its reason in the alert |
+| SF1: safe-to-retry table | ACCEPTED | fills: `EntryDesk.enter` returns an entry event's recorded outcome; fill IDs are `trade:action:contract`. exits: event IDs per trade, outcome and snapshot or day; a closed trade is no open position. A write cut off by an error is not pushed (`open_account_writer`), and the next write's pull overwrites every file Drive holds. Drive errors are `PrivateFilesUnavailable(CommitFailed)`, so they still stop the run. versions, pack, decisions and snapshot: final, reasons checked against `_plan` |
+| SF1: same-day guard, retry key survives the public log | MET | `self.clock().date() == day` (`now_ist`); `PublicResult` keeps booleans |
+| SF2: fills refused naming decisions, no fill | ACCEPTED | `test_final_step_failures.py[decisions]`; my plant `NEEDS = {"fills": ("snapshot",)}` now fails 2 tests |
+| The orchestrator's finding: any problem status refuses fills | MET | `_refused` uses `problem_steps` plus a missing check; my plants (refused ignored; missing ignored) are caught |
+| Addendum 1's holds: book_results, scoreboard, health, readers | MET | re-read; plants on `_decided`, `_unreviewed` and `_problems` are caught |
+
+**SF3 (should-fix): a fills retry has no time limit, so a rerun after the close fills at 15:15 prices with hindsight.**
+- **Evidence:** my probe, built on the builder's own fakes and not committed. Fills fail at 15:16 and the rerun comes
+  at 23:50 IST the same day. Both trades are `opened` at `exec_20261014_151500`, 8.5 hours after `fills_by` (15:20,
+  `config.yaml`). The window check reads the capture's times, never the clock, and no other guard exists.
+- **Why it matters:** a rerun is a human choice made after the price is known. Fills decide trades and feed the
+  scores, an evaluation record. A trade that went well can be filled late; one that went badly can be left out by not
+  rerunning. The alert invites the rerun ("a rerun today retries it").
+  - The exposure also existed on main for a crash, which was then unrecorded. This change is where the retry rule is
+    now set, and the builder named it as an open point. It is absent from the Claims, as is the scratchpad-restore
+    point.
+- **Fix expected (reasoning only):** retry fills only before a stated bound, `fills_by` or another the owner rules.
+  After the bound, the failure is final with its reason in the alert. Tests at the bound and one minute past it. The
+  Claims state the bound, and also the skip-side selection risk of an exits retry.
+
+**The builder's open points:**
+- **Per-book exit-review errors are not retried:** an acceptable stated limit, unchanged since judge 84.
+  - A correction to my round 1: my example there, a Drive or HTTP timeout inside a book's review, is caught per book
+    by `review_exits`, `PrivateFilesUnavailable` included. So SF1's fix covers only a step-level error (`pack`, books).
+  - A due stop-loss exit then waits a day. That is a follow-up for the orchestrator, not a regression here.
+- **Marks, E6's reviews and the card are not rerun:** an acceptable stated limit. E6 already marked the still-open
+  positions at the same snapshot. The day's equity row and T1d's card line ("exits (failed)") stay stale until the
+  next session.
+- **The selection risk of a manual rerun:** SF3.
+- **A shared-scratchpad restore:** no residue. I read the whole diff, my 14 plants were all caught, and the full suite
+  is green.
+
+**Plants: 14 planted, 14 caught, no survivor.** SF2's `NEEDS`; `done` without retry; the retry key alone; the same-day
+guard; snapshot retried; a refused input ignored; a missing input ignored; `RUN_STOPS` swallowed in `_run_step` and in
+`fill`; the failed entry kept in place; `_unreviewed`, `_problems` and the scoreboard's `_decided` reverted; every
+alert saying "retries".
+
+**Gates on 2c80be430 (run by me):** 15,150 passed, 15 xfailed; ruff, ruff format, check_imports and check_records
+clean.
+
+**Trial merge with T1d:** clean at 647232903 and at its moved head 5cbd3c4c7, which contains 2c80be430 and changes
+nothing in `fno/desk` or `fno/daily`. tests/daily, timetable, desk, scoreboard and cards: 631 and 633 passed.
+
+**Note:** a fills retry runs after run 1's exits, so `blocking_trades` and `taken_units` may see that run's close fills
+at the same snapshot. A retried entry can then differ from an uninterrupted day's, either way. Nothing is doubled.
