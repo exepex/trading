@@ -281,3 +281,80 @@ Text round 2 (answers to judge 620, judge J; the orchestrator agreed all three s
 - **Judges:** the orchestrator's ruling written in (REC1b and RM1x two judges; the rest one).
 - Also in this round: the card owner's seven conditions (section 3, criterion 10), and release 1 (REC1a+b) dated the
   week of 26 Oct.
+
+### REC1a Claims (round 1, branch `story/rec1a-contracts`; the SHA is in the commit that carries this text)
+
+Files: `fno/recommend/` (`constants.py`, `rungs.py`, `contracts.py`, `codec.py`), `research/recommend/RUNG_RULE.md`,
+`tests/recommend/` (102 tests). Every file is at most 160 lines.
+
+| Criterion (REC1a's part) | Code | Test | Plant (caught) |
+|---|---|---|---|
+| 1 closed sets | `constants.py` `RealMoneyAnswer`, `PaperAnswer`, `NoTradeReason` | `test_constants.py` | a `BUY` member; an unknown code in a record (`test_an_unknown_code_is_refused`) |
+| 2 reason order (declared here; applied in REC1b) | `NoTradeReason` in priority order | `test_the_reasons_are_the_story_s_set_in_its_priority_order` | two reasons swapped |
+| 3 rungs | `rungs.py` `rung_for`, `evidence` | `test_rungs.py` (0/1/29/30/31 sessions, review, each rung-3 condition removed, backtest/simulator/rehearsal, refused outcome, empty) | 30 -> 29; rung 3 without the review; simulator counts; a refused outcome counts |
+| 4 "proven" is rung 3 (record level; the decision is REC1b's) | `contracts.py` `_paper_consistent`, `_real_money_consistent`, the candidate-rung check | `test_a_trade_below_rung_3_can_never_be_a_recommendation`, `test_a_candidate_cannot_carry_a_higher_rung_than_its_evidence`, `test_with_no_established_version_only_the_first_three_reasons_can_occur` | the trade threshold at rung 1; the candidate's rung trusted; any reason allowed with no rung 3 |
+| 5 point in time (S2, m2) | `rungs.py` `_counts`: `session < day`, `receipt_at < made_at`, `None` fails closed; `evidence_cutoff == made_at` in the record | `test_the_receipt_must_reach_main_strictly_before_the_decision` (1 s before / at / 1 s after), `test_day_d_never_counts_even_with_an_early_receipt`, `test_an_unknown_receipt_fails_closed` | day d counts; `<=` at `made_at`; an unknown receipt counts; the cutoff check dropped |
+| 6 day conditions only lower | `rungs.py` `lowered` | `test_day_conditions_only_lower_one_step_each_never_below_zero` | `+` in place of `-` |
+| 7 real money (record level) | `_real_money_consistent`: eligible only for a version at rung 3 in the record's own evidence | `test_only_an_established_version_can_be_eligible` (rung 1, rung 0, an unknown version) | eligible below rung 3 |
+| 11 candidate set from day one (620.1) | `codec.py`: missing field refused; canonical bytes only; sorted unique candidates | `test_a_record_without_a_field_is_refused[candidates]`, `[evidence_cutoff]`, `test_an_empty_candidate_set_is_written_as_empty_never_left_out`, `test_an_extra_field_at_any_depth_is_refused` | the two fields made optional; the canonical check dropped; candidates unsorted |
+| 13 calibration threshold | `rungs.py` `calibration_shown` | 99/60, 100/59, 100/60 | 100 -> 99 |
+
+**The 24 plants:** `sh <scratchpad>/plants.sh` mutates one line at a time and runs `tests/recommend`. All 24 were
+caught; a comment-only control plant survived, as it should. The first run gave false results: a mutant of the same
+size, restored within the same second, kept Python's stale bytecode. The runs counted here use
+`PYTHONDONTWRITEBYTECODE=1` with the `__pycache__` folders removed. A card plant (`watching_sessions` 30 -> 25 in
+`RUNG_RULE.md`) fails both card tests.
+
+**Deviation from the passed text (accepted by the orchestrator, 25 Oct; for the judge).** The text said "its R1 card and
+D6 row". A D6 row cannot exist: `is_known_book` (`fno/books/version_registry.py:26`) accepts only the three books and
+`school:<driver>@<n>`, and the recommender is not a book. A ledger trial would also be wrong: the rung rule tests no
+hypothesis, it reads trial 99's measurement and RM1. Instead `research/recommend/RUNG_RULE.md` holds every number. Its
+SHA-256 is pinned in `rungs.py` (`RUNG_RULE_SHA256`), `test_rung_rule_card.py` checks the hash and that the code's
+values equal the card's, and each record carries `rung_rule_sha256`. Still to come in REC1b: refusing to record when
+the card's hash differs from the pinned one, and the git-ancestor proof that the card's commit precedes the first
+record.
+
+**Moved to REC1b, so nothing is built without a caller (no dead code):**
+- the dashboard contract fields;
+- the plain texts' use, though `REASON_TEXT` is defined here and tested complete.
+
+The names live in `fno/recommend/constants.py`, not in `fno/constants.py`. That file has 350 lines, the limit, so this
+follows the school's `fno/school/constants.py`.
+
+**The record's own rules (all in `Recommendation.__post_init__`, so no reader ever meets a broken record):**
+- times in UTC, one spelling per instant;
+- `inputs`, `versions` and `candidates` sorted and unique;
+- every candidate's rung equals its version's evidence rung;
+- `PAPER_TRADE` only for a traded rung-3 candidate of the day;
+- `ELIGIBLE_FOR_YOUR_OWN_REVIEW` only for a rung-3 version;
+- with no rung-3 version, only `data_check_failed`, `step_problems` or `no_established_version` can be the reason; with
+  one, `no_established_version` never can.
+
+**Self-review (quality rule 3).** An independent review agent read the first commit (961ccbf6) and reported 3 blocking,
+4 should-fix and 3 minor findings. I checked each one against the code and fixed them at 54451406:
+- **Blocking, all fixed.** (1) The candidate's own rung was trusted, so a rung-1 version tagged established could be
+  sent as a trade; it is now tied to the record's evidence. (2) The eligible version was not tied to rung 3. (3) The
+  codec ignored extra fields inside nested objects.
+- **Should-fix:**
+  - wrong-type values (`traded: "no"`) are now refused by type checks plus the canonical-bytes rule;
+  - IST spellings of an instant are refused: UTC only;
+  - repeated or unsorted `inputs` and `versions` are refused;
+  - the spec mismatch is the deviation above. Its "pre-freeze records count 0" part is the counting rule's `counted`
+    flag (MS-P1h's `CountingRule` and S1's order rule decide it); REC1b's input adapter sets it and is tested there.
+- **Minor:**
+  - a naive receipt time is now refused when made;
+  - the malformed-hash test now matches on its message;
+  - `rung_rule_sha256` is not compared with the pinned hash inside the record on purpose: an older record keeps the
+    card it was made under, and REC1b refuses to make a record under a changed card.
+
+**Real output sample** (committed code, a dry construction; status only, no strikes). It is today's truth for every
+school driver, since `school.first_counted` is unset and no forward session is counted. A planted day-d outcome,
+receipted 3 hours before the decision, also stays out:
+
+```
+VersionEvidence(version='school:CS1@1', rung=<EvidenceRung.UNPROVEN: 0>, counted_sessions=0, first_session=None, last_session=None)
+VersionEvidence(version='school:CS1@1', rung=<EvidenceRung.UNPROVEN: 0>, counted_sessions=0, first_session=None, last_session=None)
+```
+
+**Gates:** ruff check and format, `check_imports` and `check_records` are clean; the full suite result is in the commit
+that carries this text.
