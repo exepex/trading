@@ -638,7 +638,8 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
   before the refit day, the most recent 750, at least 500 (else not eligible).
 - Ratio: the **median** of `RV_h(t) / raw_h(t)`, with `raw_h(t) = IV30_EOD(t)^2 x (calendar days t to t+h) / 365`.
 - Refit on the first scored session of each month (as HAR); every day of that month uses that refit. **The ratio is
-  computed once, on the refit day, from the inputs present then, and stored write-once** (`v4/ratios/<question>/<YYYY-MM>.json`:
+  computed once, on the refit day, from the inputs present then, and stored write-once** (`v4/ratios/<measure>/<question>/<YYYY-MM>.json`, `<measure>` = `close_proxy` or `intraday`, so an
+  option-B ratio never collides with an option-A one (judge 578.1 n2):
   the ratio, the window's first and last day, its count, and the inputs' SHA-256); every later day of the month reads
   the stored ratio and never recomputes it with files archived after the refit day (judge 578 m3). A refit day with no
   stored ratio (the capture did not run) is computed at the next run only from inputs whose receipts GitHub received
@@ -650,7 +651,8 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
     A16b's back-filled rows never count, decision 56). Same measure on both sides of the ratio. **Cost:** the window
     holds only live days from 16 Oct 2026, so V1's and part f's premium-adjusted baseline is missing (`not_eligible`)
     for about two years (longer for V3's 20-session series).
-  - **Option B, the close-proxy ratio (available now):** the V2 / V3 window's ratio, at `h` = 1 for V1, multiplies the
+  - **Option B, the close-proxy ratio (available now):** the close-proxy method (the V2 / V3 window: close-to-close `RV_h`
+    over the EOD-IV30 raw implied) computed at the question's own `h` (1 for V1; 5 and 20 for part f), multiplies the
     pack's raw implied. **Cost:** a measure mismatch: the ratio is fitted on close-to-close `RV_s` and applied to an
     intraday-with-overnight target. Both estimate the same daily variance, and the window already mixes measures (the
     EOD IV30 stands in for the 14:30 IV30, protocol 3.1), but the 26-snapshot quote RV can differ in level from the
@@ -745,8 +747,13 @@ both name its SHA-256.
   `v4/records/live/<forecaster>/<question>/<YYYY>/<date>.json`; V4 and V5 terms: `v4/terms/<question>/<YYYY>/<date>.json`;
   resolved V5 outcomes: `v4/outcomes/v5/<YYYY>/<date>.json`; proxy drift: `v4/diagnostics/proxy_drift/<YYYY>/<date>.json`;
   all through O9's `DataStore.put`, read through `DriveCache` (verified SHA). Part b1's back-fill (NSE public data
-  only) also goes to Drive, one file per method hash, `v4/records/backfill/<method12>/<forecaster>/<question>.csv`, so a
-  regeneration after a method change is a new write-once file and the reader takes the file of this tree's hash.
+  only) also goes to Drive, one file per forecaster, question, method hash and last day,
+  `v4/records/backfill/<method12>/<forecaster>/<question>_to_<YYYY-MM-DD>.csv` (changed in the build, self-review
+  finding: with one file per hash, the next day's longer run would hit a write-once conflict). A regeneration after a
+  method change, or a later last day, is a new write-once file; the same data gives the same bytes (a no-op), because
+  the back-fill ends at the last day whose inputs are final (the last EOD chain, a horizon inside the calendar). The
+  reader (part e) takes, for this tree's method hash, the file with the latest last day; none for this hash: it stops
+  and says so.
 - A live row is written once: a rerun with the same bytes is a no-op; different bytes are refused and printed.
 
 **The post-release capture** (`python -m fno forecast-v4 capture-pack`, a new subcommand in G7's CLI):
@@ -873,10 +880,10 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 | # | What it says | Why it is needed |
 |---|---|---|
 | W1 | V4 measures realised movement from the 15-minute intraday quotes (A16), not from daily closes | the protocol implies it but never says it |
-| W2 | V5 uses the future's mid price (halfway between bid and ask) as its forward, and drops the day if that quote's spread is over 5% | the protocol says "the future" without saying which price |
+| W2 | V5 uses the future's mid price (halfway between bid and ask) as its forward, and drops the day if that quote's spread is over 5% or the future did not trade that day | the protocol says "the future" without saying which price |
 | W3 | **Your choice.** For V1 and the intraday V2/V3 series, the "premium-adjusted" yardstick (implied movement scaled by how much realised movement has run below it) is either (A) scaled on the same intraday measure: no value for about two years; or (B) scaled on daily closes: a value now, with a small known mismatch shown on every report. Recommended: B (reasoning only); both are side reports, never the main test | the protocol does not say which, and the two cost different things |
 | W4 | Dropped: the "first seen" time of the expiry-day file is Drive's own creation time, which the protocol already means | nothing to sign |
-| W5 | A "live" option quote needs a bid, an ask (ask not below bid) and a trade in that contract the same day, the rule the 3 pm quotes already use; order sizes are not checked because the pack does not hold them | the protocol does not define "live"; without the trade check a stale quote could pass |
+| W5 | A "live" quote (each option leg **and the future**) needs a bid, an ask (ask not below bid) and a trade in that contract the same day, the rule the 3 pm quotes already use; order sizes are not checked because the pack does not hold them | the protocol does not define "live"; without the trade check a stale quote could pass |
 | W6 | V4 starts when the pack holds a suitable expiry and A16 records movement (old text named A16's weekly quotes); V4's and V5's rule forecasts read the pack and name its fingerprint | the old start line predates the pack |
 | W7 | V2's and V3's intraday versions: how they are summed, voided, started and reported | the protocol names the series but not its rules |
 
@@ -902,6 +909,7 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 | 16 | W1-W7 in `PROTOCOL_v4.md`, read by a text test | each wording present once | a wording removed |
 | 17 | Part f: the intraday V2 and V3 outcome (sum of live A16 `RV_s`; void and unresolved rules; first full window), scored as separate series, never pooled, never in the family | one void session voids; the 4th of 5 sessions missing is unresolved; A16b's rows ignored; no live window yet prints "not enough data yet"; the close-proxy series' scores unchanged | pooling the two series; a void session skipped |
 | 18 | The O1 step: `forecasts_v4_pack` directly after the release step and before `card`, `not_live` while its key is null, commits only its receipt paths, refused from 15:10:00 | key null: `not_live`; a date: runs; `system_late`: ok with nothing written | step placed before the release; another path committed |
+| 21 | (judge 585 ruling) Every V4 and V5 row carries its own method hash over `v4_expiry.py`, `live_quotes.py`, `option_terms.py`, `option_probabilities.py`, `option_outcomes.py`, `implied.py`, `series.py`, `baselines.py` and `records.py`; a gate test fails when any committed or Drive row's hash differs from the tree's (built with the live capture, the first step that writes these rows) | a stale row fails the gate; a fresh row passes; no row: the gate passes | a file left out of the list; the gate skipped for Drive rows |
 | 19 | Design and size: no file or class over 350 lines; no `fno/forecast_v4/` rule re-implemented (imports checked); every outside source behind an interface (pack source, settlement prices, first-seen times, record store), wired in `fno/forecast_v4_rules/wiring.py`; the method hash covers the new files and the hash gate covers the back-fill's path | `tests/test_code_size.py`; the gate fails on a stale back-fill | a new method file left out of the hash |
 | 20 | `first_v4_expiry`: the first listed expiry with at least 5 regular sessions in `(d, e]`; V4 terms use the pack's `v4_expiry` and refuse a mismatch | a Monday with Tuesday's weekly (1 session) takes the next weekly (6); exactly 5 taken, 4 not; a muhurat or special session not counted; no such expiry: None; pack without `v4_expiry` or without its rows: void `no_v4_expiry`; a pack naming a 4-session expiry: void `v4_expiry_mismatch` | `>= 5` to `> 5`; special sessions counted; first expiry in the pack used instead of `v4_expiry` |
 
@@ -970,7 +978,11 @@ they found and what was fixed or why not.
   `fno/forecast_scoring/v4/wiring.py`) to the Drive release records; part e depends on that change and never
   re-implements it.
 - **Open (asked of G10 through the orchestrator):** that its `v4_deadline` verdict also covers this story's receipt
-  path `receipts/data/v4/records/live/` (section 4's 15:10 rule, part e below). **Merge order:** `first_v4_expiry` merges first (G10's capture imports it); the rest of this
+  path `receipts/data/v4/records/live/` (section 4's 15:10 rule, part e below); until it does, G8's "deadline not
+  checked" count shows the gap, never silent.
+- **Open (b), asked of G10 (judge 578.1 n1):** the pack's future carries its `last_trade_time` or its day volume.
+  **Without it every V5 day is void (`no_trade_today`), so V5's primary baseline and its rule forecaster never have a
+  value.** W5 is never relaxed for the future without the owner's word. **Merge order:** `first_v4_expiry` merges first (G10's capture imports it); the rest of this
   story after G10's pack and release are on `main`.
 
 ### Round 2: answers to judge 578, by number
@@ -1016,10 +1028,139 @@ they found and what was fixed or why not.
   regeneration now); it joins the hash in the step that builds V4's terms.
 - **Gates:** see the commit message.
 
+### Claims, build step 2: part b1 (EOD IV30 proxy, raw and premium-adjusted implied, V2 and V3 back-fill)
+
+- **Code:** `fno/forecast_v4_rules/implied.py` (raw implied, `horizon_sums`, `PremiumRatio` on
+  `eligibility.premium_ratio_window`, `ImpliedBaselines`), `eod_iv30.py` (G1's `PanelAtmIv30` series, points to
+  fractions, from 1 Jan 2024), `implied_backfill.py` (rows, write-once Drive files); `records.csv_text` factored out of
+  `records.write` (same text; records.py is not a phase-1 method file); `wiring.build_implied_backfill`,
+  `first_live_implied_day`, `IMPLIED_METHOD_FILES` (their own hash, so phase 1's committed rows keep theirs); CLI
+  `python -m fno forecast-v4 backfill-implied` (writes Drive files and receipts; the receipts are committed by hand,
+  as phase 1's back-fill files were: a one-off command, not a scheduled job).
+- **Criteria met in this step:** 1 (on the real panel, not a fixture: `test_real_panel_and_closes_reproduce...`, 691
+  regular sessions from 1 Jan 2024 to 23 Oct 2026, 652 unflagged and 39 flagged, the single-expiry days); 2; 3's
+  window, median and monthly refit; 4 for V2 and V3; 5 except the reader.
+- **Not met yet, said plainly:** criterion 3's stored ratio (`v4/ratios/<measure>/...`, read by later days) comes with
+  the live capture (b2), and no live premium-adjusted row is written before it; V1's and part f's premium-adjusted
+  (W3) come in b2; criterion 5's reader and criterion 19's hash gate on the back-fill path come with part e.
+- **Plants (13, all caught after one test was strengthened):** sessions instead of calendar days; `d+h` one session
+  off; mean instead of median; flagged days in the window; a flagged raw kept; refit every day (survived first, a
+  single point barely moves a median; the test now balances the window so one point flips it); the horizon sum
+  including `t`; 2023 days kept; points not converted; label `live`; days past the first live day; no method hash in
+  the path; the first-day calendar lookup of step 1.
+- **Self-review (an independent review agent on the diff):** accepted and fixed: (1) a rerun could hit a write-once
+  conflict when a close was archived before its chain, or the calendar grew: the back-fill now ends at the last day
+  whose inputs are final, with a test; (2) the method hash left out `series.py`, `baselines.py` and `records.py`: now
+  in (`fno/forecast/iv30.py` and `fno/forecast_v4/eligibility.py` stay out: hashed by their own freezes), and the panel
+  row filter moved into `eod_iv30.py`; (3) the Drive path differed from this text: the text now states it and the
+  reader's rule; (6) a guard stops the back-fill when the closes and A7's scored sessions disagree (they agree today,
+  2 Jan 2017 to 23 Oct 2026); (7) the area name comes from `DATA_AREA` and a live path off the layout stops with its
+  path. Rejected with evidence: the reviewer's "premium-adjusted first eligible at the 1 Jun 2026 refit": the code on
+  the real data gives `None` at 2 Mar and 0.6336 at 1 Apr (a pinned test). Not changed (minor 5):
+  `first_session_of_month` repeats `Har.refit_day`; folding them edits `baselines.py`, which moves phase 1's method hash
+  and forces its committed back-fill (9,636 rows) to be regenerated, so it is done in the step that regenerates it.
+- **Real output sample (dry run, committed code and data, no Drive write):** 691 back-fill days per file; raw implied
+  652 `ok`, 39 `missing` (flagged); premium-adjusted 133 `ok` (from 1 Apr 2026), 519 `not_eligible`, 39 `missing`.
+  Ratio of realised to raw implied variance, median over the window: V2 0.634 (1 Apr), 0.640 (4 May), 0.633 (1 Jun);
+  V3 0.694, 0.709, 0.687. Raw V2 on 23 Oct 2026: 0.1608^2 x 7 / 365 = 0.000496.
+  **Finding for the desk (some evidence, 2024-26 only, spent data):** realised variance ran at about 63-71% of the
+  EOD implied variance, i.e. implied over-priced realised movement by about 40-60% in variance terms, the variance risk
+  premium protocol 3.1 assumes. Exploratory, never a v4 result.
+- **Drive write:** not run before the merge (rule 8: the merged system is run once on real data; a pre-merge file
+  under a hash the review may change would be clutter).
+- **Gates:** see the commit message.
+
+### Claims, build step 3: V4 and V5 logic (criteria 6, 7, 8, 9, 10, 11's inputs, 12; judge 581's m1)
+
+- **Code (pure, against G10's agreed quote shapes, fixture packs; no pack file is read yet):**
+  `live_quotes.py` (the live two-sided quote, W5: A4's `traded_today` called through an adapter, the 5% spread in
+  exact decimals), `option_terms.py` (V5 terms: `e` checked against NSE's listed monthlies known before `d`, K, P, F at
+  the future's mid; V4 terms: `e` only from the pack's `v4_expiry`, the 5-session re-check, the parity forward; Black-76
+  leg IVs; voids with reasons, an expiry past the calendar voids as `calendar`), `option_probabilities.py` (V5's
+  option-implied probability, `v5_ewma_lognormal`, `v4_ewma_chi2`, chi-square(5); void terms give missing),
+  `option_outcomes.py` (V5: `settlement.v5_outcome` from the expiry day's file, `CreationTimes` then A8's sighting,
+  refusals; V4: `units.v4_outcome` on A16's live rows; each with its base-rate input, known on the IST date it was
+  first seen). The terms take the pack's fields plainly, so they do not depend on G10's file format; the adapter from
+  a released `Pack` (with `v4_expiry` and the future's trade field, asks (a) and (b)) comes with the live capture.
+- **Tests:** `test_v4rules_option_terms.py` (11), `test_v4rules_option_probabilities.py` (19),
+  `test_v4rules_v4_expiry.py` gains judge 581's year-end test (21 Dec takes 29 Dec; 22 Dec raises until 2027 is in the
+  calendar, then takes January). V5's probability matches `tests/fixtures/forecast_v4/v5_golden.json`
+  (0.50685288731716385..., 50-digit decimals and an erf series, no fno code) to 1e-13; V4's terms reproduce
+  `v4_golden.json` (13.567% implied on the session clock, outcome "no"); chi-square(5) matches exact quantiles to
+  1e-6.
+- **Plants (21, all caught):** spread `<=` to `<`; `traded_today` skipped; a locked quote refused; ATM tie to the upper
+  strike; `e` trusted from the pack; a monthly on `d` itself; no 5-session re-check; another expiry than `v4_expiry`;
+  no carry in the parity forward; W5 relaxed for the future; the lognormal drift dropped; `v = s2` without `S_e`;
+  chi-square with the wrong degrees; the V4 threshold without x5; no A8 fallback; a void session skipped; resolution
+  dated by the first row instead of the last; the float spread (the review's bug); `CalendarError` not caught; an
+  unclear settlement raising; void terms reaching the baseline.
+- **Self-review (an independent review agent):** maths confirmed (the lognormal sign by a 4-million-path simulation,
+  chi-square(5) to 1e-16, the parity forward, the threshold, no point-in-time leak). Fixed: (1) exactly-5% spreads
+  such as 7.02 / 7.38 were voided by float error: now exact decimals, tested; (2) an expiry past the calendar raised:
+  now void `calendar`, tested; (3) test gaps: void terms to missing, exact chi-square quantiles at 1e-6, `s2` = 0, A16b
+  rows never reach V4, V5's stale leg, the golden value as a fixture file; (4) an unclear settlement file is refused,
+  not raised; a negative or non-finite RV stays a loud data fault (documented); (6) `listed=[]` against `None`
+  documented; (7) the duplicate IV guard removed, `_terms` typed. Not changed: (5) `monthly_expiries` is the story's
+  rule; the case it misreads voids the day (safe), documented.
+- **Judge 581's note (v4_expiry in G7's `METHOD_FILES`), pushed back with reason:** phase 1's rows never use
+  `v4_expiry.py`; putting it in their hash would force a regeneration of 9,636 committed rows with no value changed.
+  The V4 and V5 rows get their own method hash over every file that decides them (`v4_expiry.py`, `live_quotes.py`,
+  `option_*.py`, `implied.py`, `series.py`, `baselines.py`, `records.py`) in the live-capture step that first writes
+  them, as part b1's implied rows have.
+- **Real output sample:** fixture packs only (no Groww value): the V5 terms of 27 Oct 2026 against the 23 Nov monthly,
+  K 26000, F 26080, IV 14.00%, `S_e` 18, `C_e` 27, P(inside) 0.5069; the V4 terms against the 3 Nov weekly, `S_e` 5,
+  `C_e` 7, IV 13.80%, 13.567% on the session clock.
+- **Gates:** see the commit message.
+
+### Claims, build step 4: part f (V2 and V3 intraday series) and part e's first piece (no "not started")
+
+- **Code:** `fno/forecast_v4_rules/intraday_series.py` (the series keys `<question>/intraday` and the sum rule: a void
+  session voids, a missing row leaves the day unresolved). **Changed from this text:** the rule sits in its own module,
+  not in `series.py`, because `series.py` is a phase-1 method file and editing it would force a regeneration of 9,636
+  committed rows with no value changed. G8: `outcomes.py` forms the series outcome from that rule (and A16's live rows
+  only, through `G7Series.intraday_rv`); `scoring.py` reports each series as its own key, scoring V2's (V3's) forecaster
+  rows against it with V2's primary baseline, loss and block, a seed word of its own (after 15), never a member;
+  `NOT_STARTED` is removed: V4 and V5 read "not enough data yet" until they have rows.
+- **Lane-1 test edit, said plainly:** `tests/forecast_scoring_v4/test_records_and_report.py` expected "not started"
+  for V5; it now expects "not enough data yet" and checks part f's key too. No other G8 test changed.
+- **Tests:** `test_v4rules_intraday_series.py` (5: good, void, boundary, empty, keys), `test_intraday_series_report.py`
+  (5: the first full live window starts the series, void and unresolved days, the close-proxy series unchanged, V2's
+  rows scored apart and never pooled, never a member, the report's actual seed captured).
+- **Plants (4 + 1 equivalent):** a void session skipped: caught; the series' horizon taken as 1: caught; the series
+  seeded with V2's word: caught (after a capturing test was added); **equivalent:** the series given V2's slot (its key
+  is never in the family, so `seed_word` returns the same number).
+- **Not yet (part e, after the live capture writes them):** V4's and V5's outcome sources from their Drive terms and
+  outcome records, the Drive record reader with its duplicate-day stop, the proxy-drift line, the V4 and V5 labels.
+- **Gates:** see the commit message.
+
+### Claims, round 2 of judge 585 (b1 and step 3) and the step 4 self-review, closed at this head
+
+| Finding | Fix | Test (fails on the planted break) |
+|---|---|---|
+| SF1a V5's base-rate outcome dated by the expiry | unchanged code (it was right); the rule is now tested | `test_judge_585_sf1a_...`: first seen two days later, and at 00:30 IST the next day; plant "dated by the expiry" caught |
+| SF1b Drive's `createdTime` before A8's log | unchanged code; tested | `test_judge_585_sf1b_...`: both present and different, Drive's wins; plant "A8 first" caught |
+| SF1c a future on the next-but-one monthly | unchanged code; tested | `test_judge_585_sf1c_...`: the December monthly from 27 Oct is `future_not_monthly`; plant "any later monthly" caught |
+| m1 the inputs hash and the refit ratio | tested | `test_judge_585_m1_...`: two back-fills differing only in the ratio differ in the premium row's hash, not the raw row's; plant caught |
+| m2, m3 | Known limits (below) | |
+| Ruling: own method hash for V4/V5 rows | criterion 21 added, built with the live capture | |
+| Ruling: HAR fold deferred | `test_v4rules_refit_day_agrees_with_har.py`: both rules give the same day for each of the calendar's 120 months | |
+| Step 4 review 1-2: part f read "scored" with no live window, and counted earlier back-fill days as unresolved | a series has "not enough data yet" until its first outcome day (resolved or void); forecast, baseline and base-rate days before that day are left out of its rows and misses | two tests; plants "scored without a window" and "no start" caught |
+| Step 4 review 3: W3 chosen silently | one switch, `intraday_series.SERIES_RATIO_MEASURE`, default option B (`close_proxy`: V2's and V3's own premium-adjusted rows); option A leaves every pair missing; said plainly: **option B until the owner signs W3**; the level-gap line (intraday against close-proxy `RV_s`) comes with part e's report lines | `test_w3_option_a_...`; plant "switch ignored" caught |
+| Step 4 review 6-8 | V3's series at report level (20 sessions, V3's loss and block); a void window counted void in the pairing; `question_of` written once (outcomes and scoring); the report marks each series "reported only: the intraday measure" | three tests |
+| Not changed | LR1's `forecast_section.py` docstring still says "a question G8 has not started": LR1's file, its builder updates it; its code reads the new keys correctly (the review checked) | |
+
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
 premium ratio is fitted on the EOD proxy and applied to the 14:30 pack's IV30 (the mismatch is the drift criterion 14
-reports); `v4_ewma_chi2` mixes a close-proxy variance with an intraday outcome; all back-fill is spent data and
+reports); `v4_ewma_chi2` mixes a close-proxy variance with an intraday outcome; the session calendar has no 2027 rows,
+so from Tue 22 Dec 2026 `first_v4_expiry` raises every day until they are added (needed by about 21 Dec 2026; the
+scheduled task "Omenix F&O: add NSE 2027 trading calendar", firing 15 Dec 2026, adds them); likewise V5's terms are
+void (`calendar`) from Tue 29 Dec 2026, the December monthly's own expiry day, whose `e` is January 2027's monthly (judge
+585 m3 estimated mid-December; days up to 28 Dec take the 29 Dec monthly, inside the 2026 calendar), and V4's from 22
+Dec; NSE's 2027 holiday circular rows in `research/data/calendar/nse_sessions.csv` are the fix, and the voids are
+counted, never filled; `IMPLIED_METHOD_FILES` leaves out `fno/forecast_v4/eligibility.py`, hashed only at the v4 freeze
+(response 250 item 10's accepted reasoning): a change of the configured rate or the panel data under the same hash
+and last day ends in a write-once refusal, loud, never silent (judge 585 m2); all back-fill is spent data and
 exploratory (protocol 8).
 
 **Depends:** G7 and G7b part a (merged); G10's pack builder and release (live parts only); A16 (V4, V1's ratio); O9's
