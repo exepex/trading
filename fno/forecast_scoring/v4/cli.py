@@ -41,6 +41,7 @@ def _run(args) -> int:
     from .wiring import (
         build_ai_slot_days,
         build_day_counts,
+        build_diagnostic_lines,
         build_look_records,
         build_scoring,
         build_thresholds,
@@ -50,19 +51,19 @@ def _run(args) -> int:
     scoring, records = build_scoring(), build_look_records()
     if args.v4_cmd == "report":
         as_of = args.as_of or now_ist().date()
-        return _report(scoring, records, as_of.isoformat(), build_day_counts(as_of))
+        return _report(scoring, records, as_of.isoformat(), build_day_counts(as_of), build_diagnostic_lines())
     return _look(scoring, records, build_thresholds(), build_ai_slot_days(), args.look, now_ist(), build_unchecked_days)
 
 
-def _report(scoring, records, as_of: str, days) -> int:
+def _report(scoring, records, as_of: str, days, diagnostics=()) -> int:
     from .render import report_json, report_lines
     from .scoring import QUESTIONS
 
     reports = [scoring.question_report(q) for q in QUESTIONS]
-    lines = report_lines(reports, records.frozen(), as_of, days)
+    lines = report_lines(reports, records.frozen(), as_of, days, diagnostics)
     records.folder.mkdir(parents=True, exist_ok=True)
     (records.folder / f"{as_of}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    payload = report_json(reports, records.frozen(), as_of, days)
+    payload = report_json(reports, records.frozen(), as_of, days, diagnostics)
     (records.folder / f"{as_of}.json").write_text(json.dumps(payload, indent=1, default=str) + "\n", encoding="utf-8")
     print("\n".join(lines))
     return 0
