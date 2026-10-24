@@ -27,7 +27,7 @@ NEEDS_YES = (
     "cite its {cite} row as `DESK_DECISIONS <date>: <bold title>`"
 )
 CAPS = {  # what 8.1 sets for each item (the AI cap itself is computed in cap.py)
-    ITEM_CLAUDE_PLAN: "AI minutes cap for books and roles (below)",
+    ITEM_CLAUDE_PLAN: "AI minutes for books and roles; their cap, if any, below",
     ITEM_GITHUB_DRIVE: "no cap needed (free); storage not reported yet: no Drive size source is wired (later)",
     ITEM_AZURE_POSTGRES: "no cap set; owner records the cost",
     ITEM_GROWW_API: "no cap set; owner records any charge",
