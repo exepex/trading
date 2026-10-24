@@ -61,7 +61,8 @@ def edition_root(monkeypatch):
     monkeypatch.setattr(wiring, "build_composer", composer)
     monkeypatch.setattr(wiring, "records", lambda edition, env=None: object())
     monkeypatch.setattr(wiring, "load_app_config", lambda: CFG)
-    monkeypatch.delenv(ENV_FNO_REHEARSAL_NOT_LIVE, raising=False)
+    monkeypatch.setenv(ENV_FNO_REHEARSAL_NOT_LIVE, "before")  # recorded, so the line the edition sets is undone
+    monkeypatch.delenv(ENV_FNO_REHEARSAL_NOT_LIVE)
     return seen
 
 
