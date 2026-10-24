@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from .alert_label import LabelledAlerts
-from .card_label import LabelledCardPoster
+from .card_label import LabelledCardPoster, RehearsalCardClocks
 from .drive import DryrunDrive
 from .http_guard import allowed
 from .report_label import LabelledReportPoster
@@ -23,7 +23,7 @@ LIVE_ALLOWED = "rehearsal guard: a live call would be allowed: {url}"
 
 def builders() -> dict[str, tuple[Callable[[], object], tuple[type, ...]]]:
     """Each outside service's real builder and the rehearsal forms it must return (None: no service set up here)."""
-    from ..cards.wiring import build_card_poster
+    from ..cards.wiring import build_card_clocks, build_card_poster
     from ..composition import build_alert_sender, build_quote_recorder
     from ..config import load_app_config
     from ..forecast_lab.wiring import build_forecast_poster
@@ -42,6 +42,7 @@ def builders() -> dict[str, tuple[Callable[[], object], tuple[type, ...]]]:
         "the 3 pm recorder": (lambda: build_quote_recorder(load_app_config()), (RecordedRecorder,)),  # REH1b
         "NSE's archive session": (lambda: build_nse_source(NseDailyFoSource).session, (RecordedArchiveSession,)),
         "A16's clock check": (build_clock_check, (RehearsalClockCheck,)),  # REH1c
+        "the card's clocks": (build_card_clocks, (RehearsalCardClocks,)),  # T1f
     }
 
 
