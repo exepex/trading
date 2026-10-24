@@ -11,8 +11,8 @@ from fno.v4_pack import cli
 
 
 class Run:
-    def __init__(self, failed, lines):
-        self.failed, self.lines = failed, lines
+    def __init__(self, failed, lines, notes=()):
+        self.failed, self.lines, self.notes = failed, lines, list(notes)
 
     def run(self, today):
         return self.lines
@@ -43,8 +43,9 @@ def seams(monkeypatch):
     monkeypatch.setattr("fno.models.now_ist", lambda: __import__("datetime").datetime(2026, 10, 26, 15, 15))
     monkeypatch.setattr("fno.storage.data_wiring.build_receipt_committer", lambda: committer)
     monkeypatch.setattr("fno.composition.build_alert_sender", lambda: alerts)
+    released = ["v4 release 2026-10-26: A"]
     monkeypatch.setattr("fno.v4_pack.wiring.build_release_run",
-                        lambda cfg: Run(state["failed"], ["v4 release 2026-10-26: A"]))  # fmt: skip
+                        lambda cfg: Run(state["failed"], released, state.get("notes", ())))  # fmt: skip
     monkeypatch.setattr("fno.v4_pack.wiring.build_deadline_run",
                         lambda cfg: Run(state["failed"], ["v4 deadline 2026-10-26: 4 on time, 0 late"]))  # fmt: skip
 
@@ -84,3 +85,11 @@ def test_the_deadline_posts_the_overlap_line_first_and_ends_on_its_own_line(seam
 def test_a_clean_overlap_posts_nothing(seams):
     _, alerts, _ = seams
     assert call("deadline") == 0 and alerts.sent == []
+
+
+def test_a_v4_expiry_the_capture_could_not_choose_is_alerted_and_the_release_line_stays_last(seams, capsys):
+    """Judge 581 m2: a day past the calendar's end records `v4_expiry: None`; the release alerts it, never silently."""
+    _, alerts, state = seams
+    state["notes"] = ["v4 release 2026-12-28: v4 expiry not chosen: ..."]
+    assert call("release") == 0 and alerts.sent == state["notes"]
+    assert capsys.readouterr().out.splitlines()[-1] == "v4 release 2026-10-26: A"

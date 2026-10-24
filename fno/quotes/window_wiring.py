@@ -20,9 +20,7 @@ from .market_levels import NseLevelSource
 from .recorder import DATASET, QuoteSnapshotRecorder
 from .slot import NIFTY_SLOT
 from .v4_extras import V4Extras
-from .window import QuoteWindow, named_window
-
-V4_WINDOW = "v4"  # protocol v4's 14:30-14:40 window (G10): the only one with extras
+from .window import V4_WINDOW, QuoteWindow, named_window
 
 
 def build_window_quote_recorder(cfg: dict, name: str) -> QuoteSnapshotRecorder:

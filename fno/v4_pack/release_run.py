@@ -35,6 +35,7 @@ WAITING = "v4 release {day}: no complete pack yet ({reasons}); not released befo
 REFUSED = "v4 release {day}: REFUSED by the write-once store ({error}); nothing overwritten"
 RELEASED_LATE = "released late: after {by:%H:%M}"
 NOT_ENDED = "capture still running at {by:%H:%M}"
+NOTE = "v4 release {day}: {note}; V4 has no expiry today (add NSE's next-year sessions to the session calendar)"
 EXCUSED = "v4 release {day}: system_late ({note})"
 
 
@@ -56,6 +57,7 @@ class ReleaseRun:
         self.sessions, self.live_from, self.clock, self.excused = sessions, live_from, clock, excused
         self.labels_from = labels_from or live_from
         self.refused = self.late_today = self.waiting = False
+        self.notes: list[str] = []  # today's alerts beside the label (a V4 expiry the capture could not choose)
 
     @property
     def failed(self) -> bool:
@@ -90,6 +92,7 @@ class ReleaseRun:
         if refused:
             return refused
         if built.pack is not None:
+            self.notes = [NOTE.format(day=day, note=note) for note in built.notes]
             return RELEASED.format(day=day, label=built.pack.label, detail="")
         note = self.excused(day)
         self.late_today = note is None

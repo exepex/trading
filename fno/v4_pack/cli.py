@@ -34,10 +34,15 @@ def cmd_v4_pack(args) -> int:
 
 
 def _release(cfg: dict, today):
+    from ..composition import build_alert_sender
     from .wiring import build_release_run
 
     run = build_release_run(cfg)
-    print("\n".join(run.run(today)))
+    lines = run.run(today)
+    for note in run.notes:  # a V4 expiry the capture could not choose: alerted, never a silent skip
+        print(note)
+        print(build_alert_sender().send(note))
+    print("\n".join(lines))  # last: the step's reason is the release's own line
     return run
 
 

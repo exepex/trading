@@ -11,12 +11,11 @@ from datetime import date
 from ..alerts.sender import AlertSender
 from ..constants import V4_DEADLINE_STEP, V4_PACK_LIVE_KEY, V4_RELEASE_STEP
 from ..desk.daily_ports import DayStep, Waiter
-from ..quotes.window import named_window
+from ..quotes.window import V4_WINDOW, named_window
 from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER
 from ..v4_pack.deadline import CHECK_FROM
 from ..v4_pack.paths import DAYS_FOLDER, DEADLINES_FOLDER, PACKS_FOLDER
 from ..v4_pack.release_run import V4_RELEASE_BY
-from ..v4_pack.wiring import V4_CAPTURE_WINDOW
 from .quote_parts import QUOTE_PARTS, QuotePart, QuoteParts
 from .quote_steps import AfterPart
 from .steps import Alerted, LiveFrom, NotBefore
@@ -32,7 +31,7 @@ def receipts(*folders: str) -> tuple[str, ...]:
 
 def day_parts(cfg: dict) -> tuple[QuotePart, ...]:
     """A4's 3 pm parts and protocol v4's `v4` part, its times from A4e's window in `config.yaml`."""
-    return (*QUOTE_PARTS, v4_part(named_window(cfg, V4_CAPTURE_WINDOW)))
+    return (*QUOTE_PARTS, v4_part(named_window(cfg, V4_WINDOW)))
 
 
 def part_notes(parts: Sequence[QuotePart], notes: Mapping[str, str]) -> dict[tuple[str, ...], str]:

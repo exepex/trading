@@ -13,6 +13,7 @@ from ..ai.receipts import GitHubActivityReceipts
 from ..config import ROOT
 from ..constants import ENV_GITHUB_TOKEN, GITHUB_REPOSITORY_VARIABLE, V4_PACK_LIVE_KEY
 from ..health.evidence import Evidence, HealthHistory
+from ..quotes.window import V4_WINDOW
 from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER, build_data_store, build_drive_cache
 from .commitment import CommitmentTimes, GitHubCommitmentTimes
 from .deadline import DeadlineRun
@@ -22,7 +23,6 @@ from .release import ReleasedPacks
 from .release_run import ReleaseRun
 from .sessions import sessions_between
 
-V4_CAPTURE_WINDOW = "v4"  # A4e's named window in config.yaml (quotes.windows.v4)
 V4_RECORDS = "research/forecasts/v4"  # G8's folder of CSV records (G7's rules, M1's weather)
 RELEASE_WRITER, DEADLINE_WRITER = "v4-release", "v4-deadline"
 IV30_METHOD = "g1_v2_live_atm_iv30"
@@ -49,7 +49,7 @@ def build_release_run(cfg: dict, env: Mapping[str, str] = os.environ) -> Release
     from .builder import PackBuilder
     from .capture import StoredV4Capture
 
-    dataset = named_window(cfg, V4_CAPTURE_WINDOW).dataset(DATASET)
+    dataset = named_window(cfg, V4_WINDOW).dataset(DATASET)
     capture = StoredV4Capture(build_drive_only_quote_store(QUOTES_FOLDER, env, dataset=dataset), dataset)
     rule = LiveAtmIvMinusRealised(None, cfg["risk_free_rate"], Black76())
     calendar, store = build_session_calendar(), build_data_store(RELEASE_WRITER, env=env)
@@ -87,7 +87,7 @@ def build_overlap_watch(cfg: dict) -> OverlapWatch:
     from ..quotes.window import named_window
     from ..storage.wiring import QUOTES_FOLDER
 
-    dataset = named_window(cfg, V4_CAPTURE_WINDOW).dataset(DATASET)
+    dataset = named_window(cfg, V4_WINDOW).dataset(DATASET)
     return OverlapWatch(QUOTES_FOLDER.joinpath(*dataset.split("/")), ROOT / "research" / "data" / "intraday")
 
 
