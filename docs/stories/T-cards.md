@@ -770,12 +770,12 @@ contract; never `fno/desk/` or `fno/daily/`):
   | run log unreadable | - | the same refused line | `data_check_failed` | unreadable |
 
   The summary changes only where it would otherwise say a plain "no breach" beside a failed step.
-- **Design (KISS, behind T1d's existing class):**
-  - `ProblemSteps` returns what it found: the problem steps, or that the run log is unreadable, or nothing.
-  - `RuledStatus` turns that into the `CardWarning`, the code and the summary.
-  - The warning travels on `StatusReading` and `TradeCard` as one optional field, and `SlackTextRenderer` places
-    it.
-  - Nothing new to wire beyond T1d's `build_status`.
+- **Design (KISS, behind T1d's existing class; as built after the self-review):**
+  - `ProblemSteps` returns what it found (`StepFindings`: the `CardWarning` and the code it adds, `step_problems`
+    or, for an unreadable log, `data_check_failed`), or nothing.
+  - `RuledStatus` takes the code into the severity order and qualifies the summary.
+  - `ProblemSteps` is also the card's `WarningSource`: `CardBuilder` asks it apart from the status, puts the warning
+    on `TradeCard`, and `SlackTextRenderer` places it. The wiring hands the same `ProblemSteps` to both.
 
 Out, with reasons:
 - **The contract change itself.** Adding `step_problems`, `hard_rule_breach` and `trade_fields_not_built` to
@@ -798,8 +798,9 @@ Out, with reasons:
   delivery misses ("Previous card: ...") and a clock WARNING. They are already named on the card, but not in the
   headline. **Open for the orchestrator:** whether the owner's words ("some issue") should raise the headline for
   these too. That would be a separate small story. T1e keeps to the steps it was asked for.
-- **The status itself failing** (`STATUS_FAILED`: the status source raised). The card already says "the status could
-  not be read" with `data_check_failed`, and names the failure in "Missing:". No step list is possible then.
+- **The status itself failing** (`STATUS_FAILED`: the status source raised): no longer Out. The self-review showed
+  the step list does not depend on the status source, so the warning is asked on its own and stays on the card
+  (criterion 12, code claims).
 - **TRADE / NO TRADE:** unchanged; card v1 is always NO TRADE (T1 slice B).
 
 **Acceptance criteria:**
@@ -903,6 +904,14 @@ run log is written with O1's own `RunLog.record` (T1d's way).
    restated correctly, and options (a) and (b) are given for the owner. The placement is one renderer function
    (criterion 11, W14). It is built with (a) until the owner answers.
 3. **Accepted.** `Status:` is on line 3 on a warning day and line 2 otherwise (criteria 1 and 5, tests 1 and 7).
+
+**Criteria added in the code round (self-review; each only adds a warning, never removes one):**
+12. A status source that raises (T1's `STATUS_FAILED`) keeps the warning: the card's warning comes from its own
+    `WarningSource` (`ProblemSteps`), asked by `CardBuilder` apart from the status. A warning source that raises is
+    named in "Missing:" ("warning source failed (<Type>)") and never loses the card.
+13. The Drive card record keeps the warning as data (`"warning": {"headline", "detail"}` or null), since T1d's line
+    in the record's `sections` moved out of them. The repository's delivery metadata still holds no warning text.
+14. An unreadable run log adds `data_check_failed`, never `step_problems`, even with no rule check reading the log.
 
 **Real output sample:** in the code claims, made by the committed code from a test's planted log.
 
