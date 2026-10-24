@@ -790,6 +790,51 @@ past its last read (09:10:45): one read, `failed`. The outcome on 23 Oct is the 
 its window), but a forward wait in one part can take another part's window in the same rehearsal; a real run's reads
 never wait. Out of REH1l's scope (its text did not cover the run's order); a follow-up is proposed to the orchestrator.
 
+### REH1p: a rehearsal sees an earlier day's Groww quote files (story and code in one round)
+
+Lane 1 (it changes what a rehearsal reads of the real Drive record): two judges, one round. Builder
+session_01GAACYjcfHWkC3hp33iiMXV, branch `story/reh1p-quote-visibility`. The orchestrator, 24 Oct: "GO, lane 1, story
+and code in one round ... also check that the sidecar's own commit time is <= the replay clock ... Use whichever of the
+two is later ... the real sample: the 23 Oct morning rehearsal from the school switch commit, which must show all five
+roads open."
+
+#### Finding (strong evidence: reproduced)
+
+- The MS-P1j builder's `rehearse morning --day 2026-10-23` from the school switch commit (run 20261024T231853Z-17705a):
+  the school's 08:50 "Today" section, planned from 22 Oct's 15:00 captures, saw all five roads `capture_missing`
+  (NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M, NIFTY-W); outside a rehearsal all five open.
+- Reproduced with the store every 3 pm reader uses (`storage.wiring.build_quote_store`), reading
+  `groww/derivatives/quote-snapshots/2026/10/banknifty_20261022_150146.csv`: a real run gets 82997 bytes; under the
+  mode on 23 Oct at 08:40, `RawQuoteMissing` ("its sidecar says it was saved, but the private store does not have it").
+- The cause: `fno/rehearsal/visibility.py` shows the replay a real Drive file only with an O9 receipt or a manifest row;
+  A4b's raw quote files (Drive `raw/` area) have neither, as their committed sidecar vouches for them, so every one was
+  invisible. A daily rehearsal's same-day captures worked only because `RecordedRecorder` republishes them into
+  `dryrun/` at their `finished_at`; any earlier day's quote file failed for every reader.
+
+#### Design
+
+- `fno/rehearsal/quote_sidecars.py`, `QuoteSidecars.seen_at(path)`: for `raw/<p>.csv` whose sidecar
+  `research/data/quotes/<p>.meta.json` the record's `main` holds, the later of the attempt's `finished_at` and the
+  committer time of the first first-parent commit on `origin/main` that added the sidecar (a merge counts from the
+  merge, as REH1g's manifest rows); None when `raw_file_saved` is false, when the sidecar is not on `main`, or for any
+  other path. One `git log` over the quotes folder per record and process.
+- `Visibility` takes it as a third kind of evidence, after receipts and manifest rows; `rehearsed_drive` wires it over
+  `mode.record`. A4b's `csv_sha256` check (`DriveOnlyQuoteStore.get`) is unchanged.
+- The record checkout does not move during a run (the rehearsal's commits go to its own clone), so the index read once
+  per process stays true.
+- FREEZE_v4.md (`story/v4-freeze`): `visibility.py`, `drive_wiring.py` and the new module are in none of its tables.
+
+#### Criteria (tests in `tests/rehearsal/test_quote_sidecars.py`)
+
+- **P1. The previous day's file is visible the next morning** (22 Oct's BANKNIFTY at 08:38 on 23 Oct). Plants: the
+  wiring without the sidecars; `Visibility` not asking them.
+- **P2. The later of the two times** (the orchestrator's ask): between the finish and the commit, not visible; at the
+  commit, visible; a sidecar dated before its finish waits for the finish. Plants: the finish only; the commit only.
+- **P3. What never counts:** a failed save; a sidecar committed only on a branch; no sidecar; a path outside `raw/`
+  or not a quote file. A merge counts from the merge. Plants: the failed save counted; no `--first-parent`; any branch.
+- **P4. Through the rehearsed Drive:** 22 Oct's file read at 08:40 on 23 Oct, 23 Oct's not before its time, then read.
+- **P5. A real run is unchanged:** no mode, the owner Drive as it is.
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
