@@ -48,3 +48,20 @@ One Markdown commit on acacf5c7f (D1-D3, C16; +16 -9). Checked against `story/g1
 **S1 closed.** The new rule that a day with no release record is neither collected nor written is consistent with the
 look's reconciliation, which refuses until the catch-up record lands. S2-S7, m1 and m2 are untouched by the delta.
 **The verdict stays FAIL** at a3de25b66.
+
+## Addendum 2: round 2 (the last), story/g11-ai-books-v4 at 0f8380cbf
+**PASS** (text), lane 1. One Markdown commit on a3de25b66. Every finding was re-checked with my own evidence:
+- S2 closed: C13 sets the order (freeze and rules rows, then G11's rows, then the go-live). Start is the first session after the freeze, so `slot_file.py:62-69` passes. A command refuses before the freeze, without rules rows, or from 09:15 of the start day. A late go-live gives honest `not_fired` rows. Both sides are tested.
+- S3 closed: the primary comes from `eligibility.primary_baseline`, so V1's switch is one way. The span covers the rules value and the baseline, widened by w (0.10 absolute, 0.25 relative), fixed before merge. V2 needs no measured w. Item 4's numbers reproduced exactly from main's back-fill: within +-0.10 on 94.4%, 55.5% and 96.7% of 1,912/1,908/1,908 days; p95 gap 0.113/0.438/0.091.
+- S4 closed: C2 names the measure per question (V1 intraday with the overnight return, V2 `close_proxy`) and adds a unit-error bound. C4 gives V2 its close-proxy history.
+- S5 closed: C19. `v4_settle.py:45-46` already prints "N day(s) awaiting audit". An unknown receipt time writes no row and is retried.
+- S6 closed: C15 names six packages and checks imports and path strings. None of the six imports `fno.ai` or holds those strings today (grep).
+- S7 closed as a text question. C8 states both choices plainly as "reasoning only", for the owner:
+  - (a) "Last" means stop only on `stop` and the books' own minutes at or above the cap.
+  - (b) A missing signal fires (fail open) and posts one line.
+  - Each is a single change: (a) one extra condition, whose removal is the plant; (b) one branch.
+  - The owner's answer is not mine to rule on.
+- m1 closed: every C1-C17 and C19 has G/B/Bd/E. C14 and C16 have no planned plant; that is fine, since the judge plants its own.
+- m2 closed. Fire-to-receipt 35-309 s reproduced from the fire logs and audit receipts (11 book-days 15-23 Oct; the text's 9 are 16-23 Oct). Cost arithmetic checked: 22 x 2 x 25-35 = 1,100-1,540; 22 x 2 x 1-8 = 44-352.
+
+Notes: the commit count moves with main (2,768 when I checked). For the code round, C8's "books' own minutes" must use BG1's ledger and the same cap as the meter, never a copy.
