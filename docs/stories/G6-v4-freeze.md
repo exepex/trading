@@ -160,10 +160,43 @@ provenance and the readers' checks protect them; the record says so.
 becomes the merge's day and the first counted session the next one. Freezing without V2's live code would break
 section 10 and the owner's row; it is not offered.
 
-**Asked of the orchestrator (one question for the owner):** the owner's 21 Oct answer (4) asked for a keep-or-change
-list of every earlier decision the record quotes before signing; it was not produced. The 24 Oct sign-off came after
-the 24 Oct audit. Recommendation (reasoning only): put the list of section 1 item 9 to the owner in one message, all
-"keep" with one line each, before the freeze commit; no answer needed to build the code.
+**Owner's keep-or-change list:** the owner's 21 Oct answer (4) asked for it before signing; it was not produced
+before the 24 Oct sign-off. The orchestrator puts the table below to the owner (24 Oct ruling); the code does not
+wait for the answer, the freeze commit does.
+
+### Keep or change: every decision the record quotes (owner's 21 Oct answer (4); orchestrator, 24 Oct: "prepare the
+keep-or-change list ... I put it to the owner")
+
+Rows of `docs/DESK_DECISIONS.md` by date and title. Recommendations are reasoning only unless marked.
+
+| # | Decision (owner's words) | Source row | Recommended | Why, in one line |
+|---|---|---|---|---|
+| 1 | A: Test A "yes" needs Holm at 0.02 per look, two looks ("A accept") | 15 Oct, "G6 protocol v4 choices A, B, C confirmed" | keep | caps false "yes" at 5% over both looks; costs about 20 more outcomes at r = 3 |
+| 2 | B: no power report at the review means option 2, code only ("B accept") | same row | keep | no projected date, no "continue to settle" |
+| 3 | C: the premium-adjusted ratio window uses the labelled EOD IV30 proxy from 1 Jan 2024 ("C accept") | same row | keep | without it V2 has no primary until about late 2028 |
+| 4 | D: a stricter claim rule, chosen by measured size: rule E+D ("3 B") | 15 Oct, "G6 item D" | keep | the only measured rule within size in every cell; said plainly, it makes V1, V2, V6a near-unclaimable |
+| 5 | E: windows with more than 10% 2% days are not judged ("merge G6, E option 2") | 15 Oct, "G6 item E: option 2" | keep | removes the measured crash-year errors; some evidence (one crash) |
+| 6 | Verdicts on observed days only, with a miss cap ("Observed days + miss cap"; replaces "Base rate") | 15 Oct, "Missed forecast days" | keep | a filled-in day would make a forecaster that never ran look futile |
+| 7 | Miss caps 10% of baseline days and 10% of 2% days ("Both 10%") | 15 Oct, "Protocol v4 miss caps confirmed" | keep | a member that did not run is "undecided, operations", never judged |
+| 8 | V6b stays a scored member; "V6 report-only" withdrawn | 15 Oct, "Protocol v4: V6b stays a scored member" | keep | V6b is the only member with a measured path (about 14-22 years); dropping it leaves Test A no claimable member |
+| 9 | v4 timeline: 14:30 cutoff, one pack, one 15:10 deadline, 15:15 snapshot | 15 Oct, "v4 timeline" | keep, as revised by #16 | the one clock every family shares |
+| 10 | A sharp move after the cutoff is flagged, not blocked ("Flag, don't block") | 15 Oct, "A sharp move after the data cutoff" | keep | nothing is dropped; X frozen at 0.0061 |
+| 11 | System-late days out for every family; a late family is charged a miss | 15 Oct, "Lateness" | keep | no family gains from a late pack |
+| 12 | Honest times, pack window to 14:40 ("Honest times, window to 14:40") | 15 Oct, "v4 data cutoff" | keep | every field keeps its real observation time |
+| 13 | Misses from each slot's declared `effective_start` ("Yes, from the declared start") | 16 Oct, "v4 misses count from each slot's declared effective_start" | keep | a family cannot dodge misses by starting late |
+| 14 | A2 fallback pack dropped; labels `A` and `system_late` only | 16 Oct, "Orchestrator rulings, evening" (1) | keep | A16's 14:30 mark can never hold a complete pack |
+| 15 | At the freeze the AI books' v4 run replaces the v2 AI run ("A: v4 replaces v2") | 16 Oct, "G11: at the v4 freeze ..." | keep | one daily AI run cannot serve both deadlines |
+| 16 | The pack is released by 14:45, cutoff 14:40 unchanged ("1 - Option A") | 24 Oct, "The v4 pack is released by 14:45" | keep | the data cutoff does not move; a later release is `system_late`, never scored |
+| 17 | A `system_late` day makes the card warn ("2 - Option A") | 24 Oct, "A system_late day makes the card warn" | keep | operations only; no score effect |
+| 18 | V1 and part f carry both premium-adjusted yardsticks, intraday and close ("both") | 24 Oct, "W3: both yardsticks" | keep | reported only, never pooled |
+| 19 | A16b's candle back-fill fills option A's ratio window ("W8 - yes") | 24 Oct, "W8" | keep | yardstick scale only, never a forecast input, outcome or base rate; drift line on every report |
+| 20 | v4 pack live Monday 26 Oct ("v4 pack live Monday - Option A") | 24 Oct, "The v4 pack goes live Monday 26 Oct 2026" | keep | the first counted session |
+| 21 | Frozen on = the day the judge passes and the owner signs; go-live the next session | 21 Oct, "v4 freeze answers" (1) | keep | Frozen on 25 Oct, counted from 26 Oct |
+| 22 | Freeze with the AI slots unregistered | 21 Oct, "v4 freeze answers" (3) | **replaced** by #24 | registered later they would be refused for V6a/V6b/V7 (section 4, blocker 2) |
+| 23 | v4 freezes with V6a/V6b (V1 when ready); V2-V5 later under their own record (orchestrator, owner informed) | 16 Oct, "v4 freezes with V6a/V6b" | **replaced** by #24 and 24 Oct "Close v4 in full first" | one freeze, every question built |
+| 24 | The owner signs off v4; slots registered at the freeze ("Consider v4 sign off") | 24 Oct, "The owner signs off protocol v4" | keep | this freeze |
+| 25 | Superseded and not quoted as rules: "A missed day scores as the base rate" (15 Oct, replaced by #6); "V6 becomes descriptive" (15 Oct, withdrawn by #8) | 15 Oct | listed for completeness | the record names them as replaced |
+| 26 | G7b's wordings W1, W2, W5, W6, W7 (not yet owner-decided; W3 and W8 are #18-19, W4 dropped) | G7b completion text | owner to sign with the freeze | each is in the G7b text's plain-words table |
 
 ## 5. `research/forecasts/v4_slots.csv` (protocol 4 and 5.6; `slot_file.COLUMNS`)
 
@@ -291,6 +324,17 @@ Every new file under 350 lines; the freeze tool and check stay pure functions ap
 
 **Depends:** G6 pieces 1-3 (merged), G7b completion, G10 completion (merged), G11, the owner's sign-off (given) ·
 **Size:** M · **Status:** story text for the judge (rule 1); no code before its check
+
+## Orchestrator rulings on this text (24 Oct 2026)
+
+- V7's `rules` slot is `v7_vix_vs_mean20`; all 15 rows effective 2026-10-26, registered 2026-10-25 (section 5).
+- 8 ledger rows, one per question (section 6).
+- The keep-or-change table above goes to the owner through the orchestrator.
+- The rate: this story adds the constant and the one wiring line unless G10's builder objects (asked by the
+  orchestrator). G11's builder confirms the AI file list (asked by the orchestrator). BG1's Test A path is routed to
+  BG1's builder.
+- Judge: B (session_01AfgnvV9T8Zpbm6riR6HaEi). The freeze code starts in parallel; the freeze commit waits for G7b and
+  G11 on `main`.
 
 ## Claims
 
