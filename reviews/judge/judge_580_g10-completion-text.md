@@ -61,9 +61,9 @@ are clear enough for the owner; I do not rule on them. D2 (catch-up from 22 Oct)
 
 ## Addendum 1
 
-**G10 completion story text, round 2 (story/g10-completion @ d0182a3e9), judge B: PASS (3 minor). Lane 1, rule 1.**
-One file changed from main (`docs/stories/G-forecasts.md`), so I judged by reading. Doc tests at d0182a3e9: 829
-passed, 15 xfailed. The owner's D1 and D3 stay open: the code is built with the recommended values, and only the merge
+**G10 completion story text, round 2 (story/g10-completion @ 1fd56d8ec), judge B: PASS (2 minor). Lane 1, rule 1.**
+First read at d0182a3e9; 1fd56d8ec adds only the Depends line. One file changed from main, so I judged by reading.
+Doc tests at 1fd56d8ec: 829 passed, 15 xfailed. The owner's D1 and D3 stay open: the code is built with the recommended values, and only the merge
 waits.
 
 | Item | Outcome | My evidence |
@@ -72,14 +72,13 @@ waits.
 | SF2 Groww overlap | **Accepted, with my correction** | all three overlaps are tabled, the 22 Oct 15:15 one failing; the trigger is now any failure (criterion 11). My round-1 "row in Drive" was wrong: `research/data/intraday/slots/2026/10/22/nifty_20261022_1500.csv` is in the repository (good, 220 of 220), and so are the 22 and 23 Oct 15:15 rows (good, 216 of 216) |
 | SF3 pack readers | **Accepted** | gap row 10 and interface G7b 5 now name G7b's V4/V5 as the first pack readers under `check_pack_binding`; criterion 7 excludes only a new `SEALED_COMMITMENTS`, not `PACK_READERS`; `CommitmentTimes.file_received_at` exists (`commitment.py:22,39`) |
 | Minors 1-3 | **Accepted** | a hung part at 14:45 is stopped and the day `system_late`, with a plant; build now, merge after the owner; criterion 4's timeline fixed |
-| Minor 4 (`first_v4_expiry` in Depends) | **Not answered** | still minor: the Depends line (`:1302`) does not name G7b's first commit |
+| Minor 4 (`first_v4_expiry` in Depends) | **Accepted** at 1fd56d8ec | Depends names G7b's first commit, merged before 3a's code; my `git grep` finds the function on no branch yet |
 | G7b's asks (a), (b) | **Sound** | (ii) covers `receipts/data/v4/records/live/`; `FutureQuote` on main has no `last_trade_time` or `volume` (`model.py:26-33`) |
 
 ## Minor (round 2)
 
-1. Minor 4 above.
-2. Criterion 12 does not say where D3's rehearsal exception lives. The release step may not read the mode:
+1. Criterion 12 does not say where D3's rehearsal exception lives. The release step may not read the mode:
    `test_only_the_composition_roots_know_the_mode` (`tests/rehearsal/test_guard.py:70`) forbids it, so it belongs in
    `fno/rehearsal/` or a root. Also say how the one `v4_pack` note reaches the quote part (not a `DayStep`) and both steps.
-3. Criterion 11's boundary "A16's row missing ... as 23 Oct's 14:30" is not what the record shows: 23 Oct's 14:30 row
+2. Criterion 11's boundary "A16's row missing ... as 23 Oct's 14:30" is not what the record shows: 23 Oct's 14:30 row
    exists with status `missed` (`slots/2026/10/23/nifty_20261023_1430.csv`). Test both a missed row and no row at all.
