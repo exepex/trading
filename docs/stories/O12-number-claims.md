@@ -165,10 +165,11 @@ removed (`tests/numbering/test_claim.py`).
 
 ## O12e: ledger trial numbers are claimed too (orchestrator, 25 Oct 2026)
 
-**Status:** story text on `story/o12e-ledger-trials` (builder session_019rZrcu1GSqUC7PScqwQgo2; O12's builder
-session_01KS9xBc14DGACR9QrS6Acdq could not be reached on 25 Oct, so the orchestrator decides who builds). **Lane: 1 is proposed, not 2** (when unsure, lane 1): the guard
-below changes `Ledger.register` (B4, the rule that a trial runs only after its registration) and the evaluation
-freeze's own trial number (`fno/evaluation/freeze.py`, an evaluation record). The orchestrator decides.
+**Status:** story text on `story/o12e-ledger-trials`; builder session_019rZrcu1GSqUC7PScqwQgo2 (the orchestrator,
+25 Oct: O12's builder session_01KS9xBc14DGACR9QrS6Acdq is out of reach and O12b-O12d are merged, so one builder).
+**Lane 1** (orchestrator, 25 Oct): the guard below changes `Ledger.register` (B4, the rule that a trial runs only
+after its registration) and the evaluation freeze's own trial number (`fno/evaluation/freeze.py`, an evaluation
+record).
 
 **Why.** `research/ledger.csv` trial ids are taken by hand as "the highest id plus one" in each builder's own
 checkout; `Ledger.register` accepts any id it is given, and `fno/evaluation/freeze.py` takes the highest plus one
@@ -182,7 +183,10 @@ registry; trials get the same.
 - **Registry `numbers/ledger-trial.csv`**, the same four columns. One row reserves a **block**: `number` is `<a>-<b>`
   (`a <= b`, both whole numbers from 1) or a single `<n>`; `name` is the block's **experiment prefix**, a slug.
 - **Items:** the numeric `trial_id`s in `research/ledger.csv` with their `experiment`. Ids that are not whole numbers
-  (`book3:<strategy_id>`, Book 3's own registry; none on `main` today) are outside the series.
+  (`book3:<strategy_id>`; none on `main` today) are outside the series, because no counter makes them: the id is the
+  strategy's own name, which Book 3's registry refuses twice (`fno/book3/registry.py`, "already registered: a change
+  is a new strategy_id"), and two branches choosing one name is a naming clash the ledger's duplicate-id check stops
+  at merge, not a "highest plus one" race.
 - **The check** (`tools/check_numbers.py`, unchanged command) adds, for this category: a numeric trial id that no
   block covers; a trial whose `experiment` does not start with its block's name (another branch's block used); two
   blocks that overlap; a malformed block. A block with ids not yet in the ledger is a claim still being written (fine).
@@ -204,7 +208,8 @@ registry; trials get the same.
   through it (the factory's `register`, the evaluation freeze, a registration by hand through the class), so no
   caller needs its own check. A block claimed on `main` reaches a branch when `main` is merged into it.
 - **The evaluation freeze** stops taking "highest plus one": it takes the lowest unused id of a block whose name starts
-  its experiment, and is refused, with the claim command, when there is none.
+  its experiment. When there is no such block, or every such block is full, it is refused with the claim command; it
+  never takes an id from another block.
 
 **Known limits (said plainly).** The session column is what the claimant typed: the check cannot prove who claimed a
 block, only that every trial sits in a block named for its experiment. An id typed straight into `ledger.csv` by hand
@@ -219,7 +224,8 @@ block, only that every trial sits in a block named for its experiment. An id typ
    overlaps is refused.
 4. `Ledger.register` refuses id 121 with no block, refuses 116 for experiment `edge1-...` (block `edge2-f6`), and
    accepts 116 for `edge2-f6-...`; Book 3's `book3:<id>` is still accepted.
-5. The evaluation freeze registers the lowest free id of its experiment's block and is refused without one.
+5. The evaluation freeze registers the lowest free id of its experiment's block; it is refused when there is no
+   such block and when the block is full, even with a free id in another block.
 6. `numbers/README.md` and CLAUDE.md's numbering line name the new category; the claim tool's help lists it.
 Plants, one at a time and restored: the block check removed; the experiment check removed; the overlap check removed;
 the guard removed from `register`; the freeze's highest-plus-one restored.
