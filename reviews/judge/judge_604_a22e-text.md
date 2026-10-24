@@ -26,3 +26,31 @@
 
 ## Plants
 0 (text round). The builder's 5 plants are noted for the code round.
+
+## Addendum 1: A22e code, round 1 of 2, story/a22e-last-read at 5f90b561a
+**PASS**, lane 1, 2 minor. The code diff is `fno/preopen/parts.py` (+9), `run.py` (+6 -6) and
+`rehearsal/recorded_preopen.py` (+1); tests and the story otherwise.
+- **Gates** on a trial merge with main 74dfb9dba (b789f3d7a), `FNO_SLACK_BOT_TOKEN` set: 16,107 passed, 1 skipped, 14 xfailed.
+  ruff, format, check_imports (2,695), check_records (9,174) and check_numbers are clean. No Slack post in the run's window
+  (16:45:43-16:54:57 UTC).
+- **E1-E4 and m1 MET.** The margin lives on the part (`PreopenPart.last_read_margin` = 1 s, `GrowwIndexPreopen` 15 s).
+  `run.py:76` reads it, and `test_last_read.py` covers good, bad (old 1 s: late), boundary (14/15/16 s; seen 09:10:59
+  ok, 09:11:00 late) and empty (margin past the window: one read at the opening). `test_m1_*` shows the F&O list late
+  when two 30 s index calls start at 09:10:45.
+- **Plants: 7 of mine, 7 caught.** Index margin 1 s; 14 s; 15 s for every part; `run.py` back to a fixed 1 s; the
+  rehearsal copy removed; `ok` at the close (`<=`); last read one second later.
+- **(1) Is 15 s enough?** The only real timings are 23 Oct's archived last answers: nifty received 09:10:59 for a read
+  due 09:10:59, banknifty 09:11:01. So two paced calls took about 2 s, against 15 s (some evidence, n = 1; 24 Oct was a
+  Saturday, and only each part's last answer is archived). A call slower than 15 s is still `late` and alerted with
+  its value kept, which is honest. The index source's call timeout is 30 s (`candle_source.py:21`).
+- **(1b) The F&O list when the index read runs long:** it is delayed past 09:10:59 and judged `late`, as m1 states and
+  `test_m1_*` pins. On 23 Oct the list was `ok` at 09:08:30, so this needs a list still incomplete after 09:10:30.
+- **(2) Can the rehearsal diverge?** No. `RecordedPreopenPart.__init__` copies `live.last_read_margin` from the
+  wrapped live part (a class attribute; nothing sets it later), and my plant removing the copy was caught.
+- **(3) Should CLAUDE.md's A22 section name the last read? Yes,** as a lane-2 wording fix after merge, not a merge
+  gate. Step 3 says the Groww candle is read "(09:10:00-09:10:59)". After A22e the reads end at 09:10:45 and the window
+  closes 09:11:00, so "09:10:00-09:10:45, window to 09:11:00" would keep the routine's operating text true for a
+  session reading a late or incomplete line. It narrows no lane-1 rule and touches no hard line, so it is lane 2.
+- **m1 (minor)** The Claims have no printed real-output sample (quality rule 6). The 23 Oct-shape test
+  (`test_open_check_record.py::test_d1_*`, both indices "ok (1 read(s))") stands in. Add its lines.
+- **m2 (minor)** The builder ran only part of the suite after two test renames; my full run above covers it.
