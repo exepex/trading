@@ -15,7 +15,7 @@ import hashlib
 import json
 import time as clock
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from ..constants import SESSION_MUHURAT, SESSION_REGULAR, SESSION_SPECIAL
 from ..intraday.pacing import RatePacer
@@ -45,6 +45,14 @@ NSE_DATASET = "nse/derivatives/quote-snapshots"  # story O6: NSE's public chain,
 WINDOW_START, WINDOW_END = time(14, 55), time(15, 10)
 MAX_EARLY_WAIT_SECONDS = 20 * 60  # a run started up to 20 minutes early waits for the window
 DEFAULT_WINDOW = QuoteWindow("", WINDOW_START, WINDOW_END, MAX_EARLY_WAIT_SECONDS)  # A4's, never changed
+
+
+def earliest_waiting_start(window_start: time) -> time:
+    """The earliest start that still waits for a window opening at `window_start` (A4's early limit); one second
+    before it the recorder says "too early" and records nothing (A4c-2: the one place this subtraction lives)."""
+    return (datetime.combine(date.min, window_start) - timedelta(seconds=MAX_EARLY_WAIT_SECONDS)).time()
+
+
 RETRY_GAP_SECONDS = 60
 SPOT_BAND = 0.05  # strikes within 5% of spot
 MONTHLY_EXPIRIES = 2

@@ -4,14 +4,14 @@ files in Drive only; a quiet index is never a closed market; an index not record
 import csv
 import io
 import json
-from datetime import datetime
+from datetime import datetime, time
 
 from fno.models import IST
 from fno.quotes.book_fetch import BookFetcher
 from fno.quotes.expiry_listing import ExpiryListUnavailable
 from fno.quotes.indices import INDEX_PER_SECOND, INDEX_WORKERS, IndexRecording, index_slot
 from fno.quotes.indices_cli import record_indices
-from fno.quotes.recorder import NOT_LISTED
+from fno.quotes.recorder import NOT_LISTED, earliest_waiting_start
 from tests.quotes.drive_fakes import FakeDrive
 from tests.quotes.index_fakes import FILE, SPOTS, Clock, IndexProvider, Listing, recorders
 from tests.quotes.test_recorder_calendar import Alerts, NoCalls
@@ -215,3 +215,8 @@ def test_the_earliest_start_waits_and_one_second_before_it_is_too_early(tmp_path
 def test_an_index_closed_none_keeps_canonical_none_in_the_alert(tmp_path, capsys):
     code, sent, _ = _alerted(tmp_path, AT_1500, capsys, provider=IndexProvider(refuse={"FINNIFTY"}))
     assert code == 1 and "FINNIFTY (incomplete, canonical none)" in sent[0] and "BANKNIFTY" not in sent[0]
+
+
+def test_the_earliest_waiting_start_is_the_window_less_a4_s_early_limit():
+    """A4c-2: the one subtraction O1's start times build on (O1 adds its own margin)."""
+    assert earliest_waiting_start(time(15, 1)) == time(14, 41) and earliest_waiting_start(time(14, 55)) == time(14, 35)

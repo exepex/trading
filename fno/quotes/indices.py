@@ -6,7 +6,7 @@ window lasts (A4's rule), and an index still incomplete at its end is "none" for
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, time
 
 from ..models import IST
 from .recorder import (
@@ -16,6 +16,7 @@ from .recorder import (
     UNIVERSE,
     QuoteSnapshotRecorder,
     RecordResult,
+    earliest_waiting_start,
 )
 from .slot import Slot
 from .weekly import NO_WEEKLY, WEEKLY_EXPIRIES
@@ -26,7 +27,7 @@ NOT_STARTED = RecordResult("window closed")
 DONE_WITHOUT_ATTEMPT = ("not a trading day", "already recorded", "too early")
 # The earliest start that still reaches the window by waiting (A4c-2: 15:01 minus the 20-minute early wait). A run
 # started before it records nothing and writes no none marker, so its result says so (DRY2 R1, 24 Oct 2026).
-EARLIEST_START = (datetime.combine(date.min, INDEX_WINDOW_START) - timedelta(seconds=MAX_EARLY_WAIT_SECONDS)).time()
+EARLIEST_START = earliest_waiting_start(INDEX_WINDOW_START)
 TOO_EARLY_REASON = f"not started: too early (before {EARLIEST_START:%H:%M})"
 CLOSED_NONE = "canonical none"  # the day's marker was written "none": a rerun records nothing more
 
