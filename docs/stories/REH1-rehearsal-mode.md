@@ -576,3 +576,55 @@ its own: no Slack, no Drive, no Groww, no NSE.
   - `remote get-url`: local.
 - **Its other calls:** `_is_session` reads the repository's calendar file (local). The guard and the routine's
   commands are children with the rehearsal's env.
+
+### REH1g: DRY2's rehearsal gaps (for judges B and E)
+
+Branch `story/reh1g-record-gaps`, from main. DRY2's gaps are in docs/dryruns/DRY2_2026-10-23.md, "Gaps to fix".
+
+- **G1, the recorded 3 pm quotes are listed.**
+  - **Cause:** `RecordedRecorder._attempts` lists the day's sidecars with `checksums(folder)`, but A4b's
+    `DriveOnlyQuoteStore` cannot list. So in DRY2 both quote parts and the 15:15 snapshot died. REH1b's tests used a
+    store that could list.
+  - **Fix:** `record_store.ListedQuoteRecord`, a rehearsal-side `DriveOnlyQuoteStore` that lists the repository's
+    folder (its sidecars and markers). A raw quote file is still read by name and checked against its sidecar. A4b's
+    class is unchanged.
+  - **Test:** `test_the_real_builders_find_the_day_s_attempts_in_the_record` builds the real
+    `build_quote_recorder(cfg)` and `build_nse_quote_recorder(cfg)` under the mode and finds the recorded attempt.
+  - **Plant** (the old class back in `record_quote_store`): the test fails.
+- **G2, librarian and cue files with a manifest row are visible from that row's commit.**
+  - **Cause:** `Visibility` knew only O9 receipts. The A9 datasets and the global cues keep their rows in
+    `research/data/manifests/**/*.csv`, so every such file was hidden. This caused the 16 Oct index-close refetch, the
+    evening's F&O bhavcopy and participant OI, and the S&P context line.
+  - **Fix:** `manifest_rows.ManifestRows`. Each row counts from the committer time of the commit that added it (`git
+    blame --line-porcelain` on the record checkout, loaded once per process: 65 files in about 5 s). An uncommitted
+    row never counts. Both row shapes are covered: a `path` column, matched on the Drive path's tail, and A9's
+    `date,url`, matched on the URL's file name inside the folder named after the manifest. `Visibility` checks the
+    receipt first, then the row. It is wired in `drive_wiring`.
+  - **Real check:** on this record, the 16 Oct index-close is seen at 16 Oct 19:01:48 UTC; the S&P copy of 23 Oct at
+    00:42:24 UTC; KOSPI's at 03:21:05 UTC; a made-up path never.
+  - **Tests** (`test_manifest_rows.py`, 4):
+    - the 16 Oct index-close and the S&P cue are visible from their row's commit;
+    - a row committed after the replay time stays invisible (no look-ahead);
+    - an uncommitted row, a missing row, and the same file name under another dataset's folder never count;
+    - the rehearsal's Drive is wired with the rows.
+  - **Plants** (the time check dropped; uncommitted rows counted; the wiring without rows): each fails a test.
+- **G4, one serving window for every recorded source.**
+  - **Cause:** the -5 s lookback was copied four times (cues, pre-open, closes, candles), and KOSPI's copy, 6.1 s before
+    the read, was missed.
+  - **Fix:** `serving.is_near`: from `EARLIER` (60 s) before now to `NEAREST` (10 min) after. An answer saved before
+    now is no look-ahead.
+  - **Tests** (`test_serving.py`): KOSPI's case; both edges of the window, exact to the microsecond; every recorded
+    source uses the one rule.
+  - **Plant** (5 s back): the tests fail.
+- **G5, `lab release-check`'s "unreachable": no change, with reason.** It is A8's own "says nothing" outcome for an
+  unanswered read, right for a rehearsal. A rehearsal-only outcome there would put the mode into A8's code, which the
+  only-the-roots-know-the-mode test forbids.
+- **G3, the pre-open waits: not in this branch, for the orchestrator's choice.** `preopen record` and `global-cues
+  preopen` share one replay clock and run at once, so one process's jump could skip the other's window. Only about 12
+  of the 37 minutes can be skipped.
+- **Still open, found while building G2 (G2b).** The routine's own downloads are not served.
+  - A file the real routine itself archived (the evening's 23 Oct F&O bhavcopy, row committed 19:55 IST) is rightly
+    invisible to a rehearsal starting at 19:53.
+  - Serving it needs a recorded NSE-archive session: the file the day archived, served once the replay clock nears
+    its row's commit.
+  - Until then, those reads stay NOT_RECORDED, which is honest and never a fetch.

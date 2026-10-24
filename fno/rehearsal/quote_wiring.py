@@ -25,7 +25,7 @@ def record_quote_store(store, mode: Rehearsal):
     from ..quotes.drive_only_store import DriveOnlyQuoteStore
     from ..storage.raw_store import AreaStore, LocalFolderStore
     from ..storage.wiring import QUOTES_FOLDER, RAW_AREA, build_owner_drive
-    from .record_store import RecordReader
+    from .record_store import ListedQuoteRecord, RecordReader
 
     repository = RecordReader(LocalFolderStore(mode.record / QUOTES_FOLDER.relative_to(ROOT)))
     if not isinstance(store, DriveOnlyQuoteStore):
@@ -35,4 +35,4 @@ def record_quote_store(store, mode: Rehearsal):
         drive = build_owner_drive()
         return AreaStore(drive.record_view(), RAW_AREA) if drive is not None else None
 
-    return DriveOnlyQuoteStore(repository, private, store.prefix.rstrip("/"), store.unavailable)
+    return ListedQuoteRecord(repository, private, store.prefix.rstrip("/"), store.unavailable)

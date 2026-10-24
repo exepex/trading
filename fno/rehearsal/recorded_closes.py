@@ -1,18 +1,18 @@
 """A4h's index-list read in a rehearsal (story REH1b), behind its `CloseListSource`: the answer NSE gave on the day,
 read back from the real record. The real reader saved its raw answer seconds after asking, so the answer served is the
-day's first recorded raw answer saved at or after now (within `NEAREST`), once the replay clock reaches its save time:
+day's first recorded raw answer saved near now (`serving.is_near`), once the replay clock reaches its save time:
 the 15:40 read gets the first answer, the 16:00 recheck the recheck. Any other moment is not recorded."""
 
 from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 from ..close_read.source import CloseListSource
 from ..storage.receipts import ReceiptFolder
+from .serving import is_near
 
-NEAREST = timedelta(minutes=10)
 RAW_SUFFIX = ".raw.json"
 NOT_RECORDED = "rehearsal:NOT_RECORDED NSE's index list at {at}: no recorded answer saved within 10 minutes of it"
 
@@ -43,5 +43,5 @@ class RecordedCloseList(CloseListSource):
         prefix = f"data/closes/{day:%Y}/{day:%m}/{day.isoformat()}."
         saved = [(r.path, datetime.fromisoformat(r.written_at)) for r in self.receipts.under(prefix.rsplit("/", 1)[0])
                  if r.path.startswith(prefix) and r.path.endswith(RAW_SUFFIX)]  # fmt: skip
-        later = sorted((at, path) for path, at in saved if now - timedelta(seconds=5) <= at <= now + NEAREST)
+        later = sorted((at, path) for path, at in saved if is_near(now, at))
         return (later[0][1], later[0][0]) if later else None

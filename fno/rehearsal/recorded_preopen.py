@@ -9,14 +9,14 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Callable
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time
 
 from ..models import IST
 from ..preopen.answers import read_index_preopen
 from ..preopen.parts import Answer, GrowwIndexPreopen, PartFailed, PreopenPart
 from ..storage.receipts import ReceiptFolder
+from .serving import is_near
 
-NEAREST = timedelta(minutes=10)
 RAW_FOLDER = "data/preopen/raw/{day:%Y}/{day:%m}/{day:%d}"
 NOT_RECORDED = "rehearsal:NOT_RECORDED {part} at {at}: the day saved no answer near then"
 DAMAGED = "rehearsal: the recorded answer {path} is missing from Drive or differs from its receipt"
@@ -54,7 +54,7 @@ class RecordedPreopenPart(PreopenPart):
             if receipt.path.startswith(prefix) and receipt.path.endswith(".json"):
                 stamp = receipt.path.removeprefix(prefix).removesuffix(".json")
                 seen = datetime.combine(day, time(int(stamp[:2]), int(stamp[2:4]), int(stamp[4:6])), IST)
-                if now - timedelta(seconds=5) <= seen <= now + NEAREST:
+                if is_near(now, seen):
                     times.append((seen, receipt.path, receipt.sha256))
         if not times:
             return None
