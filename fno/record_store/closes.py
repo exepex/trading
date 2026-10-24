@@ -2,8 +2,12 @@
 already saves (`closes/<yyyy>/<mm>/<day>.first.raw.json` and `.recheck.raw.json`): the shadow phase, A4h's code
 unchanged. Those files are A4h's canonical JSON of the parsed answer (sorted keys), not NSE's own byte stream, so
 integrity means "matches its receipt". A4h's own rules decide what a valid answer is (`read_answer`: NSE's stamp of
-that day at or after 15:30, every index with a last and an open); this adds the sanity check and, for the certified
-record, NSE's official index-close file within A4h's tolerance. Lines name indices and differences, never a level.
+that day at or after 15:30, every index with its fields, and since A4h-2 a day range that holds the open and the last);
+this adds the sanity check and, for the certified record, NSE's official files within A4h's tolerance: for NIFTY 50
+and NIFTY BANK the last against the official close, the high and low against the official high and low, and the
+previous close against the previous session's official close (rules version 2: FL1-1f's evening reads them, so they
+are certified like the close; a field an older record lacks is skipped, as A4h's confirm does). Lines name indices,
+fields and differences, never a level.
 
 Which passing read is the record (the A4h builder's objection, 23 Oct): A4h rechecks at 16:00 because NSE's list can
 still change after 15:30, and both reads carry the same stamp (23 Oct: "23-Oct-2026 15:30" at 15:40 and at 16:00),
@@ -15,6 +19,7 @@ does not confirm."""
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from datetime import date
 
 from ..close_read.answer import Refused, difference, read_answer
@@ -31,6 +36,7 @@ MAX_MOVE = 0.20  # NSE's widest index circuit band: a close more than 20% from i
 AGREE = "{count} passing version(s) agree on {names}"
 SUPERSEDED = "the later read supersedes the earlier ({changes})"
 OFFICIAL = "closest to NSE's official file {filename}, within {tolerance}"
+OFFICIAL_CHECK = "official file"
 MATCHES, DIFFERS, NO_A4H = "matches A4h's record", "differs from A4h's record (it cites {which})", "A4h wrote no record"
 
 
@@ -40,11 +46,12 @@ def a4h_raw_paths(session: str) -> list[str]:
 
 
 class ClosesRules(DatasetRules):
-    name, version = DATASET, "1"
+    name, version = DATASET, "2"
     live_from = date(2026, 10, 22)  # A4h's first raw answer (its first read, 22 Oct)
 
-    def __init__(self, official: OfficialCloses):
-        self.official = official
+    def __init__(self, official: OfficialCloses, previous_session: Callable[[date], date]):
+        """`previous_session`: NSE's calendar step back, for the previous close's official file."""
+        self.official, self.previous_session = official, previous_session
 
     def checks(self, session: str, level: str, data: bytes) -> list[CheckResult]:
         day = date.fromisoformat(session)
@@ -67,8 +74,8 @@ class ClosesRules(DatasetRules):
         checked = [n for n in INDICES if n.checked]
         values = [read_answer(json.loads(data), day).values for _, data in passing]
         if level == CERTIFIED:
-            filename, official = self.official.closes(day)
-            gaps = [max(abs(v[n.listed]["last"] - official[n.official]) for n in checked) for v in values]
+            filename, official = self.official.values(day)
+            gaps = [max(abs(v[n.listed]["last"] - official[n.official]["close"]) for n in checked) for v in values]
             best = min(range(len(passing)), key=lambda i: (gaps[i], i))  # equal quality: the read A4h's record cites
             return Choice(passing[best][0], OFFICIAL.format(filename=filename, tolerance=TOLERANCE))
         changes = [_change(n.listed, values[0][n.listed], values[-1][n.listed]) for n in checked
@@ -80,27 +87,49 @@ class ClosesRules(DatasetRules):
 
     def _agreement(self, day: date, values: dict) -> CheckResult:
         try:
-            found = self.official.closes(day)
+            found = self.official.values(day)
+            previous = self.official.values(self.previous_session(day)) if _has_previous(values) else None
         except Exception as failure:  # noqa: BLE001 - a damaged official file fails the check with its class only
-            return CheckResult("official file", False, f"unreadable ({type(failure).__name__})")
+            return CheckResult(OFFICIAL_CHECK, False, f"unreadable ({type(failure).__name__})")
         if found is None:
-            return CheckResult("official file", False, "no official index-close file in Drive yet")
+            return CheckResult(OFFICIAL_CHECK, False, "no official index-close file in Drive yet")
+        if _has_previous(values) and previous is None:
+            return CheckResult(OFFICIAL_CHECK, False, "no official index-close file in Drive for the previous session")
         filename, official = found
-        for name in (n for n in INDICES if n.checked):
-            close = official.get(name.official)
-            if close is None:
-                return CheckResult("official file", False, f"{name.listed} not in {filename}")
-            gap = abs(values[name.listed]["last"] - close)
-            if gap > TOLERANCE + 1e-9:
-                return CheckResult("official file", False, f"{name.listed} differs by {gap:.2f}")
-        return CheckResult("official file", True)
+        for index in (n for n in INDICES if n.checked):
+            theirs = _official_fields(official.get(index.official) or {}, (previous or ("", {}))[1].get(index.official))
+            for field, mine in values[index.listed].items():
+                if field not in theirs or mine is None:
+                    continue
+                if theirs[field] is None:
+                    return CheckResult(OFFICIAL_CHECK, False, f"{index.listed} {field} not in {filename}")
+                gap = abs(mine - theirs[field])
+                if gap > TOLERANCE + 1e-9:
+                    return CheckResult(OFFICIAL_CHECK, False, f"{index.listed} {field} differs by {gap:.2f}")
+        return CheckResult(OFFICIAL_CHECK, True)
+
+
+def _has_previous(values: dict) -> bool:
+    return any(values[n.listed].get("previous_close") is not None for n in INDICES if n.checked)
+
+
+def _official_fields(today: dict, previous: dict | None) -> dict[str, float | None]:
+    """Each recorded field's official counterpart: the close, the day range, the previous session's close."""
+    return {"last": today.get("close"), "high": today.get("high"), "low": today.get("low"),
+            "previous_close": (previous or {}).get("close")}  # fmt: skip
 
 
 def _change(name: str, earlier: dict, later: dict) -> str:
     """Which field changed and by how much (a difference, never a level); judge 543: an open-only change is named."""
-    fields = [f"{field} {difference(earlier[field], later[field])}" for field in sorted(earlier)
-              if earlier[field] != later[field]]  # fmt: skip
+    fields = [f"{field} {_moved(earlier[field], later.get(field))}" for field in sorted(earlier)
+              if earlier[field] != later.get(field)]  # fmt: skip
     return f"{name} {', '.join(fields)}"
+
+
+def _moved(earlier: float | None, later: float | None) -> str:
+    if earlier is None or later is None:
+        return "missing in one read"
+    return difference(earlier, later)
 
 
 def _sanity(values: dict) -> CheckResult:

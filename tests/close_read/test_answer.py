@@ -9,7 +9,13 @@ from tests.close_read.fakes import DAY, answer
 @pytest.mark.parametrize("stamp", ["21-Oct-2026 15:30", "21-Oct-2026 15:31", "21-Oct-2026 19:55"])
 def test_a_list_stamped_today_at_or_after_the_close_counts(stamp):
     got = read_answer(answer(stamp), DAY)
-    assert got.stamp == stamp and got.values["NIFTY 50"] == {"last": 22811.35, "open": 23016.0}
+    assert got.stamp == stamp and got.values["NIFTY 50"] == {
+        "last": 22811.35,
+        "open": 23016.0,
+        "high": 23120.9,
+        "low": 22649.9,
+        "previous_close": 22888.95,
+    }
     assert set(got.values) == {"NIFTY 50", "NIFTY BANK", "INDIA VIX"}
 
 
@@ -30,7 +36,7 @@ def test_any_other_stamp_is_refused_with_its_reason(stamp, why):
 def test_a_missing_index_or_an_unreadable_value_is_refused():
     with pytest.raises(Refused, match="NIFTY BANK missing from the answer"):
         read_answer(answer(drop=("NIFTY BANK",)), DAY)
-    with pytest.raises(Refused, match="INDIA VIX has no readable last or open"):
+    with pytest.raises(Refused, match="INDIA VIX has no readable last$"):
         broken = answer()
         broken["data"][-1]["last"] = "-"
         read_answer(broken, DAY)
