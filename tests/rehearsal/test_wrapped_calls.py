@@ -29,3 +29,19 @@ def test_a_file_with_no_call_has_nothing_unwrapped():
     text = '"""GitHubActivityReceipts( in a docstring is not a call."""\nclass GitHubActivityReceipts:\n    pass\n'
     assert unwrapped(text, "GitHubActivityReceipts", "rehearsed_receipts") == []
     assert calls(text, "GitHubActivityReceipts") == 0
+
+
+def test_an_alias_a_partial_a_map_a_subclass_and_a_renaming_import_are_unwrapped():
+    """Self-review 1: a builder used without its literal call is still a bare builder."""
+    cases = {
+        "cls = GitHubActivityReceipts\nreceipts = cls(repo, token, history)\n": [1],
+        "made = functools.partial(GitHubActivityReceipts, repo)\n": [1],
+        "every = list(map(GitHubActivityReceipts, repos))\n": [1],
+        "class Mine(GitHubActivityReceipts):\n    pass\n": [1],
+        "from fno.ai.receipts import GitHubActivityReceipts as Receipts\nreceipts = Receipts(repo, token, history)\n": [
+            1
+        ],
+    }
+    for text, lines in cases.items():
+        assert unwrapped(text, "GitHubActivityReceipts", "rehearsed_receipts") == lines, text
+    assert unwrapped("from fno.ai.receipts import GitHubActivityReceipts\n", "GitHubActivityReceipts", "x") == []
