@@ -1056,3 +1056,278 @@ only the diff and this story.
 
 **Depends:** T1, T2, T1d, O1 R2, the dashboard contract change and re-pin (Out) · **Size:** S · **Status:** text PASS
 (judge 577 addendum 1); code re-pinned and green at `d7855f7ea`, to the code judge
+
+---
+
+## T1f. The card in a rehearsal: its clock checks are not live, and nothing after the post stops its records
+
+**Repository:** trading · **Asked by:** the orchestrator, 24 Oct 2026 (its 23 Oct and 22 Oct rehearsals) · **Lane:** 1
+(judge I: the card's Slack delivery and its records)
+
+**Description:** As the owner, I want a rehearsal's card step to finish as the real one does, and a posted card to
+always leave its Drive record and delivery metadata. Then a rehearsal proves the card, and a posted card is never
+"no card on record".
+
+**What happened (strong evidence: reproduced 24 Oct at `main`, nothing posted to Slack):**
+- The orchestrator's rehearsal of 23 Oct (`daily run --rehearse --day 2026-10-23`, run `20261024T133643Z-76a4f5`)
+  posted its labelled card to #fno-desk. Then the card step failed with exit 1. Its alert was only "step card failed:
+  research/forecasts/scores/2026-10-22.json 6241c90b...; the run goes on", the last line of the card's "Records
+  used" list.
+- **Cause.** A rehearsing process installs REH1's HTTP guard (`fno/rehearsal/http_guard.py`). It refuses every host
+  but Google's Drive API and Slack's posting calls. The card's issuer asks GitHub for the time after the post
+  (`CardIssuer.issue` -> `check_server` -> `HttpDateClock.now`, a HEAD to `api.github.com`). The guard raises
+  `RehearsalCallRefused`, a `RuntimeError`. `HttpDateClock.now` catches only `requests.RequestException`, and
+  `check_server` only `ServerTimeUnknown`, so the error leaves `issue()`.
+  - At that point the card is already posted. The Drive record is never saved and the delivery metadata is never
+    written.
+  - The CLI exits through the traceback (stderr), so the result lines are never printed.
+- **Reproduced:**
+  - `check_server` with the guard installed raises "RehearsalCallRefused - rehearsal: no live call (HEAD
+    api.github.com/repos/exepex/trading)".
+  - `CardIssuer.issue` with a fake poster that reports "sent": 1 post, Drive saved nothing, no delivery file, and
+    `issue` raised `RehearsalCallRefused`.
+  - The card text's last line was a `research/forecasts/scores/<d>.json <sha>` line, as in the alert.
+- **Why the alert shows that line.** O1's `outcome` (`fno/daily/steps.py`) takes a failed command's reason from its
+  last printed line, `lines[-1]`. The traceback went to stderr, which is kept only in the private log. So the reason
+  was the card text's last line. This is O1's code (Out).
+- **Live days.** The guard is installed only in a rehearsal (`fno/rehearsal/process.py`, when `FNO_REHEARSAL` is
+  set), so this exact failure cannot happen on a live day. It is not "fails on its first live day". The class of
+  failure is live, though: any error after the post that is not caught leaves a posted card with no record. T1's own
+  design says each step after the post "is a printed line and a stored fact, never a stop" (`issue.py` docstring),
+  and only the Drive save and an `OSError` on the metadata write keep that promise today.
+- **A second rehearsal effect.** The rehearsal's clock is the replay clock (the replayed day), while Slack's `ts` is
+  real. So the Slack skew check would always store a WARNING in a rehearsal. REH1c says the same for A16's check and
+  replaced it with "rehearsal: replay clock, not checked against GitHub's and Slack's servers"
+  (`fno/rehearsal/preopen_wiring.py`). The card was never given that hook.
+
+**Scope.** In:
+- **A rehearsal hook for the card's clocks (REH1c's pattern).** In a rehearsal, the issuer's clock checks are one
+  unchecked line per server: "<server>: not checked (rehearsal: replay clock, not checked against GitHub's and
+  Slack's servers)". REH1c's `NOT_CHECKED` text is imported from `fno/rehearsal/preopen_wiring.py`, never copied. No
+  GitHub call is made, and no Slack skew is computed. A real run is unchanged.
+  - **Agreed with REH1's owner (session_01GAACYjcfHWkC3hp33iiMXV, 24 Oct), with two conditions, both in scope:**
+    1. The card's clocks join `guard.builders()` in `fno/rehearsal/guard.py` (a one-line edit agreed by REH1's
+       owner), as REH1c did for "A16's clock check". The real builder is called and the rehearsal form is
+       expected, so REH1's guard proves the card's clocks before any step. `tests/rehearsal/test_guard.py`'s
+       "without the mode" map gains the real form, and its count of unlabelled services grows by one.
+    2. In a rehearsal, no GitHub client is built at all. The HTTP guard stays the backstop, never the means.
+  - **Design:** the issuer's clocks become one object behind an interface, `CardClocks` (`fno/cards/`), with two
+    forms:
+    - `ServerCardClocks`, the real run: today's Slack check from the post's `ts` plus `HttpDateClock` for GitHub,
+      unchanged;
+    - `RehearsalCardClocks`: one unchecked line per server, no client built.
+    `build_card_clocks()` in `fno/cards/wiring.py` is the real builder. It returns
+    `rehearsed_card_clocks(<real>)`, a function in `fno/rehearsal/card_label.py` beside `rehearsed_card_poster`, which
+    picks the rehearsal form when `FNO_REHEARSAL` is set. The GitHub `HttpDateClock` is made only inside the real
+    form's builder, so a rehearsal never constructs it. `CardIssuer` takes a `CardClocks` in place of its list of
+    server clocks.
+- **Nothing after the post stops the records (judge 592 finding 1).** Everything in `CardIssuer.issue` after
+  `poster.post` returns is guarded, stage by stage, so a raise in one stage never skips the next. Every failure is
+  named by error type only (T1's rule: no message reaches a log). The stages, in order (today's `issue.py:51-60`):
+  1. **The clock checks** (the Slack check from the post's `ts`, then each server). A check that raises anything
+     becomes `unchecked(<server>, "<Type>")`.
+  2. **The facts** (`_facts`). If building them raises, the issuer uses **minimal facts** instead, then goes on:
+     - `day`, `status`, `reason_code`, `card_sha256`, `test` and `code_commit`;
+     - `slack: {sent, ts, channel, outcome, server_time_utc}` from the post's receipt;
+     - `clock: []`, `missing: []`, `previous_misses: []`, `records_used: []`;
+     - `failure: "facts not built (<Type>)"`.
+     These are the keys the next card's `misses()` reads, so the next card can still name the day's miss and never
+     crashes on it.
+  3. **The Drive record** (`_section` for each section, `_record_name`, `_json(record)`, then `save`). Building it
+     sits inside the same guard as the save. A raise anywhere here gives `saved: false` and "card record NOT saved
+     to Drive: record not built (<Type>)".
+  4. **The delivery metadata** (`_json(delivery)`, then the write). A raise of any kind, not only `OSError`, prints
+     T1's "delivery metadata NOT written (<Type>); commit it by hand:" followed by the metadata. If even the metadata
+     cannot be turned into JSON, it prints the minimal facts of stage 2 instead (always JSON: strings, booleans and
+     null only).
+  - **The exit code.** 0 only when the card was sent, the Drive record saved, the metadata written and no stage
+    failed. Any failed stage gives exit 1: T1's rule plus stages 1-2. A clock that is merely unchecked is not a
+    failure; a clock check that raised is one.
+  - **Where a rehearsal's metadata goes (judge 592 finding 2).** In a rehearsal, the delivery file is written in the
+    rehearsal's checkout. The run's commits go to its own branch, `rehearsal/<day>-<run_id>` (REH1,
+    `fno/rehearsal/checkout.py`), never to `main`. T1f changes nothing there.
+- **The CLI prints its result lines even when the issuer fails.** Today an unexpected raise after `out(text)` loses
+  every result line. With the guard above, `issue()` returns on every path. A test plants a raising clock and a
+  raising metadata store and checks that the last printed line is the delivery line, never a card line.
+
+Out, with reasons:
+- **O1's alert reason for a crashed command** (`fno/daily/steps.py` `outcome`: `lines[-1]` even when the command
+  died with a traceback). That is O1's code, so it goes to O1's owner as a proposal: on a nonzero exit with stderr,
+  the alert carries the last stderr line (the exception's type and message), and the committed log keeps only its
+  code (O1-status-only). T1f makes the card's own failures print a result line, so the card no longer depends on
+  it.
+- **The witness in a rehearsal:** already REH1b's (`rehearsed_receipts`); unchanged.
+- **A16's and A22's clock checks:** already REH1c's; unchanged.
+
+**Acceptance criteria:**
+1. In a rehearsal (`FNO_REHEARSAL` set), `card daily --post` builds no GitHub client and makes no call to GitHub. Its delivery metadata stores one
+   unchecked entry per server ("Slack" and "GitHub"), each with the rehearsal line and `checked: false`, and no
+   WARNING. A real run is unchanged: the same servers are asked, and T1 criterion 7 holds.
+2. In a rehearsal, after a sent post, the Drive record is saved (the dryrun store) and the delivery metadata is
+   written in the rehearsal's checkout. It is committed only to the rehearsal's branch, `rehearsal/<day>-<run_id>`,
+   never to `main` (REH1's rule, unchanged). The step's exit code follows T1: 0 when sent and saved.
+3. A clock check that raises any error (not only `requests`' errors) is stored as `unchecked(<server>, "<Type>")`.
+   The issuer goes on to the Drive save and the metadata write.
+4. A metadata write that raises any error prints "delivery metadata NOT written (<Type>); commit it by hand:" with
+   the metadata (or the minimal facts, if the metadata is not JSON), and exits 1.
+   - A raise while building the facts stores the minimal facts of stage 2, with `failure: "facts not built
+     (<Type>)"`, in both the Drive record and the delivery metadata. It exits 1, and the next card reads that
+     metadata without error.
+   - A raise while building the Drive record gives "card record NOT saved to Drive: record not built (<Type>)", the
+     metadata is still written, and the command exits 1.
+   - The card is never posted twice: `issue` posts once, first.
+5. On every path after the post, the CLI's last printed line is one of the issuer's result lines (the delivery line),
+   never a line of the card's text.
+6. With the HTTP guard installed and the hook removed, a test fails. The test asserts that in a rehearsal the stored
+   GitHub entry carries the rehearsal line. Without the hook, criterion 3 still catches the refused call, so GitHub
+   is stored as unchecked with "RehearsalCallRefused" in place of the rehearsal line, and the test's assertion
+   fails. It also asserts that no `HttpDateClock` was built (P8).
+7. REH1's guard lists the card's clocks: `guard.builders()` has "the card's clocks" with `build_card_clocks` and
+   `RehearsalCardClocks`. In the mode it reports no problem; without the mode, `test_guard.py`'s map names the real
+   form and the unlabelled count includes it.
+
+**Test plan** (`tests/cards/test_rehearsal_issue.py`, new):
+1. The reproduction: guard installed, the real `HttpDateClock` for GitHub, a fake sent poster.
+   - With the hook: no GitHub call (the guard would raise), metadata written, Drive saved.
+   - Without the hook: `issue` still returns, GitHub is unchecked with "RehearsalCallRefused", and the metadata is
+     written (criterion 3).
+2. A raising clock (`OSError`, `ValueError`) is unchecked by type.
+3. A raising metadata store (`TypeError`, `PermissionError`) prints the NOT written line with the metadata, and the
+   exit code is 1.
+3b. Facts that raise (a fake `_facts` failure, and a receipt value that is not JSON): both files hold the minimal
+   facts with `failure`, the exit code is 1, and the next day's `misses()` reads the file without error.
+3c. A Drive record that cannot be built (a section that raises in `_section`, or `_json` on a non-JSON value): the
+   NOT saved line with "record not built (<Type>)", the metadata still written, exit 1.
+4. CLI: `cmd_card_daily` with a raising clock prints the delivery line last.
+5. A real run (no `FNO_REHEARSAL`): the GitHub clock is asked as before (T1's tests unchanged).
+6. Guard: `problems()` in the mode is empty with the card's clocks listed; without the mode the card's clocks are
+   counted as unlabelled (REH1's `test_guard.py`, its map and count updated).
+7. Empty and boundary cases: no clocks at all; a poster that did not send (no Slack time, so Slack is unchecked as
+   today); a rehearsal with no Drive settings (`NoCardRecords`), which still writes the metadata.
+
+**Planned plants:**
+- P1: the hook returns the real clocks in a rehearsal (test 1).
+- P2: the issuer's clock guard narrowed back to `ServerTimeUnknown` (tests 1 and 2).
+- P3: the metadata write guarded for `OSError` only (test 3).
+- P4: the CLI prints the result lines only on success (test 4).
+- P5: the hook active in a real run (test 5).
+- P6: the facts built outside the guard (test 3b).
+- P6b: the Drive record built outside the save's guard (test 3c).
+- P6c: the minimal facts without `clock` (test 3b: the next card's `misses()` crashes).
+- P7: the card's clocks left out of `guard.builders()` (test 6).
+- P8: the rehearsal form built from the real one, so a GitHub client is constructed in the mode (test 1: a builder
+  spy counts zero `HttpDateClock`s in the mode).
+
+**Gap list:**
+
+| Requirement | Where |
+|---|---|
+| The rehearsal's card step finishes (no refused live call) | criteria 1 and 2 |
+| A posted card always leaves its Drive record and metadata: every stage after the post guarded, the facts' fallback defined (judge 592.1) | criteria 2, 3 and 4; tests 3, 3b, 3c |
+| A rehearsal's metadata only on the rehearsal branch (judge 592.2) | criterion 2 |
+| The alert names the real problem, not a card line | criterion 5 (card side); O1's side is Out, proposed to O1's owner |
+| No double post | criterion 4 |
+| A real run unchanged | criterion 1, test 5 |
+| REH1's conditions: the guard proves the card's clocks; no GitHub client in the mode | criteria 1 and 7, tests 1 and 6 |
+
+**Answers to judge 592 (round 1), by number** (this round also carries REH1's owner's two conditions, `2d4e93719`):
+1. **Accepted** (checked: `issue.py:54-57` builds `_section`, `_record_name` and `_json(record)` outside `save`'s
+   guard). Every stage after `poster.post` is now named and guarded, the facts' fallback is defined field by field,
+   with where it is stored and exit 1, and test 3b, test 3c and plants P6, P6b and P6c are added. Found while doing
+   it: the fallback must keep `slack`, `drive` and `clock`, or the next card's `misses()` would crash on the record
+   (P6c).
+2. **Accepted.** Criterion 2 and the Scope say the metadata is committed only to `rehearsal/<day>-<run_id>`, never
+   `main`.
+3. **Accepted.** Criterion 6 states what the test asserts: the rehearsal line on GitHub's entry, which without the
+   hook becomes "RehearsalCallRefused" (and no `HttpDateClock` built).
+
+**Code claims (for judge I; builder session_017q19WnkrRJvfQoXBLCy3hA):**
+- **What changed.**
+  - `fno/cards/card_clocks.py` is new: `CardClocks`, `ServerCardClocks`, `ClockChecks`, `guarded` and the Slack
+    check, moved out of the issuer.
+  - `fno/cards/minimal_facts.py` is new.
+  - `fno/cards/issue.py`: the four guarded stages; `IssueResult.saved` is renamed `complete`.
+  - `fno/cards/wiring.py`: `build_card_clocks`.
+  - `fno/cards/deliveries.py`: the JSON is built before the attempt file is opened.
+  - `fno/cards/cli.py`: reads `complete`.
+  - `fno/rehearsal/card_label.py`: `RehearsalCardClocks` and `rehearsed_card_clocks`.
+  - `fno/rehearsal/guard.py`: one builder line.
+  - Tests: `tests/cards/test_issue_guards.py` and `test_rehearsal_issue.py` are new; T1's tests and REH1's
+    `test_guard.py` take the new constructor, map and count, with no assertion weakened.
+  - Every file is under 350 lines; the largest new one is 201 (`test_issue_guards.py`).
+- **The rehearsal form builds no GitHub client.** `rehearsed_card_clocks(real)` takes a builder and calls it only
+  outside a rehearsal. A spy on `wiring.HttpDateClock` counts 0 builds in the mode and 1 outside (P8).
+- **Criterion 6 as built.** It runs in a fresh process with REH1's real HTTP guard installed, as REH1's
+  `test_http_guard.py` does, so the test process is never changed.
+  - With the hook, both entries carry REH1c's line and the metadata is written.
+  - Without it, GitHub's entry is "clock NOT CHECKED: host vs GitHub (RehearsalCallRefused)", the metadata is still
+    written, and the issue is not complete.
+- **One deviation from the text, stated:** test 3b's "a receipt value that is not JSON" does not make the facts fail.
+  Building the dictionary succeeds; the JSON stages fail. So that case is test 3c's and stage 4's. A non-text
+  channel gives "record not built (TypeError)" and the printed minimal facts. The facts' own failure is tested with
+  a raising `_facts`, with a `ts` that is not seconds and with an out-of-range `ts`.
+- **Gap list (criteria to code, tests, plants):**
+
+  | Criterion | Code | Test | Plants caught |
+  |---|---|---|---|
+  | 1 no GitHub client or call in a rehearsal; a real run unchanged | `rehearsed_card_clocks`, `build_card_clocks` | `test_rehearsal_issue.py` (all three), `test_records_and_witness.py::test_githubs_clock_is_asked_on_the_repository_path` | P1, P5, P8 |
+  | 2 a rehearsal leaves its Drive record and metadata | `CardIssuer.issue` | `test_in_a_rehearsal_the_card_finishes_...` | P1 |
+  | 3 any clock raise is unchecked by type; the issue goes on, not complete | `card_clocks.guarded`, `CardIssuer._clocks`, `complete` | `test_a_clock_that_raises_anything_...` (3 errors), `test_a_clock_form_that_raises_...` | P2, P10, P11 |
+  | 4 metadata, facts and record failures each named; no double post | `_write`, `_printable`, `minimal_facts`, `_save`, `deliveries.write` | `test_a_metadata_write_that_raises_anything_...` (2), `test_facts_that_cannot_be_built_...` (contract and next card), `test_a_slack_time_...` (2), `test_a_drive_record_that_cannot_be_built_...`, `test_a_metadata_that_is_not_json_...` | P3, P6, P6b, P6c, P9, P12, P13, P14 |
+  | 5 the CLI's last line is the delivery line | `cli.cmd_card_daily`, `issue` never raises | `test_the_cli_prints_the_delivery_line_last_when_a_clock_raises` | P4 |
+  | 6 the hook's removal fails a test | the probe | `test_without_the_hook_...` and `test_in_a_rehearsal_...` | P1 |
+  | 7 REH1's guard lists the card's clocks | `guard.builders` | REH1's `test_without_the_mode_...`, `test_each_planted_break_is_caught` | P7 |
+
+- **Plants (rule 4): 16 planted, 16 caught.** P1-P8, P6b, P6c, plus P9-P14 for the fallbacks found in review, each
+  run on `tests/cards` and `tests/rehearsal`, then restored.
+  - P10 (a clock form that raises) survived at first, so its test was added.
+  - P12's first form was equivalent: it left the early `json.dumps` line, so the code was unchanged. Rerun with the
+    JSON built only after the open, it is caught.
+- **Cases (rule 5):**
+  - good: a rehearsal; a real run;
+  - bad: a clock raising `OSError`, `ValueError` or `RuntimeError`; a raising clock form; facts that raise; a `ts`
+    that is not seconds or out of range; a section that raises; metadata that is not JSON; a store raising
+    `TypeError` or `PermissionError`;
+  - boundary: no server clock; an unsent post; no Drive (`NoCardRecords`);
+  - empty: no clocks at all.
+- **Builder self-review (quality rule 3):** one independent review agent, given only the diff and this story.
+  - FIXED:
+    1. the not-JSON fallback printed only top-level plain fields, so the next card could not read it. It now prints
+       the minimal facts plus `drive`, validated against the pinned contract (P9, P14);
+    2. a JSON failure in `RepoDeliveryFiles.write` left an empty attempt file. The JSON is now built before the open
+       (P12; an older bug that T1f's catch made reachable);
+    3. a `ts` of "1e20" overflowed in the minimal facts and escaped (P13);
+    4. `day` and `status` in the minimal facts are guarded;
+    5. `IssueResult.saved` is renamed `complete`.
+  - KEPT: the probe imports `tests.cards.test_issue_guards` for its fakes. It needs that module to import cleanly
+    outside pytest, which it does (no pytest-only fixtures at import).
+- **Gates** (code at `8f4a1e540`, `main` merged at `c97e5848f`; `FNO_SLACK_BOT_TOKEN` kept set):
+  - pytest: 15670 passed, 1 skipped, 15 xfailed, 0 failed;
+  - `ruff check`: clean;
+  - `ruff format --check`: 2520 files formatted;
+  - `check_imports`: clean (2649 files);
+  - `check_records`: clean (9105 files).
+- **Real output sample (rule 6),** made by the committed code at `754be3446`, 24 Oct about 15:55 UTC, after REH1's
+  owner confirmed that nothing else was rehearsing and their own run (`20261024T151531Z-97c17d`) had ended.
+  - The command: `FNO_REHEARSAL=<a fresh Rehearsal.new for 2026-10-23, replay clock started at 15:20 IST> python -m
+    fno card daily --on 2026-10-23 --post`, the card step alone, with the real Slack token and the owner's Drive
+    settings. It made one labelled post to #fno-desk, saved its record to the dryrun Drive area, and committed
+    nothing. The delivery file it wrote in the checkout was deleted.
+  - Its result lines (the card text above them is unchanged and not repeated):
+
+    ```
+      research/forecasts/scores/2026-10-22.json 6241c90b9e85bc9e64951db6d102b7057e681aac2b0879b4cae0bbb70e243880
+    alert sent to #fno-desk
+    clock NOT CHECKED: host vs Slack (rehearsal: replay clock, not checked against GitHub's and Slack's servers)
+    clock NOT CHECKED: host vs GitHub (rehearsal: replay clock, not checked against GitHub's and Slack's servers)
+    card record saved to Drive: 2026/10/2026-10-23_1792857308300989.json
+    delivery metadata written: research/cards/deliveries/2026/2026-10-23-a1.json (commit and push it: its push receipt is the second issuance witness)
+    exit 0
+    ```
+  - The metadata held `slack.sent: true`, `drive.saved: true`, two clock entries with `checked: false` and no
+    WARNING, and no `failure`. stderr was empty.
+  - The same step on `main` (REH1's owner's run, also 24 Oct) still ended "card failed: research/forecasts/scores/
+    2026-10-22.json <sha>", the failure this story fixes.
+
+**Depends:** T1, REH1 (REH1c's hook pattern; REH1's owner agreed on `card_label.py` and `guard.py`, 24 Oct) · **Size:** S ·
+**Status:** text PASS (judge 592 addendum 1); code at `8f4a1e540`, to judge I

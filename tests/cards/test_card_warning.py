@@ -31,7 +31,7 @@ from fno.constants import (
 )
 from fno.desk import run_log
 
-from .fakes import TOKEN, FakeDrive, FakeRecords, FakeSlack, Ticking, planted, slack_ok, weather_of
+from .fakes import NO_CLOCKS, TOKEN, FakeDrive, FakeRecords, FakeSlack, Ticking, planted, slack_ok, weather_of
 from .test_problem_steps import C4_TODAY, FAILED_SNAPSHOT, REFUSED_FILLS, _written_by_run_log
 from .test_rule_checks import BEFORE, DAY, ON_TIME, TODAY_TIMES, Base, _log
 
@@ -147,7 +147,7 @@ def issued(tmp_path, log: bytes, test=False):
     card, text = daily(records, tmp_path).prepare(DAY)
     slack = FakeSlack(slack_ok())
     issuer = CardIssuer(SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, slack), DriveCardRecords(FakeDrive()),
-                        RepoDeliveryFiles(tmp_path, records), (), Ticking(), "c" * 40)  # fmt: skip
+                        RepoDeliveryFiles(tmp_path, records), NO_CLOCKS, Ticking(), "c" * 40)  # fmt: skip
     issuer.issue(card, text, test=test)
     return text, slack.calls[0]["json"]["text"]
 
@@ -211,7 +211,7 @@ def test_the_drive_record_keeps_the_warning_as_data(tmp_path):
     card, text = daily(records, tmp_path).prepare(DAY)
     drive = FakeDrive()
     CardIssuer(SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, FakeSlack(slack_ok())), DriveCardRecords(drive),
-               RepoDeliveryFiles(tmp_path, records), (), Ticking(), "c" * 40).issue(card, text)  # fmt: skip
+               RepoDeliveryFiles(tmp_path, records), NO_CLOCKS, Ticking(), "c" * 40).issue(card, text)  # fmt: skip
     ((_, data),) = drive.files.items()
     assert json.loads(data)["warning"] == {"headline": FAILED_HEADLINE, "detail": DETAIL.format(steps="exits (failed)")}
     clean = daily(FakeRecords(planted() | {run_log_path(DAY): _log(**CLEAN, exits={})}), tmp_path).prepare(DAY)[0]
