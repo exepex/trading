@@ -7,9 +7,9 @@ from datetime import date
 
 import pytest
 
-from fno.constants import V4_DAY_SYSTEM_LATE
+from fno.constants import V4_DAY_A, V4_DAY_SYSTEM_LATE
 from fno.forecast_scoring.v4 import wiring
-from fno.forecast_scoring.v4.days import LateDaysOut, LiveDayLabels
+from fno.forecast_scoring.v4.days import DayLabel, LateDaysOut, LiveDayLabels
 from fno.forecast_scoring.v4.inputs import ForecastValue, Outcome
 from tests.forecast_scoring_v4.test_release_days import Records, weekdays
 
@@ -62,3 +62,12 @@ def test_the_rows_of_pre_pack_live_days_stay_in_and_only_the_late_pack_day_is_ou
     days = LiveDayLabels(Records({}), weekdays, wiring.label_start(config()), TUE)
     kept = LateDaysOut(Rows(), Rows(), days)
     assert set(kept.values("q", "rule")) == set(kept.outcomes("q")) == {FORECASTS, FRI}
+
+
+def test_a_stored_record_before_the_live_date_is_ignored_and_none_counts_while_the_pack_is_not_live():
+    """Judge 613: a record dated before the pack's live date (a rehearsal's, say) never labels a day."""
+    stored = {FRI: DayLabel(FRI, V4_DAY_SYSTEM_LATE, "", None), PACK: DayLabel(PACK, V4_DAY_A, "a" * 64, None)}
+    labels = LiveDayLabels(Records(stored), weekdays, PACK, TUE)
+    assert {d: label.label for d, label in labels.labels().items()} == {PACK: V4_DAY_A}
+    assert LiveDayLabels(Records(stored), weekdays, PACK, PACK).labels() == {PACK: stored[PACK]}  # the boundary day
+    assert LiveDayLabels(Records(stored), weekdays, None, TUE).labels() == {}

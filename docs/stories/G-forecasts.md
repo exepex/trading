@@ -2337,6 +2337,16 @@ names the pack's live date.
 - **Plants (each caught):** `label_start` back on `forecasts_v4`; `build_day_labels` bypassing it; the release's
   catch-up starting before its live date.
 
+**Judge 613's follow-up (PASS with 1 minor and 1 note; branch `story/g10-labels-follow-up`; lane 1, judge K).**
+- **m1.** A wiring test pins the 15:10 catch-up's start: `build_deadline_run` carries `checks_from` 22 Oct
+  (`forecasts_v4`) while `live_from` is 26 Oct (`v4_pack`). Plant: the builder passing the pack's date.
+- **K's note.** `LiveDayLabels` ignores a stored record dated before its live date, and gives no label at all while
+  the pack is not live, so a rehearsal's record that reached the receipts can never drop a day the real report keeps.
+  Test: a 23 Oct `system_late` record beside a 26 Oct `A` gives only 26 Oct (on 27 Oct and on the boundary day);
+  no live date gives none. G8's real-wiring fixture (`test_release_days.py`, a 22 Oct record) now sets the pack's
+  live date to 22 Oct, so its four tests keep proving a Drive record drops its day. Plants: the filter removed; the
+  unset live date returning the stored records.
+
 ---
 
 ## G11. AI books on the v4 questions: books 2 and 3 forecast like the rules and are scored by G8 the same way

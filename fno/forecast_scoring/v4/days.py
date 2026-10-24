@@ -103,8 +103,12 @@ class LiveDayLabels(V4DaySource):
         self.records, self.sessions, self.live_from, self.today = records, sessions, live_from, today
 
     def labels(self) -> dict[date, DayLabel]:
-        found = self.records.labels()
-        if self.live_from is None or self.today <= self.live_from:
+        """A stored record dated before the live date is ignored (judge 613: a rehearsal's record that reached the
+        receipts can never drop a day the real report keeps); with the pack not live, no day has a label."""
+        if self.live_from is None:
+            return {}
+        found = {d: label for d, label in self.records.labels().items() if d >= self.live_from}
+        if self.today <= self.live_from:
             return found
         missing = [d for d in self.sessions(self.live_from, self.today - timedelta(days=1)) if d not in found]
         return {**found, **{d: DayLabel(d, V4_DAY_SYSTEM_LATE, "", None) for d in missing}}
