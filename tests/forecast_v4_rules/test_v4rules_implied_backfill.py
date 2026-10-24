@@ -7,11 +7,11 @@ from datetime import date, timedelta
 
 import pytest
 
-from fno.config import load_config
 from fno.constants import V2_RV_5S, V3_RV_20S, V4_BASELINE_PREMIUM_ADJUSTED, V4_BASELINE_RAW_IMPLIED
 from fno.forecast_v4_rules.baselines import MISSING, NOT_ELIGIBLE, OK
+from fno.forecast_v4_rules.drive_records import backfill_path
 from fno.forecast_v4_rules.implied import IvPoint
-from fno.forecast_v4_rules.implied_backfill import FORECASTERS, ImpliedBackfill, backfill_path
+from fno.forecast_v4_rules.implied_backfill import FORECASTERS, ImpliedBackfill
 from fno.forecast_v4_rules.records import BACKFILL, BASELINE, SLOT_REPORTED
 from fno.forecast_v4_rules.series import DayValue
 from fno.forecast_v4_rules.wiring import (
@@ -116,7 +116,7 @@ def test_first_live_implied_day_reads_the_receipt_paths_of_implied_forecasters_o
 def test_real_panel_and_closes_reproduce_the_eod_iv30_counts_and_one_raw_value():
     """Criterion 1 on committed data, to 23 Oct 2026: 691 regular sessions from 1 Jan 2024, 652 unflagged and 39
     flagged IV30 values (G7b measured 686 / 647 / 39 to 15 Oct)."""
-    backfill, _ = build_implied_backfill(load_config())
+    backfill, _ = build_implied_backfill()
     days = [d for d in backfill.days(date(2026, 10, 23), None)]
     points = [backfill.eod.get(d) for d in days]
     assert (
@@ -152,7 +152,7 @@ def test_days_stop_at_the_last_eod_chain_and_where_the_longest_horizon_still_end
 
 def test_real_premium_adjusted_is_first_eligible_at_the_april_2026_refit():
     """Real data: the window first reaches 500 points at the 1 Apr 2026 refit (not at 2 Mar), V2's ratio 0.6336."""
-    backfill, _ = build_implied_backfill(load_config())
+    backfill, _ = build_implied_backfill()
     ratio = backfill.implied[V2_RV_5S].ratio
     assert ratio.at(date(2026, 3, 2)) is None
     assert ratio.at(date(2026, 4, 1)) == pytest.approx(0.6335897, rel=1e-6)

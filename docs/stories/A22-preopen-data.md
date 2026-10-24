@@ -359,3 +359,143 @@ day row nifty: ok flat_0915_unverified | banknifty: ok candle_0909
 - Open: the first live morning's lines (Mon 26 Oct) are added after it runs. Note: the real 23 Oct BANKNIFTY answer
   was received at 09:11:01, after the window's close, so on that answer alone the run would mark it `late`; live, the
   first read at 09:10:00 gets the flat candle (the 09:10:00 and 09:10:30 answers of 23 Oct were not archived).
+
+## Amendment 3 (A22e): the index parts' last read at 09:10:45 (24 Oct 2026)
+
+**Lane:** 1 (Groww, the A22 routine's record). **Branch:** `story/a22e-last-read`. **Builder:**
+session_012pfddFKS3kqy6dJQCJ3Z5i. **Orchestrator:** session_01Mt6dcBU5kp2htdPN2KmiZH. **Judge:** J
+(session_013gvtjtZJEjpki7qkbzU5kK). **Deadline:** on `main` before Mon 26 Oct 08:30 IST.
+
+### The failure
+
+The orchestrator's rehearsal of 23 Oct on A22d's `main` (37a1b0be6): NIFTY `ok`, BANKNIFTY "late (1 read(s)): seen
+09:11:01", so the run ends "pre-open recorded with problems: ... banknifty late" (exit 1).
+
+### Evidence (23 Oct's day row and raw answers from Drive; status columns only) [strong]
+
+| Part | status | reads | seen_at of the last read |
+|---|---|---|---|
+| nifty | incomplete | 3 | 09:10:59 |
+| banknifty | incomplete | 3 | 09:11:01 |
+
+- Both index parts ran the whole retry plan: 09:10:00, 09:10:30, and the last read at 09:10:59 (`run.py`: the window's
+  close minus `LAST_READ_BEFORE_CLOSE`, 1 s). Each read was refused by the rule before A22d.
+- `PreopenRun` reads parts that are due at the same time one after the other, NIFTY first. Groww's paced calls
+  (`MIN_GAP_SECONDS` 0.5 between starts, about 1-2 s per answer) put BANKNIFTY's answer at 09:11:01. That is past the
+  09:11:00 close, and `seen_at` is the answer's receive time.
+- Only the last answer of each part is archived. So the rehearsal can serve BANKNIFTY only its 09:11:01 answer, and
+  "late" in the replay is that artifact.
+
+### Root cause
+
+When both index parts reach their last read, they share one due time, 09:10:59. The second call lands after the
+close whenever the first two reads have not completed: a Groww error, or a candle not yet served. Before A22d every
+read was incomplete anyway, so this never showed. Live with A22d, the first read at 09:10:00 normally completes for
+both (some evidence: on 23 Oct all three reads saw "candles only from 09:15", the placeholder's shape, but only the
+last answer was archived). So the edge is reached only on a morning whose first two reads fail.
+
+### The rule
+
+- A part may have its own `last_read_margin`, the time before its window's close at which its last read starts.
+  The default stays 1 s (GIFT 08:44:59, the F&O list 09:10:59: unchanged).
+- The NIFTY and BANKNIFTY parts take 15 s: their reads become 09:10:00, 09:10:30 and the last at 09:10:45. That leaves
+  15 s for two paced calls of normally 1-2 s each.
+- The windows (09:10:00-09:11:00) and their close are unchanged: nothing is widened, and the 09:12 commit keeps its
+  margin.
+- A call still answering after 09:11:00 stays `late`, alerted, with its value kept. A Groww that slow is worth
+  flagging.
+- Parts are read one at a time (judge 604 m1). Index reads at 09:10:45 that each take up to Groww's 30 s call timeout
+  push the F&O list's 09:10:59 last read back (two such calls: to 09:11:45). If the list completes only then, it is
+  `late` (seen after its close), alerted, with its value kept; if it completed at an earlier read it is unaffected.
+  This is the existing one-read-at-a-time design, not new to A22e: before it, the list's 09:10:59 read was already
+  first of three due reads only because of the parts' order. Tested in E2's m1 case.
+
+### Why not the other fixes
+
+- **Both indices in parallel:** it needs threads around A16b's paced, one-at-a-time Groww source (the pacing exists
+  to stay under Groww's measured rate), all for about 2 s. More code and a new failure mode, against the same gain.
+- **Judge by the request time instead of the receive time:** this changes what `seen_at` means for every part (the
+  point-in-time record says when we saw the value). An answer received after the close was not seen in the window.
+- **Widen the window past 09:11:00:** it moves the 09:12 commit's margin. The text's own windows stay.
+
+### Acceptance criteria (injected clock, A22's fakes)
+
+E1. The index parts' reads, never complete: 09:10:00, 09:10:30, 09:10:45, then `incomplete` (boundary: no read at
+    09:10:59). GIFT's last read is still 08:44:59, and the F&O list's still 09:10:59.
+E2. Both index parts due at 09:10:45, each call taking 2 s on the fake clock: both complete inside the window, `ok`
+    (bad case before the fix: the second at 09:11:01 is `late`). A call taking 16 s from 09:10:45 is `late`
+    (boundary 15 s: an answer at 09:11:00 is `late`, one at 09:10:59 is `ok`).
+E3. A part with no margin of its own keeps 1 s (default case). A margin larger than its window gives a single read at
+    the opening, never a read before it (empty case).
+E4. The 23 Oct shape, read at 09:10:00 through the recorder: both indices `ok` at the first read (A22d's D1,
+    unchanged).
+
+### Gap list
+
+| Requirement | Where |
+|---|---|
+| BANKNIFTY never `late` only because it is read second (orchestrator) | E2 |
+| Window and its close unchanged; no widening without a reason (orchestrator) | the rule, E1 |
+| The 23 Oct evidence | Evidence |
+| Why not parallel reads or request-time judging (orchestrator) | Why not the other fixes |
+| A rehearsal of 23 Oct still shows `late` (its only archived answer is 09:11:01) | Out: a replay artifact. REH1c cannot serve an answer the day never saved; noted in the Claims |
+
+### Plants (builder's)
+
+1. Margin back to 1 s for the index parts. 2. The margin applied to every part, so GIFT's last read moves. 3. Last
+read at `close - margin + 1 s`. 4. A margin larger than the window reads before the opening. 5. Status by request
+time.
+
+### Claims (A22e)
+
+Text PASS: judge 604 (m1 carried into the rule above). Code on `story/a22e-last-read`.
+
+| Criterion | Code | Tests |
+|---|---|---|
+| E1 | `parts.py` `LAST_READ_MARGIN` (1 s) on `PreopenPart`, `INDEX_LAST_READ_MARGIN` (15 s) on `GrowwIndexPreopen`; `run.py` last read at `close - part.last_read_margin` | `test_last_read.py::test_e1_*` |
+| E2 | the same | `test_e2_*` (2 s calls both `ok`; the old 1 s plan gives "late: seen 09:11:03"; 14/15/16 s from 09:10:45: ok/late/late), `test_m1_*` |
+| E3 | the same (no new branch: a margin past the window leaves only the opening read) | `test_e3_*` |
+| E4 | unchanged reader | `test_open_check_record.py::test_d1_*` (both indices "ok (1 read(s))") |
+
+- REH1c's `RecordedPreopenPart` takes the live part's `last_read_margin`, so a rehearsal replays the live read plan.
+- `LAST_READ_BEFORE_CLOSE` in `run.py` is gone: the margin lives on the part.
+- A rehearsal of 23 Oct still shows BANKNIFTY `late`: its only archived answer is the one received at 09:11:01
+  (out of scope, a replay artifact).
+- Plants (builder's, each restored with `git checkout`): the 5 named above plus "the rehearsal ignores the live
+  margin" (it survived at first; `test_recorded_preopen.py::test_a_replayed_part_keeps_the_live_parts_read_plan`
+  added): **6 of 6 caught**.
+- Self-review (one independent review agent, read-only): no blocking. Fixed: an older test's name still said the
+  index parts read last at 09:10:59 (it tests the 1 s default), and the E2 boundary test's name overstated it. Left:
+  CLAUDE.md's A22 section names the index window "09:10:00-09:10:59"; the window is unchanged and the orchestrator
+  limited that section's edits, so the last-read time is not written there.
+- Gates (merged tree, token kept): full suite 16101 passed, 14 xfailed; ruff, format, `check_imports`, `check_records`
+  clean. After the two test renames: `tests/preopen`, `tests/rehearsal` and the size test, 2967 passed.
+- Real output sample (judge 604.1 m1; `main` at 432071d63, the desk of `tests/preopen/desk.py` with fake committers
+  and Slack, invented numbers). The 23 Oct shape, a flat 09:15 candle for both indices, through the recorder:
+
+```
+receipts committed and pushed (2 file(s))
+gift ok (1 read(s))
+fo_list ok (1 read(s))
+nifty ok (1 read(s))
+banknifty ok (1 read(s))
+committed
+committed
+pre-open recorded
+committed
+committed
+open check: 0 checked, 0 waiting for NSE's file
+exit 0
+nifty ok 1 09:10:00 flat_0915_unverified
+banknifty ok 1 09:10:00 flat_0915_unverified
+```
+
+  The run with both indices' first two Groww calls failing and each call taking 2 s (E2's shape):
+
+```
+nifty ok 3 requested ['09:10:00', '09:10:32', '09:10:45'] seen 09:10:47
+banknifty ok 3 requested ['09:10:02', '09:10:34', '09:10:47'] seen 09:10:49
+```
+
+  The second read is 30 s after the first read's end (09:10:32, not 09:10:30), as `run.py` plans retries from the
+  read's end; the last read is still 09:10:45.

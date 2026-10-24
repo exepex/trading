@@ -19,6 +19,10 @@ class DriveRecords:
         """`cache()`: the Drive cache, built only when a file has to be fetched; `folder`: inside the area."""
         self.receipts, self.cache, self.prefix = receipts, cache, f"{area}/{folder}"
 
+    def paths(self) -> list[str]:
+        """Each receipted file's Drive path, read from the receipts alone (no Drive access)."""
+        return [r.path for r in self.receipts.under(self.prefix)]
+
     def files(self) -> dict[str, bytes]:
         """Each receipted file's Drive path and verified bytes."""
         receipts = self.receipts.under(self.prefix)

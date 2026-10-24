@@ -19,12 +19,13 @@ from .processes import Process, Processes
 NOTHING_WRITTEN = "nothing written:"  # how `weather capture` and `forecast-v4 capture` print a refusal (exit 0)
 NOT_LIVE = "not live before {live_from} (config.yaml daily.live_from)"
 NO_DATE = "no live date set (config.yaml daily.live_from)"
-FAILED_ALERT = "F&O daily run {day}: step {name} {status}: {reason}; the run goes on"
+FAILED_ALERT = "F&O daily run {day}: step {name} {status}: {reason}; the run goes on{note}"
 POLL_SECONDS = 1.0
 COMMAND_LIMIT_SECONDS = (
     600.0  # a hung command (a Groww call that never answers) is stopped, never holds the day forever
 )
 STOPPED_AT_LIMIT = "stopped after {minutes} minutes without ending; nothing of it committed{removed}"
+STARTS_TOO_LATE = "not started: {now:%H:%M:%S} IST is after its last start, {by:%H:%M} IST on {day}"
 LOCKS_REMOVED = "; the git lock files it left removed: {names}"
 
 
@@ -110,10 +111,10 @@ class LiveFrom(DayStep):
 class Alerted(DayStep):
     """A step that failed, was refused or raised is recorded with its reason and alerted once; the run goes on."""
 
-    def __init__(self, name: str, step: DayStep, alerts: AlertSender, status_alerts: bool = True):
+    def __init__(self, name: str, step: DayStep, alerts: AlertSender, status_alerts: bool = True, note: str = ""):
         """`status_alerts=False`: only a raise is alerted (the quote parts' results, whose commands alert for
-        themselves, A4c)."""
-        self.name, self.step, self.alerts, self.status_alerts = name, step, alerts, status_alerts
+        themselves, A4c). `note` ends the alert (MS-P1j2: why a rerun will not retry the school)."""
+        self.name, self.step, self.alerts, self.status_alerts, self.note = name, step, alerts, status_alerts, note
 
     def run(self, day: date) -> StepOutcome:
         try:
@@ -125,7 +126,8 @@ class Alerted(DayStep):
             )
         status = done.result.get("status")
         if status in (STEP_FAILED, STEP_REFUSED) and (raised or self.status_alerts):
-            self.alerts.send(FAILED_ALERT.format(day=day, name=self.name, status=status, reason=done.result["reason"]))
+            reason = done.result["reason"]
+            self.alerts.send(FAILED_ALERT.format(day=day, name=self.name, status=status, reason=reason, note=self.note))
         return done
 
 
@@ -138,4 +140,19 @@ class NotBefore(DayStep):
 
     def run(self, day: date) -> StepOutcome:
         self.waiter.until(datetime.combine(day, self.at, IST))
+        return self.step.run(day)
+
+
+class StartsBy(DayStep):
+    """Refuses to start its step after `by` IST on the run's day (MS-P1j2: a school run that starts late seals a
+    session whose fills law 6 then refuses; a rerun or a past day's run is late the same way). Ending is not checked."""
+
+    def __init__(self, step: DayStep, by: time, clock: Callable[[], datetime]):
+        self.step, self.by, self.clock = step, by, clock
+
+    def run(self, day: date) -> StepOutcome:
+        now, last = self.clock(), datetime.combine(day, self.by, IST)
+        if now > last:
+            why = STARTS_TOO_LATE.format(now=now.astimezone(IST), by=self.by, day=day)
+            return StepOutcome({"starts_by": last.isoformat()}, {"status": STEP_REFUSED, "reason": why})
         return self.step.run(day)

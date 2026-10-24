@@ -6,10 +6,25 @@ add. 1)."""
 
 from __future__ import annotations
 
-from ..constants import BOOK2_HYBRID, BOOK3_AI
+from ..constants import (
+    BOOK2_HYBRID,
+    BOOK3_AI,
+    V4_BASELINE_OPTION_IMPLIED_PROB,
+    V4_BASELINE_PREMIUM_ADJUSTED,
+    V4_BASELINE_RAW_IMPLIED,
+)
+from ..forecast_v4_rules.constants import (
+    V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY,
+    V4_RULE_V4_EWMA_CHI2,
+    V4_RULE_V5_EWMA_LOGNORMAL,
+)
 
-# The AI books read the pack; V4's and V5's forecasters join this list when they are built.
-PACK_READERS = frozenset({BOOK2_HYBRID, BOOK3_AI})
+# The AI books read the pack; so do G7b completion's pack-derived baselines and V4's and V5's rule forecasters (their
+# base rates read no pack and are not here).
+PACK_READERS = frozenset({
+    BOOK2_HYBRID, BOOK3_AI, V4_BASELINE_RAW_IMPLIED, V4_BASELINE_PREMIUM_ADJUSTED, V4_BASELINE_OPTION_IMPLIED_PROB,
+    V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY, V4_RULE_V4_EWMA_CHI2, V4_RULE_V5_EWMA_LOGNORMAL,
+})  # fmt: skip
 NO_PACK = "{forecaster} {day}: no pack was released (system_late), so a pack reader has no record that day"
 WRONG_PACK = "{forecaster} {day}: names pack {named!r}, the released pack is {released}"
 NAMES_A_PACK = "{forecaster} {day}: commits before the pack exists, so it names no pack (got {named!r})"
