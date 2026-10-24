@@ -104,7 +104,7 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
 |---|---|
 | 14:30:00 | The pack's capture starts (A4e's named window: spot, the future of `e`, India VIX, the chains, IV30); an incomplete capture retries |
 | 14:40:00 | **The pack's cutoff:** a field is in the pack only if its answer was received by 14:40:00 |
-| right after the capture ends, by 14:45:00 | **One release:** one pack, one SHA-256, to every family at the same moment; a release record written after 14:45:00 makes the day `system_late` ("released late"; G10 completion, decision D1, owner's answer pending) |
+| right after the capture ends, by 14:45:00 | **One release:** one pack, one SHA-256, to every family at the same moment; a release record written after 14:45:00 makes the day `system_late` ("released late"; G10 completion, decision D1, owner decided 24 Oct (DESK_DECISIONS)) |
 | 15:10:00 | **One deadline:** a commitment counts only if GitHub received its push by then (GitHub's receipt time, never a commit's own time) |
 | 15:15 | **Common snapshot** (A16's 15:15 mark): the skill yardstick of every desk decision and the flag's end level |
 

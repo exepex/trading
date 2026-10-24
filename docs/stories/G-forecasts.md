@@ -1743,20 +1743,20 @@ to `build_commitment_times`), resolved by keeping both.
 
 #### Decisions (orchestrator, 24 Oct: D1 and D3 to the owner, D2 accepted, D4 for the builder and the judge)
 
-- **D1 (owner decision, pending; asked through the orchestrator):** "at the latest 14:40" cannot be met literally: the last retry
+- **D1 (owner decided 24 Oct (DESK_DECISIONS): "1 - Option A", release by 14:45:00):** "at the latest 14:40" cannot be met literally: the last retry
   may send its request at 14:40:00 and the pack is built after it. Recommend `V4_RELEASE_BY = 14:45:00`, a later
   record `system_late` (reasoning only: the content cutoff stays 14:40:00, no one gets more data, and pack readers keep
   10 minutes to 14:55). Alternative: 14:41:00, which a slow Drive upload can miss on a good day.
 - **D2 (accepted by the orchestrator, 24 Oct):** the catch-up and the reader start at `daily.live_from.forecasts_v4` (22 Oct), so 22 and 23 Oct (and Monday
   if this is not live then) are `system_late`. Recommend yes: those days had no pack, which is exactly the
   protocol's definition; all are before the freeze, so nothing counted changes.
-- **D3 (owner decision, pending; asked through the orchestrator):** a `system_late` today makes `v4_release` a failed step (the day ends "day done with problems: v4_release" and
+- **D3 (owner decided 24 Oct (DESK_DECISIONS): "2 - Option A", a `system_late` day fails `v4_release`):** a `system_late` today makes `v4_release` a failed step (the day ends "day done with problems: v4_release" and
   the card warns, owner's 24 Oct row). Recommend yes: it is a system failure by definition.
 - **D4:** the day label reaches each record by its day from the release record, not as a record column; the 1.6 text
   says "on every v4 report, and joined to every record by its day". The builder's design choice, for the judge: one
   source of truth.
-- **Until the owner answers D1 and D3:** the code is built and judged with the recommended values (orchestrator, 24
-  Oct); only the merge waits for the owner's answers. D1 lives in one constant (`terms.V4_RELEASE_BY`) and D3 in the
+- **D1 and D3: owner decided 24 Oct (DESK_DECISIONS)**, both as recommended and as built; the merge no longer waits
+  for them. D1 lives in one constant (`terms.V4_RELEASE_BY`) and D3 in the
   release step's status mapping, each with its test, so another answer changes only those two places and their tests.
 
 #### Monday 26 Oct: what the live run would and would not do
@@ -1884,7 +1884,7 @@ $ G8 report counts line (as of 23 Oct)
 days (live pack): A 1, system_late 3 (out for every family), pending 1; moved after cutoff 0, flag not computable 4; deadline not checked 0
 ```
 
-*Open:* D1 and D3 wait for the owner (built with the recommendations; only the merge waits). After merge: one dry run
+*Open:* D1 and D3: owner decided 24 Oct (DESK_DECISIONS), as built. After merge: one dry run
 of `v4-pack release` on real data, and the first live day's evidence (criterion 10).
 
 ---
