@@ -33,6 +33,10 @@ c2d2b922 (judge 301 addendum 1). The diff c2d2b922..2bc4005d4 touches only `docs
 - **m1:** state in the timeline that every decision seal (15:10:00) comes before any reveal (forecast or decision, 15:10:10). That ordering is what keeps the overlap honest. Also add to Known limits: four reveal pushes to `main` at 15:10:10, beside the daily run's own pushes, can race; a reveal that still loses at 15:11:00 is `not_revealed`, never a trade. Add it to the test fire's checks.
 - **m2:** "a meter that cannot be read fires the books ... as G11 does" is fail-open on cost. Say it is deliberate: cost only, never a trade risk, and the owner set no cap.
 
+## Plants
+
+None: text round.
+
 ## Notes
 
 - Open question 1 (does 25 Oct lift the 15 Oct "strategy passed first" rule?) is correctly put to the owner, with the builder's recommendation labelled. The code is the same either way.
