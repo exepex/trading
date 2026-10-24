@@ -541,14 +541,20 @@ move of the rule into `problem_steps` is asked of them before code.
     run's last line and its own alert.
 
 **Code claims (for judge I; builder session_01Mt6dcBU5kp2htdPN2KmiZH from 24 Oct, replacing 0145TfSwzmpk):**
-- **Built on R2.** `story/o1-r1r2-step-safety` at `f0bb2aa9c` is merged in. `fno/desk/run_log.py` and
-  `fno/daily/runner.py` are O1's versions byte for byte (`git diff origin/story/o1-r1r2-step-safety -- fno/desk
-  fno/daily` is empty). This branch's earlier `PROBLEMS`/`problem_steps` copy is gone. Beyond the merge, this branch
+- **Built on R2's round 2.** `story/o1-r1r2-step-safety-b` at `2c80be430` (the orchestrator's choice; it supersedes
+  `story/o1-r1r2-step-safety`, whose `f0bb2aa9c` was merged first) is merged in. `fno/desk/` and `fno/daily/` are
+  O1's versions byte for byte (`git diff 2c80be430 -- fno/desk fno/daily` is empty). This branch's earlier `PROBLEMS`/`problem_steps` copy is gone. Beyond the merge, this branch
   changes only `fno/cards/`, `tests/cards/test_problem_steps.py` and this file (strong: diff).
 - **One rule, O1's.** The card's line calls `run_log.problem_steps` (`fno/cards/problem_steps.py`), and
   `DecisionOutcome` decides "failed or refused" by calling the same `problem_steps` on its one step, never the
   `PROBLEMS` set or a copy (`fno/cards/rule_checks.py`, `outcome`). The late books are read from O1's
   `book_results(result)` (`_decided`) (strong: code).
+- **O1 round 2's run-log shapes (strong: tests write the log with O1's own `RunLog.record`).** A failed step now
+  carries `retry`. A failed step waiting for its retry (`retry: true`, for example `fills`) is still `failed` today,
+  so the card names it, exactly as the runner's last line does. A step retried and then ok replaces its failed entry
+  (it moves last in the log) and is no longer named. A failed decisions step with `retry: false` is unchanged
+  (criterion 6). The reader accepts the new key: it checks only `name -> {"result": {...}}`. Tests:
+  `test_a_failed_step_waiting_for_its_retry_is_named_as_failed`, `test_a_step_retried_and_then_ok_is_no_longer_named`.
 - **A change from the earlier code, on odd shapes.** O1's `problem_steps` assumes `name -> {"result": {...}}`; the
   dropped copy tolerated `steps` that is not a mapping. Instead of a second, tolerant rule, T2's `RunLogReader` now
   refuses any other shape once, as "not readable (steps are not name -> {result: {...}})" with `data_check_failed`,
@@ -592,7 +598,7 @@ move of the rule into `problem_steps` is asked of them before code.
   - P13 no run log handed to the rule as `None`: caught (1).
 - **Cases (rule 5):** none (all `ok`/`not_live`, an empty log, no log), one failed, one refused, both in run order,
   a failed and a refused decisions step, another step-level status, a non-string status, a failed snapshot, a C4
-  refusal on a step-level result, and four odd shapes (`steps` a list, a step a string, a `result` a list, no
+  refusal on a step-level result, a failed step waiting for its retry, one retried and then ok, and four odd shapes (`steps` a list, a step a string, a `result` a list, no
   `result`).
 - **Output sample (rule 6),** made by the committed code from the tests' planted logs (`status_lines` in
   `tests/cards/test_problem_steps.py`; the books are test names):
@@ -634,22 +640,25 @@ failures, session_014ubpsF), each given only the diff and this story's Scope, cr
     breach" with T1's reason code, and the problem line comes last. That is the passed text (the status is
     unchanged, Out). **For the orchestrator:** whether a problem step should change the reason code is a story
     decision, not a code fix.
-  - for O1's builder (correctness reviewer, not checked by me beyond reading): `fno/desk/daily_run.py` `_refused`
-    counts only `STEP_FAILED` inputs, so a step whose input was refused (not failed) still runs. Today only `fills`
-    has inputs, and its inputs (`snapshot`, `decisions`) are never refused, so it has no effect yet.
+  - for O1's builder (correctness reviewer): `_refused` counted only `STEP_FAILED` inputs. Round 2 (`2c80be430`)
+    now reads them through `problem_steps`, so a refused input refuses too: resolved on O1's side.
 
 **Known limits:**
 - A step that records its failure without a `status` (an exit review's per-book `error`, `trade_marks`
   `{"marked": False}`, `pack` `{"built": False}`) is not named, by the card or the run's last line: that is O1's rule.
   Each still sends its own alert to #fno-desk.
 - Failures in steps after the card are never on it (Out).
-- O1's branch is getting round-2 commits (retry-on-rerun in `RunLog`, a fills test). This branch touches no O1 file
-  beyond the merge, so merging its newer head again is a clean merge unless O1 renames `problem_steps` or
-  `book_results`.
+- This branch touches no O1 file beyond the merges, so a newer O1 head merges cleanly unless O1 renames
+  `problem_steps`, `book_results` or `RETRY`.
 
-**Gates on the merged tree (code at `e26d7f9a3`, this note added after):** `ruff check fno tests tools` clean;
-`ruff format --check` 2442 files formatted; `check_imports` clean (2571 files); `check_records` clean (8981 files);
-`env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -p no:cacheprovider -n auto`: 15138 passed, 15 xfailed, 0 failed.
+**Gates on the merged tree (code at `a432d5a91`, merged with `2c80be430`; this note added after):** `ruff check fno
+tests tools` clean; `ruff format --check` 2445 files formatted; `check_imports` clean (2574 files); `check_records`
+clean (8995 files); `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -p no:cacheprovider -n auto`: 15168 passed, 15
+xfailed, 1 failed. The one failure, `tests/books/test_account_processes.py::test_a_live_holder_keeps_its_lock_after_its_lease_expires`,
+is a timing test (a child process must take the lock within a 2-second sleep) in a file this branch does not touch,
+run while the machine's load average was about 20 from other sessions' suites. Rerun alone: that file, 7 passed.
+(Earlier, at `e26d7f9a3` merged with `f0bb2aa9c`: 15138 passed, 15 xfailed, 0 failed.)
 
-**Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety`) · **Size:** S · **Status:** text PASS (judge 567); code
-merged onto R2 at `f0bb2aa9c`, to judge I (session_01MvZneCLZqBuiGyNxawdVee); merges in one batch with R2
+**Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety-b`) · **Size:** S · **Status:** text PASS (judge 567); code
+merged onto R2's round 2 at `2c80be430`, to judge I (session_01MvZneCLZqBuiGyNxawdVee); merges in one batch with
+R2's -b head
