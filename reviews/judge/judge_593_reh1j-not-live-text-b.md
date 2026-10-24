@@ -50,3 +50,24 @@ None (text). The planned plants are sound; add "the not-built check fooled by a 
   real day's rule.
 - My earlier gate runs today used `env -u FNO_SLACK_BOT_TOKEN`, as my brief asked, before I read rows 329-330. From
   this verdict on I keep the token.
+
+## Addendum 1
+
+**REH1j story text, round 2 (story/reh1j-not-live @ 73d3c1b71), judge B: PASS (1 minor). Lane 1, rule 1.** Only
+`docs/stories/REH1-rehearsal-mode.md` differs from main (my `git diff --name-only` from the merge base), so I judged by
+reading. Doc tests at 73d3c1b71, with the token kept: 853 passed, 15 xfailed.
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF: where the owner sees it; rows 322 and 329 | **Accepted** | Design 4 posts the exercised line once per daily-run rehearsal to #fno-desk through `build_alert_sender()`, only when something was exercised, with "alert NOT sent" on failure. The parent runs inside `in_this_process(mode)` (`rehearse.py:41`), so the post carries REH1's label. Design 5's reason for not using the card holds (T1's, and itself exercised on 23 Oct). Both rows are in the gap list; J5 tests one post, with three plants |
+| m1 reason codes | **Accepted** | Design 6 registers `rehearsal:NOT_LIVE_UNSET`, `NOT_LIVE_UNTIL` and `NOT_BUILT` in `reason_codes.COMMON`; J1 and J3 assert the codes, never `unlisted` |
+| m2 parser walk | **Accepted** | Design 2 spells out the walk; J3 adds a missing child under a real parent and a prefix of a real command, with plants |
+| Readers list | **Accepted** | the list now matches my round-1 grep |
+
+## Minor (round 2)
+
+1. Design 2 says "each word must be a subcommand", but the daily run's command steps carry options and values
+   (`pricedist record --day <d> --live`, `wiring.py:104`). Read literally, a not-live command with options would be
+   "not built" and never exercised. Say that the walk stops at the first word that is not a subcommand (an option, or
+   any word once the parser reached has no subcommands), and that the parser reached must have a handler. Add a J3
+   boundary: `pricedist record --day D --live` is built.
