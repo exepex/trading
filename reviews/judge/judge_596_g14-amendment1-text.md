@@ -37,3 +37,18 @@ this is a new report.
 
 ## Notes
 - The "no partial v5" open item (section 6) is stated plainly and routed to the orchestrator and owner; not a finding.
+
+## Addendum 1: round 2 (the last), story/g14-v5-v1-candle-2 at 40bd65e03
+**PASS** (text), lane 1, 1 minor. The diff vs main is only `docs/stories/G14-v5-v1-candle.md` (checked).
+- **S1 closed.** Section 5 quotes response 113 row 56, calls it general ("as written it covers v5 too"), and cites the
+  owner's 23 Oct row (DESK_DECISIONS line 316, quoted correctly) as an exception for this one measurement. It ties
+  decision 56's reason (hindsight) to criteria 1, 4 and 6.
+- **S2 closed and widened.** I checked the import chain: `candle_rv_table.py:7-8` imports `rv_table.py`, which
+  imports `row_files.py` (`rv_table.py:10`). None of the three has a hash in v4's freeze. Section 3b hashes the
+  import walk, not a hand list. Criterion 12 is testable: the walk is compared with the record, each file is marked
+  "v4 row" or "v5 only", and a planted edit to `candle_rv_table.py` must be refused.
+- **m1 closed.** The reader's freeze timing is now conditional on its module.
+- **m2 (minor, new).** Section 6 quotes the owner, "I want to run v5 dry run tests on weekend". That text is in no
+  file on main. The nearest is "do a dry run of V5 over the weekend" (`conversations/2026-10-24.md:92`, earlier that
+  day). The conclusion holds on the sign-off row alone (line 341 names G14's step), so cite that row and the exact
+  log line.
