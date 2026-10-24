@@ -93,3 +93,19 @@ def test_the_backfills_keep_the_real_date(monkeypatch, tmp_path):
     monkeypatch.setattr(ranges, "RangeBackfill", lambda *a: seen.append(a[-1]))
     ranges.build_backfill(CFG, eod=False)
     assert seen == [D22]
+
+
+def test_price_distribution_s_backfill_keeps_the_real_date_too(monkeypatch, tmp_path):
+    mode(monkeypatch, tmp_path, D19)
+    seen = []
+    stub(monkeypatch, distribution, "build_chains", "build_day_builder", "build_store", "build_session_calendar")
+    monkeypatch.setattr(distribution, "Backfill", lambda *a: seen.append(a[-1]))
+    distribution.build_backfill(CFG, eod=False)
+    assert seen == [D22]
+
+
+def test_a_step_kept_real_keeps_its_date_in_a_rehearsal(monkeypatch, tmp_path):
+    from fno.constants import OWNER_TIMING_STEP
+
+    mode(monkeypatch, tmp_path, D19)
+    assert rehearsed_date(OWNER_TIMING_STEP, D23) == D23  # E8's fills change the desk's fills: never rehearsed live
