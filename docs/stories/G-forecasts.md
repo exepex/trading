@@ -988,6 +988,34 @@ they found and what was fixed or why not.
 | m4 day label | yes | `day_label` copied from the release record; criterion 13 |
 | m5 future's expiry trusted | yes | checked against NSE's listed monthlies known before `d`; criterion 6 |
 
+### Claims, build step 1: `first_v4_expiry` (criterion 20), to merge alone ahead of the rest
+
+- **Code:** `fno/forecast_v4_rules/v4_expiry.py` (`first_v4_expiry(day, listed_expiries, calendar) -> date | None`, the
+  signature G10's text d4e72f20d imports; `scored_sessions_until(day, expiry, calendar)` for `S_e`). The minimum 5 is
+  `terms.HORIZON_SESSIONS[V4]`, not a new literal. Pure: no I/O, no clock. A day the calendar does not cover raises
+  `CalendarError` (the day is looked up first, so it raises even with nothing listed after it).
+- **Tests:** `tests/forecast_v4_rules/test_v4rules_v4_expiry.py`, 12 tests on the committed NSE calendar: good (Mon 26
+  Oct 2026 skips Tue 27 Oct's 1-session weekly for 3 Nov's 6), boundary (5 sessions taken, 4 not), the 8 Nov 2026
+  muhurat and the 20 Jan 2024 special Saturday never counted, the window `(day, expiry]` with a holiday expiry and a
+  Sunday day, order and repeats, bad (none with 5: None), empty (None), outside the calendar (raises, both ends).
+- **Plants (each run against the test file):** `>=` to `>`: caught; `is_session` instead of regular only: caught;
+  `[day, e)` instead of `(day, e]`: caught (after a test was added for it); no sorting: caught; a farther expiry as a
+  fallback: caught; the first-day lookup removed: caught. **Survivor, equivalent:** `e > day` to `e >= day` (the day's
+  own and past expiries hold 0 sessions, so they can never qualify; the filter is kept for clarity, the test says so).
+- **Self-review (an independent review agent on the two files):** 1 should-fix, fixed: a day outside the calendar with
+  nothing listed after it returned None instead of raising (now looked up first; two tests). 2 minors fixed: a comment's
+  wording, and 24 Nov 2026 (a holiday) replaced by 23 Nov in the test listing. 1 noted: the filter test above.
+  **Operations note (with a date):** the calendar has no 2027 rows. From Tue 22 Dec 2026 the 29 Dec weekly holds 4
+  sessions (25 Dec holiday), so the next candidate is in January 2027 and the function raises every day until NSE's
+  2027 holiday rows are in `research/data/calendar/nse_sessions.csv` (needed by about 21 Dec 2026; reported to the
+  orchestrator).
+- **Real output sample** (committed code, committed calendar; the listing is the test's, Tuesday weeklies):
+  `2026-10-26 -> 2026-11-03 (6 sessions)`, `2026-10-27 -> 2026-11-03 (5)`, `2026-10-28 -> 2026-11-09 (8)`,
+  `2026-11-03 -> 2026-11-17 (9)`.
+- **Not in the method hash yet:** no G7 record uses it, so `wiring.METHOD_FILES` is unchanged (no back-fill
+  regeneration now); it joins the hash in the step that builds V4's terms.
+- **Gates:** see the commit message.
+
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
 premium ratio is fitted on the EOD proxy and applied to the 14:30 pack's IV30 (the mismatch is the drift criterion 14
