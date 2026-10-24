@@ -26,7 +26,8 @@ and book **paper** trades; the 22 Oct cut-list's pause on them is lifted. Their 
 the timeline names the v4 forecast run of the same books beside it; the two steps' public reasons are O1-status-only
 codes (criterion 17); a rehearsal never fires a routine (criterion 18); BG1's stop is read through G11's
 `BudgetStop`, with the owner's "no AI budget cap" (25 Oct); known limits and go-live checks updated with the real
-timing and model evidence of 15-23 Oct; decisions reuse G11's `RunTerms` chain as a third instance instead of the 16
+timing and model evidence of 15-23 Oct; the owner's lifting of the 15 Oct "strategy passed" rule for paper, with
+the strategy label (criterion 17b); decisions reuse G11's `RunTerms` chain as a third instance instead of the 16
 Oct path parameters (Design, "The decision run's terms"). No criterion of the PASS is removed or loosened.
 
 ## Context and why (each fact marked)
@@ -52,7 +53,10 @@ Oct path parameters (Design, "The decision run's terms"). No criterion of the PA
     (`fno/checks/wiring.py`). None is registered today (`playbook/envelopes/` and `book3/` do not exist).
   - Book 1's playbook holds one rule, `b0-monthly-sc` v1, status `research` (`playbook/registry.csv`): no strategy has
     passed to `paper`. The owner's rule of 15 Oct (design v2 decision 10, "AI books trade on paper only after a
-    strategy has passed") is a go-live check below; whether the 25 Oct decision lifts it is put to the owner.
+    strategy has passed") is **lifted for paper** (owner, 25 Oct, through the orchestrator: "every earlier pause and
+    condition from older decisions is lifted"; built on the builder's recommendation, the owner may still object):
+    the AI books may trade on paper before a strategy has passed, each such trade labelled "strategy not yet passed"
+    and reported apart (Design, "Strategy label").
   - The same two AI books run their **forecast** job on protocol v4 from 26 Oct (G11, merged): `v4-fire.yml` fires each
     book's forecast routine when G10's release lands (about 14:45, latest fire 14:55), deadline 15:10
     (`fno/ai/v4_fire.py`). Those are separate routines and separate records; F1t's decision routines are new ones.
@@ -343,6 +347,14 @@ builder). **Until F4's code merges,** the wiring injects `NoJudge`, whose verdic
 reason "judge not built (F4)": Book 2 is then `judge_failed` every day (fail closed, never a trade), Book 3 is
 unaffected. Book 2's go-live therefore needs F4 merged (go-live checks).
 
+**Strategy label (owner, 25 Oct: trading before a strategy has passed is allowed on paper, labelled and reported
+apart):** each decider writes, in every D3 record that chooses a trade, `served["strategy_status"]`: the status of the
+traded strategy at the decision commit (Book 2: the playbook rule's row in `playbook/registry.csv`; Book 3: its D5
+registry row). F1t's run check refuses a promoted run with a chosen trade that lacks it. The outcome record holds
+`strategy_label`: "strategy not yet passed" when any chosen trade's status is not `paper` (or a later passed status of
+D6), else "strategy passed", and the step's alert line names the label. Reporting the two apart is the scoreboards'
+(S2, S3; they read the outcome record), not this story's.
+
 **Write paths and restore (agreed with F6, 16 Oct):** each book's decision version declares the paths its decider may
 write (Book 3: `journal/book3_ai/`, `book3/` and `research/ledger.csv`, the one file D5's `register()` appends a
 trial row to; Book 2: `journal/book2_hybrid/` and C4's failure log). F1t commits only changes under them. Just before
@@ -505,6 +517,9 @@ boundary and empty cases (quality rule 5).
     `ai_collect` only the status, the code `ai:NOT_PROMOTED` and its count, with no book reason, figure or path in it;
     the alert holds the full line; a reason not registered in `reason_codes.py` fails the existing registry test
     (tests).
+17b. **Strategy label.** A promoted run whose chosen trade's `served.strategy_status` is `research` gives the outcome
+    label "strategy not yet passed", one with `paper` "strategy passed"; a chosen trade with no status is `refused` by
+    the run check; a no-trade run carries no label (tests).
 18. **A rehearsal never fires.** With `rehearsal()` set and both books live, `ai_fire` builds no `RoutineTrigger`, makes
     no HTTP call and records `refused` with `ai:REHEARSAL_NO_FIRE`; with no book live it records `not_live` as in a
     real run (tests, the trigger factory a spy).
@@ -516,7 +531,7 @@ daily routine's checkout for Book 3's C4 (judge 263 addendum 1: a shallow clone 
 puts their trigger IDs and tokens in the daily run's environment; one fire on a non-counted day proves the routine API
 accepts a pointer of the measured size from the daily-run session's network, the session reaches `seal` and `reveal`,
 and a transcript read shows no file outside its input (F1 criterion 1 for decisions); D3's `owner_override` refusal,
-D4, D5, F5 (for Book 2) or F6 (for Book 3) are merged; at least one `paper` strategy exists (slice E's trigger).
+D4, D5, F5 (for Book 2) or F6 (for Book 3) are merged. (A `paper` strategy is no longer needed: owner, 25 Oct.)
 
 **Build rounds:** round 1, the three shared pieces with their tests (judged on their own, since F2's code waits on
 them); round 2, `fno/ai_trading/`, the O1 steps, the wiring and the end-to-end tests.
@@ -584,11 +599,7 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 
 ## Open questions
 
-1. **For the owner (through the orchestrator, 25 Oct):** does the 25 Oct decision lift the 15 Oct rule "AI books trade
-   on paper only after a strategy has passed"? No strategy has passed today. Builder's recommendation: yes for paper,
-   with every AI trade labelled "strategy not yet passed" and reported apart; otherwise the books record no trade
-   daily at AI cost. The code is the same either way; only go-live check 3 changes.
-2. **For F4's builder (none assigned on 25 Oct):** F4's text takes `JudgeCase`, `Judged` and `JudgeStep` from
+1. **F4 (assigned to this builder on 25 Oct):** F4's text takes `JudgeCase`, `Judged` and `JudgeStep` from
    `fno/ai_trading/ports.py` (one port, Design).
 
 Settled: the interfaces with F5 (16 Oct; F5 text PASS, judge 307 add. 5), F6 (16 Oct; F6 text PASS, judge 302 add.

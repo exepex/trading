@@ -96,9 +96,8 @@ the orchestrator.
    daily code judge): without it every Book 2 day is "judge failed", no trade.
 3. Book 2's envelope v1 or Book 3's constitution v1 registered in D6 with your approval (none exists today; until then
    C4 refuses every trade of that book).
-4. Your 15 Oct rule "AI books trade on paper only after a strategy has passed": either a strategy has passed to
-   `paper`, or you have lifted the rule for paper trading (open question, 25 Oct). Otherwise the book records no
-   trade daily at AI cost.
+4. Your 15 Oct rule "AI books trade on paper only after a strategy has passed": lifted for paper on 25 Oct. Every
+   such trade is labelled "strategy not yet passed" and reported apart. Nothing to do unless you object.
 5. For Book 3: the daily routine's checkout has the full git history (`git fetch --unshallow`), as Book 3's C4 refuses
    a shallow clone.
 6. Steps 2-5 done, and the test fire reported the registered model (not `unknown`).
