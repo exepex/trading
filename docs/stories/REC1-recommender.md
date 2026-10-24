@@ -69,8 +69,11 @@ strict ancestor; R1's data spend). Backtests, the simulator, rehearsals and unco
 test each).
 
 **Point in time (judge 620 S2).** A rung made at `made_at` on day d counts only sessions before d whose outcome
-record's receipt time (the commit time of its receipt on `main`, read through git, never a file's own field) is
-strictly before `made_at`. Day d itself never counts, even if an outcome of day d were already receipted. The record
+record's receipt time is strictly before `made_at`. The receipt time is GitHub's push receipt of the commit that
+brought the outcome's receipt to `main` (`PushReceipts` in `fno/ai/receipts.py`, the project's rule; protocol v4
+1.6), never a commit's own time (set by whoever commits) and never a file's own field (judge 620.2 m2). A receipt
+GitHub cannot answer (`ReceiptUnknown`) fails closed: that outcome does not count that day, so the rung can only be
+lower, never higher. Day d itself never counts, even if an outcome of day d were already receipted. The record
 carries this cutoff (`evidence_cutoff`, UTC) and, per version, the counted sessions' first and last dates and count,
 so a reader can recount it.
 
@@ -268,7 +271,8 @@ Text round 2 (answers to judge 620, judge J; the orchestrator agreed all three s
   recommendation). "Proven" is rung 3 only; the code is `no_established_version`; rung 0-2 trades are "paper, not a
   recommendation" with their rung; the real-money answer also needs rung 3 (RM1 and rung disagreeing gives
   `data_check_failed`). Section 1, section 6, criteria 4 and 7.
-- **S2 accepted.** Point-in-time rule: outcomes receipted (git commit time of the receipt) strictly before `made_at`,
+- **S2 accepted.** Point-in-time rule: outcomes receipted (GitHub's push receipt, judge 620.2 m2 accepted: a commit's
+  time is set by its committer; `ReceiptUnknown` fails closed) strictly before `made_at`,
   never day d; `evidence_cutoff` in the record. Section 2, criterion 5 with the day-d plant.
 - **S3 accepted.** The candidate set (version, path, SHA-256) is fixed in the record; the check reads only it, reports
   each and the total, "not known yet" until all closed, a missing or changed one gives `data_check_failed`. Section 5,
