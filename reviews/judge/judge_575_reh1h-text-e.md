@@ -50,3 +50,43 @@ nearest vs first, the ambiguity refusal, the old session wired back and HEAD.
   commit (e.g. span-bod 21 Oct from 24 Oct 06:04 IST, though its row reached main on 20 Oct). In that gap neither the
   store nor this session answers. Fixed in REH1g, H2 holds as written.
 - The guard's entry is named in Design but not in a criterion. H6's test should include the guard listing the new class.
+
+## Addendum 1
+
+**REH1h story text, round 2 of 2 (story/reh1h-archive-serving @ e8c2f9de4): PASS. Lane 1.** Judge E, own session
+(session_01Sp5rJyPberRttZaJ4WwW26; DESK_DECISIONS 24 Oct, own sessions). Text only: `git diff --stat f1f37f3a5
+e8c2f9de4` is one file, `docs/stories/REH1-rehearsal-mode.md` (+158); judged by reading, no suite.
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF1: fetch-first takers NOT_RECORDED 60 s after the commit | **Accepted, fixed** | Candidates are the replay day's rows up to `NEAREST` ahead; a future row is waited for, else the latest row committed at or before now that day. I confirmed the premise: `SessionFiledTaker.take` calls `source.fetch` before any store read (`session_filed_taker.py:42-47`); H2 now has commit + 61 s and + 1 h |
+| m1: H1 conditional for FII/DII | Accepted, fixed | `FiiDiiCashSource.url_for` returns the one `API` (`snapshot_source.py:80-85`); `_response` sends one `get` per try, no warm-up (`raw_source.py:144-148`) |
+| m2: the wait's clock | Accepted, fixed | `ReplayClock` is wall + offset (`clock.py`); `jump_to` is used only through `SkippingWaiter` in `fno/daily/wiring.py:89`, none of the evening steps: a real sleep moves the replay clock by the same amount |
+| m3: a repeat request | Accepted, fixed | H4 says it and why it differs from `ServedOnce` |
+| 573 SF1 (judge B): quotes not in the repository | Checked, fixed | Handover line 99 and `b5ab43ef6` story lines 625-630 match the quotes word for word |
+
+**The new rule: nothing served before its commit on the replay clock.** Holds as written. A future candidate (commit
+after now, at most 10 min) is served only after the sleep to its commit time; a past candidate has commit <= now by
+definition. The served time is never before the first-parent commit that REH1g's C2a dates, so no read sees a file
+before `main` held it [strong: the rule read against `clock.py` and REH1g's index]. The one early case is REH1g's own
+stated limit 2 (a branch commit pushed as `HEAD:main` keeps its commit time, seconds before the push); inherited, said.
+
+## Findings
+
+None blocking, none should-fix.
+
+## Minor (for the code round)
+
+1. REH1g's A9 index keeps only `(manifest, day, URL) -> commit time` (`manifest_rows.py:72`). H3's SHA-256 check and
+   H4's same-time ambiguity need each row's `sha256` and dataset: the code must extend that index (one reading), not
+   read the manifests again, as the Design says.
+2. A future row is preferred to a past one: a read at 20:00 with one row of the URL at 19:55:39 and another at 20:05
+   waits 5 min for the later (hypothetical: the record has no run-dated `fii-dii-cash` row after 20 Oct). No
+   look-ahead, but a test should pin which one is served.
+3. A morning fetch-first read (the ban list, published the evening before) has no same-day row and stays NOT_RECORDED.
+   No rehearsed routine runs it in the morning today; say so under H5.
+
+## Plants
+
+None (text round). The ten planned plants cover the new rule (the at-or-before branch dropped, the replay-day bound
+dropped, the wait removed); I add one: the past branch serving the earliest row of the day instead of the latest.
