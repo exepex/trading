@@ -255,12 +255,18 @@ Found while building the O1 step, for Judge J (the package's `cli.py`) and judge
 - So criterion 7's "refuses after 14:30 with a non-zero exit, so the run records it as refused" cannot hold: the
   package as merged (exit 1 on every refusal) would be recorded `failed`. The O1 builder's term of 23 Oct ("the 14:30
   refusal exits non-zero") had the same mix-up.
-- **Change:** G14's `capture` follows v4's own commands (`forecast-v4 capture` and `capture-pack`). A refusal (14:30
-  or later, not today or not a scored session, `FREEZE_v5_v1.md` missing, broken, changed or dated after today)
-  prints "nothing written: <why>" and exits 0, so O1 records it `refused` and alerts. A different row already written
-  for the day (`RecordConflict`) prints its line and exits 1, so O1 records it `failed` and alerts, as v4's
-  `capture-pack` does for a changed row. Nothing is written in either case (all or nothing, part 2).
-- Run by hand, a refusal exits 0 with its "nothing written:" line; that is the same as v4's capture.
+- **Change (judge 596 addendum 3):** two kinds of "no row today", each named by its status.
+  - **Refused, a planned state** (exit 0, "nothing written: <why>", as v4's `forecast-v4 capture`): 14:30 or
+    later; not today or not a scored session; `FREEZE_v5_v1.md` missing (the days before it lands); a record frozen
+    on a day after today.
+  - **Failed, a fault someone must fix** (exit 1, its line printed): a byte-checked file differs from the record, the
+    record lists other files than today's walk, its `Frozen on:` line is not a date (a frozen file moved: revert it or
+    write a new record version; the precedent is v4's workflow, `.github/workflows/forecast-capture.yml` line 7, "a
+    failed freeze check fails the run before any forecast"); and a different row already written for the day
+    (`RecordConflict`, as v4's `capture-pack` does for a changed row).
+  - Both are alerted to #fno-desk and both end the day "with problems"; nothing is written in either case (all or
+    nothing, part 2). The label is what the committed log and its reader see (`command:nothing_written` or
+    `command:exit_1`).
 - Scope: `fno/forecast_v5_v1/cli.py` (merged, lane 1, Judge J) and its tests; `FREEZE_v5_v1.md` is not written yet,
   so no frozen byte changes.
 
@@ -281,9 +287,12 @@ Found while building the O1 step, for Judge J (the package's `cli.py`) and judge
    not a second calculation (a test that G14's rows equal that pairing's on the same input).
 6. The report scores only live forecasts against live A16 outcomes, never a candle outcome. It prints the label
    "candle RV (15m bars) vs live quote RV" and the gap table.
-7. The O1 step (its own later commit, merged in amendment 1's order) is `not_live` before its date. A refusal
-   (14:30 or later, no holding freeze record) prints "nothing written:" and exits 0, so the run records it
-   `refused` and alerts; a different row already written exits 1, recorded `failed` and alerted (amendment 2).
+7. The O1 step (its own later commit, merged in amendment 1's order) is `not_live` before its date. Amendment 2's
+   two cases, each with a test at the command and one through O1's `outcome`:
+   - refused (exit 0, "nothing written:", O1 status `refused`): at 14:30; with no `FREEZE_v5_v1.md`; with one frozen
+     after today;
+   - failed (exit 1, O1 status `failed`): a changed byte-checked file; a walk list that differs; an unparseable
+     `Frozen on:`; a different row already written.
 8. Registration first: the commit adding `CARD_V5V1.md` with its ledger and gate-log rows is a strict ancestor of the
    first commit touching `fno/forecast_v5_v1/`. Tested on the real git history, as judge 480 required for D6.
 9. The freeze: the capture refuses a live day while `FREEZE_v5_v1.md` is missing, has no `Frozen on: YYYY-MM-DD` line,
