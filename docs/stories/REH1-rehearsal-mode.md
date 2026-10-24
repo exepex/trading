@@ -843,7 +843,7 @@ roads open."
 #### Claims, code round 1 (for two judges)
 
 Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1p-quote-visibility` (from main). Code:
-`fno/rehearsal/quote_sidecars.py` (new, 64 lines), `fno/rehearsal/visibility.py` (the third kind of evidence),
+`fno/rehearsal/quote_sidecars.py` (new, 68 lines), `fno/rehearsal/visibility.py` (the third kind of evidence),
 `fno/rehearsal/drive_wiring.py` (wired over `mode.record`). Tests: `tests/rehearsal/test_quote_sidecars.py` (12).
 
 **Plants:** 9 planted, 9 caught, in a separate worktree, each restored with `git checkout --`: the wiring without the
