@@ -55,12 +55,20 @@ not `config.yaml`):
 | Daily cap (counted across reruns of the day) | 240 | 50 |
 | HTTP 429 | the first 429 stops Groww for the day, no retry (orchestrator's Groww audit, 24 Oct: the owner's "never exceed its rate limit") | wait 60 s, retry that one request once; a second 429 the same day stops NSE for the day |
 | Sign-in | one sign-in per run; a failed sign-in is kept and stops Groww for the run, never retried per call (audit: `GrowwProvider.api` retries on every call, `fno/providers/groww.py:139-145`, fixed globally by session_01GsPm29fZzfH3DiErKAdBVk) | none |
-| HTTP 403, or an empty 200 body where JSON is expected | the source stops for the day at once, no retry | same |
+| Any other 4xx (401, 403, 404, ...), or a 200 that is not the expected JSON (empty, HTML, wrong shape) | the source stops for the day at once, no retry (judge 626: 401 is NSE's usual refusal) | same |
 | 5xx or timeout (20 s) | one retry after 30 s; then that row is `missing` and the slot goes on | same |
 | A source stopped on 2 sessions | the probe stops for that source for good; the owner decides | same |
 | User-Agent | the SDK's own (Groww's client, not ours to set) | `OmenixFnO-research/1.0 (personal, read-only, paced)`, fixed; never a browser string |
 
-- The day's request count is kept in the day's counts file (section 5), so a rerun cannot pass the cap.
+- The day's request count is kept in the day's counts file (section 5), so a rerun cannot pass the cap. **When the
+  count is written (judge 626):** before a slot's first request the run writes and pushes a reservation of that
+  slot's whole budget (50 Groww, 11 NSE) to the counts file; only at the slot's end is it replaced by the real count.
+  A rerun counts every reservation without an end as fully spent, so a run that dies mid-slot, before its commit,
+  never leaves calls uncounted. A reservation that cannot be pushed means the slot does not start.
+- **429 detection is A16's, not a second copy (judge 626):** `_rate_limited` (`fno/intraday/feed_probe.py:173`)
+  moves to one shared public function in `fno/intraday/` that `feed_probe.py` and this story both import; it also
+  recognises the SDK's own `GrowwAPIRateLimitException` (P0-1), which a 429 can arrive as, with a test for each form
+  (the only change to A16h's file: the import, told to the orchestrator; A16h's owner is out of reach).
 - A stop is one plain line, posted to #fno-desk (`FNO_SLACK_BOT_TOKEN`, through the existing `AlertSender`), and one
   O10 row in `research/ops/capture_errors.csv` (job `school-p0b`, kind `blocked`, `rate_limited` or `cap_reached`).
   The line names the source, the status and the slot; never a value, a header, a cookie or a token.
@@ -106,10 +114,15 @@ grow, keep or stop, per source.
 1. **Pace:** `StudyPace` never lets a request start sooner than the gap after the last start (fake clock: 1.0 s
    Groww, 3.0 s NSE; boundary exactly at the gap; a second caller waits; zero requests: no wait).
 2. **Cap:** the 241st Groww and 51st NSE request of a day is refused before it is sent, with one named line; the
-   count includes an earlier run's counts file (rerun boundary; empty file: count 0).
+   count includes an earlier run's counts file (rerun boundary; empty file: count 0); a reservation without an end
+   counts as the slot's whole budget (plant: a run killed after its third request; the rerun's count is the full
+   reservation, not 3); a reservation push that fails starts no request.
 3. **Refusals:** on Groww the first 429 stops it for the day with nothing more sent; on NSE a 429 waits 60 s and
-   retries once, and a second 429 that day stops it; any 403 or an empty 200 body stops the source for the day, sends one alert and writes one O10 row; nothing more reaches that source (fake source counts
-   calls). A 5xx retries once after 30 s, then `missing`.
+   retries once, and a second 429 that day stops it; any other 4xx (401, 403, 404 each tested) or a 200 that is not
+   the expected JSON (empty body, HTML page, JSON of the wrong shape) stops the source for the day, sends one alert
+   and writes one O10 row; nothing more reaches that source (fake source counts calls; plant: the 4xx rule narrowed
+   to 403 alone must fail the 401 test). Groww's 429 is read only through the shared function (both forms). A 5xx
+   retries once after 30 s, then `missing`.
 4. **Sign-in:** one run signs in to Groww at most once; a failed sign-in stops Groww's part of the run with one line
    and no second sign-in (fake provider counts sign-ins: good, failed, never-called on a day with no Groww slot left).
 4b. **Stop for good:** a source stopped on 2 sessions is refused on the third, with its line.
