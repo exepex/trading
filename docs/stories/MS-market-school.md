@@ -3432,3 +3432,30 @@ session is unlikely; kept as stated in the gap list. 6. A warning as the last li
 format --check` clean; `python tools/check_imports.py` clean (2650 files); `python tools/check_records.py` clean (9108
 files). `python tools/check_numbers.py` runs on `main` at merge (CLAUDE.md "Code"). The first full run (at a92c0d773)
 had one failure, G13's score-row order test, fixed at f21525614 (Files owned).
+
+### MS-P1j4 Claims (round 1, branch `story/ms-p1j4-no-record`; builder session_01K3PspS7VhXM39Ccyhut4S7; the SHA is in the commit carrying this text)
+
+| # | Code | Tests (`tests/school/reports/test_no_record.py` unless named) | Plants (each caught) |
+|---|---|---|---|
+| 1 No record | `HowDidTodayGoSection.render` (no `DecisionRecord`: `_no_record`) | `test_a_session_with_no_sealed_record_says_so_and_why_and_nothing_else` (4 cases, exact lines), `test_a_no_record_day_shows_no_rupee_no_trade_and_no_count_line`, `test_outcomes_alone_without_a_sealed_decisions_file_are_no_record` | the branch removed (6 failed); `records` for `decisions` |
+| 2 The why | `DayInputs.school_step`; `SealedDayInputs.school_step` on `RunLog.open`; `SCHOOL_STEP` | the 4 cases above; `test_the_reader_takes_the_school_step_s_status_and_code_...`, `..._says_none_with_no_log_or_no_school_step`, `..._cannot_be_read_raises_...`, `test_a_run_log_that_cannot_be_read_alerts_and_the_edition_posts_without_a_guess` (bad JSON, no result: g's maker alerts the class, the edition is the golden) | the log ignored; the reader on another step; a swallowed error falling back to "no school step" |
+| 3 Counts | `_counts` | `test_a_recorded_day_with_no_counts_row_says_none_never_an_empty_line`, `test_a_counts_row_of_a_control_only_still_says_none` | the "none" line removed |
+| 4 08:50 | `TodaySection.render`: `NO_PLAN` when no road is open | `test_today_says_no_plan_can_be_made_when_no_road_is_open` (all closed, none listed), `..._with_an_open_road_and_no_proposal_keeps_no_candidate`, `test_today_with_a_plan_is_unchanged` | always `NO_CANDIDATE`; always `NO_PLAN` |
+| 5 Recorded day | unchanged path | g's `test_sections.py` and `test_editions.py` (golden) stand; `test_a_recorded_day_renders_the_same_whatever_the_run_log_says` | — |
+
+**Changed tests of g (lane 1, named here).** `test_an_empty_day_says_none_and_is_red` became
+`test_a_recorded_day_with_no_trade_says_none_and_is_red` (criterion 1: "none ... Rs +0" belongs to a recorded day only).
+The why-line tests' helper renders a recorded session by default (`RECORDED`), as their subject is the why lines; the
+counts header is found by its prefix, since an empty counts line now ends in "none".
+
+**Self-review (an independent review agent on the diff).** No blocking or should-fix finding. It checked that the run
+log is on `main` before 20:05 (`daily_run.py` commits it after each step; the evening starts on fresh `main`), that
+every school step result holds `status` and `reason`, that g's maker (not the guard) catches a render-time raise, and
+privacy (status words and public codes only). Minors: 1, a "renders as before" test compared new with new: renamed and
+its docstring points at g's tests, which carry it. 2 and 3, the guard path untested end to end: added (bad JSON and a
+result-less step). 4, a stopped run whose log push failed reads "recorded no school step": honest and red, the run's
+own STOPPED alert names the cause; no change.
+
+**Real output sample** (the committed code, g's fakes, printed): `No school record for 2026-11-02: the daily run's
+school step was refused (school:TOO_LATE).`; on 08:50 with every road closed: `No plan can be made today: no road is
+open. (plan from 01 Nov 2026 15:00 data, indicative prices, not today's quotes)`.
