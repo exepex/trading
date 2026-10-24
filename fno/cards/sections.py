@@ -44,6 +44,9 @@ class StatusSource(ABC):
         """The desk's status for the day with its reason code (v1: always NO TRADE)."""
 
 
+WEATHER_BLOCKS = "No new trades while the weather reading is missing (owner rule)."  # owner "4 A", 15 Oct 2026
+
+
 class WeatherSource(ABC):
     @abstractmethod
     def weather(self, day: date) -> CardSection:
