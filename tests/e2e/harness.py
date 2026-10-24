@@ -234,7 +234,17 @@ def quote_parts_script(day_: Day) -> dict:
         ("quotes", "record", "--window", "v4"): Foreground(0, lambda: (0, ["window closed: no recorded v4 attempt"])),
         ("desk", "book1"): book1_decides(day_),
         ("intraday", "backfill"): Foreground(0, lambda: (0, ["nothing to catch up"])),  # A16b: no Groww candles here
+        ("school", "run", "--session", day_.day.isoformat()): school_runs(day_),
     }
+
+
+def school_runs(day_: Day) -> Foreground:
+    """MS-P1j's `school run --session D` as the child runs it: the repository's switch is off, so "school off"."""
+    from argparse import Namespace
+
+    from fno.school.cli import cmd_run
+
+    return Foreground(0, lambda: printed(lambda: cmd_run(Namespace(session=day_.day, replay=None))))
 
 
 def fixture_day(tmp_path: Path, monkeypatch) -> Day:

@@ -1,7 +1,8 @@
 """Composition root of the daily run (story O1): E3's desk run (Book 1's orders and exit rules) with O1's steps
 around it: A14c's margin check, the weather, the v4 forecasts and the card as their own commands, each from its
-`daily.live_from` date; Book 1's decision (E5) right after the pack; and A4c's quote parts beside the desk, committed
-through E3's committer in the run's one thread."""
+`daily.live_from` date; Book 1's decision (E5) right after the pack; the market school's slot (MS-P1j, its own
+`school.enabled` switch); and A4c's quote parts beside the desk, committed through E3's committer in the run's one
+thread."""
 
 from __future__ import annotations
 
@@ -36,6 +37,11 @@ def range_issue(day: date) -> tuple[str, ...]:
 def premium_issue(day: date) -> tuple[str, ...]:
     """G13d's live issue from G13's 3 pm record (O1's `premium_ranges` step; refuses itself after 15:30)."""
     return ("premrange", "issue", "--day", day.isoformat(), "--live")
+
+
+def school_run(day: date) -> tuple[str, ...]:
+    """MS-P1j's slot: it seals, fills and commits its own records; with `school.enabled` off it prints "school off"."""
+    return ("school", "run", "--session", day.isoformat())
 
 
 def live_dates(cfg: dict) -> dict[str, date | None]:
@@ -149,6 +155,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
         ),  # G13: its own receipts only  # fmt: skip
         "premium_ranges": Alerted("premium_ranges", LiveFrom(premium_ranges, live["premium_ranges"]), alerts),  # G13d
+        "school": Alerted("school", CommandStep(processes, school_run, (), git.changed, waiting, locks), alerts),
         "price_distribution_scores": scores(DISTRIBUTION_SCORES, receipt_pathspecs(), "price_distribution_scores"),
         "price_ranges": Alerted("price_ranges", LiveFrom(price_ranges, live["price_ranges"]), alerts),  # G13b
         "price_range_scores": scores(RANGE_SCORES, range_receipts(), "price_range_scores"),
