@@ -1001,9 +1001,9 @@ the pack format and SHA; the pack binding guard; the release record format and i
 |---|---|---|---|
 | G7b 1: chains for `e` and every expiry up to and including the first with at least 5 scored sessions | **Changed:** `e` and the other monthly as today, plus **the first listed expiry with at least 5 scored sessions in `(d, expiry]`** when it is not already one of them; not the nearer ones | V4 uses only that expiry (G7b's own rule picks the first with 5 sessions), so a nearer weekly adds requests and no input. The rule is one pure function in G7b's module, imported by A4e's `v4` window (G7b's offer 2: one rule, one place); **the pack names the chosen expiry as `v4_expiry`** (`None` when the function returns `None`; G7b's second ask: yes, so a failed weekly is never read as "V4's expiry is the monthly") | about 90 contract quotes and one chain call, about 80 s, on days that expiry is a weekly (most days); none when it is a monthly |
 | G7b 1: strikes within at least 3% of spot | **Yes, already:** A4's band is 5% (`fno/quotes/recorder.py:49`, `SPOT_BAND`), used for the added expiry too (one band, DRY) | 5% covers 3% and the strikes either side of ATM | none beyond the row above |
-| G7b 3: the future keeps bid and ask | **Yes:** one Groww quote of `e`'s future in the `v4` window, behind a new `FutureQuotes` interface with a Groww adapter (the `Provider` interface has no future quote; NSE's level read gives only last and volume) | V5 prices `F` at mid under the 5% spread rule (W2); without both sides V5 is void every day | one request, under 1 s |
+| G7b 3: the future keeps bid and ask (and, asked later, what A4's `traded_today` needs) | **Yes:** the pack's `FutureQuote` gains `last_trade_time` (from Groww's quote) and `volume` (the day volume NSE's level read already gives; `7cab92b06` used it only for IV30's Black-76 and did not store it), so A4's `traded_today` can decide on the future like on any quote. One Groww quote of `e`'s future in the `v4` window, behind a new `FutureQuotes` interface with a Groww adapter (the `Provider` interface has no future quote; NSE's level read gives only last and volume) | V5 prices `F` at mid under the 5% spread rule (W2); without both sides V5 is void every day | one request, under 1 s |
 | G7b 4: `iv30.flagged` as on `main` | **Yes**, unchanged | | none |
-| G7b 5: an O1 step `forecasts_v4_pack` right after the release | **Yes**, the order is fixed below; G7b builds the step, its own live key and its own pathspec | it reads the released pack, so it must follow `v4_release`, and it must commit before 15:10 | none (reads Drive) |
+| G7b 5: an O1 step `forecasts_v4_pack` right after the release | **Yes**, the order is fixed below; G7b builds the step, its own live key and its own pathspec; **its V4 and V5 forecasters are pack readers: G7b adds them to `PACK_READERS` and calls `check_pack_binding` before writing** (judge 580 finding 3); their live records' receipts (`receipts/data/v4/records/live/`) are covered by the 15:10 check (criterion 7) | it reads the released pack, so it must follow `v4_release`, and it must commit before 15:10 | none (reads Drive) |
 | G11 D1: the daily release and the names G11 reads | **Yes:** `ReleasedPacks` (`release`, `pack`, `pack_bytes`), `ReleaseRecord.pack_sha256`, `Pack`, `check_pack_binding`, `build_released_packs` keep their names and modules (`fno/v4_pack/release.py`, `model.py`, `guard.py`, `wiring.py`); a rename goes to G11 first | | none |
 | G11 D2: `system_late` labels | **Yes, with a changed path:** the label is the release record in Drive `v4/days/<YYYY>/<date>.json`, read through `ReleasedPacks.release(day)`; **not** `research/data/v4_days/<d>.json` (that folder is retired here, criterion 6). Every scored session from the live date gets a record, `system_late` included (criterion 4's catch-up); criterion 5's function answers a day with no record yet | O9: data lives in Drive, GitHub holds receipts | none |
 | G11 D3: the release push starts workflows | **Yes:** the receipts `receipts/data/v4/days/<YYYY>/<date>.json.sha256` (its `paths:` filter: `receipts/data/v4/days/**`) and `receipts/data/v4/packs/<YYYY>/<date>.json.sha256` go in one commit, pushed by the daily run's committer with the owner's routine credentials, never an Actions token (15 Oct: such a push started forecast-capture run 38714143717 within the minute). Catch-up records land on the same path, so the workflow fires only for today's record (as the held `v4-fire.yml` already checks). The deadline verdicts (`receipts/data/v4/deadlines/`) never match. G11 lands `v4-fire.yml` | | none |
@@ -1027,7 +1027,7 @@ The routine time stays **14:05 IST** (owner, 21 Oct). `DAILY_RUN_STEPS` (`fno/co
 | Piece | When (IST) | What it runs | Commits (its own paths only) |
 |---|---|---|---|
 | `v4` quote part | started by `quotes` at routine start (about 14:07; its early limit is 14:03 from A4e's 30-minute wait plus O1's 3-minute margin), records 14:30:00-14:40:00, retries inside the window | `python -m fno quotes record --window v4` (A4e, unchanged) | `':(glob)research/data/quotes/groww/derivatives/quote-snapshots-v4/**'` (sidecars and the `.canonical` marker; raw rows Drive only) as soon as it ends, **not after NIFTY** |
-| `v4_release` | after `forecasts_v4`; waits for the `v4` part to end (at most until 14:45:00), never runs while it records | `python -m fno v4-pack release` (taken over; catch-up, then today) | `receipts/data/v4/days/`, `receipts/data/v4/packs/` (the receipt push is what will start G11's fire later) |
+| `v4_release` | after `forecasts_v4`; waits for the `v4` part to end, never runs while it records; a part still running at 14:45:00 (it sends no request after 14:40:00, so it is hung) is stopped, its files are not committed, and the release writes `system_late` ("capture still running at 14:45") | `python -m fno v4-pack release` (taken over; catch-up, then today) | `receipts/data/v4/days/`, `receipts/data/v4/packs/` (the receipt push is what will start G11's fire later) |
 | `v4_deadline` | last step, not before 15:12:00 | `python -m fno v4-pack deadline` (new) | `receipts/data/v4/deadlines/` |
 
 `forecasts_v4` and `weather` keep their place: they must commit before 14:30, when their capture refuses. `v4_release`
@@ -1049,15 +1049,23 @@ gains one line for the `v4` part and its hand-fix `git add` line; NIFTY's hand-f
   in about 85 s (22 Oct 15:00 mark: sent 15:00:00.0003, finished 15:01:23, 220 of 220). So the two overlap from 14:30:00
   to about 14:31:25; G7b's additions make the capture longer, not the overlap. They do not overlap A16's 14:45 mark (the capture's last request is at 14:40:00 at the latest),
   the 14:55 NIFTY part, the 15:01-15:13 indices or A16's 15:00 mark.
-- **Evidence the overlap is safe:** some evidence, one day: on 22 Oct NIFTY's second attempt (14:58:58-15:01:30) ran
-  through A16's 15:00 mark, and both were complete with no failures. The same overlap already happens on any day a
-  NIFTY retry crosses 15:00.
-- **If it is not safe:** the first live day measures it (criterion 10): the `v4` sidecar (start, finish, recorded,
-  failures, clock status) beside A16's 14:30 row (status, recorded of expected, failures). If A16's 14:30 mark is not
-  `good` and its failures name a rate limit, the builder reports it to the orchestrator the same evening with the
-  numbers; the fallback (the part starts at 14:31:30, after the mark, still inside the window, every field with its
-  real time) is a one-value config change then, not built in advance (KISS: no evidence of a clash yet). A16 alerts a
-  bad mark itself; nothing in this story mutes it.
+- **Evidence on overlaps so far (mixed; some evidence, three overlaps; revised after judge 580 finding 2):**
+
+  | Overlap | NIFTY capture (sidecar in `research/data/quotes/groww/derivatives/quote-snapshots/2026/10/`) | A16's mark (row in `research/data/intraday/slots/2026/10/<dd>/`) |
+  |---|---|---|
+  | 22 Oct, 15:00 mark | `nifty_20261022_145858.meta.json`: 14:58:58-15:01:30, 180 of 180, no failures | `nifty_20261022_1500.csv`: good, 220 of 220, sent 15:00:00, first seen 15:01:23 |
+  | 22 Oct, 15:15 mark (desk's 15:15 capture) | `nifty_20261022_151500.meta.json`: 15:15:00-15:18:15, **176 of 180, incomplete: four `GrowwAPIException` failures (22450 and 22500 call and put of 27 Oct, the ATM strikes)** and one `RawFileConflict` | `nifty_20261022_1515.csv`: good, 216 of 216 |
+  | 23 Oct, 15:15 mark | `nifty_20261023_151500.meta.json`: 15:15:00-15:17:34, 180 of 180, no failures | `nifty_20261023_1515.csv`: good, 216 of 216 |
+
+  So one of three overlaps lost four quotes on our side while A16's mark stayed whole. Groww withholds its messages, so
+  the cause (a rate limit or something else) cannot be read; a 22 Oct retry (15:18:24) was complete. The `v4` capture
+  retries inside its window, so one such loss costs a retry, not the day, if the retry ends by 14:40.
+- **The fallback trigger, observable (criterion 11):** any failure in either job during the overlap (the `v4` sidecar's
+  `failures` not empty, or A16's 14:30 row not `good` or with failures) is reported with the counts in one #fno-desk
+  line by `v4_deadline` at the day's end (A16's row is committed by then), and in the builder's evening report to the
+  orchestrator. On such a day, the orchestrator decides the fallback (the part starts at 14:31:30, after the mark,
+  still inside the window, every field with its real time): a one-value config change, not built in advance. A16
+  alerts a bad mark itself; nothing in this story mutes it.
 
 #### Merge order with `story/g10-part2b-pack`: taken over, not merged
 
@@ -1110,7 +1118,8 @@ to `build_commitment_times`), resolved by keeping both.
    least 5 scored sessions in `(d, expiry]` (G7b's pure function `first_v4_expiry(day, listed_expiries, calendar)` in
    `fno/forecast_v4_rules/v4_expiry.py`, imported with that exact signature from G7b's first commit, which merges
    first; special and muhurat sessions not counted) when it is not a monthly, at the same 5% band, and one quote of
-   `e`'s future with bid, ask and its `observed_at`; the pack carries them (`future.bid`, `future.ask`; the added
+   `e`'s future with bid, ask, `last_trade_time` and its `observed_at`, plus NSE's day volume already read; the pack
+   carries them (`future.bid`, `future.ask`, `future.last_trade_time`, `future.volume`; the added
    expiry's rows in `chain`) and **a field `v4_expiry`**: the expiry the function chose (a monthly or the added one),
    `None` when it returned `None` (G7b's ask, 24 Oct: without it G7b cannot tell "the chosen weekly's quotes failed"
    from "V4's expiry is the monthly" and would score another question). The capture's sidecar records the same value,
@@ -1132,10 +1141,10 @@ to `build_commitment_times`), resolved by keeping both.
    before G11's 14:55 latest fire. The daily run commits the receipts; `v4-pack release` commits them itself only with
    `--commit` (by-hand use), so the run keeps one committer (O1's G4). Today `system_late` is the step's failure with
    one #fno-desk alert naming the reasons (decision D3); a write-once refusal is named, never overwritten. Good: `A`
-   at 14:33. Bad: no capture by 14:45, `system_late`. Boundary: a record due exactly at 14:45:00 is `A`, at 14:45:01
+   released at about 14:35 from a capture that ended about 14:34. Bad: no capture by 14:45, `system_late`. Boundary: a record due exactly at 14:45:00 is `A`, at 14:45:01
    `system_late`; a rerun the same day prints "already released"; a rerun after a failed write retries it. Empty: not
    a scored session, nothing written, ok. Plants: run the release while the part still records; drop the catch-up;
-   release at 14:46 as `A`.
+   release at 14:46 as `A`; leave a part running at 14:45 unstopped.
 5. **One label rule, one place.** A function in `fno/forecast_scoring/v4/days.py` decides a day's label from its
    record, the live date and the report's date: a record gives its label; a scored session from
    `daily.live_from.forecasts_v4` up to the day before the report with no record is `system_late` ("no release
@@ -1157,14 +1166,22 @@ to `build_commitment_times`), resolved by keeping both.
    (31 Dec to 1 Jan). Empty: no receipts yet, no labels, every live day before the report `system_late` by criterion
    5. Plants: swallow a sync problem; read the old folder; re-point only two of the three readers.
 7. **The 15:10 deadline verdict.** `python -m fno v4-pack deadline` (the `v4_deadline` step, not before 15:12:00) reads,
-   for every live record row of each scored session from the live date to today without a verdict, written by a
-   forecaster outside `PACK_READERS` (G7's rules, M1's weather, later V4/V5), GitHub's receipt time of the commit that
-   added the row (`CommitmentTimes.row_received_at`, F1's push receipts, never the commit's own time), and writes one
+   for each scored session from the live date to today without a verdict, every live commitment made by its forecaster
+   itself: (i) each row of the CSV records in `research/forecasts/v4/` (G7's rules, M1's weather), GitHub's receipt
+   time of the commit that added the row (`CommitmentTimes.row_received_at`); (ii) each receipt under
+   `receipts/data/v4/records/live/` (G7b's Drive-stored live records, `v4/records/live/<forecaster>/<question>/<YYYY>/<date>.json`,
+   G7b's ask), GitHub's receipt time of the commit that added that receipt (`CommitmentTimes.file_received_at`). Never
+   the commit's own time. Which forecasters are excluded is its own set, `SEALED_COMMITMENTS` in `fno/v4_pack/`
+   (the two AI books, whose commitment is their sealed submission: out of scope 2), **not** `PACK_READERS`: G7b's V4
+   and V5 forecasters read the pack and are checked here like G7's (judge 580 finding 3). It writes one
    write-once verdict file per day, Drive `v4/deadlines/<YYYY>/<date>.json` (forecaster, question, received time,
    `on_time` or `late`). Any unknown time: no file for that day, the step fails with one alert, and the next run retries
    it (never a guessed time). Good: a row received at 14:12 is on time. Bad: received 15:10:01 is late. Boundary:
    15:10:00 on time; a run before 15:12 waits. Empty: a day with no live rows gets a file with no rows. Plants: `<=` to
-   `<`; the commit's own date instead of the receipt; an unknown time written as on time.
+   `<`; the commit's own date instead of the receipt; an unknown time written as on time; skip the `records/live/`
+   receipts; key the exclusion on `PACK_READERS`. **Rehearsal:** the rehearsal's push log (REH1b's
+   `rehearsed_receipts`) holds only the rehearsal's own pushes, so in a rehearsal the step checks the replayed day
+   only, never the catch-up days (their times are not in that log; checking them would fail every rehearsal).
 8. **G8 applies the verdicts.** A `late` row is no forecast that day (a miss under G9's caps); a live row whose day has
    no verdict file is counted "deadline not checked" in the report's counts line, and a confirmatory look refuses while
    one exists (the reconciliation's pattern, response 213). Back-fill rows are never checked. Good, bad (late), boundary
@@ -1172,12 +1189,36 @@ to `build_commitment_times`), resolved by keeping both.
 9. **Alerts, settings and the record scan.** Every new alert goes through `AlertSender` to #fno-desk only; no Groww value
    in any repository file, alert or log line (the record scan stays on; the pack and the capture rows are Drive only);
    `daily.live_from.v4_pack` is an allowed key (`fno/config.py`); the CLAUDE.md lines equal the pathspecs in
-   `QUOTE_PARTS` (a test). Plant: a pathspec changed in code only.
+   `QUOTE_PARTS` (a test). Plants: a pathspec changed in code only; NIFTY's glob widened again in CLAUDE.md only.
 10. **Gates and real output.** The full gates; no file or class over 350 lines; independent code-review agents on the
    diff, their findings in Claims; a real output sample made by the committed code (a dry run of the release and the
    deadline on a test store: the lines, labels and counts only, no prices). After merge (quality rule 8): one dry run of
    `v4-pack release` on real data; and the first live day's evidence (the `v4` sidecar beside A16's 14:30 row, the
    release line, the deadline line, the run's last line) in `conversations/<date>.md` and a report to the orchestrator.
+11. **The overlap watch (judge 580 finding 2).** `v4_deadline` also reads the day's `v4` sidecar (failures, recorded of
+   expected) and A16's 14:30 row (status, failures) and posts one #fno-desk line when either shows any failure, with
+   the counts (never a quote value); no line on a clean day. Good: both clean, no line. Bad: two `v4` failures, a line
+   naming 2 and A16 good. Boundary: A16's row missing (its routine did not run, as 23 Oct's 14:30): a line "A16 14:30
+   mark missing", not a clash. Empty: no `v4` capture (not live): nothing. Plants: post only on A16's failures; drop the
+   counts.
+12. **Rehearsal (judge 580 finding 1; REH1c: every report runs in a rehearsal).** `v4_pack` goes through
+   `rehearsed_live` like every key (it is not in `KEPT_REAL`: no fills or money), so in a rehearsal all three pieces
+   run, labelled by `NotLiveInRealRuns` when the replayed day is before the real live date. Each piece's outcome:
+   - `v4` part: A4e's recorder is replaced by REH1b's `rehearsed_recorder` (`fno/quotes/window_wiring.py:31`), which
+     replays only recorded attempts of `quote-snapshots-v4`. With none (every day before the first live day), it ends
+     "window closed" with "rehearsal: no recorded in-window attempt of nifty on <day>" and a `none` marker in the
+     dryrun store; with a recorded attempt, it republishes it at its own times.
+   - `v4_release`: writes into the dryrun Drive (REH1's `DryrunDrive`, the real record read-only behind it), so its
+     catch-up sees the real release records visible at the replay time and writes `system_late` only into `dryrun/`.
+     **D3 in a rehearsal:** on a replayed day with no recorded `v4` attempt the outcome is `system_late` but the step
+     is **ok** with the line "v4 release <day>: system_late (rehearsal: no v4 capture recorded for this day)", because
+     nothing failed: the record has no capture to replay. On a replayed day with a recorded attempt, D3 applies as in
+     a real run (a replayed failure is a real one).
+   - `v4_deadline`: the replayed day only (criterion 7), against the rehearsal's push log.
+   Tests with the mode on (`ENV_FNO_REHEARSAL` set, as REH1's tests): a day with no recorded `v4` attempt ends the
+   part "window closed", the release ok with the rehearsal line and nothing outside `dryrun/`; a day with a recorded
+   `A` attempt replays `A`; the deadline checks one day. Plants: D3's failure on a rehearsal with no recorded capture;
+   the catch-up writing outside `dryrun/`; the deadline checking catch-up days in a rehearsal.
 
 #### Gap list: every requirement of protocol v4 section 1.6
 
@@ -1192,7 +1233,7 @@ to `build_commitment_times`), resolved by keeping both.
 | 7 | A capture whose clock was not checked ok before and after is not used | criterion 3 |
 | 8 | Day label `A` / `system_late` (no complete pack by 14:40, or no release record at all), written once after the fact | criteria 4 and 5 |
 | 9 | The label on every v4 record and report; a verdict uses `A` days; every report counts both labels and the flagged days | reports: criteria 5, 6 and 8 (counts line); records: joined by day from the release record (decision D4); `A` days only: `LateDaysOut` on `main`, fed by criterion 6 |
-| 10 | One pack, one hash: a pack reader names the released SHA; another or an empty one refused; a pre-pack forecaster names none | guard on `main` (`fno/v4_pack/guard.py`, judge 277); its first pack reader is G11 (out of scope 1) |
+| 10 | One pack, one hash: a pack reader names the released SHA; another or an empty one refused; a pre-pack forecaster names none | guard on `main` (`fno/v4_pack/guard.py`, judge 277); **its first pack reader is G7b's `forecasts_v4_pack` (V4 and V5)**: G7b adds its forecaster ids to `PACK_READERS` and calls `check_pack_binding` in its writer, with a test per writer (the guard's opt-in rule, judge 274 add. 1; interface row G7b 5); G11's books are already in the set |
 | 11 | Moved after cutoff: flag, never a block; X frozen; not computable without either level | on `main` (A16's rv rows, `RecordedCutoffMoves`); counted per criterion 6's labels |
 | 12 | Pack values stand in for the close; live and close-proxy cohorts apart | cohorts on `main` (`story/g10-cohorts` merged); the implied baselines, V4 and V5 that read the pack: G7b (out of scope 3) |
 | 13 | Outcomes do not move | no outcome code or file is in this story's diff (the judge checks the diff) |
@@ -1230,9 +1271,9 @@ to `build_commitment_times`), resolved by keeping both.
 - **D4:** the day label reaches each record by its day from the release record, not as a record column; the 1.6 text
   says "on every v4 report, and joined to every record by its day". The builder's design choice, for the judge: one
   source of truth.
-- **Until the owner answers D1 and D3, the code waits for their values:** D1 lives in one constant
-  (`terms.V4_RELEASE_BY`) and D3 in the step's status mapping, each with its test; criteria 4 and 5 are written with the
-  recommended values and change only in those two places if the owner decides otherwise.
+- **Until the owner answers D1 and D3:** the code is built and judged with the recommended values (orchestrator, 24
+  Oct); only the merge waits for the owner's answers. D1 lives in one constant (`terms.V4_RELEASE_BY`) and D3 in the
+  release step's status mapping, each with its test, so another answer changes only those two places and their tests.
 
 #### Monday 26 Oct: what the live run would and would not do
 
@@ -1265,6 +1306,25 @@ the card's content or any order (none exist); count anything (no `FREEZE_v4.md`:
 `research/forecasts/PROTOCOL_v4.md` (1.6 and section 4), tests. G8's files are touched by this story with the
 orchestrator's assignment (G8's builder is out of reach). **Size:** L, built in one branch, judged as one story.
 **Status:** story text for judge B.
+
+#### Round 2: answers to judge 580 (read at c876ede53), by number
+
+| Judge 580 | Agreed? | Fix (and where) |
+|---|---|---|
+| Should-fix 1: rehearsal behaviour | **Yes**, checked: `rehearsed_live` makes every key but `KEPT_REAL` live in a rehearsal (`fno/rehearsal/live_wiring.py:23-30`); `rehearsed_recorder` replays recorded attempts only (`recorded_quotes.py:49-60`); with D3 every rehearsal would end with problems | new criterion 12: each piece's outcome and line; `v4_pack` goes through `rehearsed_live`; D3's failure does not apply to a replayed day with no recorded `v4` capture (step ok, with its line), and does apply when an attempt was recorded; the deadline checks the replayed day only (criterion 7); tests with the mode on; plants listed |
+| Should-fix 2: Groww overlap evidence | **Yes**, checked: `nifty_20261022_151500.meta.json` is 176 of 180, four `GrowwAPIException` (ATM strikes) and one `RawFileConflict`; 23 Oct 15:15 clean; A16's rows are good on all three. The 22 Oct 15:00 row is in the repository, `research/data/intraday/slots/2026/10/22/nifty_20261022_1500.csv` (its raw file in Drive, `raw_sha256` in the row), so A16 did run on 22 Oct (the older routine, `conversations/2026-10-22.md:319`); "names a rate limit" was unobservable, removed | Groww load section: all three overlaps in a table, one failing; the trigger is any failure in either job, reported with counts by new criterion 11 |
+| Should-fix 3: pack readers | **Yes**: G7b's V4 and V5 read the pack, so they must be bound; keying the 15:10 exclusion on `PACK_READERS` would have exempted them | gap row 10 and interface row G7b 5 name `forecasts_v4_pack` as the first pack reader, brought under `check_pack_binding` by G7b; criterion 7 excludes only `SEALED_COMMITMENTS` (the AI books), its own set |
+| Minor 1: 14:45 with the part running | **Yes** | step table: a part still running at 14:45 is stopped (it is hung: no request after 14:40), its files not committed, the day `system_late`; criterion 4 adds the plant |
+| Minor 2: build with D1 and D3 recommended | **Yes** (orchestrator's answer, 24 Oct) | Decisions: built and judged with the recommended values; only the merge waits for the owner |
+| Minor 3: criterion 4's 14:33 | **Yes** | criterion 4: `A` released at about 14:35 from a capture ended about 14:34 |
+| Plants to add | **Yes** | criterion 9 (NIFTY glob widened in CLAUDE.md only), criterion 12 (rehearsal) |
+
+**Covered by my commits after c876ede53 (not read by judge 580):** 2f508ae15 (the `v4`-window changes in `fno/quotes`
+assigned to this builder, A4's other behaviour unchanged, criterion 3a); e5626aabf (criterion 6 re-points all three G8
+readers, a test each); d4e72f20d (`v4_expiry` in the pack). **Also in this round, from G7b (relayed by the
+orchestrator):** (a) the 15:10 verdict covers `receipts/data/v4/records/live/` (criterion 7 (ii)); (b) the pack's
+future carries `last_trade_time` and `volume` for A4's `traded_today` (interface row G7b 3, criterion 3a): correct,
+`FutureQuote` on `main` (`fno/v4_pack/model.py:27-34`) has neither, and `7cab92b06` passes volume only to IV30.
 
 **Claims:** (filled with the code: criteria evidence, the review agents' findings, the real output sample.)
 
