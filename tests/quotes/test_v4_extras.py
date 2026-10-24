@@ -87,6 +87,7 @@ def test_a_failed_chain_or_future_is_named_and_never_raises():
     found = extras(Provider(chain_fails=True), Futures(fails=True))
     assert found.capture("s", MONDAY, [OCT, NOV3, NOV24], [OCT, NOV24]) == []
     assert found.meta()["v4_failures"] == ["chain 2026-11-03: TimeoutError (provider message withheld)"]
+    assert found.meta()["v4_expiry"] == "2026-11-03"  # still named: V4 voids itself, the day is not system_late
     assert found.meta()["future_quote"] == "future 2026-10-27: ConnectionError (provider message withheld)"
     late = extras(sent=lambda: (_ for _ in ()).throw(WindowEnded("window ended")))
     late.capture("s", MONDAY, [OCT, NOV3, NOV24], [OCT, NOV24])
@@ -112,11 +113,13 @@ def test_the_recorder_keeps_the_extras_out_of_its_completeness_and_the_default_c
     assert not {"v4_expiry", "v4_failures", "future_quote"} & set(meta)  # A4's default capture: unchanged keys
     assert FUTURE_KIND not in next((tmp_path / "a").rglob("*.csv")).read_text()
     with_extras = QuoteSnapshotRecorder(Provider(chain_fails=False), LocalFolderStore(tmp_path / "b"), clock.now,
-                                        clock.sleep, extras=extras(futures=Futures(fails=True)))  # fmt: skip
+                                        clock.sleep, extras=extras(choose=lambda day, listed: NOV3))  # fmt: skip
     extra = with_extras.record(outside_window=True)
-    assert (extra.complete, extra.rows) == (result.complete, result.rows)  # the extras never count
+    assert result.complete and (extra.complete, extra.rows) == (result.complete, result.rows)  # never counted
     meta = json.loads(next((tmp_path / "b").rglob("*.meta.json")).read_text())
-    assert "v4_expiry" in meta and meta["future_quote"].startswith("future")
+    assert meta["v4_expiry"] == "2026-11-03" and meta["future_quote"] == "recorded"
+    quotes = next((tmp_path / "b").rglob("*.csv")).read_text()
+    assert ",2026-11-03," in quotes and f",{FUTURE_KIND}," in quotes  # both in the Drive-only quote file
 
 
 def test_the_v4_window_is_built_with_its_extras_on_the_window_s_own_provider():

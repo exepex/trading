@@ -1510,9 +1510,9 @@ The routine time stays **14:05 IST** (owner, 21 Oct). `DAILY_RUN_STEPS` (`fno/co
 
 | Piece | When (IST) | What it runs | Commits (its own paths only) |
 |---|---|---|---|
-| `v4` quote part | started by `quotes` at routine start (about 14:07; its early limit is 14:03 from A4e's 30-minute wait plus O1's 3-minute margin), records 14:30:00-14:40:00, retries inside the window | `python -m fno quotes record --window v4` (A4e, unchanged) | `':(glob)research/data/quotes/groww/derivatives/quote-snapshots-v4/**'` (sidecars and the `.canonical` marker; raw rows Drive only) as soon as it ends, **not after NIFTY** |
+| `v4` quote part | opened by `quotes` at routine start, started at 14:27 (O1's 3-minute margin before the window; code round: not 14:03, A4e's early limit, so a rehearsal never runs 25 minutes at real speed), records 14:30:00-14:40:00, retries inside the window | `python -m fno quotes record --window v4` (A4e, unchanged) | `':(glob)research/data/quotes/groww/derivatives/quote-snapshots-v4/**'` (sidecars and the `.canonical` marker; raw rows Drive only) as soon as it ends, **not after NIFTY** |
 | `v4_release` | after `forecasts_v4`; waits for the `v4` part to end, never runs while it records; a part still running at 14:45:00 (it sends no request after 14:40:00, so it is hung) is stopped, its files are not committed, and the release writes `system_late` ("capture still running at 14:45") | `python -m fno v4-pack release` (taken over; catch-up, then today) | `receipts/data/v4/days/`, `receipts/data/v4/packs/` (the receipt push is what will start G11's fire later) |
-| `v4_deadline` | last step, not before 15:12:00 | `python -m fno v4-pack deadline` (new) | `receipts/data/v4/deadlines/` |
+| `v4_deadline` | before `candles` (code round: A4h's two close reads stay the run's last steps), not before 15:12:00 | `python -m fno v4-pack deadline` (new) | `receipts/data/v4/deadlines/` |
 
 `forecasts_v4` and `weather` keep their place: they must commit before 14:30, when their capture refuses. `v4_release`
 sits before E3's `versions` and `pack` (14:58), so it adds no wait before the desk. G7b's `forecasts_v4_pack` comes
@@ -1620,7 +1620,7 @@ to `build_commitment_times`), resolved by keeping both.
    quotes fail; `v4_expiry` recomputed at release.
 4. **The release step.** `v4_release` waits for the `v4` part to end, then runs the release: the catch-up writes
    `system_late` for every scored session from `daily.live_from.forecasts_v4` to yesterday with no release record in
-   Drive (decision D2); today's pack and record are written once. **Release by 14:45:00** (`terms.V4_RELEASE_BY`,
+   Drive (decision D2); today's pack and record are written once. **Release by 14:45:00** (`V4_RELEASE_BY` in `fno/v4_pack/release_run.py`; code round: not in `terms.py`, which M1's method hash reads,
    decision D1): a record written later is `system_late` ("released late"), so a pack reader always has 10 minutes
    before G11's 14:55 latest fire. The daily run commits the receipts; `v4-pack release` commits them itself only with
    `--commit` (by-hand use), so the run keeps one committer (O1's G4). Today `system_late` is the step's failure with
@@ -1814,7 +1814,77 @@ orchestrator):** (a) the 15:10 verdict covers `receipts/data/v4/records/live/` (
 future carries `last_trade_time` and `volume` for A4's `traded_today` (interface row G7b 3, criterion 3a): correct,
 `FutureQuote` on `main` (`fno/v4_pack/model.py:27-34`) has neither, and `7cab92b06` passes volume only to IV30.
 
-**Claims:** (filled with the code: criteria evidence, the review agents' findings, the real output sample.)
+**Claims (code round 1, 24 Oct 2026; builder session_011hvvn9CahAD5dCPHS3kowN).**
+
+*Changes against the passed text (said plainly; each checked by its test):*
+1. `V4_RELEASE_BY` lives in `fno/v4_pack/release_run.py` beside D3's `SYSTEM_LATE_FAILS`, not in
+   `fno/forecast_v4/terms.py`: that file is in M1's `METHOD_FILES` (`fno/weather/wiring.py:31`), so a constant there
+   moved every committed weather record's method hash (`tests/weather/test_method_hash_gate.py` failed; `terms.py` is
+   now byte-identical to `main`).
+2. `v4_deadline` runs right before `candles`, not last: A4h's reads stay the run's last two steps
+   (`tests/close_read/test_daily_steps.py`, unchanged); 15:12 is before 15:33.
+3. The `v4` part starts at 14:27 (O1's 3-minute margin before 14:30), never before A4e's early limit (14:03): a
+   rehearsal runs at real speed while a recorder runs (REH1), so 14:03 cost about 25 minutes per rehearsal.
+4. A part not live on the day is not a part of that day (no result, no start); the steps sharing its key record
+   `not_live`. So every reader of the parts' results, and the e2e suite, is unchanged.
+5. The release waits for an ended capture until 14:45 (not 14:40): a hand run while the recorder may still write its
+   marker never settles the day; a capture not ended by 14:45 is `system_late` ("capture still running at 14:45").
+6. The future's quote is a `FUT` row in the attempt's Drive-only quote file (a Groww value never enters the committed
+   sidecar, A4b); the sidecar names only `v4_expiry`, `v4_expiry_note`, `v4_failures` and `future_quote` (no value).
+7. The deadline's catch-up starts at `daily.live_from.forecasts_v4` (as the release's), and a look is refused only by
+   unchecked days after the freeze that are not `system_late` (self-review finding, below).
+
+*Criteria (code, tests; the planted break each test catches):*
+| # | Code | Tests | Plants caught |
+|---|---|---|---|
+| 1 | `fno/daily/v4_part.py`, `quote_parts.py` (`live_key`, `_open`), `v4_wiring.day_parts` | `tests/daily/test_v4_part.py` | default window; live key ignored |
+| 2 | `quote_parts.py` (`apart`, `NIFTY_QUOTES`), CLAUDE.md 3 and 3c | `test_v4_part.py` (real git), `tests/quotes/test_routine_commit_paths.py` | wide glob in code; wide glob in CLAUDE.md only; lead rule |
+| 3 | `fno/v4_pack/builder.py`, `capture.py` (taken over) | `test_pack_builder.py`, `test_pack_builder_cases.py`, `test_stored_capture.py` | `<` at 14:40; clock check dropped |
+| 3a | `fno/quotes/capture_extras.py`, `v4_extras.py`, `future_quotes.py`, `window_wiring.py`, `recorder.py` (3 lines); `model.py`, `codec.py`, `builder.py` | `tests/quotes/test_v4_extras.py`, `tests/v4_pack/test_pack_g7b_fields.py`, `test_cli.py` | `v4_expiry` dropped; CalendarError raised; extras counted; a monthly fetched twice; recomputed at release; FUT in chain; late quote used; note not alerted; window without extras |
+| 4 | `release_run.py`, `cli.py`, `quote_steps.AfterPart`, `quote_parts.await_part` | `test_release_run.py`, `test_release_rules.py`, `test_v4_part.py`, `test_cli.py` | release at 14:46 as `A`; no catch-up; hung part not stopped; D3 ignored |
+| 5 | `days.missing_label`, `LiveDayLabels`, release catch-up; PROTOCOL_v4 1.6 | `tests/forecast_scoring_v4/test_release_days.py`, `tests/forecast_v4/test_protocol_text.py` | missing live day unlabelled; today counted late |
+| 6 | `drive_records.py`, `release_days.py`, G8 `wiring.py`; `postmortem-weekly.yml` | `test_release_days.py`, `tests/learning/test_boundaries.py` | sync problem swallowed; two of three readers |
+| 7 | `commitments.py`, `deadline.py`, `cli.py` | `tests/v4_pack/test_deadline.py` | `<` at 15:10; unknown time not handled; live receipts skipped; exemption keyed on `PACK_READERS` |
+| 8 | `deadlines.py`, G8 `cli._look` | `tests/forecast_scoring_v4/test_deadlines.py`, `test_release_days.py` | late row scored; look passes unchecked |
+| 9 | `reason_codes.py`, `constants_operations.py`, `config.yaml`, CLAUDE.md | `tests/daily/test_v4_steps.py`, `test_v4_part.py`, the reason-code tests | (with 2) |
+| 11 | `overlap.py`, `cli._deadline` | `tests/v4_pack/test_overlap.py` (fixtures and the real 23 Oct `missed` row; a missing row) | only A16's failures |
+| 12 | `fno/rehearsal/v4_pack.py`, `v4_wiring.step_notes/part_notes` | `tests/rehearsal/test_v4_pack.py`, `test_not_live_reports.py`, `test_rehearsed_day.py` | excuse always; catch-up in a rehearsal |
+
+34 planted breaks, all caught (one first survived each in criteria 7 and 3a; their tests were strengthened).
+
+*Existing tests edited, and why (none loosened):* `tests/daily/test_day_run.py`, `test_steps.py`,
+`tests/health/test_desk_and_data_checks.py` (the step tuple and live dates now hold the two steps and the key);
+`tests/quotes/test_routine_commit_paths.py` (NIFTY's narrowed glob, criterion 2); `tests/learning/test_boundaries.py`
+(the four Drive settings, criterion 6); `tests/rehearsal/test_not_live_reports.py`, `test_rehearsed_day.py` (one key's
+note on two steps); `tests/e2e/harness.py` (the `v4` part scripted for a rehearsal), `tests/e2e/test_hangs.py` (its hang
+now starts after `v4_release`, the last step before the desk waits); the taken-over `tests/v4_pack/test_release_run.py`
+(the fake capture's `ended`, the 14:45 wording).
+
+*Self-review (two independent review agents, 24 Oct):* pack and G8 side: two blocking findings, both real and fixed
+with tests (a row committed after its day's check was scored and blocked looks for good: now late; rows before the
+release's live date never got a verdict: the catch-up starts with the labels, `system_late` and pre-freeze days never
+block a look); fixed: an unreadable record line names the file and the day is retried; a hand release waits until
+14:45. Rejected with evidence: "two rows, one verdict key" (G7's `records.py:90` refuses a second row for a day).
+Daily side: nothing blocking; fixed: the wait for the part is announced (O1-day-lock), another step's rehearsal note
+never reaches NIFTY or NSE, an adopted part is held (F1's `STILL_HELD`), the part starts at 14:27 (rehearsal speed);
+left as is: a stopped capture's files taken by a same-day rerun's marker check, NIFTY's existing behaviour (low risk).
+
+*Real output sample* (the committed code on fixture stores, no Groww or Drive; lines and counts only):
+```
+$ python -m fno v4-pack release   (22 Oct 14:35, live from 22 Oct, labels from 19 Oct)
+v4 release 2026-10-19: system_late (catch-up: no release record in Drive)
+v4 release 2026-10-20: system_late (catch-up: no release record in Drive)
+v4 release 2026-10-21: system_late (catch-up: no release record in Drive)
+v4 release 2026-10-22: A [exit 0]
+$ python -m fno v4-pack deadline  (22 Oct 15:15; checks from 21 Oct; one row pushed 15:10:01)
+v4 deadline 2026-10-21: 2 on time, 0 late
+v4 deadline 2026-10-22: 0 on time, 2 late [exit 0]
+$ G8 report counts line (as of 23 Oct)
+days (live pack): A 1, system_late 3 (out for every family), pending 1; moved after cutoff 0, flag not computable 4; deadline not checked 0
+```
+
+*Open:* D1 and D3 wait for the owner (built with the recommendations; only the merge waits). After merge: one dry run
+of `v4-pack release` on real data, and the first live day's evidence (criterion 10).
 
 ---
 
