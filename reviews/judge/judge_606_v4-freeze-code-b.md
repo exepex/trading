@@ -139,3 +139,25 @@ c8c1c4fc2; a full clone). ruff, format (2,631), imports (2,760), record scan (9,
    - rerun the full suite with `-p no:randomly` and also the file alone.
 
    Production is not affected: a command builds `_forecasts` once, with Drive.
+
+## Addendum 5: B1's fix and the 14:32 capture start, head 631a47c28 (the owner: "B checks it")
+
+**PASS (1 note). Lane 1.** I ran the gates on a trial merge into origin/main 54890d75e (clean, 022ec3a42). ruff,
+format (2,631), imports (2,760), record scan (9,275) and check_numbers are clean; **16,554 passed, 0 failed, 1
+skipped, 13 xfailed** (token kept).
+
+- **B1: FIXED.** `tests/forecast_scoring_v4/conftest.py` clears `wiring._forecasts` before and after every test in the
+  folder (autouse), and the 15-members test takes the `no_v4_drive_records` seam. The test file alone: 10 passed, 3 of
+  3 runs. Plant: the seam removed gives 1 failed alone.
+- **No frozen constant moved.** `git diff b6ccadf80 631a47c28` touches nothing in `fno/forecast_v4/`, `fno/v4_pack/` or
+  `fno/quotes/`. `V4_CAPTURE_START` 14:30:00 and `V4_PACK_WINDOW_END` 14:40:00 are unchanged (my run). The capture's
+  own window is now `quotes.windows.v4` 14:32:00-14:40:00. The part starts at 14:29 (`v4_part._shortly_before`), and
+  its early floor is 14:05.
+- **Protocol and record.** a6da6f2b2 rewords only line 45 and the 1.6 row ("the window opens at 14:30:00; the capture
+  starts inside it at 14:32:00, after A16's 14:30 mark"). `FREEZE_v4.md` names a6da6f2b2, which is an ancestor and the
+  last commit touching the protocol; `check()` on the merge reads "v4 freeze: intact". Ledger 101-108 now name
+  a6da6f2b2; those rows were never on main, so nothing written once is edited.
+- **Note (timing, some evidence):** the measured full attempt is 2 min 38 s for 180 quotes (23 Oct), plus about 80 s
+  for G10's extras, so about 14:32-14:36. A16's mark ends about 14:31:25 (85 s, 22 Oct). A retry after an incomplete
+  first attempt now has about 4 minutes, not 6, and a slow one is cut at 14:40:00 (no request after it). One retry
+  usually fits; two do not. The first live day's sidecar (G10 criterion 10) is the evidence to read.
