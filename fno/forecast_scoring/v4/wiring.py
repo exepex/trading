@@ -4,12 +4,14 @@ threshold tools, the look records and the slot registrations. Swapping any of th
 from __future__ import annotations
 
 from datetime import date
+from functools import cache
 
 from ...config import ROOT
 from ...forecast_v4.sessions import is_scored_session
 from ...intraday.rv_table import RvTable
 from .cutoff_moves import RecordedCutoffMoves
 from .days import DayCounts, DayFiles, LateDaysOut, day_counts
+from .drive_forecasts import CombinedForecasts, DriveForecastRecords, chosen_paths, verified_files
 from .g7_series import G7Series
 from .inputs import ForecastFiles
 from .outcomes import SeriesOutcomes
@@ -32,7 +34,7 @@ V4_DAYS_FOLDER = ROOT / "research" / "data" / "v4_days"  # G10: one label file p
 def build_scoring() -> V4Scoring:
     """The slots registered in `v4_slots.csv` (none before the freeze commit writes them). A system_late day is
     out of the forecasts and the outcomes for every forecaster (G10)."""
-    inputs = LateDaysOut(ForecastFiles(FORECASTS_FOLDER), _outcomes(), DayFiles(V4_DAYS_FOLDER))
+    inputs = LateDaysOut(_forecasts(), _outcomes(), DayFiles(V4_DAYS_FOLDER))
     return V4Scoring(inputs, inputs, _registry())
 
 
@@ -55,6 +57,23 @@ def build_look_records() -> LookRecords:
 
 def build_thresholds() -> FrozenToolThresholds:
     return FrozenToolThresholds(ROOT / "tools")
+
+
+@cache
+def _forecasts() -> CombinedForecasts:
+    """G7's repository CSVs and the records kept in Drive (G7b completion, part e), built once per command. With no
+    receipt under the records folder the Drive source is left out, so such a report needs no Drive access."""
+    from ...forecast_v4_rules.drive_records import RECORDS_FOLDER
+    from ...forecast_v4_rules.wiring import IMPLIED_METHOD_FILES, method_sha256
+    from ...storage.data_wiring import DATA_AREA, build_drive_cache, receipt_folder
+
+    receipts = receipt_folder().under(f"{DATA_AREA}/{RECORDS_FOLDER}")
+    sources = [ForecastFiles(FORECASTS_FOLDER)]
+    if receipts:
+        method = method_sha256(IMPLIED_METHOD_FILES)
+        paths = chosen_paths([r.path.removeprefix(f"{DATA_AREA}/") for r in receipts], method)
+        sources.append(DriveForecastRecords(verified_files(build_drive_cache(), DATA_AREA, paths), method))
+    return CombinedForecasts(sources)
 
 
 def _outcomes() -> SeriesOutcomes:
@@ -80,5 +99,5 @@ def _first_eligible(question: str) -> date | None:
     if not records.frozen():
         return None
     after = records.frozen_on()
-    values = primary_values(question, ForecastFiles(FORECASTS_FOLDER))
+    values = primary_values(question, _forecasts())
     return min((d for d, v in values.items() if v.live and v.value is not None and d > after), default=None)

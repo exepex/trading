@@ -10,8 +10,9 @@ import pytest
 from fno.config import load_config
 from fno.constants import V2_RV_5S, V3_RV_20S, V4_BASELINE_PREMIUM_ADJUSTED, V4_BASELINE_RAW_IMPLIED
 from fno.forecast_v4_rules.baselines import MISSING, NOT_ELIGIBLE, OK
+from fno.forecast_v4_rules.drive_records import backfill_path
 from fno.forecast_v4_rules.implied import IvPoint
-from fno.forecast_v4_rules.implied_backfill import FORECASTERS, ImpliedBackfill, backfill_path
+from fno.forecast_v4_rules.implied_backfill import FORECASTERS, ImpliedBackfill
 from fno.forecast_v4_rules.records import BACKFILL, BASELINE, SLOT_REPORTED
 from fno.forecast_v4_rules.series import DayValue
 from fno.forecast_v4_rules.wiring import (

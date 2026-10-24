@@ -1149,6 +1149,36 @@ they found and what was fixed or why not.
 | Step 4 review 6-8 | V3's series at report level (20 sessions, V3's loss and block); a void window counted void in the pairing; `question_of` written once (outcomes and scoring); the report marks each series "reported only: the intraday measure" | three tests |
 | Not changed | LR1's `forecast_section.py` docstring still says "a question G8 has not started": LR1's file, its builder updates it; its code reads the new keys correctly (the review checked) | |
 
+### Claims, build step 5: part e's pack-free pieces (the Drive record format and G8's reader)
+
+- **Code:** `fno/forecast_v4_rules/drive_records.py` (the one owner of the Drive record format: live JSON per day with
+  its day label, canonical with sorted keys; the back-fill paths); `fno/forecast_scoring/v4/drive_forecasts.py`
+  (`chosen_paths` decides from the receipts, never from disk: every live file and, per forecaster and question, this
+  code's latest back-fill; `verified_files` syncs only those paths through the Drive cache and stops on any problem;
+  `DriveForecastRecords` checks every row against its file; `CombinedForecasts` joins the repository CSVs and Drive
+  with one row per day); G8's `wiring._forecasts` builds it once per command and leaves Drive out when no receipt
+  exists under `data/v4/records` (no Drive access then); `_first_eligible` reads the combined source, because the live
+  implied rows exist only in Drive.
+- **Tests:** `tests/forecast_scoring_v4/test_drive_forecasts.py` (14). **Plants (8, all caught):** the earliest
+  back-fill taken; a stale pair dropped silently; sync problems ignored; live-file checks off; the back-fill's method
+  not checked; duplicates across sources and within Drive; Drive built without receipts.
+- **Self-review (an independent agent), all fixed or answered:** (1, blocking) the sync result was ignored, so a
+  broken mirror read as complete: now any missing or damaged chosen file stops the report; (2) the stale check worked
+  per tree, not per forecaster and question: now per pair; (3) everything under `data/v4/records` was synced: now only
+  the chosen files; (5) a working-directory-relative fallback path: Drive is left out instead; (6) built several times
+  per command: now once (`functools.cache`); (7) rows not checked against their file: now label, day, day label `A`
+  and the full method hash are checked; (9) the test gaps above. **Open, said plainly (4):** two existing tests
+  (`tests/forecast_v4/test_iv_never_used.py`, `tests/forecast_scoring_v4/test_v4_needs_no_implied_vol.py`) build the
+  real `build_scoring()`; once receipts under `data/v4/records` reach `main` they need Drive, as G8's report itself
+  does. G10's change (G8's day labels from Drive) brings the same need, so the seam for those tests is agreed with
+  G10's builder through the orchestrator rather than built twice. **Kept (8):** `drive_records.py` stays in
+  `IMPLIED_METHOD_FILES`: it owns `backfill_path`, so a change to it changes where the back-fill lives.
+- **Real run:** `python -m fno forecast-v4-scores report --as-of 2026-10-23` on this tree, with no receipts under
+  `data/v4/records`: no Drive access; V4 and V5 "not enough data yet"; `v2_rv_next_5_sessions/intraday: scored
+  (reported only ...)`, its first window holding the void 16 Oct A16 row; V3's series "not enough data yet". The
+  report files it wrote were removed (not this story's to commit).
+- **Gates:** see the commit message.
+
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
 premium ratio is fitted on the EOD proxy and applied to the 14:30 pack's IV30 (the mismatch is the drift criterion 14

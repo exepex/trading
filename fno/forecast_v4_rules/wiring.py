@@ -21,6 +21,7 @@ from ..storage.receipts import ReceiptFolder
 from ..storage.wiring import PANEL_FOLDER, build_session_calendar
 from . import records, series
 from .capture import FORECASTERS, DayForecasts, Inputs
+from .drive_records import LIVE_FOLDER
 from .eod_iv30 import PANEL_OPTION_DAYS, eod_iv30_series
 from .implied_backfill import FORECASTERS as IMPLIED_FORECASTERS
 from .implied_backfill import ImpliedBackfill
@@ -36,8 +37,10 @@ METHOD_FILES = (
 )  # their bytes are each record's method hash
 # The implied rows' own method hash: every file of this package that decides their values (the frozen G1 estimator
 # `fno/forecast/iv30.py` and the protocol's `fno/forecast_v4/eligibility.py` sit outside it, hashed by their freezes)
-IMPLIED_METHOD_FILES = ("implied.py", "eod_iv30.py", "implied_backfill.py", "series.py", "baselines.py", "records.py")
-LIVE_RECORDS = f"{DATA_AREA}/v4/records/live"  # the pack-derived live rows (part b2)
+IMPLIED_METHOD_FILES = (
+    "implied.py", "eod_iv30.py", "implied_backfill.py", "drive_records.py", "series.py", "baselines.py", "records.py"
+)  # fmt: skip
+LIVE_RECORDS = f"{DATA_AREA}/{LIVE_FOLDER}"  # the pack-derived live rows (part b2)
 LIVE_PATH_PARTS, JSON = 4, ".json"  # <forecaster>/<question>/<YYYY>/<date>.json under LIVE_RECORDS
 
 
