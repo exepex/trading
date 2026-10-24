@@ -76,3 +76,19 @@ files), `check_imports`, `check_records` (9,257 files) clean.
 **9 caught, 1 survived** (finding 1). Caught: window filter off; close counted inside; window end pushed out; day cell
 old rule; day cell never "ok"; the replay reading warning again; the replay-clock item dropped; a real clock warning
 no problem; the recorder ignoring `day_cell`.
+
+## Addendum 2
+
+**Code round 2 of 2 at story/reh1l-preopen-serving @ 7693168c2, judge F, judge 1 of 2: PASS. Lane 1.** Own session;
+I did not read judge K.
+
+| Item | Answer | My check | Result |
+|---|---|---|---|
+| SF1 (616.1) | the read moved to 09:10:50, asserting 09:10:30 at once, then NOT_RECORDED; docstring fixed | my plant "filter after the pick" re-run on 7693168c2: **1 failed**, 624 passed (it passed all 622 at 2d8ccb8d4); clean tree 625 passed | **Accepted** |
+| No REH1l code change since 2d8ccb8d4 | test and Claims only | `git diff 2d8ccb8d4..7693168c2 -- fno/rehearsal fno/preopen fno/intraday` is empty; the only `fno/` change is `fno/forecast_v5_v1/` (G14 amendment 2, 7442d761f, already on main), carried in by REH1k's main merge cd7cf403d | **Confirmed** |
+
+Gates on a trial merge with main e07863cc4 (clean): **16,543 passed, 1 skipped, 14 xfailed** (token kept); ruff, format
+(2,630 files), `check_imports`, `check_records` (9,258 files) clean.
+
+Plants, both rounds: 10 planted, **10 caught**. REH1k's own part of this head (d4fd149a6) is judged by judges E and B,
+not here.
