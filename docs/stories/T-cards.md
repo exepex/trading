@@ -1229,5 +1229,73 @@ Out, with reasons:
 3. **Accepted.** Criterion 6 states what the test asserts: the rehearsal line on GitHub's entry, which without the
    hook becomes "RehearsalCallRefused" (and no `HttpDateClock` built).
 
+**Code claims (for judge I; builder session_017q19WnkrRJvfQoXBLCy3hA):**
+- **What changed.**
+  - `fno/cards/card_clocks.py` is new: `CardClocks`, `ServerCardClocks`, `ClockChecks`, `guarded` and the Slack
+    check, moved out of the issuer.
+  - `fno/cards/minimal_facts.py` is new.
+  - `fno/cards/issue.py`: the four guarded stages; `IssueResult.saved` is renamed `complete`.
+  - `fno/cards/wiring.py`: `build_card_clocks`.
+  - `fno/cards/deliveries.py`: the JSON is built before the attempt file is opened.
+  - `fno/cards/cli.py`: reads `complete`.
+  - `fno/rehearsal/card_label.py`: `RehearsalCardClocks` and `rehearsed_card_clocks`.
+  - `fno/rehearsal/guard.py`: one builder line.
+  - Tests: `tests/cards/test_issue_guards.py` and `test_rehearsal_issue.py` are new; T1's tests and REH1's
+    `test_guard.py` take the new constructor, map and count, with no assertion weakened.
+  - Every file is under 350 lines; the largest touched is 175 (`test_issue_guards.py`).
+- **The rehearsal form builds no GitHub client.** `rehearsed_card_clocks(real)` takes a builder and calls it only
+  outside a rehearsal. A spy on `wiring.HttpDateClock` counts 0 builds in the mode and 1 outside (P8).
+- **Criterion 6 as built.** It runs in a fresh process with REH1's real HTTP guard installed, as REH1's
+  `test_http_guard.py` does, so the test process is never changed.
+  - With the hook, both entries carry REH1c's line and the metadata is written.
+  - Without it, GitHub's entry is "clock NOT CHECKED: host vs GitHub (RehearsalCallRefused)", the metadata is still
+    written, and the issue is not complete.
+- **One deviation from the text, stated:** test 3b's "a receipt value that is not JSON" does not make the facts fail.
+  Building the dictionary succeeds; the JSON stages fail. So that case is test 3c's and stage 4's. A non-text
+  channel gives "record not built (TypeError)" and the printed minimal facts. The facts' own failure is tested with
+  a raising `_facts`, with a `ts` that is not seconds and with an out-of-range `ts`.
+- **Gap list (criteria to code, tests, plants):**
+
+  | Criterion | Code | Test | Plants caught |
+  |---|---|---|---|
+  | 1 no GitHub client or call in a rehearsal; a real run unchanged | `rehearsed_card_clocks`, `build_card_clocks` | `test_rehearsal_issue.py` (all three), `test_records_and_witness.py::test_githubs_clock_is_asked_on_the_repository_path` | P1, P5, P8 |
+  | 2 a rehearsal leaves its Drive record and metadata | `CardIssuer.issue` | `test_in_a_rehearsal_the_card_finishes_...` | P1 |
+  | 3 any clock raise is unchecked by type; the issue goes on, not complete | `card_clocks.guarded`, `CardIssuer._clocks`, `complete` | `test_a_clock_that_raises_anything_...` (3 errors), `test_a_clock_form_that_raises_...` | P2, P10, P11 |
+  | 4 metadata, facts and record failures each named; no double post | `_write`, `_printable`, `minimal_facts`, `_save`, `deliveries.write` | `test_a_metadata_write_that_raises_anything_...` (2), `test_facts_that_cannot_be_built_...` (contract and next card), `test_a_slack_time_...` (2), `test_a_drive_record_that_cannot_be_built_...`, `test_a_metadata_that_is_not_json_...` | P3, P6, P6b, P6c, P9, P12, P13, P14 |
+  | 5 the CLI's last line is the delivery line | `cli.cmd_card_daily`, `issue` never raises | `test_the_cli_prints_the_delivery_line_last_when_a_clock_raises` | P4 |
+  | 6 the hook's removal fails a test | the probe | `test_without_the_hook_...` and `test_in_a_rehearsal_...` | P1 |
+  | 7 REH1's guard lists the card's clocks | `guard.builders` | REH1's `test_without_the_mode_...`, `test_each_planted_break_is_caught` | P7 |
+
+- **Plants (rule 4): 16 planted, 16 caught.** P1-P8, P6b, P6c, plus P9-P14 for the fallbacks found in review, each
+  run on `tests/cards` and `tests/rehearsal`, then restored.
+  - P10 (a clock form that raises) survived at first, so its test was added.
+  - P12's first form was equivalent: it left the early `json.dumps` line, so the code was unchanged. Rerun with the
+    JSON built only after the open, it is caught.
+- **Cases (rule 5):**
+  - good: a rehearsal; a real run;
+  - bad: a clock raising `OSError`, `ValueError` or `RuntimeError`; a raising clock form; facts that raise; a `ts`
+    that is not seconds or out of range; a section that raises; metadata that is not JSON; a store raising
+    `TypeError` or `PermissionError`;
+  - boundary: no server clock; an unsent post; no Drive (`NoCardRecords`);
+  - empty: no clocks at all.
+- **Builder self-review (quality rule 3):** one independent review agent, given only the diff and this story.
+  - FIXED:
+    1. the not-JSON fallback printed only top-level plain fields, so the next card could not read it. It now prints
+       the minimal facts plus `drive`, validated against the pinned contract (P9, P14);
+    2. a JSON failure in `RepoDeliveryFiles.write` left an empty attempt file. The JSON is now built before the open
+       (P12; an older bug that T1f's catch made reachable);
+    3. a `ts` of "1e20" overflowed in the minimal facts and escaped (P13);
+    4. `day` and `status` in the minimal facts are guarded;
+    5. `IssueResult.saved` is renamed `complete`.
+  - KEPT: the probe imports `tests.cards.test_issue_guards` for its fakes. It needs that module to import cleanly
+    outside pytest, which it does (no pytest-only fixtures at import).
+- **Gates** (code at `8f4a1e540`, `main` merged at `c97e5848f`; `FNO_SLACK_BOT_TOKEN` kept set):
+  - pytest: 15670 passed, 1 skipped, 15 xfailed, 0 failed;
+  - `ruff check`: clean;
+  - `ruff format --check`: 2520 files formatted;
+  - `check_imports`: clean (2649 files);
+  - `check_records`: clean (9105 files).
+- **Real output sample (rule 6):** the labelled 23 Oct card step, added below once REH1's owner confirms.
+
 **Depends:** T1, REH1 (REH1c's hook pattern; REH1's owner agreed on `card_label.py` and `guard.py`, 24 Oct) · **Size:** S ·
-**Status:** text round 2, to judge I
+**Status:** text PASS (judge 592 addendum 1); code at `8f4a1e540`, to judge I
