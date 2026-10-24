@@ -68,6 +68,9 @@ cancels orders.
    same day skips the steps already done. A "waiting until HH:MM IST" line is a wait for the next step's time, never a
    hang: never stop the run while it waits. A second run beside a living one prints "another daily run of <day> is
    running" and does nothing (story O1-day-lock): then wait for the first run's last line.
+2b. If its last line ends with "a rerun today retries it: <steps>" (a failed exits or marks step), run `python -m fno
+   daily run` once more at once, once only (owner, 24 Oct 2026): never a rerun chosen later. A failed fills step is
+   never retried: no new trades that day.
 3. If it printed "alert NOT sent", post those lines to #fno-desk (`C0C89E8QCCD`) with the Slack connector. Note any
    result other than `day done` in `conversations/<date>.md`, then commit and push it (`git pull --no-rebase origin
    main` first, then `git push origin HEAD:main`).

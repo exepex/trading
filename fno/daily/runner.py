@@ -7,16 +7,17 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
-from ..constants import STEP_FAILED, STEP_REFUSED
 from ..desk.daily_ports import Waiter
 from ..desk.daily_run import DailyRun, RunStopped
-from ..desk.run_log import RunLog
+from ..desk.run_log import RunLog, problem_steps, retried_steps
 from .quote_parts import QuoteParts
 
 DAY_DONE = "day done"
 WITH_PROBLEMS = "day done with problems: {steps}"
 NO_CARD = "; no card today"
-PROBLEMS = (STEP_FAILED, STEP_REFUSED)
+# Owner, 24 Oct ("2 - yes"): the routine reruns once at once when the line says so (CLAUDE.md "Daily desk routine");
+# a Slack alert that was sent is not printed, so the last line is where the routine reads it
+RETRIES = "; a rerun today retries it: {steps}"
 QUOTES_STEP, QUOTES_DONE_STEP = "quotes", "quotes_done"
 
 
@@ -58,8 +59,15 @@ class DayRunner:
             self._finish_parts(day)
             return 1, f"{stopped}{NO_CARD}"
         self._finish_parts(day)  # a closed day records only `skipped`: its parts (each "not a trading day") end here
-        problems = [name for name, step in log.steps.items() if step["result"].get("status") in PROBLEMS]
-        return (1, WITH_PROBLEMS.format(steps=", ".join(problems))) if problems else (0, DAY_DONE)
+        problems = [name for name, _ in problem_steps(log.steps)]
+        if not problems:
+            return 0, DAY_DONE
+        return 1, WITH_PROBLEMS.format(steps=", ".join(problems)) + self._retries(day, log)
+
+    def _retries(self, day: date, log: RunLog) -> str:
+        """The steps a rerun now would run again: only on the run's own day (`DailyRun` retries nothing later)."""
+        retried = retried_steps(log.steps) if self.daily_run.on_its_day(day) else []
+        return RETRIES.format(steps=", ".join(retried)) if retried else ""
 
     def _finish_parts(self, day: date) -> None:
         """Waits at least until the desk's `fills_by` (after every part's own window, read from the timetable), so a
