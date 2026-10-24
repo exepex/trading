@@ -123,7 +123,7 @@ one-line reason in `freeze_check.RECORDED` or `NOT_DECIDING`, listed in the reco
 | `fno/research_data/expiries.py`, `fno/analytics.py` (`norm_cdf`) | V4/V5 expiries; V5's option-implied probability | the desk, G13 | G7b's terms and probability tests (hand-computed values) |
 | `fno/storage/creation_times.py`, `fno/storage/raw_source.py` | V5's `first_seen_at` and settlement file path | O9, E7 | G7b's outcome tests |
 | `fno/intraday/rv_table.py`, `candle_rv_table.py`, `row_files.py`, `document.py`, `snapshot_files.py`, `clock.py`, `ledger.py` | V1's outcome rows; W8's ratio window (A16b's candles, `backfill_window`, judge 596); the pack's clock check | A16, A16b, G14 | A16's and A16b's tests; G7b names the W8 reader module (asked through the orchestrator) |
-| `fno/ai/versions.py`, `fire.py`, `outcome.py`, `scoring_gate.py`, `stop_rule.py`, `run_terms.py` and their AI imports (`answer.py`, `envelope.py`, `seal.py`, `submissions.py`, `timing.py`, `transcript_audit.py`, `audit_plan.py`, `draw_seed.py`, `coverage.py`, `rules.py`, `paths.py`, `pointer.py`) | the AI books' records, misses, versions | the v1/v2 AI run (G5) | G11's tests; each AI row carries its prompt hash (judge 597 SF3: recorded, not byte-checked) |
+| `fno/ai/versions.py`, `fire.py`, `outcome.py`, `scoring_gate.py`, `stop_rule.py`, `run_terms.py` and their AI imports (`answer.py`, `envelope.py`, `seal.py`, `submissions.py`, `timing.py`, `transcript_audit.py`, `audit_plan.py`, `draw_seed.py`, `coverage.py`, `rules.py`, `paths.py`, `pointer.py`) | the AI books' records, misses, versions | the v1/v2 AI run (G5) | hashed in the record's "AI registration" table with G11's slot rows (owner, 21 Oct (3), second half; judge 597.1 m2); G11's tests; each AI row carries its prompt hash |
 | `fno/ai/receipts.py` | GitHub push times behind the 15:10 deadline (late = miss) | F1, O8 | the deadline tests (`tests/v4_pack/test_deadline.py`) |
 
 **Not deciding (named, not hashed), examples:** `fno/config.py`, `fno/models.py`, `fno/composition.py` (reached
@@ -252,7 +252,8 @@ Rows of `docs/DESK_DECISIONS.md` by date and title. Recommendations are reasonin
 | 19 | A16b's candle back-fill fills option A's ratio window ("W8 - yes") | 24 Oct, "W8" | keep | yardstick scale only, never a forecast input, outcome or base rate; drift line on every report |
 | 20 | v4 pack live Monday 26 Oct ("v4 pack live Monday - Option A") | 24 Oct, "The v4 pack goes live Monday 26 Oct 2026" | keep | the first counted session |
 | 21 | Frozen on = the day the judge passes and the owner signs; go-live the next session | 21 Oct, "v4 freeze answers" (1) | keep | Frozen on 25 Oct, counted from 26 Oct |
-| 22 | Freeze with the AI slots unregistered | 21 Oct, "v4 freeze answers" (3) | **replaced** by #24 | registered later they would be refused for V6a/V6b/V7 (section 4, blocker 2) |
+| 22a | Freeze with the AI slots unregistered | 21 Oct, "v4 freeze answers" (3), first half | **replaced** by #24 | registered later they would be refused for V6a/V6b/V7 (section 4, blocker 2) |
+| 22b | "The AI files are hashed in their own registration when G11 goes live" | same row, second half | keep (judge 597.1 m2) | G11's shared AI files (section 2, recorded) get their SHA-256 in the record's own "AI registration" table, written in the same freeze commit as G11's 10 slot rows: hashed when the AI slots register, not in the v4 file table |
 | 23 | v4 freezes with V6a/V6b (V1 when ready); V2-V5 later under their own record (orchestrator, owner informed) | 16 Oct, "v4 freezes with V6a/V6b" | **replaced** by #24 and 24 Oct "Close v4 in full first" | one freeze, every question built |
 | 24 | The owner signs off v4; slots registered at the freeze ("Consider v4 sign off") | 24 Oct, "The owner signs off protocol v4" | keep | this freeze |
 | 25 | Superseded and not quoted as rules: "A missed day scores as the base rate" (15 Oct, replaced by #6); "V6 becomes descriptive" (15 Oct, withdrawn by #8) | 15 Oct | listed for completeness | the record names them as replaced |
@@ -444,6 +445,9 @@ not the final-text commit (criterion 2), and the disclosure's robustness and Dri
 - **Import walk (orchestrator's note, judges 596-597), accepted:** criterion 11; A16b's `candle_rv_table.py`,
   `rv_table.py` and `row_files.py` are recorded with A16b's tests as their lock, and G7b names the W8 reader module.
 - **The first counted session S** is held open for the owner (section 5), with what it forces on `Frozen on:`.
+- **m2 (addendum 597.1), accepted:** keep-or-change row 22 splits: 22a replaced by the 24 Oct sign-off; 22b kept, and
+  it is how SF3's shared AI files are hashed (section 2's AI row: the record's "AI registration" table, in the same
+  freeze commit as G11's rows).
 
 ## Orchestrator rulings on this text (24 Oct 2026)
 
