@@ -121,3 +121,29 @@ def test_a_late_execution_capture_is_never_served_an_earlier_attempt(day):
     result = recorded.capture()
     assert result.status == "window closed" and "no recorded execution attempt" in result.reason
     assert store.get(f"{FOLDER}/nifty_20261023_151500.csv") is None
+
+
+def test_the_real_builders_find_the_day_s_attempts_in_the_record(tmp_path, monkeypatch):
+    """REH1g (DRY2's crash): the real NIFTY and NSE recorders under the mode list the record's sidecars; before, A4b's
+    Drive-only store could not list a folder and both parts and the 15:15 snapshot died."""
+    from fno import composition
+    from fno.config import ROOT, load_app_config
+    from fno.constants import ENV_FNO_REHEARSAL
+    from fno.quotes.recorder import NSE_DATASET
+    from fno.rehearsal.mode import Rehearsal
+    from fno.storage.wiring import QUOTES_FOLDER
+
+    record = tmp_path / "record"
+    for dataset, stem in ((DATASET, "nifty"), (NSE_DATASET, "nifty")):
+        folder = record / QUOTES_FOLDER.relative_to(ROOT) / dataset / "2026" / "10"
+        folder.mkdir(parents=True)
+        meta = {"snapshot_id": f"{stem}_20261023_145500", "finished_at": "2026-10-23T14:57:38+05:30",
+                "in_window": True, "complete": True, "csv_sha256": "x"}  # fmt: skip
+        (folder / f"{stem}_20261023_145500.meta.json").write_text(json.dumps(meta))
+    monkeypatch.setenv(ENV_FNO_REHEARSAL, Rehearsal(DAY, "r", tmp_path / "state", record).to_env())
+    monkeypatch.setattr("fno.storage.wiring.build_owner_drive", lambda *a, **k: None)
+    cfg = load_app_config()
+    for build in (composition.build_quote_recorder, composition.build_nse_quote_recorder):
+        recorder = build(cfg)
+        assert isinstance(recorder, RecordedRecorder)
+        assert [a.snapshot_id for a in recorder._attempts(DAY)] == ["nifty_20261023_145500"]

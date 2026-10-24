@@ -141,3 +141,42 @@
 - tests/daily, timetable, desk, scoreboard and cards: 633 passed.
 - At 2c80be430 alone, `fno/cards/rule_checks.py:97` still reads a failed decisions result as books.
 - So my condition stands: merge R2 only together with T1d, after T1d's own PASS.
+
+## Addendum 3 (owner's ruling 1A, own session)
+
+- **Head:** ee5711075 (story/o1-r1r2-step-safety-b). Delta judged: `git diff 2c80be430 ee5711075`, the builder's
+  commits 067709db0, 5ca1fd0bc, 7fd93779b, d1b29a968. Judge E (session_01Nm6h3E5jXfk77b3AUWU3xE), lane 1, money.
+- **Verdict: PASS. The change implements the owner's ruling 1A and closes finding 1.** Merge condition below (T1d).
+- **Gates (ee5711075 merged with main b61907a2a):** ruff check, ruff format --check, check_imports, check_records,
+  check_numbers: clean. pytest -n auto: 15,233 passed, 1 skipped, 15 xfailed, 0 failed.
+
+### Criteria
+| Item | Result | Evidence |
+|---|---|---|
+| A failed fills step is final, no rerun opens a trade | MET | `RETRIED_ON_RERUN = ("exits", trade_marks)` (daily_run.py:84); logged `retry: false`, so `done`. Plants P1, P12 caught |
+| A rerun after a stop (decision 47) starts no fills after fills_by | MET | `_too_late` (daily_run.py:255); 15:20:00 fills, +1 s, +60 s and 23:50 refused, logged `refused` for the day. Plants P2 (`<`), P5, P7 caught |
+| The run that took the snapshot is not cut off by its own slow commit | MET | `ran_here` exemption; P3 caught by the 15:22 slow-commit test. Bounded: a run's own snapshot is valid only when its capture started 15:15 and finished by 15:20 (`SnapshotInWindow`, snapshot_checks.py:30, `prices_unverified`), and a late capture is a new one taken now (recorder.py:185). So a 21:00 rerun that takes its own snapshot gets `valid: false`, never a fill |
+| Nothing doubled | MET | The 15:20:00 rerun test: book 2's written fills unchanged, book 3 filled once |
+| Exits and trade_marks still retried | MET | Unchanged list; `test_a_failed_marking_is_retried_once...` and the exits tests pass |
+| Last line "; a rerun today retries it: <steps>", own day only, never for fills | MET | runner.py:63-70, `retried_steps`; P8, P9, P10, P14 caught |
+| CLAUDE.md step 2b | MET | Once more, at once, once only; fills never retried; the 14:05 time unchanged (CLAUDE.md step text and stored-prompt line untouched) |
+| My minor J6 pinned | MET | `test_the_written_count_leaves_out_a_blocked_book`; P11 (`written = len(result)`) caught |
+
+### Merge condition (blocking for the joint merge, not a ruling defect)
+- **T1d trial merge (5cbd3c4c7 + ee5711075 + main):** tests/daily, timetable, desk, scoreboard, cards: 645 passed,
+  **1 failed**: `tests/cards/test_problem_steps.py::test_the_runner_s_last_line_and_the_card_name_the_same_steps_for_one_log`,
+  `AttributeError: 'types.SimpleNamespace' object has no attribute 'on_its_day'`.
+- Cause: `DayRunner` now calls `daily_run.on_its_day(day)` on a run with problems; T1d's fake DailyRun lacks it. The
+  real `DailyRun` has it, so production is unaffected, but merging both as they are turns main red.
+- Fix expected: give that fake `on_its_day=lambda day: True` (T1d's branch or the merge commit), then re-run those
+  five suites. My earlier condition stands: merge R2 only together with T1d.
+
+### Plants: 14 planted, 13 caught, 1 survived (equivalent)
+- P13 (`ran_here.add` after the commit) survives. Equivalent in production: a failed commit raises `RunStopped`, the
+  process ends, and the rerun starts with an empty `ran_here` either way. Each plant restored with `git checkout --`;
+  `git status` clean.
+
+### Notes (not findings)
+- A stop inside the fills followed by a rerun by 15:20:00 still fills the books not yet filled. That is the bound the
+  orchestrator set and the builder states: at most about 5 minutes of prices seen after the 15:15 snapshot.
+- The late refusal's alert is sent before its commit; a failed commit there re-sends it on the next rerun (stated).

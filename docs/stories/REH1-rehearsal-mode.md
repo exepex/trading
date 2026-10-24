@@ -576,3 +576,195 @@ its own: no Slack, no Drive, no Groww, no NSE.
   - `remote get-url`: local.
 - **Its other calls:** `_is_session` reads the repository's calendar file (local). The guard and the routine's
   commands are children with the rehearsal's env.
+
+### REH1g: DRY2's rehearsal gaps (for judges B and E)
+
+Branch `story/reh1g-record-gaps`, from main. Built by the O1 builder (session_014zYLf18PgCzR7YoHs1X5Dp) to b5ab43ef6;
+finished from 24 Oct by session_01Mt6dcBU5kp2htdPN2KmiZH (G4's paced rule, the self-review's fixes, the cases and the
+plants below). DRY2's gaps: docs/dryruns/DRY2_2026-10-23.md, "Gaps to fix". Handover: docs/HANDOVER_2026-10-24.md
+section 4, row 4.
+
+#### Gap list (rule 2)
+
+| DRY2 gap, as written | Covered by | Or out of scope, with reason |
+|---|---|---|
+| G1 "Recorded 3 pm quotes cannot be listed ... list through to the repository's sidecars, and test the real composition, not a fake" | C1 | |
+| G2 "a manifest row is visible as of the git commit that added it. Test with the 16 Oct index-close case, plus a no-look-ahead plant" | C2a-C2d | |
+| G4 "KOSPI's -5 s window ... should a rehearsal read use the day's recorded read time?" (handover row 4: "±60 s, nearest, never twice, waiting until the saved time") | C3a, C3b | |
+| G2b, a file the routine archived during its own run | | REH1h (its own story section, text first) |
+| G3, `preopen record`'s waits at real speed | | Decided at the handover: the waits run at real speed ("about 37 real minutes ... by decision"). Two processes share one replay clock, so one's jump could skip the other's window |
+| G5, `lab release-check` says "unreachable" | | Accepted at the handover as known. It is A8's own outcome for an unanswered read; a rehearsal-only outcome would put the mode into A8's code, which the only-the-roots-know-the-mode test forbids |
+| G6, dropped paths and the HTTP guard in the parent | | Handover row 6: a separate small lane-1 item after DRY2 |
+| G7, one command's arguments print unformatted | | Cosmetic; the command ran with the real dates. Not in this story |
+| Files of `announcements`, `board-meetings`, `india-vix-history` and the `filings/` lists (round 2, judges 572 m3 and 574 m1) | | No `RAW_SOURCES` entry and no snapshot log, so never visible in a rehearsal (NOT_RECORDED, never a fetch). None of the four rehearsed routines reads them (`rehearsal/routines.py`) |
+
+#### Criteria, code, cases (rules 4 and 5) and plants
+
+Each plant was run alone on 2fd8ebf83, the file restored after; each fails the tests named.
+
+- **C1. The rehearsal's 3 pm record lists the day's sidecars and markers from the repository; a raw quote file is read
+  by name from Drive and checked against its sidecar.** Code: `record_store.ListedQuoteRecord` (a rehearsal-side
+  `DriveOnlyQuoteStore`; A4b's class is unchanged), chosen in `quote_wiring.record_quote_store`.
+  - Good: `test_the_real_builders_find_the_day_s_attempts_in_the_record` builds the real `build_quote_recorder(cfg)`
+    and `build_nse_quote_recorder(cfg)` under the mode and finds the recorded attempt; the folder lists its sidecar and
+    marker and the raw file reads by name (`test_listed_quote_record.py`).
+  - Bad: a Drive copy that differs from its sidecar raises `RawQuoteHashMismatch`.
+  - Empty: a month or year with nothing recorded lists `{}` and `[]`.
+  - Boundary: the listing holds the sidecar and the marker only, never a raw quote file (none is in the repository).
+  - Plants: P1 (A4b's store back in `record_quote_store`), P2 (the listing removed): both fail.
+- **C2a. A manifest row counts from the committer time of the first commit on the record's `main` that holds it**
+  (`git blame --first-parent --line-porcelain origin/main`, `manifest_rows._rows`). A row only in the working tree, or
+  only on a branch, never counts; a row merged into main counts from the merge, not from when the branch wrote it.
+  - Good: the 16 Oct index-close and the S&P cue are visible from their rows' commits.
+  - Bad: a row committed after the replay time stays invisible (no look-ahead); a working-tree row and a branch-only
+    row never count.
+  - Boundary: visible at the commit's exact second, not one microsecond before; a row merged at 08:00 on 20 Oct
+    counts from then, not from its branch commit of 19 Oct.
+  - Empty: a record with no manifests shows nothing.
+  - Plants: P3 (the time check dropped), P4 (`<` for `<=`), P5 (blame of the working tree), P6 (blame of `HEAD`), P7
+    (no `--first-parent`): each fails.
+- **C2b. An A9 file is its dataset's (day, URL) row, by the dataset's own rule** (`day_for_path`, `url_for`, as
+  `Fingerprint.of` writes the row; `manifest_rows._a9_key`). The same URL archived on two days is two files.
+  - Good, real data: on this record every one of the 20 A9 manifests' rows maps back from its dataset's own path for
+    its day: fo-bhavcopy 698 of 698, index-close 2,431 of 2,431, participant-oi 1,937 of 1,937, fo-ban-list 3 of 3,
+    corporate-actions 9 of 9, and the rest (a read-only script on this checkout, no Drive).
+  - Bad: `fo_secban.csv` is one URL every day; the 23 Oct copy is invisible at the 22 Oct row's commit and seen only
+    from its own row's commit.
+  - Empty: a day with no row (26 Oct) is None; a file name under another dataset's folder never matches.
+  - Plant: P8 (the day left out of the key): fails.
+- **C2c. Only a file's own writer's rows date it** (round 2). A `path` row counts only from the files directly in a
+  snapshot-log folder, named by its writer (`global-cues/`, `groww-candles/`), and matches only that path inside the
+  raw area; an A9 row only from its `RAW_SOURCES` dataset's manifest. A revision log's or a filings list's `path`
+  names a file someone else archived and never dates it.
+  - Good: `raw/cboe/...` matches the S&P row. Bad: `processed/...`, `dryrun/r/raw/...` and a bare path never match;
+    a revision row, a filings row and a log subfolder's row never move a file's time.
+  - Boundary: of two rows for one file, the earlier commit counts, whichever is read first.
+  - Plants: P9 (any area matched), R1, R1b, R4, R4b (round 2): each fails.
+- **C2d. The rehearsal's Drive is wired with the rows** (`drive_wiring.rehearsed_drive`; the rows are read once per
+  record and process, `lru_cache`). Good: the wired Drive reads the 16 Oct index-close. Plant: P10 (wired without
+  rows): fails.
+- **C3a. A scheduled read (A4h's closes, A16b's candles) is served the day's first answer from `EARLIER` (60 s) before
+  now to `NEAREST` (10 min) after** (`serving.is_near`).
+  - Good: KOSPI's copy 6.1 s before the read. Boundary: both edges exact to the microsecond, and one microsecond past
+    each refused. Plant: P11 (back to 5 s): fails.
+- **C3b. A paced read (A17e's cues, A22's pre-open parts) is served the copy nearest to now within `AROUND` (60 s)
+  either side, the earlier of two equally near, after the last copy served for that URL or part, and only once the
+  replay clock reaches its saved time** (`serving.ServedOnce`; `RecordedCueSession` keeps one per URL,
+  `RecordedPreopenPart` one per part; each waits until the saved time).
+  - Good: KOSPI served with no wait; a pre-open retry at 08:40:30 gets 08:40:31, not 08:40:01 again, each at its own
+    seen time; two URLs keep their own order.
+  - Bad: a second read of the URL with no other copy is NOT_RECORDED; after 08:40:31 was served, 08:40:01 is never
+    served (answers never go back in time).
+  - Boundary: exactly 60 s either side served, 60 s plus a microsecond refused; the tie goes to the copy already
+    saved.
+  - Empty: no copy at all is None (NOT_RECORDED at the source).
+  - Plants: P12 (`AROUND` 10 min), P13 (served copies not remembered), P14 (an older copy allowed after a newer), P15
+    (earliest, not nearest), P16 (one order for every URL), P17 (no wait in the pre-open part), P18 (no wait in the
+    cue session): each fails.
+
+#### Builder self-review (rule 3)
+
+One independent code-review agent on the diff and this story (24 Oct, high effort), ten findings:
+
+| # | Finding | Decision and evidence |
+|---|---|---|
+| 1 | A9 rows keyed by (manifest, file name) and the earliest commit: a same-URL snapshot (`fo_secban.csv`, `EQUITY_L.csv`) of a later day became visible from the first day's row, a look-ahead | Accepted, a real look-ahead (the fo-ban-list manifest has 22 and 23 Oct under one URL). Fixed by C2b; test and P8 |
+| 2 | Datasets whose Drive name is not the URL's last part (corporate actions, FII/DII, FPI) never matched | Accepted. Fixed by C2b (the dataset's own `url_for`); the real check maps all 20 manifests |
+| 3 | Blame read the checkout's HEAD and working tree, not `origin/main`, and dated a merged row by its branch commit | Accepted. Fixed by C2a (`origin/main`, first-parent). Residual limit below |
+| 4 | `ServedOnce` could serve an older copy after a newer one | Accepted. Fixed (in order per reader); test and P14 |
+| 5 | A single cue read more than 60 s from the day's fetch is now NOT_RECORDED where the old rule waited | Rejected for now, with reason: in a rehearsal only `global-cues preopen` uses the cue session (the four routines run no other cue job; the cue jobs run in their own workflows), and its reads are paced within seconds of the day's (DRY2: 6.1 s). The handover's agreed rule is ±60 s. If DRY2 shows a drift over 60 s, it shows as an honest NOT_RECORDED, never a wrong answer |
+| 6 | Each `rehearsed_drive` call rebuilt the rows (about 5 s each) | Accepted. The index is cached per record and process (`lru_cache`) |
+| 7 | A `path` row matched any tail of a path, any area | Accepted. Fixed by C2c; P9 |
+| 8 | 40-hex commit IDs only; a missing `git` raises | First part moot after the fix: a blame of `origin/main` has no uncommitted line, and the commit ID is no longer parsed. Second part rejected: a rehearsal without `git` cannot make its checkout at all; a loud error is right |
+| 9 | A second path-to-row mapping beside the sources' own | Accepted: the A9 match now uses each source's `day_for_path` and `url_for` (`source_lists.RAW_SOURCES`) |
+| 10 | `test_each_recorded_source_uses_its_one_rule` reads source text | Partly accepted: the behaviour is tested per source (C3a, C3b and the sources' own tests). The text test stays as a guard against a copied window coming back, which no behaviour test can see |
+
+#### Real output sample (rule 6)
+
+A read-only script on this checkout as the record (origin/main ebbe3ca29), with the committed code; no Drive, no
+network, nothing written:
+
+```
+G2 raw/nse/indices/index-close/2026/10/ind_close_all_16102026.csv -> 2026-10-16 22:40:15+00:00
+G2 raw/yahoo/preopen/2026/10/23/085034_kospi_5m.json -> 2026-10-23 03:23:35+00:00
+G2 raw/nse/indices/index-close/2026/10/made_up.csv -> None
+G1 listed for 23 Oct: ['banknifty_20261023.canonical', 'banknifty_20261023_150100.meta.json',
+  'finnifty_20261023.canonical', 'finnifty_20261023_150247.meta.json', 'midcpnifty_20261023.canonical',
+  'midcpnifty_20261023_150352.meta.json', 'nifty_20261023.canonical', 'nifty_20261023_145500.meta.json',
+  'nifty_20261023_151500.meta.json']
+G4 KOSPI read at 08:50:40.136560 -> (2026-10-23 08:50:34.020913+05:30, 'yahoo/preopen/2026/10/23/085034_kospi_5m.json')
+G4 the same read again -> None
+```
+
+First-parent dating is later than the old blame's (16 Oct index-close 22:40:15 UTC, was 19:01:48; KOSPI 03:23:35, was
+03:21:05): main held the row from its merge.
+
+#### Limits (said plainly)
+
+- **A row's commit is later than its file's Drive write.** KOSPI's copy was in Drive at 08:50:34 IST; its row reached
+  main at 08:53:35. A step that read Drive between the two on the day saw the file; the rehearsal does not. It errs
+  late, never early (no look-ahead).
+- **First-parent dating can be late, and early only in one case** (reworded in round 2, judge 572 minor 4).
+  - Late: a routine commits, then `pull --no-rebase` and `push HEAD:main`. Its merge puts the commits main already
+    had on the second-parent side, so they count from the merge. The 16 Oct close was committed at 19:01:48 UTC
+    and counts from 22:40:15 UTC.
+  - Early: a commit made on a branch and pushed as `HEAD:main` sits on main's first-parent line with its own
+    commit time, which can be before the push. Data rows are committed by the routines on a checkout of main and
+    pushed within seconds, so the gap is seconds. The checkout's own `rev-list --before` (REH1a) makes the same
+    assumption.
+- **The rows are read once per process.** A rehearsal does not fetch `origin/main` while it runs, so nothing is missed.
+
+#### Round 2 (judges 572 B and 574 E: FAIL; every finding answered by number)
+
+Round 2's commits: d9923bfdf (the fix and its tests), 83d70f809 (the round-2 self-review's fixes), then this text.
+Plants R1-R5b were each run alone on 83d70f809 with `tests/rehearsal`, and the file was restored with `git checkout`.
+
+| Finding | Outcome | Proof |
+|---|---|---|
+| 572 SF1 = 574 SF1: revision-log rows (`revisions/*.csv`) and `filings/outside-layout.csv` dated a raw file late | **Fixed.** Only a file's own writer's rows date it: the `path` rows of the files directly in the snapshot-log folders, named by their writers (`global_cues.wiring.SNAPSHOT_LOG_FOLDER`, `intraday.backfill_daily.MANIFESTS`), and the `date,url` rows of the one manifest per `RAW_SOURCES` entry (`manifest_rows._index`, `_path_logs`). C2c below is reworded to match | Tests: `test_a_revision_row_committed_after_the_a9_row_does_not_change_the_file_s_time` (a revision row on 18 Oct leaves the 16 Oct close at its A9 commit), `test_a_filings_list_row_naming_a_cue_path_does_not_date_it`, `test_a_path_row_in_a_log_s_subfolder_never_dates_a_file`. Plants R1 (path rows from every manifest) and R1b (a log's subfolders read) caught. Real record: the cases the judges reproduced are back at their A9 times (sample below) |
+| 574 SF2 = 572 minor 1: committer time not pinned (Pj, E3) | **Fixed** | `test_the_time_is_the_committer_time_not_an_older_author_time`: a commit authored 03:20:00, committed 03:23:35 UTC, is seen at 03:23:35. Plant R2 (`author-time`) caught |
+| 572 minor 2: the trailing `/` in `_a9_key` (Pc) | **Fixed (pinned)** | `test_a_dataset_is_matched_by_its_whole_folder_name_whatever_the_source_order` runs both orders of `RAW_SOURCES`. Plant R3 caught |
+| 572 minor 3 = 574 minor 1: `announcements`, `board-meetings`, `india-vix-history` and the `filings/` lists | **Answered: out of scope**, added to the gap list | No `RAW_SOURCES` entry, so their files are never visible in a rehearsal (NOT_RECORDED, never a fetch). None of the four rehearsed routines reads them (`rehearsal/routines.py`; judge 572's grep). They are no longer blamed at all (round-2 self-review) |
+| 572 minor 4: limit 2's wording | **Fixed**, limit 2 rewritten below | The 16 Oct close: committed 19:01:48 UTC, first on main's first-parent line at 22:40:15 UTC, because a routine's `pull --no-rebase` then `push HEAD:main` put it on the second-parent side |
+| 574 minor 2: the closes' "first answer" (E5) and `_keep`'s "earliest commit" (E7) | **Fixed (pinned)** | `test_of_two_answers_near_the_read_the_first_saved_is_served` (the later answer's name sorts first) and `test_of_two_rows_for_one_file_the_earlier_commit_counts` (the later row's log is read first). Plants R4 (latest commit), R4b (first row read), R5 (latest answer), R5b (path order, not save time) caught |
+| 572 Pb, Pk (equivalent on today's data) | **Answered** | Pb, keeping the later of two equal keys: now caught by R4 and R4b. Pk, dropping `top_level`: gone, because the A9 loop now reads only the `RAW_SOURCES` manifests |
+
+**Round-2 self-review.** One independent code-review agent read the round-2 diff (f9562dfe1..d9923bfdf), the story and
+both verdicts. It made 8 findings:
+1. The story was not updated yet: done here.
+2. The earliest-commit test passed by file order: fixed (`aaa_again.csv`).
+3. The first-answer test passed by name order: fixed (`again` sorts before `first`).
+4. `PATH_LOGS` copied the writers' folder names: fixed (`_path_logs` imports them).
+5. `rglob` read a log's subfolders (`global-cues/attempts/`): fixed (`glob`, plus a test).
+6. The three manifests with no source were blamed for nothing: fixed (the A9 loop reads only `RAW_SOURCES`).
+7. Same as 5.
+8. The whole-folder test's second half could not fail: replaced by both orders for the by-session path.
+
+**Plants R1-R5b** (each caught; output in the builder's run, one line each):
+
+- R1 path rows from every manifest (the round-1 rule): caught | 3 failed, 102 passed in 57.03s
+- R1b a log's subfolders read too: caught | 1 failed, 104 passed in 23.01s
+- R2 author time for committer time (Pj, E3): caught | 1 failed, 104 passed in 22.07s
+- R3 no trailing slash in _a9_key (Pc): caught | 1 failed, 104 passed in 24.34s
+- R4 _keep keeps the latest commit (E7): caught | 1 failed, 104 passed in 22.25s
+- R4b _keep keeps the first row read: caught | 1 failed, 104 passed in 22.86s
+- R5 closes serve the latest answer (E5): caught | 1 failed, 104 passed in 25.28s
+- R5b closes in path order, not save time: caught | 1 failed, 104 passed in 20.44s
+
+**Refreshed real output sample** (this checkout as the record, origin/main 2f4df2fa3; read-only, no Drive, no network):
+
+```
+G2 ind_close_all_16102026.csv -> 2026-10-16T22:40:15+00:00
+G2 ind_close_all_12102026.csv -> 2026-10-13T01:54:09+00:00
+G2 ind_close_all_23102026.csv -> 2026-10-23T17:01:15+00:00
+G2 nsccl.20261021.i1.zip -> 2026-10-20T02:23:12+00:00
+G2 BhavCopy_NSE_FO_0_0_0_20261023_F_0000.csv.zip -> 2026-10-23T14:25:20+00:00
+G2 085034_kospi_5m.json -> 2026-10-23T03:23:35+00:00
+G2 made_up.csv -> None
+G1 listed for 23 Oct: 9 ['banknifty_20261023.canonical', 'banknifty_20261023_150100.meta.json', 'finnifty_20261023.canonical'] ...
+G4 KOSPI read at 08:50:40.136560 -> 2026-10-23T08:50:34.020913+05:30 yahoo/preopen/2026/10/23/085034_kospi_5m.json
+G4 the same read again -> None
+```
+
+The 12 Oct, 23 Oct and 16 Oct closes and the 21 Oct SPAN file now date from their own A9 rows, as the judges asked
+(span-bod 21 Oct: 20 Oct 02:23:12 UTC, not 24 Oct 00:34; 23 Oct close: 17:01:15, not 19:36:03).
