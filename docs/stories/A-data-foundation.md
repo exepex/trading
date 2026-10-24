@@ -2246,7 +2246,18 @@ day; checks the 2026 reproduction and the evidence table against the files' SHA-
 
 **Depends:** A9, A14, C2, C2c, C2d; part 2 also O1 (the routine step) · **Size:** M · **Status:** text PASS (judge 173
 addenda 1-3); part 1 merged; part 2 text and its allow-list code PASS (judge 291 addendum 2, judge 356 addendum 1),
-its check's code with judge D (response 291)
+its check's code in round 2 with judges 630 and 634 (both FAIL at 5f7dc5d7c; round 2 is the last)
+
+**Claims (part 2 code, branch `story/a14c-part2-broker-check`):** the full claims, round by round, are in
+`reviews/claude/response_291_a14c-part2-broker-check-code.md` (the orchestrator's routing, kept so the history stays in
+one place). Round 2 in short:
+- **Code:** `fno/nse_margins/broker_wiring.py` (Groww and the lot library built on first use);
+  `broker_compare.py` `Levels` (exposure over NIFTY's two readings); `broker_lot.py` `NseDatedLot` (A20a's dated
+  lot through the school's `ArchivedLots`); `BasketBuilder.lot_size` (one lot); `broker_check.py` `LOST`/`BY_HAND`
+  (no retry promised).
+- **Tests:** `tests/nse_margins/test_broker_levels_and_lot.py`; the deadline, failure-line and O1-no-retry tests in
+  `test_broker_check.py`; the suite with and without the Groww SDK.
+- **Owed:** the market-hours read-only sample, Mon 26 Oct about 10:00 IST.
 
 ---
 
