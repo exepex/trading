@@ -3433,3 +3433,22 @@ session is unlikely; kept as stated in the gap list. 6. A warning as the last li
 format --check` clean; `python tools/check_imports.py` clean (2650 files); `python tools/check_records.py` clean (9108
 files). `python tools/check_numbers.py` runs on `main` at merge (CLAUDE.md "Code"). The first full run (at a92c0d773)
 had one failure, G13's score-row order test, fixed at f21525614 (Files owned).
+
+### MS-P1j3 Claims (round 1, branch `story/ms-p1j3-first-seal-cutoff`; builder session_01K3PspS7VhXM39Ccyhut4S7; the SHA is in the commit carrying this text)
+
+| # | Code | Tests (`tests/school/fleet/test_first_seal_cutoff.py`) | Plants (each caught) |
+|---|---|---|---|
+| 1 Cutoff | `SchoolFleet._too_late_to_seal`, `FIRST_SEAL_TOO_LATE`; the check sits after `recover` and before `settle_expired` | `test_a_later_first_run_seals_settles_fills_and_writes_nothing_and_stops_loudly` (no file, no ledger, no counts), `test_the_message_reads_as_the_person_sees_it` | the refusal removed (5 failed) |
+| 2 Boundary | `started <= last`, in IST, on the session's own date | `test_a_first_run_by_the_last_start_seals_and_fills` (15:04, 15:25:00), the late test (15:25:00.000001, 15:45, the next day), `test_a_utc_clock_is_compared_in_ist` | `<` for `<=` (3 failed) |
+| 2b The start decides | `started` read before `plan_slot` | `test_a_run_started_by_the_last_start_seals_even_if_reading_the_captures_crosses_it` | the clock read after `plan_slot` |
+| 3 Untouched | RECORD only; after `recover`; after `plan_slot` | `test_a_replay_is_never_refused`, `test_a_session_already_sealed_reruns_after_the_last_start_as_before`, `test_a_session_with_nothing_scheduled_prints_its_own_line_whatever_the_hour` | the mode test dropped; the check before `recover`; the check before `plan_slot` (2 failed) |
+| 4 One value | `SLOT_LAST_START` in `fno/school/constants.py`; `SCHOOL_STARTS_BY` is it | `test_the_daily_step_and_the_runner_share_one_last_start`, j2's e2e and `tests/daily/test_starts_by.py` | the daily value moved to 15:30 (2 failed) |
+
+The simulator's practice runs `RunMode.REPLAY` at 15:30 (`simulator/practice/runner.py:48`), so it is never refused
+(criterion 3); a REH1 rehearsal is `RECORD` on the replay clock. A daily step started at 15:24:59 whose child reads
+its clock after 15:25:00 (Python's start takes about 1-3 s) is refused by the runner: both refuse, both alert, nothing
+is sealed (fail closed; a boundary of a few seconds, stated rather than hidden).
+
+**Real output sample** (the committed code, the fleet's test rig, a fixture session):
+`stopped: too late for a first seal: 15:45:00 IST is after the slot's last start, 15:25 IST on <session>; nothing
+sealed`; `school run` exits 1 on it (`cli.py`: any "stopped:" status), and the daily run's log code is `school:STOPPED`.
