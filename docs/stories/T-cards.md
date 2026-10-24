@@ -468,7 +468,7 @@ never read a card without knowing that part of the day did not run.
   `fno/desk/run_log.py`, beside `RunLog`, and both the runner's last line and the card call it. It is O1's file, so
   this is agreed with O1's builder first. The runner's text and behaviour do not change.
 - **The card line.** It sits in the card's status section, after the rule checks:
-  "Steps that failed or were refused today: snapshot (failed), fills (refused)", in run order. There is no line when
+  "Steps with problems today: snapshot (failed), fills (refused)" (the orchestrator's wording, 24 Oct), in run order. There is no line when
   none failed or was refused.
   - The card reads the day's committed run log through T2's existing `RunLogReader` (`fno/cards/rule_checks.py`), the
     reader the rule checks already use, and passes its steps to `problem_steps`. It parses no text.
@@ -516,9 +516,11 @@ move of the rule into `problem_steps` is asked of them before code.
 - Gap list:
   - the orchestrator's ask (one line naming the failed steps, none when none failed) is criteria 1 and 2;
   - "through O1's own interface" is criteria 4 and 5;
-  - refused steps are included because O1's own rule counts them as problems (reasoning: the owner should see that
-    `fills` did not run as well as why);
-  - steps after the card are Out, as a Known limit.
+  - refused steps are included because O1's own rule counts them as problems; the orchestrator confirmed this on
+    24 Oct ("a refused fills step matters to the owner as much as a failed one");
+  - Known limit, stated for the judge: steps after the card in `DAILY_RUN_STEPS` (G13's records and scores, the
+    candles, the close reads) run after the card is posted, so a failure there is never on the card. It stays in the
+    run's last line and its own alert.
 
 **Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety`) · **Size:** S · **Status:** story text, waiting for judge I;
 code after R2 merges
