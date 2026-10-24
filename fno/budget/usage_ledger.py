@@ -23,11 +23,12 @@ from .usage_export import TOKEN_FIELDS
 from .usage_reader import DayUsage
 
 LEDGER_FILE = "accounting/ai_usage.csv"
-COLUMNS = ("date", "purpose", "book", "role_or_bundle", "session_id", "model", "minutes", "turns",
+COLUMNS = ("date", "purpose", "book", "role_or_bundle", "session_id", "model", "minutes", "wait_minutes", "turns",
            *TOKEN_FIELDS, "tokens_basis", "source", "complete_before")  # fmt: skip
 TOKENS_BASIS = "main-loop usage of result events (side calls not included)"
 NOT_COMPLETE = "{day} is not complete in this reading (complete days are before {before}): record it from a later one"
 BAD_ROW = "{file} line {line}: minutes {minutes!r} is not a number >= 0, or complete_before is not a date"
+BAD_WAIT = "{file} line {line}: wait_minutes {wait!r} is not blank or a number >= 0"
 SESSION_ID = re.compile(r"session_[A-Za-z0-9]+")  # get_session's id form
 
 
@@ -109,11 +110,20 @@ def _check_row(line: int, row: dict) -> None:
     if None in row or None in row.values():
         raise ValueError(f"{LEDGER_FILE} line {line}: wrong number of fields")
     try:
-        if not 0 <= float(row["minutes"]) < math.inf:  # refuses nan and inf too
-            raise ValueError
         date.fromisoformat(row["complete_before"])
     except ValueError:
         raise ValueError(BAD_ROW.format(file=LEDGER_FILE, line=line, minutes=row["minutes"])) from None
+    if not _non_negative(row["minutes"]):
+        raise ValueError(BAD_ROW.format(file=LEDGER_FILE, line=line, minutes=row["minutes"]))
+    if row["wait_minutes"] != "" and not _non_negative(row["wait_minutes"]):  # BG1-w: blank, not measured apart
+        raise ValueError(BAD_WAIT.format(file=LEDGER_FILE, line=line, wait=row["wait_minutes"]))
+
+
+def _non_negative(text: str) -> bool:
+    try:
+        return 0 <= float(text) < math.inf  # refuses nan and inf too
+    except ValueError:
+        return False
 
 
 def _row(usage: DayUsage, who: Attribution, before: date) -> dict:
@@ -122,7 +132,8 @@ def _row(usage: DayUsage, who: Attribution, before: date) -> dict:
     tokens = usage.tokens or {}
     row = {"date": usage.day.isoformat(), "purpose": who.purpose, "book": who.book,
            "role_or_bundle": who.role_or_bundle, "session_id": usage.session_id, "model": usage.model,
-           "minutes": f"{usage.minutes:.2f}", "turns": usage.turns}  # fmt: skip
+           "minutes": f"{usage.minutes:.2f}", "turns": usage.turns,
+           "wait_minutes": "" if usage.wait_minutes is None else f"{usage.wait_minutes:.2f}"}  # fmt: skip
     row |= {column: tokens.get(column, "") for column in TOKEN_FIELDS}  # blank: unknown, never zero
     basis = TOKENS_BASIS if usage.tokens else "not available"
     return row | {"tokens_basis": basis, "source": usage.source, "complete_before": before.isoformat()}
