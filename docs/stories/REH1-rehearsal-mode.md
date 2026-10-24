@@ -929,3 +929,53 @@ The three reads are of two kinds:
 | 573 m4: REH1h's tests on the fixed REH1g | **Done:** this branch is merged from REH1g's round-2 head before any code; its tests run there |
 | 575 note: the guard in a criterion | **Fixed:** H6's test includes the guard listing the new class |
 | 573 plant: a row committed exactly at now + 10 min | **Added** to H2's boundaries |
+
+#### Claims, code round 1 (for judges B and E)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1h-archive-serving`, merged with `origin/main` after REH1g
+reached it. Code: `fno/rehearsal/recorded_archive.py` (new, 99 lines); `manifest_rows.py` (the A9 index carries
+`A9Row`: commit time, dataset, day, URL, SHA-256; `archived(url)`); `nse_wiring.py` (the mode's session);
+`guard.py` (the entry names `RecordedArchiveSession`); `recorded_cues.py` (`RecordedAnswer.headers`, empty). No
+NSE source, library, taker, step or composition root outside `fno/rehearsal/` changed.
+
+| Criterion | Code | Tests (`tests/rehearsal/`) | Plant that breaks it |
+|---|---|---|---|
+| H1 | `RecordedArchiveSession.get` | `test_recorded_archive.py`: bhavcopy, participant OI, FII/DII each served at 19:55:20/29/39 from 19:53:30; the real `NseDailyFoSource.fetch_published` gets the bytes with `last_modified` None | wait removed; headers with Last-Modified |
+| H2 | `_pick`, `_is_candidate` | exactly now + 10 min served after a 600 s wait, 1 µs more NOT_RECORDED; commit + 61 s and + 1 h served with no wait; 22 Oct 23:59:59 IST never a candidate, 23 Oct 00:00:00 is; a 404 read at 19:50 served at 19:55:20; a row ahead preferred to one on main (the judges' minor); of two ahead, the earliest; of two on main, the latest | window + 1 s; replay-day bound dropped; latest-at-or-before dropped; earliest replaced by latest |
+| H3 | `get`'s SHA-256 check | missing and changed copies refused naming the path, never remembered as served; a Drive read error is a refused line (self-review 2) | SHA check removed; read error not caught |
+| H4 | `_pick`'s ambiguity check, `served` | `fo_secban.csv` and `fiidiiTradeReact` rows on two days: only the replay day's; one commit time with two SHA-256 refused, with one SHA-256 served; a repeat gets its first copy after a later row; a run-dated list (`EQUITY_L.csv`) only the replayed day's own row (self-review 1) | ambiguity refusal removed; repeat cache dropped; run-day rule dropped |
+| H5 | `NotRecordedSession` (inherited) | no candidate (holiday, warm-up page, no manifest) and every HEAD: today's exact message, no wait, no read; the morning ban-list read (the judges' minor); a path that does not map back to its URL (`corporate-actions-by-symbol`, an unknown dataset) | HEAD answered; `url_for` not checked back |
+| H6 | `nse_wiring.rehearsed_session` | `test_recorded_archive_wiring.py`: the real `build_librarian("participant-oi")` and `build_snapshot_taker("fii-dii-cash-by-session")` under the mode over a recording Drive: the only writes are under `dryrun/r1/`, the real file unchanged, the manifest row in the rehearsal checkout's folder; the guard lists the new class; outside the mode `PacedSession`; the index carries dataset and SHA-256 | old `NotRecordedSession` wired back; index SHA-256 dropped; index keeps the latest row |
+
+**Plants:** 16 planted, 16 caught (run in a separate worktree, each restored with `git checkout --`): the 10 the
+text planned, plus the repeat cache, the run-day rule, the read-error catch, the index's SHA-256 and earliest row, and
+the day bound split from the window.
+
+**Self-review** (an independent review agent on `e8c2f9de4..ae66af835`): no look-ahead found. Three findings, all
+checked and fixed in `e709b472a`:
+1. should-fix: a list filed by the run's day (`SnapshotTaker`: equity list, Nifty 500, symbol changes, lot sizes) has
+   one URL every day, so another day's row reaching main late on the replay day could be served and filed as the
+   replay day's copy. Fixed: for those datasets only the replay day's own row is a candidate (`is_run_dated`). The
+   design's "never arises for store-first" now says dated URLs only.
+2. minor: a Drive read error (no settings, Drive down) escaped as a traceback. Fixed: a refused line naming the path.
+   `RecordedCueSession` (REH1c) has the same pattern; not changed here, as it is outside REH1h.
+3. minor: the by-session test did not check the served copy (at commit + 61 s REH1g already shows the file, so the
+   taker says "already archived"). Fixed: it checks the session's bytes and the exact "already" line.
+
+**Output sample** (the committed code through the real composition, a recording Drive and a local record; no
+network; run id as printed):
+
+```
+replay clock 2026-10-09T19:53:30+05:30
+nse/derivatives/participant-oi 2026-10-09 to 2026-10-09: 1 sessions, 0 already there and verified, 1 uploaded, 0 with a sourced exception
+result: complete
+NSE archive: nse/derivatives/fo-bhavcopy/2026/10/BhavCopy_NSE_FO_0_0_0_20261009_F_0000.csv.zip: rehearsal:NOT_RECORDED https://nsearchives.nseindia.com/content/fo/BhavCopy_NSE_FO_0_0_0_20261009_F_0000.csv.zip: not in the record, and a rehearsal never fetches (not sent)
+served at 2026-10-09T19:55:29+05:30; Drive writes: ['dryrun/20261024T120000Z-abc123/raw/nse/derivatives/participant-oi/2026/10/fao_participant_oi_09102026.csv']
+replay clock 2026-10-13T19:56:40+05:30
+nse/flows/fii-dii-cash-by-session/2026/10/13/fii-dii-cash.json: already archived for this day
+```
+
+**Stated limits.** The "already archived" line where the day said "archived" is the gap list's accepted difference.
+A rehearsal's record checkout must be a full clone: in a shallow one `git blame` dates every row to one commit
+(`checkout.py` unshallows the record; a sample script in a shallow clone shows false "ambiguous" refusals for
+`fiidiiTradeReact`). The DRY2 rerun itself is the orchestrator's.
