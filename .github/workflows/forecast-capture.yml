@@ -105,10 +105,10 @@ jobs:
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
       - name: Fire the AI books' routines (F1, G5; one #fno-desk line per failure)
         run: python -m fno ai fire | tee ai.log
-      - name: Wait for the AI books' reveals (after 15:15 IST, at most until 15:30 IST)
+      - name: Wait for the AI books' reveals, v2's and v4's (at most until 15:30 IST; G11, each audit is written once)
         run: |
           limit=$(TZ=Asia/Kolkata date -d 'today 15:30' +%s)
-          until python -m fno ai reveals-ready || (( $(TZ=Asia/Kolkata date +%s) >= limit )); do
+          until { python -m fno ai reveals-ready && python -m fno ai reveals-ready --protocol v4; } || (( $(TZ=Asia/Kolkata date +%s) >= limit )); do
             sleep 20; git pull -q --no-rebase --no-edit origin main
           done
           git pull -q --no-rebase --no-edit origin main
@@ -116,6 +116,7 @@ jobs:
         run: |
           set -o pipefail
           python -m fno ai collect | tee -a ai.log
+          python -m fno ai collect --protocol v4 | tee -a ai.log # G11: refuses before daily.live_from.ai_books_v4
           grep '^ai receipt: ' ai.log >> "$GITHUB_STEP_SUMMARY" || echo "no AI receipt: nothing collected" >> "$GITHUB_STEP_SUMMARY"
       - name: Record new weekly audit draws and list the transcript audits due (owner's condition 1)
         if: ${{ !cancelled() }}

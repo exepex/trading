@@ -43,6 +43,7 @@ from .v4_book_inputs import V4BookInputs
 from .v4_collect import V4BookCollector
 from .v4_cost import V4CostReport
 from .v4_fire import V4BookFirer
+from .v4_register import SlotRegistrar
 from .v4_settle import V4RowSettler
 
 AI_V4_KEY = "ai_books_v4"  # config.yaml daily.live_from: the AI books' v4 go-live
@@ -118,6 +119,12 @@ def build_v4_collector(env=os.environ) -> V4BookCollector:
     inputs = build_v4_book_inputs()
     return V4BookCollector(ROOT, history, _receipts(history, env), inputs, lambda: build_released_packs(env), now_ist,
                            v4_live_from(), v4_sessions_between)  # fmt: skip
+
+
+def build_slot_registrar() -> SlotRegistrar:
+    from ..forecast_scoring.v4.wiring import SLOTS_FILE, build_look_records, build_slot_registry
+
+    return SlotRegistrar(SLOTS_FILE, build_look_records(), build_slot_registry, v4_sessions_between, now_ist)
 
 
 def build_v4_cost_report() -> V4CostReport:

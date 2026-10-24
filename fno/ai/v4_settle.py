@@ -32,9 +32,10 @@ class V4RowSettler:
     seeds: Callable[[], dict[Week, WeekSeed]]  # the weekly audit draws' verified seeds
 
     def settle(self) -> list[str]:
-        seeds = self.seeds()
+        files = _collection_audits(self.root / V4_TERMS.folder)
+        seeds = self.seeds() if files else {}  # the draws' seeds read the Drive archive: only when there is a day
         added, waiting = 0, []
-        for file in _collection_audits(self.root / V4_TERMS.folder):
+        for file in files:
             audit = json.loads(file.read_text(encoding="utf-8"))
             day = date.fromisoformat(audit["day"])
             gate = scoring_status(self.root, day, audit["book"], seeds, V4_TERMS)

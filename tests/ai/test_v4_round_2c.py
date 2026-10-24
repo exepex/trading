@@ -88,3 +88,17 @@ def test_audit_record_for_a_v4_run_lands_in_the_v4_folder(tmp_path, monkeypatch,
     assert cli.main(argv) == 0
     assert TranscriptAudits(tmp_path, V4_TERMS).get(DAY, BOOK3_AI).result == "clean"
     assert TranscriptAudits(tmp_path, V2_TERMS).get(DAY, BOOK3_AI) is None
+
+
+def test_reveals_ready_for_v4_waits_for_every_fired_books_reveal(tmp_path, monkeypatch):
+    from fno import cli
+
+    monkeypatch.setattr("fno.config.ROOT", tmp_path)
+    argv = ["ai", "reveals-ready", "--protocol", "v4", "--day", DAY.isoformat()]
+    assert cli.main(argv) == 0  # nothing fired: nothing to wait for
+    fire_log(tmp_path, DAY)
+    assert cli.main(argv) == 1  # Book 3 fired, its reveal not in yet
+    reveal = tmp_path / V4_TERMS.reveal_path(DAY, BOOK3_AI)
+    reveal.parent.mkdir(parents=True, exist_ok=True)
+    reveal.write_text("{}")
+    assert cli.main(argv) == 0 and cli.main(["ai", "reveals-ready", "--day", DAY.isoformat()]) == 0

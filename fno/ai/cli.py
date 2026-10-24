@@ -3,14 +3,17 @@
 - `fire`: after the day's v2 pack is committed, fires each AI book's routine once (one #fno-desk line per failure);
   `fire --protocol v4 --day <d>` fires them on the released v4 pack instead (G11, run by v4-fire.yml);
   `collect --protocol v4` judges the v4 day, then writes the rows of every settled day (G11);
-- `reveals-ready`: exit 0 once every fired book's reveal is in the checkout (or nothing was fired);
+- `reveals-ready`: exit 0 once every fired book's reveal is in the checkout (or nothing was fired); `--protocol v4`
+  for the v4 fire's books (forecast-capture waits for both before its collect: an audit is written once);
 - `collect`: after 15:15 IST, turns the books' sealed submissions into records and audit files (written once), then
   records every book run's own timing in BG1's usage ledger and alerts each run of the day not captured (F8c);
 - `coverage`: per book, the pack days with a counted forecast (story G5 criterion 3);
 - `audits-due`: records any new weekly draw (with its seed inputs), then lists the selected sessions not audited yet,
   for v2's runs and v4's apart (each protocol drawn from its own fire logs, G11 round 2c);
 - `audit-record`: records one session's transcript audit (clean, or the breach kinds found), written once;
-  `--protocol v4` for a v4 run.
+  `--protocol v4` for a v4 run;
+- `register-v4-slots`: appends the AI books' 10 v4 slot registrations after the freeze (`--print`: only print them,
+  for the freeze commit; G11 C13). Exit 1 when refused.
 The routine side is `python -m fno.ai` (standard library only).
 """
 
@@ -31,12 +34,14 @@ def add_ai_parser(subparsers) -> None:
                        ("collect", "record the AI books' forecasts for the day (after 15:15 IST)")):  # fmt: skip
         action = actions.add_parser(name, help=text)
         action.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: today in IST)")
-        if name in ("fire", "collect"):
+        if name in ("fire", "collect", "reveals-ready"):
             protocols = (FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4)
             action.add_argument("--protocol", choices=protocols, default=FORECAST_PROTOCOL_V2,
                                 help="v4: the books' run on the released v4 pack")  # fmt: skip
     actions.add_parser("coverage", help="pack days with a counted forecast, per AI book")
     actions.add_parser("audits-due", help="routine sessions selected for a transcript audit and not yet audited")
+    register = actions.add_parser("register-v4-slots", help="the AI books' 10 v4 slot registrations, after the freeze")
+    register.add_argument("--print", action="store_true", dest="print_only", help="print the rows, write nothing")
     record = actions.add_parser("audit-record", help="record one routine session's transcript audit (written once)")
     record.add_argument("--day", type=date.fromisoformat, required=True, help="YYYY-MM-DD")
     record.add_argument("--book", required=True, choices=AI_BOOKS)
@@ -55,10 +60,13 @@ def cmd_ai(args) -> int:
     day = getattr(args, "day", None) or now_ist().date()
     if args.ai_cmd == "audit-record":
         return _audit_record(args)
+    if args.ai_cmd == "register-v4-slots":
+        return _register_v4_slots(args)
     if args.ai_cmd in ("fire", "collect") and args.protocol == FORECAST_PROTOCOL_V4:
         return _fire_v4(day) if args.ai_cmd == "fire" else _collect_v4(day)
-    commands = {"fire": _fire, "reveals-ready": _reveals_ready, "collect": _collect, "coverage": _coverage,
-                "audits-due": _audits_due}  # fmt: skip
+    if args.ai_cmd == "reveals-ready":
+        return _reveals_ready(day, args.protocol)
+    commands = {"fire": _fire, "collect": _collect, "coverage": _coverage, "audits-due": _audits_due}
     return commands[args.ai_cmd](day)
 
 
@@ -85,13 +93,15 @@ def _collect_v4(day: date) -> int:
     return 0
 
 
-def _reveals_ready(day: date) -> int:
+def _reveals_ready(day: date, protocol: str) -> int:
     from ..config import ROOT
-    from .paths import fired_path, reveal_path
+    from .run_terms import V2_TERMS, V4_TERMS
 
-    log = ROOT / fired_path(day)
-    fired = [b for b, e in json.loads(log.read_text(encoding="utf-8")).items() if e["fired"]] if log.is_file() else []
-    return 0 if all((ROOT / reveal_path(day, book)).is_file() for book in fired) else 1
+    terms = V4_TERMS if protocol == FORECAST_PROTOCOL_V4 else V2_TERMS
+    log = ROOT / terms.fired_path(day)
+    books = terms.fired_books(json.loads(log.read_text(encoding="utf-8"))) if log.is_file() else {}
+    fired = [book for book, entry in books.items() if entry["fired"]]
+    return 0 if all((ROOT / terms.reveal_path(day, book)).is_file() for book in fired) else 1
 
 
 def _collect(day: date) -> int:
@@ -148,3 +158,11 @@ def _audit_record(args) -> int:
         print(f"refused: {refused}")
         return 1
     return 0
+
+
+def _register_v4_slots(args) -> int:
+    from .wiring import build_slot_registrar
+
+    lines = build_slot_registrar().register(write=not args.print_only)
+    print("\n".join(lines))
+    return 1 if any("refused" in line for line in lines) else 0

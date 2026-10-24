@@ -122,3 +122,18 @@ pastes it, and no session changes a routine.
    - Step 0 (start on the latest main, DR1) is unchanged.
 4. **Until the owner pastes it**, the old prompt still works, because the commit no longer waits on pip. It only
    spends time on an install that nothing uses.
+
+## For G11's go-live (protocol v4): step 4 of both routines' prompt (not yet: the orchestrator says when)
+
+Builder: session_01Rga1fe3C4rmnrmmE1p3diE (G11). Lane 1: a routine's prompt. The owner pastes it; no session changes a
+routine. Why: under v4 GitHub must receive the sealed answer by 15:10:00 IST, not 15:15:00. The new step names no
+time: each prompt version gives its own deadline (version 1: 15:15:00; version 2: 15:10:00), so this text is right
+for both and may be pasted any day before `daily.live_from.ai_books_v4`. Replace step 4 in both routines with:
+
+> 4. Your answer must be sealed by the deadline your versioned instructions give. Never use `--no-verify`. If `seal`
+>    prints a line starting with "refused", do what your instructions say (fix what it names and run it again)
+>    while it is before that deadline. If it fails in any other way, or still refuses at that deadline, stop; final
+>    message: its last line.
+
+Version 2's instructions also run `reveal` again while it prints "waiting until 15:10:10 IST: run reveal again" (one
+call waits at most 9 minutes, inside the 10-minute Bash timeout); nothing in the stored prompt needs to change for it.
