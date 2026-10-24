@@ -362,11 +362,13 @@ judged.verdict.blocks` (true only for Book 2; Book 3's verdicts are evidence and
 run passes the check is `judge_failed` with the verdict's reason line, named in the step's alert; the verdict file
 (`journal/ai_decisions/<YYYY>/<d>_<book>_judge.json`) is committed with the run and the outcome record on every judged
 day. The judge is pure code with a 5 s budget measured inside it, so it fits `ai_collect`'s 15:11:00-15:12:00 window
-beside `decide()`. **One port, one owner:** `JudgeCase`, `Judged` and the `JudgeStep` interface live in F1t's
+beside `decide()`. **One port, one owner:** `JudgeCase`, `Judged`, the verdict type `JudgeVerdict(status, blocks,
+reason)` that `ai_collect` reads (judge 628 SF1) and the `JudgeStep` interface live in F1t's
 `fno/ai_trading/ports.py`, exactly as F4's text names them; F4's code implements `JudgeStep` behind
 `fno/judge/wiring.py: build_judge_step(root)` and defines no second copy (a one-line change to F4's text, for its
 builder). **Until F4's code merges,** the wiring injects `NoJudge`, whose verdict is always `unavailable` with the
-reason "judge not built (F4)": Book 2 is then `judge_failed` every day (fail closed, never a trade), Book 3 is
+reason "judge not built (F4)", written once as the day's verdict file (F4 design 4; judge 628 m1), whose path is
+`AcceptedDecision.judge`: Book 2 is then `judge_failed` every day (fail closed, never a trade), Book 3 is
 unaffected. Book 2's go-live therefore needs F4 merged (go-live checks).
 
 **Strategy label (owner, 25 Oct: trading before a strategy has passed is allowed on paper, labelled and reported
