@@ -103,8 +103,10 @@ def test_a_tampered_or_missing_record_stops_with_the_day_named(tmp_path):
 @pytest.fixture
 def drive_records(tmp_path, monkeypatch):
     """The real wiring, its receipts folder and Drive cache pointed at a fake Drive holding a system_late record for
-    22 Oct, the report's date: so the label can only come from Drive (no rule infers anything on the live date)."""
+    22 Oct, the report's date: so the label can only come from Drive (no rule infers anything on the live date). The
+    pack counts as live from 22 Oct here (a stored record before the pack's live date is ignored, judge 613)."""
     _, drive, _ = released(tmp_path, LIVE)
+    monkeypatch.setattr(wiring, "label_start", lambda cfg: LIVE)
     receipts = ReceiptFolder(tmp_path / "receipts")
     monkeypatch.setattr(data_wiring, "receipt_folder", lambda: receipts)
     monkeypatch.setattr(data_wiring, "build_drive_cache", lambda env=None: DriveCache(drive, receipts, tmp_path / "c"))

@@ -37,3 +37,26 @@ None (a text round). D1-D5's plants and my own are run at the code round.
 ## Notes
 
 - Deadline: no should-fix, so the code can start now for dry run 1 (Sun 25 Oct 12:00 IST).
+
+## Addendum 1
+
+**Code round 1 at story/o9-child-no-absent-cache @ e14fb9009: PASS (1 minor). Lane 1.** Judge F, own session. Trial
+merge with main 04aa9505a (clean): **16,400 passed, 1 skipped, 14 xfailed** (token kept); ruff, format (2,609 files),
+`check_imports`, `check_records` (9,231 files) clean.
+
+| Item | Result | My evidence |
+|---|---|---|
+| The change | MET | only `GoogleDriveStore._child` (`google_drive.py:68-86`): an empty answer returns None without caching; a found ID is cached as before |
+| My code-round condition (612 minor 1) | MET | `test_drive_absent_cache.py` D1, at depths 0, 1 and 3: on instance A after B's write, `get`, `file_id`, `metadata`, `checksums` and `folders` all see the file; plus a missing last folder under a found one |
+| 612 minor 2 (the fresh-lookup wording) | MET | corrected in the story |
+| No other code relies on a cached None | MET | every `_ids` use in `fno/` (`google_drive.py:66,74,85,86,104`; `google_drive_upload.py:42,46,56`) stores found or created IDs or pops a key; no membership test means "absent"; `put` asks `_child(...) or _create_folder`, and `_create_folder` re-checks with `_fresh_child` anyway |
+| No real-run change besides the extra list call | MET | a found path costs the same (D2's counting fake: no second list call); an absent path costs one call per lookup, where before it cost one per process |
+| Rate limits in a real run's busiest caller | NO RISK [reasoning, some evidence] | the busiest repeated absent lookup is `Librarian.fill` (`librarian.py:61-71`): one `get` per session day. Once the day's `put` creates the folder, the same instance finds it from its cache, so the extra calls are at most one per not-published or excepted day, beside an NSE fetch per day. `filings/coverage.py` lists distinct folders (distinct keys: no change). Calls pass through `DriveSession`'s retries of 429 and rate-limit 403s (`drive_session.py:13-16`) |
+
+**Plants (5 on e14fb9009, one at a time, over every test that touches the Drive store, tests/dr1 and
+tests/rehearsal, 297 tests): 5 caught.** absence cached again (7 fail); nothing cached (2); only absent folders cached
+(5); only absent files cached (2); the duplicate-name check off (2).
+
+**Minor.** The rehearsal sample (run 20261024T174640Z-a093aa) is green but not the proof, as the builder says: its read
+came after the 15:20:20.479 mask. The proof is D3-D4, red on main and green here, plus the builder's real-Drive probe.
+Rule 8, end to end: dry run 1 (Sun 25 Oct) must show `price_ranges` ok with a cold cache; cite its run log.

@@ -56,6 +56,13 @@ def test_rl2_both_builders_carry_the_rehearsed_date_and_a_real_run_the_real_one(
     assert build(config(), {}).live_from == LIVE
 
 
+def test_the_deadline_s_catch_up_starts_at_the_forecasts_live_date_not_the_pack_s(no_services):
+    """Judge 613 m1: the 15:10 catch-up checks the live forecasts' commitments from 22 Oct while the pack is live from
+    26 Oct (D2 revised moved only the day labels)."""
+    run = wiring.build_deadline_run(config(), {})
+    assert (run.live_from, run.checks_from) == (LIVE, FORECASTS)
+
+
 def release(tmp_path, env):
     drive, live = FakeDrive(), wiring.run_live_dates(config(), env)
     store = DataStore(drive, "data", ReceiptFolder(tmp_path / "receipts"), "v4-release", "run-1")
