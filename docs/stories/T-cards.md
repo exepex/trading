@@ -1242,7 +1242,7 @@ Out, with reasons:
   - `fno/rehearsal/guard.py`: one builder line.
   - Tests: `tests/cards/test_issue_guards.py` and `test_rehearsal_issue.py` are new; T1's tests and REH1's
     `test_guard.py` take the new constructor, map and count, with no assertion weakened.
-  - Every file is under 350 lines; the largest touched is 175 (`test_issue_guards.py`).
+  - Every file is under 350 lines; the largest new one is 201 (`test_issue_guards.py`).
 - **The rehearsal form builds no GitHub client.** `rehearsed_card_clocks(real)` takes a builder and calls it only
   outside a rehearsal. A spy on `wiring.HttpDateClock` counts 0 builds in the mode and 1 outside (P8).
 - **Criterion 6 as built.** It runs in a fresh process with REH1's real HTTP guard installed, as REH1's
