@@ -93,14 +93,18 @@ def test_a_failed_save_a_sidecar_off_main_and_a_file_with_no_sidecar_never_count
     sidecar(repo, B23, datetime(2026, 10, 23, 9, 33, tzinfo=UTC), saved=False)
     commit(repo, "failed save", datetime(2026, 10, 23, 9, 44, tzinfo=UTC))
     assert not seen(repo, B23, late)
-    git(repo, "checkout", "-q", "-b", "side")
-    sidecar(repo, f"{MONTH}/finnifty_20261023_150250", datetime(2026, 10, 23, 9, 33, tzinfo=UTC))
-    git(repo, "add", "-A")
-    git(repo, "commit", "-q", "-m", "on a branch", when=datetime(2026, 10, 23, 9, 50, tzinfo=UTC))
-    assert not seen(repo, f"{MONTH}/finnifty_20261023_150250", late)  # committed, but not on main
     assert not seen(repo, f"{MONTH}/midcpnifty_20261023_150400", late)  # no sidecar at all
     assert QuoteSidecars(repo).seen_at(f"data/{B22}.csv") is None  # outside the raw area
     assert QuoteSidecars(repo).seen_at(f"raw/{B22}.meta.json") is None  # not a quote file
+
+
+def test_a_sidecar_committed_only_on_a_branch_never_counts(tmp_path):
+    repo = record(tmp_path)
+    git(repo, "checkout", "-q", "-b", "side")
+    sidecar(repo, B23, datetime(2026, 10, 23, 9, 33, tzinfo=UTC))
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "on a branch", when=datetime(2026, 10, 23, 9, 50, tzinfo=UTC))
+    assert not seen(repo, B23, datetime(2026, 10, 25, tzinfo=UTC))  # committed and on disk, but not on main
 
 
 def test_a_sidecar_merged_into_main_counts_from_the_merge(tmp_path):
