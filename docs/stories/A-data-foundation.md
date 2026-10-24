@@ -883,7 +883,7 @@ of "canonical none" thinks the day is closed and a rerun is pointless, when in f
   | an outcome tail on every line, quiet days included | 2 |
   | "too early" dropped from `DONE_WITHOUT_ATTEMPT` | 3 |
 
-- **Gates (round 2):** GATES_PLACEHOLDER
+- **Gates (round 2), on a trial merge of the branch with `main` (fca1bd3f):** full suite (`env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -p no:cacheprovider -n auto`) 15135 passed, 15 xfailed; `ruff check`, `ruff format --check`, `check_imports` and `check_records` clean; `fno/daily/` untouched. Largest files: recorder.py 338, test_index_recording.py 215 lines (limit 350).
 
 **Builder self-review (quality rule 3; round 2).** Two independent review sessions (session_015TXt4cs8LT9DUh1DiHgd54:
 correctness; session_01WoVjvtpvG4LVHTvGAS5TEu: design and tests) read the diff at 0b8eaaef against `main` and this
