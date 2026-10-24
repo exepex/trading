@@ -104,21 +104,16 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
 |---|---|
 | 14:30:00 | The pack's capture starts (A4e's named window: spot, the future of `e`, India VIX, the chains, IV30); an incomplete capture retries |
 | 14:40:00 | **The pack's cutoff:** a field is in the pack only if its answer was received by 14:40:00 |
-| right after the capture ends, by 14:45:00 | **One release:** one pack, one SHA-256, to every family at the same moment; a release record written after 14:45:00 makes the day `system_late` ("released late"; G10 completion, decision D1, owner decided 24 Oct (DESK_DECISIONS)) |
+| at the latest 14:40 | **One release:** one pack, one SHA-256, to every family at the same moment |
 | 15:10:00 | **One deadline:** a commitment counts only if GitHub received its push by then (GitHub's receipt time, never a commit's own time) |
 | 15:15 | **Common snapshot** (A16's 15:15 mark): the skill yardstick of every desk decision and the flag's end level |
 
 - **Honest times:** every field keeps its real `observed_at`, the time its answer was received by this host's checked
   clock; `last_trade_time` is kept apart (the "traded today" check only) and is never the observation time. A capture
   whose clock was not checked ok before and after is not used.
-- **Day-quality label, one per day, on every v4 report, and joined to every v4 record by its day:**
-  `A`, every required field observed by 14:40:00 and released by 14:45:00; `system_late`, no complete pack by 14:40:00, a release
-  after 14:45:00, or no release record at all. A scored session from the pack's live date (`daily.live_from.v4_pack`)
-  with no release record is `system_late` once its day has passed (the next release run writes that record,
-  write-once; every reader applies the same rule meanwhile); the report's own date without a record is pending, never
-  scored; a day before that date has no label (no pack could exist, so it is no system failure; its rows stay in). A
-  verdict uses `A` days; every report counts both labels, the pending day and the flagged days.
-  (`A2`, A16's 14:30 mark as fallback,
+- **Day-quality label, one per day, on every v4 record and report:** `A`, every required field observed by 14:40:00;
+  `system_late`, no complete pack by 14:40:00, or no release record at all (written after the fact, write-once). A
+  verdict uses `A` days; every report counts both labels and the flagged days. (`A2`, A16's 14:30 mark as fallback,
   was dropped on 16 Oct: that mark has no India VIX, one monthly beside the weekly and no next monthly on an expiry
   day, so it can never hold a complete pack.)
 - **One pack, one hash:** a forecaster that reads the pack names the released pack's SHA-256 in its record; another or
@@ -318,8 +313,6 @@ missing; daily HAR never stands in again.
   the AI budget halved. Anything else: option 1 (continue to the projected settle date, a planning projection) when
   the best-powered question's projected settle date is at most 2 years after the review, else option 2 (code only).
   **No power report yet means no projected date: option 2** (reasoning only; section 11).
-- **The table's result is advice to the owner, never an automatic step** (owner, 21 Oct 2026, response 299 item 2):
-  the Innovation Lab decides what runs and with what budget; the review reports Test A, Test B and the table's option.
 
 ## 7. The 60-outcome power report (`power.py`): a planning projection only
 
@@ -398,14 +391,8 @@ confirmation of section 11's items A-C (given, 15 Oct 2026), D and E; X of secti
   / 316. Under E+D: V1 426 / 1,183 (about 1.7 / 4.7 years); V2 396 / 1,099 (about 8 / 22 years). Brier, by band
   (revision 5, at r = 3): V6a 221-631 at n = 125 and 586-1,047 at n = 250, with claim thresholds of 2.6e-14 to 2e-5
   (down to 1.4e-23 at n = 250, 5-7 days). **Such thresholds are effectively unreachable, so V6a, like V1 and V2,
-  will almost surely never be claimed.** V6b: 149-206 at the assumed r = 3, only in windows with 5 or more 2% days.
-  **These counts assume r = 3; the measured r is far larger (judge 128 addendum 5, on the 2017-26 back-fill): about
-  62 for V6b and 87 for V6a**, because one day's Brier difference on a rare 0/1 outcome swings far more than 2% of a
-  0.05-0.14 Brier. With the measured noise: **V6b needs about 14-22 years even if its full back-filled skill is real;
-  V6a and V1 are effectively unreachable; V2's 8-22 years above are at the assumed r = 3-5, so with real noise it
-  needs longer (its r is not measured: V2 has no primary baseline yet). Said plainly: no v4 member is provable in
-  useful time; v4 is an honest daily yardstick, not a path to proof** (owner, 21 Oct 2026, response 299 item 9; this
-  replaces the earlier "only V6b can be claimed, slowly"). V7 is descriptive-only (5.3; its own VIX null
+  will almost surely never be claimed.** V6b: 149-206 (about 3-4 years), only in windows with 5 or more 2%
+  days. **Said plainly: only V6b can be claimed, slowly, and see E.** V7 is descriptive-only (5.3; its own VIX null
   is measured in `PROTOCOL_v4_calibration.md` section 3). Other options: `v4_size_study.md`; futility as 5.5.
 - **E. Regime dependence (revisions 6-8, judge 98 addenda 6-7; calibration section 4), for the owner.** The regime
   caveat covers **every member's claims and futility, and so the whole of Test A**: a "yes" or "no" from a
