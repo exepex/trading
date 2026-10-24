@@ -404,6 +404,11 @@ last answer was archived). So the edge is reached only on a morning whose first 
   margin.
 - A call still answering after 09:11:00 stays `late`, alerted, with its value kept. A Groww that slow is worth
   flagging.
+- Parts are read one at a time (judge 604 m1). Index reads at 09:10:45 that each take up to Groww's 30 s call timeout
+  push the F&O list's 09:10:59 last read back (two such calls: to 09:11:45). If the list completes only then, it is
+  `late` (seen after its close), alerted, with its value kept; if it completed at an earlier read it is unaffected.
+  This is the existing one-read-at-a-time design, not new to A22e: before it, the list's 09:10:59 read was already
+  first of three due reads only because of the parts' order. Tested in E2's m1 case.
 
 ### Why not the other fixes
 
@@ -443,4 +448,16 @@ time.
 
 ### Claims (A22e)
 
-None yet: code starts after the text PASS.
+Text PASS: judge 604 (m1 carried into the rule above). Code on `story/a22e-last-read`.
+
+| Criterion | Code | Tests |
+|---|---|---|
+| E1 | `parts.py` `LAST_READ_MARGIN` (1 s) on `PreopenPart`, `INDEX_LAST_READ_MARGIN` (15 s) on `GrowwIndexPreopen`; `run.py` last read at `close - part.last_read_margin` | `test_last_read.py::test_e1_*` |
+| E2 | the same | `test_e2_*` (2 s calls both `ok`; the old 1 s plan gives "late: seen 09:11:03"; 14/15/16 s from 09:10:45: ok/late/late), `test_m1_*` |
+| E3 | the same (no new branch: a margin past the window leaves only the opening read) | `test_e3_*` |
+| E4 | unchanged reader | `test_open_check_record.py::test_d1_*` (both indices "ok (1 read(s))") |
+
+- REH1c's `RecordedPreopenPart` takes the live part's `last_read_margin`, so a rehearsal replays the live read plan.
+- `LAST_READ_BEFORE_CLOSE` in `run.py` is gone: the margin lives on the part.
+- A rehearsal of 23 Oct still shows BANKNIFTY `late`: its only archived answer is the one received at 09:11:01
+  (out of scope, a replay artifact).
