@@ -446,6 +446,12 @@ not the final-text commit (criterion 2), and the disclosure's robustness and Dri
 - **Import walk (orchestrator's note, judges 596-597), accepted:** criterion 11; A16b's `candle_rv_table.py`,
   `rv_table.py` and `row_files.py` are recorded with A16b's tests as their lock, and G7b names the W8 reader module.
 - **The first counted session S** is held open for the owner (section 5), with what it forces on `Frozen on:`.
+- **Judge 606 (round 1 on the code, blocking: G11's unclassed modules):** classed as judge B lists: `run_terms.py`,
+  `budget_stop.py` (a stop is a `not_fired` miss, so it decides misses: agreed, moved from my first "not deciding")
+  and `record_writer.py` recorded in the AI registration table; `usage_ledger.py`, `statistics.py` (G11's cost line
+  only), `alerts/sender.py`, `pipeline/trigger.py`, `budget/constants.py` and `budget/report.py` (the stop's names and
+  meter shape) not deciding; `timing.py` dropped (no longer reached). `fno/forecast/wiring.py`'s reason now says it
+  leaves the rate refusal, and the walk marks it stale, once G7b's wiring stops importing it.
 - **After the PASS (judge 597.2, orchestrator, 24 Oct):** m3, `fno/quotes/recorder.py` is recorded (A4's capture
   behind the pack; lock: A4's baseline-bytes test), with the five capture modules it imports; criterion 8 reads the
   freeze date from `FREEZE_v4.md` (BG1-t), no config key.
@@ -471,9 +477,9 @@ not the final-text commit (criterion 2), and the disclosure's robustness and Dri
 Criteria 5-8 and 10 are the freeze commit's (the record, the slot and ledger rows, the freeze date, the protocol
 commit); they are built when G7b and G11 are on `main`.
 
-- **Code:** `fno/forecast_scoring/v4/freeze_classes.py` (new: the three classes, 127 byte-checked files today, 54
-  recorded with their lock, 43 not deciding with a reason); `freeze_check.py` (`FreezeCheck`, `check`, `unmatched`,
-  `recorded` with G11's own "AI registration" table, `drift`, `protocol_problems`, `rate_readers`);
+- **Code:** `fno/forecast_scoring/v4/freeze_classes.py` (new: the three classes; on the tree merged with `main` of 24 Oct
+  evening, G11 included: 139 byte-checked files, 62 recorded with their lock, 50 not deciding with a reason);
+  `freeze_check.py` (`FreezeCheck`, `check`, `unmatched`, `recorded` with G11's own "AI registration" table, `drift`, `protocol_problems`, `rate_readers`);
   `freeze_disclosure.py` (new); `cli.py` and `wiring.py` (`build_freeze_check`; the report's first lines; the look
   refuses unless the freeze holds; the check is a required keyword argument); `fno/forecast_v4/pricing.py` (new,
   agreed byte for byte with G7b's builder); `fno/v4_pack/wiring.py` (`build_iv30_rule` at the v4 rate, `pricing.py`
