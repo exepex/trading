@@ -608,14 +608,34 @@ Branch `story/reh1g-record-gaps`, from main. DRY2's gaps are in docs/dryruns/DRY
     - an uncommitted row, a missing row, and the same file name under another dataset's folder never count;
     - the rehearsal's Drive is wired with the rows.
   - **Plants** (the time check dropped; uncommitted rows counted; the wiring without rows): each fails a test.
-- **G4, one serving window for every recorded source.**
+- **G4, two serving rules, each in one place (`serving.py`).**
   - **Cause:** the -5 s lookback was copied four times (cues, pre-open, closes, candles), and KOSPI's copy, 6.1 s before
-    the read, was missed.
-  - **Fix:** `serving.is_near`: from `EARLIER` (60 s) before now to `NEAREST` (10 min) after. An answer saved before
-    now is no look-ahead.
-  - **Tests** (`test_serving.py`): KOSPI's case; both edges of the window, exact to the microsecond; every recorded
-    source uses the one rule.
-  - **Plant** (5 s back): the tests fail.
+    the read, was missed. Earliest-first inside a 60 s lookback would also hand a 30-second pre-open retry the copy the
+    read before it already had.
+  - **Fix, a scheduled read** (A4h's closes, A16b's candles): `is_near`, from `EARLIER` (60 s) before now to `NEAREST`
+    (10 min) after, the day's first answer in it. The day saved its answer seconds to minutes after it asked.
+  - **Fix, a paced read** (A17e's cues, A22's pre-open parts; handover row 4): `ServedOnce.pick`, the day's copy
+    nearest to now within `AROUND` (60 s) either side, the earlier of two equally near, never one already served in
+    this process. A copy saved after now is served only once the source has waited until its saved time.
+  - **No look-ahead:** a copy saved before now existed then; one saved after now is waited for.
+  - **Tests** (`test_serving.py`, 8): KOSPI's case (served, no wait; a second read of the URL is NOT_RECORDED); both
+    windows' edges, exact to the microsecond; nearest, not earliest, and the tie; never twice; a pre-open retry at
+    08:40:30 gets the day's 08:40:31 answer, not the 08:40:01 one again, each at its own seen time; each source uses
+    its one rule.
+- **Plants** (24 Oct, each run alone on this branch's head, the file restored after; each fails at least one test):
+
+  | # | Plant | Fails |
+  |---|---|---|
+  | 1 | G1: A4b's `DriveOnlyQuoteStore` back in `record_quote_store` | `test_recorded_quotes.py` |
+  | 2 | G2: the time check dropped from `Visibility` | `test_manifest_rows.py` |
+  | 3 | G2: uncommitted rows counted | `test_manifest_rows.py` |
+  | 4 | G2: the rehearsal's Drive wired without rows | `test_manifest_rows.py` |
+  | 5 | G4: `EARLIER` back to 5 s | `test_serving.py` |
+  | 6 | G4: `AROUND` widened to 10 min | `test_serving.py` |
+  | 7 | G4: a picked copy not marked served | `test_serving.py` |
+  | 8 | G4: earliest instead of nearest | `test_serving.py` |
+  | 9 | G4: the pre-open part does not wait until the saved time | `test_serving.py` |
+  | 10 | G4: the cue session does not wait until the fetch time | `test_recorded_cues.py` |
 - **G5, `lab release-check`'s "unreachable": no change, with reason.** It is A8's own "says nothing" outcome for an
   unanswered read, right for a rehearsal. A rehearsal-only outcome there would put the mode into A8's code, which the
   only-the-roots-know-the-mode test forbids.
@@ -628,3 +648,4 @@ Branch `story/reh1g-record-gaps`, from main. DRY2's gaps are in docs/dryruns/DRY
   - Serving it needs a recorded NSE-archive session: the file the day archived, served once the replay clock nears
     its row's commit.
   - Until then, those reads stay NOT_RECORDED, which is honest and never a fetch.
+  - Built as REH1h, below.
