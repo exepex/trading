@@ -26,9 +26,9 @@ TODAY = date(2026, 10, 16)
 
 def config(**budget):
     """The app's settings with the decided plan cost and the data routines off, unless a test turns them on: each has
-    its own tests below."""
+    its own tests below. These tests are the 15 Oct cap's, so they run under `cap: share` (BG1-u keeps that path)."""
     settings = load_app_config()
-    settings["budget"] |= {"plan_cost": None, "data_routines": []} | budget
+    settings["budget"] |= {"cap": "share", "plan_cost": None, "data_routines": []} | budget
     return settings
 
 
