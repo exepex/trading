@@ -19,9 +19,9 @@ from fno.ai_trading.collect import DecisionCollector
 from fno.ai_trading.fire import DecisionFirer
 from fno.ai_trading.paths import WORK_FOLDER, common_pack_path, observations_path
 from fno.ai_trading.ports import DayPacks
-from fno.ai_trading.terms import decision_terms
 from fno.ai_trading.promote import Promoter
 from fno.ai_trading.steps import AiCollectStep, AiFireStep, ObserverHandle
+from fno.ai_trading.terms import decision_terms
 from fno.ai_trading.timing import decision_timing_from_config
 from fno.composition import build_record_scanner, open_account_writer
 from fno.config import load_app_config

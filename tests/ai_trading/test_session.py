@@ -108,8 +108,8 @@ def test_the_routine_side_imports_with_the_standard_library_only():
 
 def test_the_decision_run_times_itself_with_f8c_s_mechanism_under_its_own_role(repo):
     from fno.ai.paths import timing_path
-    from fno.ai_trading.paths import timing_path as decision_timing_path
     from fno.ai.usage_record import book_and_role
+    from fno.ai_trading.paths import timing_path as decision_timing_path
 
     routine(repo).run(pointer(repo).to_text(), draft(), at(15, 8))
     timing = json.loads((repo / decision_timing_path(DAY, "book2_hybrid")).read_text())

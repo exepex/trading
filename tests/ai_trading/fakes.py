@@ -9,8 +9,7 @@ from pathlib import Path
 
 from fno.ai.run_timing import RunTiming
 from fno.ai.sealed_publish import SealedPublisher
-from fno.ai_trading.paths import DECISION_RUN, timing_path
-from fno.ai_trading.paths import WORK_FOLDER
+from fno.ai_trading.paths import DECISION_RUN, WORK_FOLDER, timing_path
 from fno.ai_trading.session import DecisionSession
 from fno.ai_trading.versions import DecisionRegistry
 from tests.ai.fakes import Clock, LocalCommitTransport
