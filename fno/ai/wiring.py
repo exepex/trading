@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from datetime import date, timedelta
 
-from ..budget.wiring import build_usage_ledger
+from ..budget.wiring import build_month_meter, build_usage_ledger
 from ..composition import build_alert_sender
 from ..config import ROOT
 from ..constants import (
@@ -26,13 +26,14 @@ from ..pipeline.trigger import RoutineFireTrigger, RoutineTrigger, UnconfiguredT
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore
 from .audit_plan import fired_sessions, weeks_to_draw
+from .budget_stop import MeterBudgetStop
 from .close_archive import DriveIndexCloseArchive, NoCloseArchive
 from .collect import AiForecastCollector
 from .draw_seed import verified_seeds
 from .fire import AiBookFirer
 from .history import RepoHistory
 from .paths import CLOSES_FILE
-from .receipts import GitHubActivityReceipts
+from .receipts import GitHubActivityReceipts, PushReceipts
 from .record_writer import AiRecordWriter
 from .run_terms import V4_TERMS
 from .stop_rule import WINDOW_SESSION_DAYS
@@ -40,6 +41,7 @@ from .usage_gaps import alert_usage_gaps
 from .usage_record import BookUsageRecorder
 from .v4_book_inputs import V4BookInputs
 from .v4_collect import V4BookCollector
+from .v4_cost import V4CostReport
 from .v4_fire import V4BookFirer
 from .v4_settle import V4RowSettler
 
@@ -86,30 +88,40 @@ def build_v4_firer(env=os.environ) -> V4BookFirer:
     triggers = {book: build_book_trigger(book, env) for book in ROUTINES}
     inputs = build_v4_book_inputs()
     return V4BookFirer(ROOT, triggers, lambda: build_released_packs(env), inputs, build_alert_sender(), now_ist,
-                       v4_live_from(), v4_sessions_before)  # fmt: skip
+                       v4_live_from(), v4_sessions_before, MeterBudgetStop(build_month_meter))  # fmt: skip
 
 
 def v4_sessions_before(day: date) -> list[date]:
     """v4's last scored sessions before `day` (A7's regular sessions): the stop rule's 20-session window."""
+    found, step = [], day
+    while len(found) < WINDOW_SESSION_DAYS:
+        step -= timedelta(days=1)
+        found += v4_sessions_between(step, step)
+    return sorted(found)
+
+
+def v4_sessions_between(first: date, last: date) -> list[date]:
+    """v4's scored sessions (A7's regular sessions) from `first` to `last`, both included."""
     from ..forecast_v4.sessions import is_scored_session
     from ..storage.wiring import build_session_calendar
 
-    calendar, found = build_session_calendar(), []
-    while len(found) < WINDOW_SESSION_DAYS:
-        day -= timedelta(days=1)
-        if is_scored_session(calendar, day):
-            found.append(day)
-    return sorted(found)
+    calendar = build_session_calendar()
+    return [
+        d for d in (first + timedelta(days=n) for n in range((last - first).days + 1)) if is_scored_session(calendar, d)
+    ]
 
 
 def build_v4_collector(env=os.environ) -> V4BookCollector:
     from ..v4_pack.wiring import build_released_packs
 
     history = RepoHistory(ROOT)
-    receipts = GitHubActivityReceipts(env.get(GITHUB_REPOSITORY_VARIABLE, ""), env.get(ENV_GITHUB_TOKEN, ""), history)
     inputs = build_v4_book_inputs()
-    return V4BookCollector(ROOT, history, receipts, inputs, lambda: build_released_packs(env), now_ist,
-                           v4_live_from())  # fmt: skip
+    return V4BookCollector(ROOT, history, _receipts(history, env), inputs, lambda: build_released_packs(env), now_ist,
+                           v4_live_from(), v4_sessions_between)  # fmt: skip
+
+
+def build_v4_cost_report() -> V4CostReport:
+    return V4CostReport(ROOT, build_usage_ledger(ROOT), v4_live_from())
 
 
 def build_v4_settler(env=os.environ) -> V4RowSettler:
@@ -125,12 +137,16 @@ def build_ai_firer(env=os.environ) -> AiBookFirer:
 
 def build_ai_collector(env=os.environ) -> AiForecastCollector:
     history = RepoHistory(ROOT)
+    return AiForecastCollector(ROOT, history, _receipts(history, env), AiRecordWriter(ROOT), now_ist)
+
+
+def _receipts(history: RepoHistory, env) -> PushReceipts:
+    """GitHub's push receipts, or the rehearsal's push log during a rehearsal (REH1b), for v2 and v4 alike."""
     from ..rehearsal.receipts_wiring import rehearsed_receipts
 
-    receipts = rehearsed_receipts(
+    return rehearsed_receipts(
         GitHubActivityReceipts(env.get(GITHUB_REPOSITORY_VARIABLE, ""), env.get(ENV_GITHUB_TOKEN, ""), history), history
-    )  # REH1b: the rehearsal's push log
-    return AiForecastCollector(ROOT, history, receipts, AiRecordWriter(ROOT), now_ist)
+    )
 
 
 def record_book_usage(day) -> list[str]:

@@ -145,3 +145,12 @@ def test_the_guard_checks_the_book_of_the_version_that_names_the_folder(tmp_path
     write(tmp_path, book_day(book=BOOK2_HYBRID))
     assert checked == [(BOOK2_HYBRID, DAY.isoformat(), PACK, PACK)]
     assert (tmp_path / "book2_hybrid_v2").is_dir() and not (tmp_path / BOOK2_HYBRID).exists()
+
+
+def test_every_row_carries_the_release_records_pack_sha256(tmp_path):
+    """G11 C9: the released pack's SHA in G7's pack_sha256 column, on ok rows and misses alike."""
+    write(tmp_path, book_day())
+    write(tmp_path, book_day(UNSCORED, "late", book=BOOK2_HYBRID))
+    for folder in (BOOK3_V2, BOOK2_HYBRID + "_v2"):
+        for question in QUESTIONS:
+            assert records.read(records.path(tmp_path, folder, question))[DAY.isoformat()].pack_sha256 == PACK

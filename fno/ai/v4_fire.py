@@ -6,9 +6,10 @@ Drive credentials). Research only.
   the AI books' v4 go-live date (`daily.live_from.ai_books_v4`, the same date that stops the v2 AI fire: owner's
   choice A).
 - No released pack (none recorded, `system_late`, or bytes failing their receipt): nothing is fired; the log says why.
-- Per book: a start after `V4_LATEST_FIRE` (14:55), the stop rule, a pointer over the cap or a refused trigger is a
-  logged `not_fired`, with one #fno-desk line, never retried. The stop rule's day carries `"stop_rule": true`, the
-  flag `v4_rows` reads (never the reason's wording).
+- Per book: a start after `V4_LATEST_FIRE` (14:55), the stop rule, BG1's budget stop (`budget_stop.py`: forecasters
+  last), a pointer over the cap or a refused trigger is a logged `not_fired`, with one #fno-desk line, never retried.
+  The stop rule's day carries `"stop_rule": true`, the flag `v4_rows` reads (never the reason's wording); BG1's
+  carries `"budget_stop": true`. A budget reading that fails fires the books with one line (fail open).
 - The log (`ai_v4/<YYYY>/<d>_fired.json`) keeps what the collection needs: the version, the questions, the pack's
   and the input's SHA-256 and the routine's session link."""
 
@@ -27,6 +28,7 @@ from ..models import IST
 from ..pipeline.trigger import FireFailed, RoutineTrigger
 from ..v4_pack.model import Pack
 from ..v4_pack.release import NotReleased, ReleasedPacks
+from .budget_stop import BudgetStop
 from .run_terms import V4_TERMS
 from .stop_rule import stop_reason
 from .v4_book_inputs import QuestionsRefused, V4BookInputs
@@ -50,6 +52,7 @@ class V4BookFirer:
     clock: Callable[[], datetime]
     live_from: date | None
     sessions_before: Callable[[date], list[date]]  # v4's scored sessions before a day: the stop rule's window
+    budget: BudgetStop  # BG1's month: the AI forecasters stop last
 
     def fire(self, day: date) -> list[str]:
         refused = self._refused(day)
@@ -66,7 +69,10 @@ class V4BookFirer:
             self._write(log_file, {"released": False, "reason": str(missing)})
             return [LINE.format(day=day, result=f"nothing fired: {missing}")]
         late = self.clock() > datetime.combine(day, V4_LATEST_FIRE, IST)
-        log = {book: self._book(day, book, pack, release.pack_sha256, late) for book in AI_BOOKS}
+        budget = self.budget.check(day)
+        if budget.note:
+            self.alerts.send(LINE.format(day=day, result=budget.note))
+        log = {book: self._book(day, book, pack, release.pack_sha256, late, budget.stop) for book in AI_BOOKS}
         self._write(log_file, {"released": True, "pack_sha256": release.pack_sha256, "books": log})
         fired = [book for book, entry in log.items() if entry["fired"]]
         return [LINE.format(day=day, result=f"fired {', '.join(fired) or 'none'} of {', '.join(AI_BOOKS)}")]
@@ -79,7 +85,7 @@ class V4BookFirer:
             return NO_LIVE_DATE
         return NOT_LIVE.format(live_from=self.live_from) if day < self.live_from else ""
 
-    def _book(self, day: date, book: str, pack: Pack, pack_sha256: str, late: bool) -> dict:
+    def _book(self, day: date, book: str, pack: Pack, pack_sha256: str, late: bool, budget_stop: str) -> dict:
         version = current_version(book, FORECAST_PROTOCOL_V4)
         entry = {"version": version.label, "fired_at": self.clock().isoformat(), "pack_sha256": pack_sha256,
                  "fired": False, "stop_rule": False}  # fmt: skip
@@ -94,6 +100,8 @@ class V4BookFirer:
         stopped = stop_reason(self.root, book, version.label, day, V4_TERMS, self.sessions_before(day))
         if stopped:
             return self._not_fired(day, book, entry | {"stop_rule": True}, stopped)
+        if budget_stop:
+            return self._not_fired(day, book, entry | {"budget_stop": True}, budget_stop)
         pointer = V4Pointer(self.inputs.build(version, day, entry["questions"], pack, pack_sha256))
         entry["input_sha256"] = pointer.input_sha256
         try:

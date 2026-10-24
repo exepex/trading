@@ -74,6 +74,7 @@ class BookSession:
         self._save(SEALED_FILE, json.dumps({"answer": answer, "salt": salt}))  # kept before publishing: reveal needs it
         commitment = Commitment.of(answer, salt)
         commit = self.transport.publish(path, commitment.to_text(), _message(run, "commitment (sealed answer)"))
+        self.timing.sealed(run)
         deadline = run.terms.receipt_deadline(run.day)
         when = "before" if self.clock() <= deadline else "AFTER"
         self.out(f"sealed: {run.book} {run.day} commitment {commitment.commitment_sha256[:12]} in commit "
@@ -83,6 +84,7 @@ class BookSession:
     def reveal(self) -> None:
         run = self._run()
         sealed = json.loads(self._load(SEALED_FILE))
+        self.timing.reveal_called(run)
         opens = run.terms.reveal_opens(run.day)
         wait = (opens - self.clock()).total_seconds()
         if wait > REVEAL_WAIT_CAP:

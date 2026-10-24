@@ -8,7 +8,11 @@ the settled audit (`v4_settle.py`): a written row never changes, so it waits for
   for every registered question, so it is a miss, never a gap (design item 7).
 - No released pack: nothing is collected (no row; the look's reconciliation leaves `system_late` days out).
 - The release record is read here, never taken from the fire log: its SHA is stored in the audit, and the rows' pack
-  guard checks the pack each book was given against it (two sources, not one)."""
+  guard checks the pack each book was given against it (two sources, not one).
+- **Every session since go-live still without both audits is collected again** (G11 C19): a day whose GitHub receipt
+  time cannot be found yet (`ReceiptUnknown`) gets no verdict and no audit (never a guessed time; exposure needs both
+  books' times, so the whole day waits), is printed "awaiting GitHub's receipt" and is retried by every later collect;
+  a session the collect itself never ran is caught up the same way. G8's look refuses while such a day has no row."""
 
 from __future__ import annotations
 
@@ -23,7 +27,7 @@ from ..v4_pack.model import Pack
 from ..v4_pack.release import NotReleased, ReleasedPacks
 from .history import RepoHistory
 from .outcome import INVALID, NOT_FIRED, Outcome, judge, mark_exposures
-from .receipts import PushReceipts
+from .receipts import PushReceipts, ReceiptUnknown
 from .record_writer import audit_text
 from .run_terms import V4_TERMS
 from .submissions import read_submission
@@ -33,6 +37,7 @@ from .v4_pointer import v4_envelope, v4_labels
 from .versions import current_version, version_by_label
 
 LINE = "Omenix F&O AI forecasts v4 (GitHub Actions): {day}: {result}"
+AWAITING_RECEIPT = "awaiting GitHub's receipt ({why}); nothing written, the next collect retries it"
 NEVER_RAN = "the v4 fire never ran this session"
 NOT_REBUILT = "the input could not be rebuilt to the hash the fire logged ({why})"
 
@@ -46,10 +51,18 @@ class V4BookCollector:
     released: Callable[[], ReleasedPacks]
     clock: Callable[[], datetime]
     live_from: date | None
+    sessions: Callable[[date, date], list[date]]  # v4's scored sessions from the first day to the last, both included
 
     def collect(self, day: date) -> list[str]:
         if self.live_from is None or day < self.live_from:
             return [LINE.format(day=day, result="v4 is not live yet; nothing collected")]
+        days = [d for d in self.sessions(self.live_from, day) if d == day or not self._collected(d)]
+        return [line for d in days for line in self._collect_day(d)]
+
+    def _collected(self, day: date) -> bool:
+        return all((self.root / V4_TERMS.audit_path(day, book)).is_file() for book in AI_BOOKS)
+
+    def _collect_day(self, day: date) -> list[str]:
         try:
             packs = self.released()
             release = packs.release(day)
@@ -57,7 +70,10 @@ class V4BookCollector:
         except NotReleased as missing:
             return [LINE.format(day=day, result=f"no released pack ({missing}); nothing collected (no row)")]
         log = self._log(day, release.pack_sha256)
-        outcomes = {book: self._outcome(day, book, entry, pack) for book, entry in log["books"].items()}
+        try:
+            outcomes = {book: self._outcome(day, book, entry, pack) for book, entry in log["books"].items()}
+        except ReceiptUnknown as unknown:
+            return [LINE.format(day=day, result=AWAITING_RECEIPT.format(why=unknown))]
         mark_exposures(outcomes)
         lines = []
         for book, outcome in outcomes.items():
@@ -97,6 +113,9 @@ class V4BookCollector:
         if input_sha256(built) != entry["input_sha256"]:
             return _invalid(book, version.label, questions, NOT_REBUILT.format(why="another hash"))
         submission = read_submission(self.history, self.receipts, day, book, V4_TERMS)
+        unknown = [p.receipt_problem for p in (submission.commitment, submission.reveal) if p and p.received_at is None]
+        if unknown:
+            raise ReceiptUnknown(unknown[0])
         return judge(book, day, submission, v4_labels(built), v4_envelope(built), version, V4_TERMS, questions)
 
     def _write(self, day: date, outcome: Outcome, fired: dict, released_sha256: str) -> str:

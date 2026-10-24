@@ -77,10 +77,11 @@ def _fire_v4(day: date) -> int:
 
 
 def _collect_v4(day: date) -> int:
-    """Judges the day, then writes the rows of every settled day and counts those awaiting audit."""
-    from .wiring import build_v4_collector, build_v4_settler
+    """Judges the day, writes the rows of every settled day, counts those awaiting audit, then prints the runs' cost."""
+    from .wiring import build_v4_collector, build_v4_cost_report, build_v4_settler
 
-    print("\n".join(build_v4_collector().collect(day) + build_v4_settler().settle()))
+    collected = build_v4_collector().collect(day) + build_v4_settler().settle()
+    print("\n".join(collected + build_v4_cost_report().lines()))
     return 0
 
 

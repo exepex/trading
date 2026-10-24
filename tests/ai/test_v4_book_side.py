@@ -9,6 +9,7 @@ from datetime import datetime, time
 import pytest
 
 from fno.ai.book import REVEAL_WAIT_CAP, BookStepRefused
+from fno.ai.paths import timing_path
 from fno.ai.run_terms import V2_TERMS, V4_TERMS
 from fno.ai.seal import Commitment, open_reveal
 from fno.constants import BOOK2_HYBRID, BOOK3_AI
@@ -87,6 +88,8 @@ def test_one_early_reveal_waits_at_most_nine_minutes_and_says_to_run_it_again(de
     revealed = (desk / V4_TERMS.reveal_path(DAY, BOOK3_AI)).read_text(encoding="utf-8")
     commitment = Commitment.from_text((desk / V4_TERMS.commitment_path(DAY, BOOK3_AI)).read_text(encoding="utf-8"))
     assert open_reveal(revealed, commitment)["forecasts"][QUESTIONS[1]]["value"] == 4.5e-04
+    timed = json.loads((desk / timing_path(DAY, BOOK3_AI)).read_text(encoding="utf-8"))  # C17: work and wait apart
+    assert (timed["sealed_at"], timed["reveal_calls"]) == (at(14, 45).isoformat(), 3)
 
 
 @pytest.mark.parametrize(("now", "published"), [(at(15, 1, 10), True), (at(15, 1, 9), False)])

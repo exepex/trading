@@ -7,6 +7,7 @@ from datetime import date, datetime, time
 
 import pytest
 
+from fno.ai.budget_stop import BudgetCheck, BudgetStop
 from fno.ai.run_terms import V4_TERMS
 from fno.ai.v4_book_inputs import V4BookInputs
 from fno.ai.v4_fire import V4BookFirer
@@ -53,6 +54,11 @@ class Released:
         return a_pack()
 
 
+class NoBudgetStop(BudgetStop):
+    def check(self, day):
+        return BudgetCheck("", "")
+
+
 class Series:
     """G8's outcome series as the input reads it: each point question's history (none asked in these tests)."""
 
@@ -91,7 +97,7 @@ class Desk:
         inputs = V4BookInputs(root, ledger or Ledger(), ForecastFiles(v4), Series())
         packs = released or Released()
         self.firer = V4BookFirer(root, self.triggers, lambda: packs, inputs, self.alerts,
-                                 lambda: now or at(14, 33), live_from, lambda day: [])  # fmt: skip
+                                 lambda: now or at(14, 33), live_from, lambda day: [], NoBudgetStop())  # fmt: skip
 
     def log(self):
         return json.loads((self.root / V4_TERMS.fired_path(DAY)).read_text())

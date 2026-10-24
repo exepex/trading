@@ -24,7 +24,7 @@ from fno.constants import BOOK2_HYBRID, BOOK3_AI, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.inputs import ForecastFiles
 from fno.forecast_v4_rules import records
 from tests.ai.fakes import ROOT, FakeReceipts, git
-from tests.ai.test_v4_fire import DAY, Ledger, Released, Series, at, write_rules
+from tests.ai.test_v4_fire import DAY, Ledger, NoBudgetStop, Released, Series, at, write_rules
 from tests.pipeline.fakes import FakeTrigger, RecordingAlerts
 
 SETTLED = {DAY.isocalendar()[:2]: WeekSeed("2026-W44", "2026-10-30", "25000.0", "e" * 64)}  # the week is drawn
@@ -40,13 +40,14 @@ class V4Desk:
         git(root, "config", "user.name", "desk")
         git(root, "add", ".")
         git(root, "commit", "-q", "-m", "closes")
+        self.sessions = [DAY]  # the v4 sessions since go-live the collect may revisit (a test adds earlier ones)
         self.triggers = {BOOK2_HYBRID: FakeTrigger(BOOK2_HYBRID), BOOK3_AI: FakeTrigger(BOOK3_AI)}
         self.v4 = write_rules(root / "research/forecasts/v4")
         self.inputs = V4BookInputs(root, Ledger(), ForecastFiles(self.v4), Series())
 
     def fire(self, now=None):
         firer = V4BookFirer(self.root, self.triggers, lambda: Released(), self.inputs, self.alerts,
-                            lambda: now or at(14, 33), DAY, lambda day: [])  # fmt: skip
+                            lambda: now or at(14, 33), DAY, lambda day: [], NoBudgetStop())  # fmt: skip
         return firer.fire(DAY)
 
     def answer(self, book, sealed=None, revealed=None, values=(0.05, 0.18), model="claude-opus-5-5"):
@@ -65,10 +66,11 @@ class V4Desk:
         git(self.root, "commit", "-q", "-m", path)
         return git(self.root, "rev-parse", "HEAD").strip()
 
-    def collect(self, released=None):
+    def collect(self, released=None, day=DAY):
         collector = V4BookCollector(self.root, RepoHistory(self.root), self.receipts, self.inputs,
-                                    lambda: released or Released(), lambda: at(15, 31), DAY)  # fmt: skip
-        return collector.collect(DAY)
+                                    lambda: released or Released(), lambda: at(15, 31), min(self.sessions),
+                                    lambda first, last: [d for d in self.sessions if first <= d <= last])  # fmt: skip
+        return collector.collect(day)
 
     def settle(self, seeds=SETTLED, audited=(BOOK2_HYBRID, BOOK3_AI)):
         """Records a clean transcript audit for each fired book in `audited` (v4's first 10 days are all audited,
@@ -183,3 +185,34 @@ def test_v4s_deadline_is_g10s_receipt_rule(received):
     from fno.v4_pack.commitment import on_time
 
     assert (received <= V4_TERMS.receipt_deadline(DAY)) == on_time(received, DAY)
+
+
+def test_an_unknown_github_receipt_writes_no_verdict_and_the_next_collect_retries_it(desk):
+    """G11 C19: never a guessed time; the whole day waits (exposure needs both books' receipt times)."""
+    desk.fire()
+    desk.answer(BOOK3_AI)
+    desk.answer(BOOK2_HYBRID, values=(0.05, None))
+    known, desk.receipts.times = desk.receipts.times, {}  # GitHub's log cannot answer yet
+    lines = desk.collect()
+    assert len(lines) == 1 and "awaiting GitHub's receipt (no push of" in lines[0]
+    assert not any((desk.root / V4_TERMS.audit_path(DAY, b)).exists() for b in (BOOK2_HYBRID, BOOK3_AI))
+    desk.receipts.times = known  # the next collect finds them
+    assert all(" on_time: collected" in line for line in desk.collect())
+
+
+def test_a_past_session_the_collect_never_ran_is_caught_up_as_not_fired(desk):
+    earlier = DAY - timedelta(days=3)
+    desk.sessions = [earlier, DAY]
+    desk.fire()
+    desk.answer(BOOK3_AI)
+    lines = desk.collect()
+    assert any(line.startswith(f"Omenix F&O AI forecasts v4 (GitHub Actions): {earlier}: book3_ai not_fired")
+               for line in lines)  # fmt: skip
+    assert desk.audit(BOOK3_AI)["status"] == "on_time"  # today's day collected as before
+    assert json.loads((desk.root / V4_TERMS.audit_path(earlier, BOOK3_AI)).read_text())["status"] == "not_fired"
+    assert all(earlier.isoformat() not in line for line in desk.collect())  # collected once: never revisited
+
+
+def test_nothing_pending_says_zero_days_awaiting(desk):
+    desk.collect()
+    assert desk.settle()[0].endswith("0 day(s) awaiting audit")

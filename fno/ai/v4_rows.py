@@ -14,7 +14,8 @@ every failed run is a miss, never a gap.
   `forecaster_version`, `label=live` (AI answers have no back-fill), `kind=ai`, the book's slot, the prompt's hash in
   `method_sha256` and the book's own inputs' hash in `inputs_sha256`. Written once (`records.write`).
 - **The pack binding** (G10 part 2, judge 274 add. 1): before any row is written, the pack the book was given must be
-  the released one (`fno/v4_pack.guard`); on a `system_late` day (none released) the book has no row."""
+  the released one (`fno/v4_pack.guard`); on a `system_late` day (none released) the book has no row. Every row
+  then carries the release record's SHA in G7's `pack_sha256` column (G11 C9)."""
 
 from __future__ import annotations
 
@@ -81,9 +82,9 @@ def v4_status(day: BookDay) -> str | None:
     raise ValueError(UNKNOWN_OUTCOME.format(book=day.book, day=day.day, reason=gate.reason))
 
 
-def v4_rows(day: BookDay, questions: Sequence[str]) -> list[records.Record]:
+def v4_rows(day: BookDay, questions: Sequence[str], pack_sha256: str = "") -> list[records.Record]:
     """One row per started question; empty while the gate is pending. A scored day without a value for a question is
-    that question's `invalid` row (the book answered, but not this question)."""
+    that question's `invalid` row (the book answered, but not this question). `pack_sha256`: the release record's."""
     status = v4_status(day)
     if status is None:
         return []
@@ -93,7 +94,7 @@ def v4_rows(day: BookDay, questions: Sequence[str]) -> list[records.Record]:
     for question in questions:
         value = day.values.get(question) if status == OK else None
         own = status if status != OK or value is not None else INVALID
-        row = records.record(day.day, question, own, value, **audit)
+        row = records.record(day.day, question, own, value, pack_sha256, **audit)
         rows.append(replace(row, forecaster_version=day.registered.label))
     return rows
 
@@ -101,9 +102,9 @@ def v4_rows(day: BookDay, questions: Sequence[str]) -> list[records.Record]:
 def write_book_day(folder: Path, day: BookDay, questions: Sequence[str], released_sha256: str) -> int:
     """The day's rows written once in the book's own folder; the number added (0 while pending, or already written).
     `released_sha256`: the release record's pack (empty on a system_late day); another pack refuses every row."""
-    rows = v4_rows(day, questions)
-    if not rows:
+    if v4_status(day) is None:
         return 0
     check_pack_binding(day.book, day.day.isoformat(), day.pack_sha256, released_sha256)
+    rows = v4_rows(day, questions, released_sha256)
     written = zip(questions, rows, strict=True)
     return sum(records.write(folder, day.forecaster, question, [row]) for question, row in written)

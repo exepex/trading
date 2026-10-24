@@ -54,7 +54,8 @@ def test_the_reveal_publishes_the_run_from_brief_to_reveal_in_bg1s_shape(desk):
     routine = full_run(desk)
     path = desk / timing_path(DAY, BOOK3_AI)
     assert json.loads(path.read_text(encoding="utf-8")) == {"session_id": SESSION, "model": "",
-        "started_at": at(15, 11).isoformat(), "ended_at": at(15, 15, 10).isoformat()}  # fmt: skip
+        "started_at": at(15, 11).isoformat(), "ended_at": at(15, 15, 10).isoformat(),
+        "sealed_at": at(15, 13).isoformat(), "reveal_calls": 1}  # fmt: skip  # G11 C17: work and wait apart
     [usage] = SelfTimedUsageReader(path).days()
     assert (usage.day, usage.minutes, usage.turns) == (DAY, 4.17, 1)
     assert routine.printed[-1].startswith(f"timed: {BOOK3_AI} {DAY} from ")
