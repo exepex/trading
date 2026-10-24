@@ -47,3 +47,31 @@ kept: 853 passed, 15 xfailed.
 ## Plants
 
 None (text round). The 14 planned plants cover the rule's bounds, the label count and the check's source.
+
+## Addendum 1
+
+**A22d story text, round 2 of 2 (story/a22d-flat-candle @ 6e52b51a9): PASS. Lane 1.** Judge E. Since 5e2dfff03 the
+branch changes only `docs/stories/A22-preopen-data.md` (+29/-16) and its `docs/WORK_REGISTER.md` row. Judged by
+reading. Doc-reading tests with the token kept: 853 passed, 15 xfailed.
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF1: the open check had no time bound before GIFT's 08:40 read | **Accepted, fixed** | The check is now the last step of `preopen record`, after the capture's own commits. Nothing waits on it: no reader of the label until the next morning's row. I accept the reason given against a hard stop: a stop checked between calls cannot bound a single slow Drive call. D7 now tests a slow fake store (10 min per read on the injected clock): GIFT's first read is still at 08:40:00, the capture's commit comes before the check, and a check failure changes nothing of the capture. Plant 14 is restated to match |
+| m1: old-header day rows | Fixed | 23 Oct's row has no value, so it is skipped. A pre-A22d row with a value is checked with a blank basis and never counted. Both cases are in D4 and D5 |
+| m2: the Groww-history rows | Fixed | Marked * as the builder's read, which the repository cannot replay; the others are noted as reproduced by me |
+
+**Dates checked.** Today's label is written at 09:11, from check files that exist by then: the check for yesterday
+runs after today's row. So the label counts sessions up to the day before yesterday. NSE's calendar has no holiday or
+special day from 26 Oct to 4 Nov (`nse_sessions.csv`). Five live values (26-30 Oct), the fifth checked on Mon 2 Nov,
+make Tue 3 Nov's row the earliest `verified`, as written.
+
+## Findings
+
+None blocking, none should-fix.
+
+## Note (not a finding)
+
+The run's last line changes. After this, `preopen record`'s lines end with "open check: ..." and it can exit 1 for a
+check problem. CLAUDE.md's pre-open section says the command "ends on 'pre-open recorded' or 'pre-open recorded with
+problems: ...'". No code parses that line (my grep outside `fno/preopen/`). The section should still be updated with
+the code: it is a rule document, lane 2, unless the orchestrator folds it into this change.
