@@ -761,6 +761,14 @@ test: added. Not changed: (5) a part with no window now raises `TypeError` in `_
 **Gates** (main and REH1k merged in, the token kept): 16539 passed, 14 xfailed, 0 failed; ruff, format, imports,
 record scan clean (numbers run on `main`).
 
+#### Claims, code round 2 (judges 619 K: PASS, 616.1 F: FAIL on one test-only should-fix)
+
+Test only; no code changed. Judge 616.1 is right: at 09:10:45 the 09:10:30 copy (15 s back) is already nearer than
+09:11:01 (16 s ahead), so filtering after the pick also passed round 1's case. The case now reads at 09:10:50, where
+09:11:01 (11 s ahead) is the nearer copy and 09:10:30 (20 s back) the right one; the docstring says so
+(`test_a_late_copy_never_hides_an_earlier_one_inside_the_window`). Plant, judge F's: "filter after the pick" (pick the
+nearest of every copy, then refuse one seen at or after the close): caught by that test, and by no other.
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
