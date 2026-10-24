@@ -9,6 +9,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from ..forecast_v4_rules.candle_history import CandleSession
 from ..forecast_v4_rules.series import SessionRv
 
 CANDLE, LIVE = "candle", "live"
@@ -18,6 +19,11 @@ CANDLE, LIVE = "candle", "live"
 class SplicedRv:
     rv: SessionRv  # the row read, as v4's forecasters take it
     source: str  # CANDLE or LIVE
+
+
+def from_candle(sessions: list[CandleSession]) -> list[SessionRv]:
+    """W8's reader's sessions (`candle_history`) as v4's forecasters take a row: void stays None."""
+    return [SessionRv(s.day, s.rv_session, s.first_seen_at) for s in sessions]
 
 
 def _usable(rows: list[SessionRv], d: date, cutoff: datetime) -> dict[date, SessionRv]:

@@ -7,14 +7,16 @@ from dataclasses import replace
 from datetime import date
 
 import pytest
-from v5v1_fixtures import candle_rows, live_rows, oct
+from v5v1_fixtures import candle_rows, oct
 
 from fno.forecast_scoring.v4.outcomes import OutcomeSeries, SeriesOutcomes
 from fno.forecast_v4.loss import ranking_qlike
+from fno.forecast_v4_rules.candle_history import paired_rv
+from fno.forecast_v4_rules.pack_wiring import live_rv
 from fno.forecast_v4_rules.records import record
 from fno.forecast_v5_v1 import records
 from fno.forecast_v5_v1.gap import gap_table
-from fno.forecast_v5_v1.report import live_targets, render, score
+from fno.forecast_v5_v1.report import render, score
 
 SESSIONS = [oct(16), oct(19), oct(21), oct(22), oct(23), oct(26)]
 
@@ -31,7 +33,7 @@ def _rows(*pairs):
 
 
 def test_the_target_is_the_next_sessions_live_rv():
-    live = live_targets(live_rows())
+    live = live_rv()
     s = score("f", _rows((oct(19), 1.0e-4), (oct(21), 1.2e-4)), live, SESSIONS)
     assert (s.scored, s.void, s.pending) == (2, 0, 0)
     expected = (ranking_qlike(1.0e-4, 1.142562e-4) + ranking_qlike(1.2e-4, 1.210651e-4)) / 2
@@ -39,13 +41,13 @@ def test_the_target_is_the_next_sessions_live_rv():
 
 
 def test_a_void_target_is_counted_and_never_scored():
-    s = score("f", _rows((oct(22), 1.0e-4)), live_targets(live_rows()), SESSIONS)  # 23 Oct live is void
+    s = score("f", _rows((oct(22), 1.0e-4)), live_rv(), SESSIONS)  # 23 Oct live is void
     assert (s.scored, s.void, s.scores) == (0, 1, None)
 
 
 def test_a_void_or_unrecorded_live_target_is_never_resolved_by_a_candle_row():
     # 23 Oct void live; even a candle row for it must not resolve 22 Oct's forecast, and 26 Oct has no live row yet
-    live = live_targets(live_rows())
+    live = live_rv()
     assert oct(16) in {c.day for c in candle_rows()} and live[oct(16)] is None
     s = score("f", _rows((oct(23), 1.0e-4), (date(2026, 10, 15), 1.0e-4)), live, SESSIONS)
     assert (s.scored, s.pending) == (0, 1)  # 23 Oct -> 26 Oct pending; 15 Oct -> 16 Oct void
@@ -54,7 +56,7 @@ def test_a_void_or_unrecorded_live_target_is_never_resolved_by_a_candle_row():
 
 def test_rows_without_a_value_and_backfilled_rows_are_not_scored():
     rows = {oct(19).isoformat(): _row(oct(19), None), oct(21).isoformat(): replace(_row(oct(21), 1e-4), label="x")}
-    s = score("f", rows, live_targets(live_rows()), SESSIONS)
+    s = score("f", rows, live_rv(), SESSIONS)
     assert (s.rows, s.not_ok, s.scored) == (1, 1, 0)
 
 
@@ -66,17 +68,15 @@ def test_no_rows_gives_not_enough_data_yet():
 
 
 def test_the_gap_table_prints_19_21_and_22_oct():
-    # G7b's `backfill_pairs` shape: (day, candle, live) over the non-void live days, a missing side None
-    candle = {c.day: c.value for c in candle_rows()}
-    pairs = [(r.day, candle.get(r.day), r.value) for r in live_rows() if r.value is not None]
+    pairs = paired_rv(live_rv(), {c.day: c.value for c in candle_rows()})  # G7b's one pairing
     lines = gap_table(pairs)
     assert lines[0] == "Measure gap: candle RV (15m bars) vs live quote RV"
     assert [line.split(" | ")[-1].rstrip(" |") for line in lines[3:]] == ["0.962", "0.997", "1.009"]
 
 
-def test_no_pairs_or_one_sided_pairs_say_so():
+def test_no_pairs_say_so():
     assert gap_table([])[1] == "no session has both an ok candle row and an ok live row yet"
-    assert gap_table([(oct(23), None, 1.0e-4)])[1] == "no session has both an ok candle row and an ok live row yet"
+    assert gap_table(paired_rv({oct(23): None}, {oct(23): 1.0e-4})) == gap_table([])
 
 
 class _LiveOnly(OutcomeSeries):
@@ -102,7 +102,7 @@ class _LiveOnly(OutcomeSeries):
 
 
 def test_the_target_agrees_with_v4s_own_v1_outcomes():
-    live = live_targets(live_rows())
+    live = live_rv()
     v4 = SeriesOutcomes(_LiveOnly(live)).outcomes("v1_rv_next_session")
     for d in SESSIONS[:-1]:
         s = score("f", _rows((d, 1.0e-4)), live, SESSIONS)

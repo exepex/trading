@@ -14,6 +14,8 @@ from fno.forecast_v5_v1.method import (
     FREEZE_STARTS,
     RECORD_STARTS,
     SHARED,
+    WIRING,
+    _imports,
     checked,
     freeze_files,
     method_sha256,
@@ -44,14 +46,16 @@ def test_the_freeze_walk_adds_the_report_side():
 
 @pytest.fixture
 def copy(tmp_path) -> Path:
-    for relative in {*checked(ROOT, RECORD_STARTS), *SHARED}:
+    for relative in {*checked(ROOT, RECORD_STARTS), *SHARED, WIRING}:
         target = tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / relative, target)
     return tmp_path
 
 
-@pytest.mark.parametrize("planted", ["fno/intraday/candle_rv_table.py", "fno/forecast_v4_rules/baselines.py"])
+@pytest.mark.parametrize(
+    "planted", ["fno/intraday/candle_rv_table.py", "fno/forecast_v4_rules/baselines.py", "fno/forecast_v5_v1/wiring.py"]
+)
 def test_one_changed_byte_changes_the_method_hash(copy, planted):
     before = method_sha256(copy)
     assert before == method_sha256(ROOT)
@@ -91,3 +95,13 @@ def test_a_new_package_file_is_frozen_at_once(copy):
     (copy / "fno" / "forecast_v5_v1" / "cli.py").write_text("from ..config import ROOT\n")
     assert "fno/forecast_v5_v1/cli.py" in freeze_files(copy)
     assert "fno/config.py" not in freeze_files(copy)  # cli's imports are not walked
+
+
+def test_candle_rows_reach_the_package_only_through_w8s_reader():
+    imports = {
+        f
+        for p in (ROOT / "fno" / "forecast_v5_v1").glob("*.py")
+        for f in _imports(ROOT, p.relative_to(ROOT).as_posix())
+    }
+    assert "fno/forecast_v4_rules/pack_wiring.py" in imports  # candle_history(), the one reader
+    assert not imports & {"fno/intraday/candle_rv_table.py", "fno/intraday/rv_table.py", "fno/intraday/row_files.py"}

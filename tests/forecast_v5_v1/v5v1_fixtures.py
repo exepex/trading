@@ -1,24 +1,19 @@
-"""Real A16 and A16b rows (committed under research/data/intraday) for G14's tests. `candle_rows` stands in for G7b's
-candle reader (amendment 1's interface: method rv-candle-15m-v1, value None when void) until it is on main; the
-package itself never reads candle files (criterion 11)."""
+"""Real A16 and A16b rows (committed under research/data/intraday) for G14's tests, read through G7b's one candle
+reader (`pack_wiring.candle_history`) as the package's wiring reads them."""
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 
+from fno.forecast_v4_rules.pack_wiring import candle_history
 from fno.forecast_v4_rules.series import SessionRv, live_intraday_rv
-from fno.intraday.candle_rv_table import CandleRvTable
+from fno.forecast_v5_v1.history import from_candle
 from fno.intraday.rv_table import RvTable
 from fno.intraday.wiring import INTRADAY_FOLDER
 
-CANDLE_METHOD = "rv-candle-15m-v1"
-
 
 def candle_rows() -> list[SessionRv]:
-    rows = [r for r in CandleRvTable(INTRADAY_FOLDER).rows() if r["method"] == CANDLE_METHOD]
-    out = [SessionRv(date.fromisoformat(r["session"]), float(r["rv_session"]) if r["status"] == "ok" else None,
-                     datetime.fromisoformat(r["first_seen_at"])) for r in rows]  # fmt: skip
-    return sorted(out, key=lambda s: s.day)
+    return from_candle(candle_history())
 
 
 def live_rows() -> list[SessionRv]:

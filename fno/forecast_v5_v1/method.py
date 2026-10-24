@@ -15,6 +15,7 @@ from pathlib import Path
 
 PACKAGE = "fno/forecast_v5_v1"
 RECORD_STARTS = (f"{PACKAGE}/history.py", f"{PACKAGE}/capture.py", f"{PACKAGE}/records.py")
+WIRING = f"{PACKAGE}/wiring.py"  # picks the reader and the inputs: hashed, its imports not followed (v4's whole app)
 FREEZE_STARTS = (*RECORD_STARTS, f"{PACKAGE}/method.py", f"{PACKAGE}/report.py", f"{PACKAGE}/gap.py")
 CANDLE_TABLE = "fno/intraday/candle_rv_table.py"  # A16b's file layout and columns (the reader's table class)
 SHARED = (  # changed by other stories almost daily (125 commits in the 10 days to 24 Oct 2026)
@@ -81,9 +82,10 @@ def freeze_files(root: Path) -> list[str]:
 
 
 def method_sha256(root: Path) -> str:
-    """Each record's method hash: SHA-256 over the checked files' paths and bytes, in path order."""
+    """Each record's method hash: SHA-256 over the paths and bytes of the checked files and the wiring, in path
+    order."""
     digest = hashlib.sha256()
-    for relative in checked(root, RECORD_STARTS):
+    for relative in sorted({*checked(root, RECORD_STARTS), WIRING}):
         digest.update(f"{relative}\n".encode())
         digest.update((root / relative).read_bytes())
     return digest.hexdigest()
