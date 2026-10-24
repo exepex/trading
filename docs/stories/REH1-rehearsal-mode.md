@@ -1320,3 +1320,62 @@ REH1j's exercised line).
 | `lab preview` | | Never part of a rehearsed routine; FL1-1f's own command |
 | The morning's and evening's other commands (librarians, certify, closes read) | | Not gated by `forecast_lab.live_from`; they run as today |
 | A 22 Oct evening rehearsal reading the morning rehearsal's edition (judge 611 m1) | | Each rehearsal has its own run id and writes only under its own `dryrun/<run_id>/`; another run's folder is never read, and the real record holds no 22 Oct morning edition (live from 23 Oct). So anything a 22 Oct evening rehearsal would read of a 22 Oct morning rehearsal's output is absent, as on a day that edition never ran; each edition reads only its own run's `dryrun/` and the real record |
+
+#### Claims, code round 1 (for judge E and a second judge)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1k-lab-editions` (main merged in, REH1j included). Code:
+- `fno/forecast_lab/wiring.py`: `lab_live` (REH1c's own `rehearsed_live` on the lab's dates: no second rule);
+  `build_edition` takes the run's dates and notes its process (`note_this_process`); `build_composer` takes the dates it
+  is given (`live`), so the edition and its `CloseReport` agree; `build_preview` passes the real dates (no note).
+- `fno/rehearsal/live_wiring.py`: `note_this_process`. `fno/rehearsal/routines.py`: `Command.live_key` on `lab open`
+  (`morning`) and `lab close` (`evening`) only.
+- `fno/rehearsal/rehearse.py`: `run_routine` keeps a not-live command's outcome out of "failed" and in `exercised`
+  (refused without a record; a lone not-live command never returns its own line); `_not_live_editions` reads the
+  clone's own `config.yaml`. `fno/rehearsal/exercised_line.py`: `not_live_result`, and `report_exercised` takes the
+  routine's commands beside the daily run's full log.
+
+| Criterion | Tests | Plants (each caught by its own test) |
+|---|---|---|
+| K1 | `test_lab_editions.py`: 22 Oct both editions live with the note; 23 Oct (the live day) and no mode unchanged; a null date's note; the real `build_edition` takes the date and notes its process, both editions | the root not taking `lab_live`; `<` made `<=` |
+| K2 | the edition's labelled posts carry the note; a live edition's do not | the note not set |
+| K3 | a not-live `lab open` exiting 1: "2 commands done" and exercised; on its live day "failed: lab open"; no record refused; a lone not-live command exercised; only the lab editions name a key | the key ignored; a not-live failure counted; the routine's keys dropped; no record allowed; a lone command's own line |
+| K4 | `test_checkout.py`: through `rehearse` itself, the line after the routine's last line, posted once; the not-live set from the checkout's own config | commands not reported; editions not computed; a failed command shown ok |
+| K5 | no mode: dates unchanged, no note (judge 611 m2); full suite | as K1 |
+
+**Plants:** 11 planted, 11 caught, in a separate worktree, each restored with `git checkout --`.
+
+**Self-review** (an independent review agent on `3006d6732`): no blocking finding. Fixed: the test fixture let the
+edition's note leak into later tests of the same worker (`monkeypatch.delenv` on an unset variable records nothing;
+now set first, then deleted); a not-live command with no `exercised` record would have vanished (now refused); a lone
+not-live command would have returned its own exit (now exercised); `_not_live_editions` read the source's config,
+not the clone's (now the clone's); `lab preview` under a rehearsal would have used rehearsed dates with no note (now
+the real dates); the config-coupled test now writes its own `config.yaml`.
+
+**Found while testing, fixed here (REH1h's own test, on main):** `test_recorded_archive_wiring.py` patched the constant
+`fno.storage.wiring.MANIFEST_FOLDER`. A module first imported during that test (`fno/intraday/backfill_daily.py`,
+which imports the constant at module level) kept the patched path for the rest of the xdist worker, and a later
+`test_rehearsed_day` in that worker failed ("... is not in the subpath of ..."): 2 of 3 runs here. The test now
+patches the writers' builder `build_manifest_folder`; 5 of 5 runs pass.
+
+**Real output samples** (the orchestrator's go, 24 Oct; this branch at a63623fb7, a full clone, the token kept):
+- `rehearse morning --day 2026-10-22`, run 20261024T185957Z-f11608, branch
+  `refs/heads/rehearsal/2026-10-22-20261024T185957Z-f11608`, ended "3 commands done". `lab open` exercised, failed:
+  "lab open 2026-10-22: the morning report was not made (RuntimeError); nothing was posted". The cause, reproduced
+  in that clone: "G13b's records could not be read verified from Drive: data/price_ranges/v1/live: no receipts under
+  it". On 22 Oct at 08:38 G13b had issued nothing yet (its first issue was 22 Oct 15:45), so the edition's input did
+  not exist: an honest exercised failure, posted, not a REH1k fault. #fno-desk, read back:
+  "*DRY RUN, 2026-10-22 replay, not a real trading day*" / "not live in real runs on 2026-10-22 (live from
+  2026-10-23)" / "F&O forecast lab 2026-10-22: the morning report was not made (RuntimeError); nothing was posted";
+  and "*DRY RUN, 2026-10-22 replay, not a real trading day*" / "not live in real runs (exercised): lab open failed:
+  ...".
+- `rehearse evening --day 2026-10-22`, run 20261024T190141Z-16b951, branch
+  `refs/heads/rehearsal/2026-10-22-20261024T190141Z-16b951`, ended "7 commands done": "lab close 2026-10-22: report
+  to #fno-forecast: posted", "not live in real runs (exercised): lab close ok". #fno-forecast, read back: "*DRY RUN,
+  2026-10-22 replay, not a real trading day*" / "not live in real runs on 2026-10-22 (live from 2026-10-23)" /
+  "*Was today's forecast right?* (Thu 22 Oct, 20:05) ... :x: *NIFTY* today: no verdict. No forecast was issued for
+  today (the Wed 21 Oct 15:45 issue holds no next-session forecast for Thu 22 Oct) ..." (the same for BANKNIFTY, with
+  each one's next ranges). #fno-desk: "*DRY RUN, 2026-10-22 replay, not a real trading day*" / "not live in real runs
+  (exercised): lab close ok".
+- Every post of both runs carries the bold label; none was unlabelled.
+
+**Gates** (main merged in): 16404 passed, 14 xfailed, 0 failed; ruff, format, imports, record scan, numbers clean.
