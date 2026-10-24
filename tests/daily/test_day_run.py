@@ -7,7 +7,7 @@ from datetime import timedelta
 import pytest
 
 from fno.constants import BOOK1_RULES, DAILY_RUN_STEPS, DESK_RUN_STEPS, STEP_FAILED, STEP_OK, STEP_REFUSED
-from fno.daily.quote_parts import GROWW_QUOTES, PART_NOT_OK, QUOTE_PARTS
+from fno.daily.quote_parts import GROWW_QUOTES, NIFTY_QUOTES, PART_NOT_OK, QUOTE_PARTS
 from fno.daily.quote_steps import FinishQuoteParts, StartQuoteParts
 from fno.daily.runner import DAY_DONE, NO_CARD, DayRunner
 from fno.daily.steps import Alerted
@@ -20,7 +20,7 @@ from tests.timetable.test_daily_run import HOLIDAY, NORMAL, decided
 from .fakes import RecordedStep, RecordingCommitter, quote_parts
 
 NIFTY, NSE, INDICES = (part.arguments for part in QUOTE_PARTS)
-NIFTY_SPEC, NSE_SPEC, BANKNIFTY_SPEC = GROWW_QUOTES.format(name="nifty"), "research/data/quotes/nse/", (
+NIFTY_SPEC, NSE_SPEC, BANKNIFTY_SPEC = NIFTY_QUOTES, "research/data/quotes/nse/", (
     GROWW_QUOTES.format(name="banknifty"))  # fmt: skip
 FILES = {NIFTY_SPEC: ["nifty.canonical"], NSE_SPEC: ["nse.canonical"], BANKNIFTY_SPEC: ["banknifty.canonical"]}
 

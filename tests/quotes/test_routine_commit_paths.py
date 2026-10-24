@@ -10,7 +10,7 @@ GROWW = "research/data/quotes/groww/derivatives/quote-snapshots/2026/10"
 NSE = "research/data/quotes/nse/derivatives/quote-snapshots/2026/10"
 WEEKLY = "research/data/quotes/groww/derivatives/quote-snapshots-weekly/2026/10"
 PARTS = {
-    "nifty": ["':(glob)research/data/quotes/groww/**/nifty_*'"],
+    "nifty": ["':(glob)research/data/quotes/groww/derivatives/quote-snapshots/**/nifty_*'"],  # G10: never the v4 dataset
     "nse": ["research/data/quotes/nse/"],
     "indices": [
         f"':(glob)research/data/quotes/groww/**/{name}_*'"

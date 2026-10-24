@@ -60,10 +60,11 @@ cancels orders.
    Every scheduled routine sets up this way, never with bare `pip` (it may fill another Python).
 2. `python -m fno daily run` (story O1). It runs the day's steps in the order of `DAILY_RUN_STEPS`
    (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
-   forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), E3's desk (pack, Book 1's
+   forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), protocol v4's release
+   (story G10: from `daily.live_from.v4_pack`, after the `v4` quote part's 14:30-14:40 capture), E3's desk (pack, Book 1's
    decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk and, from 15:33 IST (after
-   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww).
-   It writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
+   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww),
+   A4h's close reads and, last, v4's 15:10 deadline check (G10). It writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
    done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
    same day skips the steps already done. A "waiting until HH:MM IST" line is a wait for the next step's time, never a
    hang: never stop the run while it waits. A second run beside a living one prints "another daily run of <day> is
@@ -88,7 +89,7 @@ each part's commit in its one thread. The `git add` lines below are also the han
 3. Each part commits and pushes only its own files to `main`, one commit at a time (`git pull --no-rebase origin main`
    first, then `git push origin HEAD:main`); never
    `git add research/data/quotes/` as a whole. NIFTY first, as soon as its result line is printed: `git add
-   ':(glob)research/data/quotes/groww/**/nifty_*'`. NSE when it is done: `git add research/data/quotes/nse/`. Never edit
+   ':(glob)research/data/quotes/groww/derivatives/quote-snapshots/**/nifty_*'`. NSE when it is done: `git add research/data/quotes/nse/`. Never edit
    or delete a recorded attempt or `.canonical` file. If the record scan refuses the commit, do not commit and never
    bypass it (`--no-verify`). The hook posts its lines (file, line and kind of value; never the value) to #fno-desk
    itself when `FNO_SLACK_BOT_TOKEN` is set; if it prints "alert NOT sent", post those lines with the Slack connector.
@@ -99,6 +100,9 @@ each part's commit in its one thread. The `git add` lines below are also the han
    ':(glob)research/data/quotes/groww/**/finnifty_*' ':(glob)research/data/quotes/groww/**/midcpnifty_*'
    ':(glob)research/data/quotes/groww/**/niftyweekly_*'`, commit and push. It alerts #fno-desk itself for any index
    not recorded.
+3c. Protocol v4's capture (story G10, from `daily.live_from.v4_pack`): `python -m fno quotes record --window v4` (A4e:
+   14:30-14:40 IST, its own dataset) starts with the parts above and commits alone as soon as it ends, never after
+   NIFTY: `git add ':(glob)research/data/quotes/groww/derivatives/quote-snapshots-v4/**'`.
 4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day": the command itself
    posts its three alerts to #fno-desk (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day trades",
    "stopped, nothing recorded" (the calendar cannot answer for today, e.g. a new year missing: add NSE's holiday

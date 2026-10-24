@@ -8,12 +8,12 @@ One git at a time: commits happen only in the run's one thread, between the desk
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from ..alerts.sender import AlertSender
-from ..constants import STEP_FAILED, STEP_REFUSED
+from ..constants import STEP_FAILED, STEP_NOT_LIVE, STEP_REFUSED
 from ..desk.daily_ports import CommitFailed, Committer
 from ..models import IST
 from ..quotes.indices import INDEX_WINDOW_END
@@ -22,9 +22,11 @@ from ..quotes.weekly import WEEKLY_DATASET, WEEKLY_STEM
 from .earlier_run import EarlierRun, PartMarkers
 from .part_locks import PartLocks
 from .processes import Process, Processes
-from .steps import outcome
+from .steps import NO_DATE, NOT_LIVE, outcome
 
 GROWW_QUOTES = ":(glob)research/data/quotes/groww/**/{name}_*"  # A4c's per-part paths, as CLAUDE.md gives them
+# NIFTY's own dataset only: `groww/**/nifty_*` would also take a named window's files (G10: `quote-snapshots-v4`)
+NIFTY_QUOTES = f":(glob)research/data/quotes/{DATASET}/**/nifty_*"
 INDICES = ("banknifty", "finnifty", "midcpnifty")
 # G4: the run's one committer remembers the commit, so the desk's next push takes it to origin
 NOT_PUSHED = "F&O daily run {day}: quote part {name} committed, NOT pushed (the next push carries it): {reason}"
@@ -46,11 +48,15 @@ NOT_IN_THIS_RUN = "not in this run: an earlier run started it and ended, its win
 STARTED, RESTARTED, ADOPTED, EARLIER = "started", "restarted", "adopted", "earlier run"  # each part's `how` (F1)
 FINISH_LIMIT = timedelta(minutes=20)
 START_MARGIN = timedelta(minutes=3)  # inside A4's early limit by this much, for a slow start or a late clock
+
+
 # A4's recorder refuses a start more than `MAX_EARLY_WAIT_SECONDS` before its window ("too early", nothing recorded):
 # the earliest moment a 3 pm part may start, from A4's own constants (14:38 today)
-EARLIEST_START = (
-    datetime.combine(date.min, WINDOW_START) - timedelta(seconds=MAX_EARLY_WAIT_SECONDS) + START_MARGIN
-).time()
+def earliest_start(window_start: time, max_early_wait_seconds: int) -> time:
+    return (datetime.combine(date.min, window_start) - timedelta(seconds=max_early_wait_seconds) + START_MARGIN).time()
+
+
+EARLIEST_START = earliest_start(WINDOW_START, MAX_EARLY_WAIT_SECONDS)
 
 
 @dataclass(frozen=True)
@@ -62,10 +68,12 @@ class QuotePart:
     not_before: time | None = None  # never starts earlier than this (A4's early limit)
     canonicals: tuple[tuple[str, str], ...] = ()  # (dataset, stem) of each canonical marker it records (A4)
     window_end: time = WINDOW_END  # a rerun restarts it only before this (A4's window; the indices' own)
+    live_key: str | None = None  # its `daily.live_from` key; None: always live (A4's parts)
+    apart: bool = False  # its own dataset and window: commits as soon as it ends, never after NIFTY (G10's `v4`)
 
 
 QUOTE_PARTS = (
-    QuotePart("nifty", ("quotes", "record"), (GROWW_QUOTES.format(name="nifty"),), not_before=EARLIEST_START,
+    QuotePart("nifty", ("quotes", "record"), (NIFTY_QUOTES,), not_before=EARLIEST_START,
               canonicals=((DATASET, "nifty"),)),
     QuotePart("nse", ("quotes", "record", "--source", "nse"), ("research/data/quotes/nse/",),
               not_before=EARLIEST_START, canonicals=((NSE_DATASET, "nifty"),)),
@@ -88,7 +96,10 @@ class QuoteParts:
         clock: Callable[[], datetime],
         locks: PartLocks,
         markers: PartMarkers,
+        live: Mapping[str, date | None] | None = None,
     ):
+        """`live`: each `live_key`'s first live date (`daily.live_from`); a part whose key is not live that day never
+        starts and is recorded `not_live`."""
         self.parts, self.processes, self.committer, self.changed, self.alerts, self.clock = (
             parts,
             processes,
@@ -97,7 +108,7 @@ class QuoteParts:
             alerts,
             clock,
         )
-        self.locks, self.markers = locks, markers
+        self.locks, self.markers, self.live = locks, markers, live or {}
         self.day: date | None = None
         self.running: dict[str, Process] = {}
         self.results: dict[str, dict] = {}
@@ -109,6 +120,7 @@ class QuoteParts:
         later (`start_due`); the names of those parts."""
         if self.day != day:
             self.day = day
+            self._not_live()
             self.start_due()
         return [part.name for part in self.parts if part.starts_after is None]
 
@@ -118,7 +130,10 @@ class QuoteParts:
         run when every canonical marker exists, restarted while its window is open, and otherwise failed with one
         alert. NIFTY still commits first and the indices still start after it, whatever each part's `how`."""
         self.day = day
+        self._not_live()
         for part in self.parts:
+            if part.name in self.results:
+                continue
             if self.locks.held(day, part.name):
                 self._earlier(part, ADOPTED)
             elif self.markers.recorded(day, part.canonicals):
@@ -165,7 +180,7 @@ class QuoteParts:
         self.start_due()
         for name, process in list(self.running.items()):
             code = process.poll()
-            if code is not None and (name == LEAD or LEAD in self.results):
+            if code is not None and (name == LEAD or LEAD in self.results or self._part(name).apart):
                 self._finish(self._part(name), code, process.lines(), process.alerted(), process.errors())
         for part in self.parts:
             if self.started and not self.closed and self._unstarted(part) and part.starts_after in self.results:
@@ -191,6 +206,16 @@ class QuoteParts:
             if part.name not in self.results:
                 self._failed(part.name, NEVER_STARTED)
         return self.results
+
+    def _not_live(self) -> None:
+        """Each part whose live key is not live on the day: recorded `not_live`, never started, never alerted."""
+        for part in self.parts:
+            if part.live_key is None:
+                continue
+            live_from = self.live.get(part.live_key)
+            if live_from is None or self.day < live_from:
+                why = NO_DATE if live_from is None else NOT_LIVE.format(live_from=live_from)
+                self.results[part.name] = {"status": STEP_NOT_LIVE, "reason": why, "commit": None}
 
     def _unstarted(self, part: QuotePart) -> bool:
         return part.name not in self.running and part.name not in self.results
