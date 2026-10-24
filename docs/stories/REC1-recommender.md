@@ -17,8 +17,9 @@ the owner's go sets `daily.live_from.recommend`.
   only, "a future green would mean eligible for the owner's own review, never buy" (item 9), and no licence without a
   sample-size plan, a one-sided 95% lower bound above zero after multiple-test adjustment and a second forward window
   (item 4). DESK_DECISIONS 23 Oct ("AI drivers start after j") put the recommender after the 30-session review.
-  **How this story reconciles the two (assumption A1, for the owner):** the recommender is built and switched on now,
-  and the 30-session review is the first thing that can raise its confidence. Nothing in 327's statistics changes.
+  **How the two fit (A1, answered by the owner's 25 Oct decision, orchestrator 25 Oct):** the recommender is built and
+  switched on now, and the 30-session review is the first thing that can raise its confidence. Nothing in 327's
+  statistics changes.
 
 ## What exists today (strong evidence: code on main 142e745)
 
@@ -118,15 +119,20 @@ first (327 item 9 named it a separate owner decision).
 
 | Part | What | Main files (new unless said) | Target |
 |---|---|---|---|
-| REC1a | contracts (`Recommendation`, two answer enums, reason codes, `EvidenceRung`), the rung rule, its R1 card and D6 row, the record codec, dashboard contract fields | `fno/recommend/contracts.py`, `rungs.py`, `codec.py`, `research/recommend/CARD_REC1.md`, `fno/constants.py` names | 27-30 Oct |
-| REC1b | `recommend decide`, the daily step, Drive store + receipt, card `RecommendationStatus` | `fno/recommend/decide.py`, `inputs.py`, `store.py`, `wiring.py`, `cli.py`; `fno/constants_operations.py` (one row), `fno/daily/wiring.py`, `fno/cards/wiring.py` (one line each) | 30 Oct-4 Nov |
-| REC1c | `recommend check` and the evening routine step | `fno/recommend/check.py`, CLAUDE.md evening step | 4-7 Nov |
-| REC1d | morning and evening sections read the record | `fno/school/reports/` adapter (MS-P1g owner agreed) | 7-10 Nov |
-| REC1e | LR1 weekly section | `fno/learning/recommend_section.py` (LR1 owner agreed) | 10-12 Nov |
+| REC1a | contracts (`Recommendation`, two answer enums, reason codes, `EvidenceRung`), the rung rule, its R1 card and D6 row, the record codec, dashboard contract fields | `fno/recommend/contracts.py`, `rungs.py`, `codec.py`, `research/recommend/CARD_REC1.md`, `fno/constants.py` names | 27-28 Oct |
+| REC1b | `recommend decide`, the daily step, Drive store + receipt, card `RecommendationStatus` | `fno/recommend/decide.py`, `inputs.py`, `store.py`, `wiring.py`, `cli.py`; `fno/constants_operations.py` (one row), `fno/daily/wiring.py`, `fno/cards/wiring.py` (one line each) | 28-30 Oct |
+| REC1c | `recommend check` and the evening routine step | `fno/recommend/check.py`, CLAUDE.md evening step | 2-5 Nov |
+| REC1d | morning and evening sections read the record | `fno/school/reports/` adapter (MS-P1g owner agreed) | 5-9 Nov |
+| REC1e | LR1 weekly section | `fno/learning/recommend_section.py` (LR1 owner agreed) | 9-11 Nov |
 | RM1x | RM1 covers driver versions (only after the owner's yes to A3) | `research/evaluation/REAL_MONEY_GATE.md` | after A3 |
 
-Judging and fixes to about 16-20 Nov; `daily.live_from.recommend` stays null until the owner's go. Each part is one
-judge (none fills or exits); the orchestrator names a second judge if it judges otherwise.
+**Release 1 (orchestrator, 25 Oct: every day it runs is a day of recorded, checkable verdicts): REC1a and REC1b are
+judged and go live first**, target the week of 26 Oct (merge about Fri 30 Oct, first live session Mon 2 Nov at the
+latest; a judge round or a REC1a card freeze that slips moves it, it is not shortened). REC1a's R1 card is frozen
+before REC1b's first live day. Release 2 (REC1c-e) follows, about 9-13 Nov; until it, the record holds each day's
+verdict and the evening check is built later from the same records, so no day is lost. `daily.live_from.recommend`
+stays null until the owner's go. Each part is one judge (none fills or exits); the orchestrator names a second
+judge if it judges otherwise. No merge 14:00-16:15 IST on a session day.
 
 ## Acceptance (each with good, bad, boundary and empty cases and a planted failure the tests catch)
 
@@ -171,8 +177,8 @@ judge (none fills or exits); the orchestrator names a second judge if it judges 
 
 ## Questions for the owner (each with the recommended answer; the text assumes it)
 
-- **A1.** Switch the recommender on as soon as it is judged, saying `NO TRADE` honestly, rather than waiting for the
-  30-session review. Recommended: yes; the review is then what first moves a rung.
+- **A1. Answered** (owner, 25 Oct: build fully now): switched on as soon as judged; the 30-session review is what
+  first moves a rung.
 - **A2.** Keep booking measurement paper trades of unproven versions, labelled "measurement, not a recommendation",
   while the recommendation says `NO TRADE`. Recommended: yes; without them no evidence ever accrues. (The owner's 22
   Oct words "will not place a paper trade" read literally would stop the school.)
