@@ -2,6 +2,7 @@
 seen time, read by the live part's own reader; a moment with nothing recorded is the capture's own failure. A replay
 clock is not checked against servers, and says so."""
 
+import hashlib
 from datetime import date, datetime, timedelta
 
 import pytest
@@ -44,7 +45,9 @@ class LivePart(PreopenPart):
 @pytest.fixture
 def record(tmp_path):
     receipts = ReceiptFolder(tmp_path)
-    receipts.write(Receipt(GIFT, "a" * 64, 2, "2026-10-23T03:10:01+00:00", "preopen record", "r"))
+    receipts.write(
+        Receipt(GIFT, hashlib.sha256(b"{}").hexdigest(), 2, "2026-10-23T03:10:01+00:00", "preopen record", "r")
+    )
     return receipts, {GIFT: b"{}"}
 
 
@@ -60,6 +63,22 @@ def test_a_moment_with_no_recorded_answer_is_the_capture_s_own_failure(record):
     receipts, files = record
     clock = Clock(datetime(2026, 10, 23, 9, 30, tzinfo=IST))
     with pytest.raises(PartFailed, match="rehearsal:NOT_RECORDED gift"):
+        RecordedPreopenPart(LivePart(), receipts, files.get, clock, clock.sleep).answer(DAY)
+
+
+def test_a_copy_that_differs_from_its_receipt_is_refused(record):
+    """Judge 563 SF1: the bytes must hash to the receipt's SHA-256."""
+    receipts, _ = record
+    clock = Clock(datetime(2026, 10, 23, 8, 39, 55, tzinfo=IST))
+    with pytest.raises(PartFailed, match="differs from its receipt"):
+        RecordedPreopenPart(LivePart(), receipts, {GIFT: b"changed"}.get, clock, clock.sleep).answer(DAY)
+
+
+def test_an_answer_more_than_ten_minutes_ahead_is_not_served(record):
+    """Judge 563's note: the window's upper bound."""
+    receipts, files = record
+    clock = Clock(datetime(2026, 10, 23, 8, 29, 59, tzinfo=IST))  # 10 min 1 s before the 08:40:00 answer
+    with pytest.raises(PartFailed, match="rehearsal:NOT_RECORDED"):
         RecordedPreopenPart(LivePart(), receipts, files.get, clock, clock.sleep).answer(DAY)
 
 

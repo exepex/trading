@@ -16,6 +16,10 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 DAY = date(2026, 10, 23)
 
 
+COMMAND = re.compile(r"python\s+-m\s+fno\s+((?:[a-z][a-z0-9-]*\s+)*[a-z][a-z0-9-]*)")
+NOT_REHEARSED: dict[str, set[str]] = {}  # a routine's command a rehearsal leaves out, with its reason (none today)
+
+
 def section(title: str) -> str:
     text = (REPOSITORY / "CLAUDE.md").read_text(encoding="utf-8")
     start = text.index(f"## {title}")
@@ -23,16 +27,48 @@ def section(title: str) -> str:
     return text[start : end if end != -1 else None]
 
 
-def test_every_routine_command_is_its_claude_md_section_s_own():
+def steps(text: str) -> dict[str, str]:
+    """The section's numbered steps (`1.`, `1b.`, `2.`), before any `###` subsection (the daily one's 3 pm parts are
+    the run's own children, not the routine's commands)."""
+    text = text.split("\n### ", 1)[0]
+    found = re.split(r"^(\d+[a-z]?)\. ", text, flags=re.M)
+    return dict(zip(found[1::2], found[2::2], strict=True))
+
+
+def names(text: str) -> set[str]:
+    return {" ".join(m.group(1).split()) for m in COMMAND.finditer(text)}
+
+
+def documented(routine) -> set[str]:
+    """Every `python -m fno` command the routine's own steps name: the morning and the evening share their section,
+    split by its own markers (1b and "The morning:", 1c and "The evening:")."""
+    parts = steps(section(routine.section))
+    if routine.name not in ("morning", "evening"):
+        return set().union(*(names(t) for t in parts.values()))
+    morning_2, evening_2 = re.split(r"The\s+evening:", parts["2"], maxsplit=1)  # the doc wraps its lines
+    return names(parts["1b"] + morning_2) if routine.name == "morning" else names(parts["1c"] + evening_2)
+
+
+def rehearsed(routine) -> set[str]:
+    return {" ".join(a for a in c.args[: next((i for i, a in enumerate(c.args) if a.startswith("--")), None)])
+            for c in routine.commands}  # fmt: skip
+
+
+def test_every_routine_command_in_claude_md_is_rehearsed_and_nothing_else():
+    """Judge 563 SF2: both ways. A command the routine's steps name is in its list (or named as not rehearsed), and
+    the list holds nothing its steps do not name."""
     for routine in ROUTINES.values():
-        text = section(routine.section)
-        for command in routine.commands:
-            first_option = next((i for i, a in enumerate(command.args) if a.startswith("--")), len(command.args))
-            words = command.args[:first_option]  # the command's name; the rehearsal names the day itself
-            pattern = r"python\s+-m\s+fno\s+" + r"\s+".join(map(re.escape, words))  # the doc wraps its lines
-            assert re.search(pattern, text), (routine.name, words)
+        expected = documented(routine) - NOT_REHEARSED.get(routine.name, set())
+        assert rehearsed(routine) == expected, routine.name
         for path in routine.receipts:
-            assert path.rstrip("/") in text.replace("<morning|evening>", routine.name), (routine.name, path)
+            assert path.rstrip("/") in section(routine.section).replace("<morning|evening>", routine.name), path
+
+
+def test_the_two_way_check_catches_a_missing_and_an_extra_command():
+    evening = ROUTINES["evening"]
+    short = Routine("evening", evening.section, evening.start, evening.commands[:-1])
+    extra = Routine("evening", evening.section, evening.start, (*evening.commands, Command(("weather", "capture"))))
+    assert rehearsed(short) != documented(evening) and rehearsed(extra) != documented(evening)
 
 
 FAKE_FNO = """import sys

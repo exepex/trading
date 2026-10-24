@@ -491,6 +491,28 @@ now, once the replay clock reaches that time, read from the real record:
 **Not in REH1c (said plainly):**
 - No routine has been rehearsed against the real record yet. That is REH1d, after the judges and O9's read-only fix,
   on the orchestrator's go.
-- The evening's `data-snapshot fii-dii-cash-by-session` reads NSE live, and has no recorded form yet, so in a
-  rehearsal it is refused by the HTTP guard: a loud failure, never a fetch.
+- The evening's `data-snapshot fii-dii-cash-by-session` has no recorded form yet. (Corrected in round 2: it is not
+  refused by the HTTP guard. Its session comes from `build_nse_source`, which in a rehearsal is REH1b's
+  `NotRecordedSession`, so it ends `rehearsal:NOT_RECORDED` and the request is never sent.)
 - The paper accounts are read as they are now (the stated limit from REH1a).
+
+### REH1c round 2 (judge 563, and the orchestrator's points)
+
+- **SF1, the pre-open answer is checked against its receipt.** `RecordedPreopenPart` now reads the answer's SHA-256
+  from its receipt and refuses a copy that is missing from Drive or differs from it ("rehearsal: the recorded answer
+  ... is missing from Drive or differs from its receipt"), as the other recorded sources do. Planted break (the check
+  removed): `test_a_copy_that_differs_from_its_receipt_is_refused` fails.
+- **SF2, the routines held to CLAUDE.md both ways.** `test_routines.py` now reads every `python -m fno` command in
+  each routine's own numbered steps and asserts the rehearsed list is exactly that list: a command in the doc and not
+  rehearsed fails, and so does a rehearsed command the doc does not name (`NOT_REHEARSED` is empty). It found two
+  missing commands, now rehearsed: the morning's `records certify closes --since 7 --level certified --commit` and
+  the evening's `records certify closes --level provisional --commit`. Each commits its own `receipts/records/` with
+  `--commit`, as in the routine. Planted break (the evening's `data-snapshot` removed): the test fails.
+- **Notes.** `test_an_answer_more_than_ten_minutes_ahead_is_not_served` pins the upper bound of the serving window.
+  `FNO_REHEARSAL_NOT_LIVE` is set process-wide while a step runs. That is safe only because the daily run's steps run
+  one at a time; a parallel step runner would have to pass it per child. This is said here so it is not lost.
+- **The fii-dii snapshot (the orchestrator).** The claim above is corrected:
+  `test_the_evening_s_fii_dii_snapshot_is_not_recorded_never_a_guard_refusal` builds `FiiDiiCashBySessionSource`
+  through `build_nse_source` under the mode and pins `rehearsal:NOT_RECORDED`, with no request made.
+- **The conflict with main** in `fno/close_read/wiring.py` is resolved by keeping both sides: main's
+  `build_stored_index_close_files` and REH1b's `rehearsed_close_list`.
