@@ -39,3 +39,24 @@ map to a criterion or to "Out" with its reason. At least these:
 2. **State the exit code.** "Too early" counts as missing today, so the part exits 1. Say that it stays so, and make
    it a criterion. It is the signal O1 uses to report the part, and the day ends "day done with problems" until the
    O1 fix lands.
+
+## Addendum 1: text round 2 at a2e3061e
+
+**Verdict: PASS for the A4c-2 story text. Code may come.** I judged only the text commit. The draft code commits on
+the branch (2425cc96, 8ca0ba05) are judged in the code round.
+
+Doc-reading tests on a2e3061e: **829 passed**, 15 xfailed.
+
+| Finding | Answer | My check | Result |
+|---|---|---|---|
+| B1: no gap list | 12 rows, each to a criterion or to Out (the root cause, to O1's R1) | read; every item I named maps | **Accepted** |
+| Minor 1: what to do | "a rerun from 14:41 to 15:13 records it", both times from the constants | true to the code: a start from 14:41:00 waits (`>`), and A4c's stop is inclusive (judge 441) | **Accepted** |
+| Minor 2: the exit code | criterion 6: exit 1 with exactly one alert | read | **Accepted** |
+
+New in the text: one `earliest_waiting_start` in A4's recorder, which O1's 14:44 builds on. It is right: one
+subtraction, not two. Criterion 8 pins it for both windows.
+
+For the code round, the claims must show:
+- DRY2's 14:38 lines replayed;
+- a planted bug per criterion;
+- that O1's pinned 14:38 and 14:44 are unchanged by whichever branch merges second.
