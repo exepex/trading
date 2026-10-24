@@ -1,7 +1,8 @@
 """The 3 pm quote parts inside the daily run (story O1, A4c's passed routine steps 2-3b, judge 169): NIFTY (Groww) and
-NSE start together at the run's start, the other indices right after NIFTY's commit, each in its own window. They run
-as child processes beside the desk's steps, and the run's one thread commits each part's own files when it ends, NIFTY
-first, through E3's committer (its guard, pull and push attempts), never `research/data/quotes/` as a whole.
+NSE start together at the run's start, the other indices right after NIFTY's commit (never before their own early
+limit), each in its own window. They run as child processes beside the desk's steps, and the run's one thread
+commits each part's own files when it ends, NIFTY first, through E3's committer (its guard, pull and push attempts),
+never `research/data/quotes/` as a whole.
 
 One git at a time: commits happen only in the run's one thread, between the desk's steps or while it waits
 (`ServicingWaiter`), so a part's commit and a desk commit never interleave in the one checkout (criterion 4a)."""
@@ -16,7 +17,7 @@ from ..alerts.sender import AlertSender
 from ..constants import STEP_FAILED, STEP_REFUSED
 from ..desk.daily_ports import CommitFailed, Committer
 from ..models import IST
-from ..quotes.indices import INDEX_WINDOW_END
+from ..quotes.indices import INDEX_WINDOW_END, INDEX_WINDOW_START
 from ..quotes.recorder import DATASET, MAX_EARLY_WAIT_SECONDS, NSE_DATASET, WINDOW_END, WINDOW_START
 from ..quotes.weekly import WEEKLY_DATASET, WEEKLY_STEM
 from .earlier_run import EarlierRun, PartMarkers
@@ -46,11 +47,17 @@ NOT_IN_THIS_RUN = "not in this run: an earlier run started it and ended, its win
 STARTED, RESTARTED, ADOPTED, EARLIER = "started", "restarted", "adopted", "earlier run"  # each part's `how` (F1)
 FINISH_LIMIT = timedelta(minutes=20)
 START_MARGIN = timedelta(minutes=3)  # inside A4's early limit by this much, for a slow start or a late clock
-# A4's recorder refuses a start more than `MAX_EARLY_WAIT_SECONDS` before its window ("too early", nothing recorded):
-# the earliest moment a 3 pm part may start, from A4's own constants (14:38 today)
-EARLIEST_START = (
-    datetime.combine(date.min, WINDOW_START) - timedelta(seconds=MAX_EARLY_WAIT_SECONDS) + START_MARGIN
-).time()
+
+
+def earliest_start(window_start: time) -> time:
+    """A4's recorders refuse a start more than `MAX_EARLY_WAIT_SECONDS` before their window ("too early", nothing
+    recorded): the earliest moment a part of that window may start, from A4's own constants."""
+    return (datetime.combine(date.min, window_start) - timedelta(seconds=MAX_EARLY_WAIT_SECONDS) + START_MARGIN).time()
+
+
+EARLIEST_START = earliest_start(WINDOW_START)  # NIFTY's and NSE's: 14:38 today
+# The indices' own (14:44 today): a NIFTY part that ends early never starts them "too early" (DRY2 R1, 24 Oct)
+INDEX_EARLIEST_START = earliest_start(INDEX_WINDOW_START)
 
 
 @dataclass(frozen=True)
@@ -59,7 +66,7 @@ class QuotePart:
     arguments: tuple[str, ...]  # the part's own `python -m fno` command, unchanged
     pathspecs: tuple[str, ...]  # its own files, and only its own
     starts_after: str | None = None  # starts once this part has ended and its commit was made or tried
-    not_before: time | None = None  # never starts earlier than this (A4's early limit)
+    not_before: time | None = None  # never starts earlier than this (A4's early limit), even once `starts_after` ended
     canonicals: tuple[tuple[str, str], ...] = ()  # (dataset, stem) of each canonical marker it records (A4)
     window_end: time = WINDOW_END  # a rerun restarts it only before this (A4's window; the indices' own)
 
@@ -70,7 +77,7 @@ QUOTE_PARTS = (
     QuotePart("nse", ("quotes", "record", "--source", "nse"), ("research/data/quotes/nse/",),
               not_before=EARLIEST_START, canonicals=((NSE_DATASET, "nifty"),)),
     QuotePart("indices", ("quotes", "record-indices"),
-              tuple(GROWW_QUOTES.format(name=n) for n in (*INDICES, WEEKLY_STEM)), "nifty",
+              tuple(GROWW_QUOTES.format(name=n) for n in (*INDICES, WEEKLY_STEM)), "nifty", INDEX_EARLIEST_START,
               canonicals=(*((DATASET, name) for name in INDICES), (WEEKLY_DATASET, WEEKLY_STEM)),  # A4f's weeklies
               window_end=INDEX_WINDOW_END),
 )  # fmt: skip
@@ -130,14 +137,13 @@ class QuoteParts:
         self.start_due()
 
     def start_due(self) -> None:
-        """Starts each part whose time has come and that waits for no other; never runs git, so any wait of the run
-        may call it, a command's included. Before the day is opened (by `start` or `resume`; a rerun whose log holds
-        the whole day opens neither) there is nothing to start."""
+        """Starts each part whose time has come and whose part to wait for (if any) has ended; never runs git, so any
+        wait of the run may call it, a command's included. Before the day is opened (by `start` or `resume`; a rerun
+        whose log holds the whole day opens neither) there is nothing to start."""
         if not self.started:
             return
         for part in self.parts:
-            due = part.not_before is None or self.clock() >= datetime.combine(self.day, part.not_before, IST)
-            if not self.closed and part.starts_after is None and due and self._unstarted(part):
+            if not self.closed and self._unstarted(part) and self._waited_for(part) and self._due(part):
                 self._start(part)
 
     @property
@@ -156,20 +162,18 @@ class QuoteParts:
         if not self.started or self.closed:
             return None
         due = [datetime.combine(self.day, part.not_before, IST) for part in self.parts
-               if part.starts_after is None and part.not_before is not None and self._unstarted(part)]  # fmt: skip
+               if self._waited_for(part) and part.not_before is not None and self._unstarted(part)]  # fmt: skip
         return min(due, default=None)
 
     def service(self) -> None:
         """Starts the parts now due, commits every part that has ended (NIFTY's first), then starts the parts waiting
-        for it."""
+        for it whose time has come."""
         self.start_due()
         for name, process in list(self.running.items()):
             code = process.poll()
             if code is not None and (name == LEAD or LEAD in self.results):
                 self._finish(self._part(name), code, process.lines(), process.alerted(), process.errors())
-        for part in self.parts:
-            if self.started and not self.closed and self._unstarted(part) and part.starts_after in self.results:
-                self._start(part)
+        self.start_due()
 
     def finish(self, wait: Callable[[datetime], None], not_before: datetime | None = None) -> dict[str, dict]:
         """Waits for the parts still running (servicing them), at most `FINISH_LIMIT`; their results. Past the limit
@@ -191,6 +195,12 @@ class QuoteParts:
             if part.name not in self.results:
                 self._failed(part.name, NEVER_STARTED)
         return self.results
+
+    def _waited_for(self, part: QuotePart) -> bool:
+        return part.starts_after is None or part.starts_after in self.results
+
+    def _due(self, part: QuotePart) -> bool:
+        return part.not_before is None or self.clock() >= datetime.combine(self.day, part.not_before, IST)
 
     def _unstarted(self, part: QuotePart) -> bool:
         return part.name not in self.running and part.name not in self.results
