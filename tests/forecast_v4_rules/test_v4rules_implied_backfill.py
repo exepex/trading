@@ -156,3 +156,21 @@ def test_real_premium_adjusted_is_first_eligible_at_the_april_2026_refit():
     ratio = backfill.implied[V2_RV_5S].ratio
     assert ratio.at(date(2026, 3, 2)) is None
     assert ratio.at(date(2026, 4, 1)) == pytest.approx(0.6335897, rel=1e-6)
+
+
+def test_judge_585_m1_the_premium_rows_inputs_hash_carries_the_refit_ratio():
+    """Two back-fills that differ only in their window's ratio must differ in the premium row's inputs hash."""
+    days = [date(2024, 1, 1) + timedelta(n) for n in range(700)]
+    eod = {d: IvPoint(0.15, False) for d in days}
+    low = ImpliedBackfill(eod, [DayValue(d, 0.0001) for d in days], days, METHOD)
+    high = ImpliedBackfill(eod, [DayValue(d, 0.0002) for d in days], days, METHOD)
+    day = days[650]
+    hashes = []
+    for backfill in (low, high):
+        rows = backfill.rows([day])
+        premium = rows[(V4_BASELINE_PREMIUM_ADJUSTED, V2_RV_5S)][0]
+        raw = rows[(V4_BASELINE_RAW_IMPLIED, V2_RV_5S)][0]
+        assert premium.status == OK
+        hashes.append((premium.inputs_sha256, raw.inputs_sha256))
+    assert hashes[0][0] != hashes[1][0]  # the ratio differs, so the premium row's inputs differ
+    assert hashes[0][1] == hashes[1][1]  # the raw row does not read the ratio

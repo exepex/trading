@@ -131,3 +131,10 @@ def test_an_expiry_past_the_calendar_voids_never_raises():
     quotes, future = chain(january, FORWARD, 0.14, traded=traded), TwoSided(26075.0, 26085.0, traded)
     assert RULE.v5(day, SPOT, quotes, january, future, [day, january]) == Void(day, PAST_CALENDAR)
     assert RULE.v4(day, SPOT, quotes, january) == Void(day, PAST_CALENDAR)
+
+
+def test_judge_585_sf1c_a_future_on_the_next_but_one_monthly_is_not_v5s_expiry():
+    december = date(2026, 12, 29)
+    assert december in LISTED
+    quotes = chain(december, FORWARD, 0.14)
+    assert RULE.v5(D, SPOT, quotes, december, FUTURE, LISTED) == Void(D, FUTURE_NOT_MONTHLY)

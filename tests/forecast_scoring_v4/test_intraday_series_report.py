@@ -4,7 +4,9 @@ is never a member, and starts at the first forecast day whose whole horizon is l
 
 from datetime import date, timedelta
 
-from fno.constants import V2_RV_5S, V4_BASELINE_PREMIUM_ADJUSTED, V4_COHORT_LIVE, V4_SLOT_RULES
+import pytest
+
+from fno.constants import V2_RV_5S, V3_RV_20S, V4_BASELINE_PREMIUM_ADJUSTED, V4_COHORT_LIVE, V4_SLOT_RULES
 from fno.forecast_scoring.v4.comparison import seed_word
 from fno.forecast_scoring.v4.inputs import V4ForecastSource
 from fno.forecast_scoring.v4.outcomes import OutcomeSeries, SeriesOutcomes
@@ -103,3 +105,61 @@ def test_the_report_seeds_the_series_comparison_with_its_own_number_never_v2s_me
     scoring.question_report(V2_RV_5S)
     assert series_seeds == {seed_word(SERIES, None, "v2_close_blend")}
     assert series_seeds.isdisjoint({k for _, k in seeds})  # V2's own comparison uses the rules member's seed
+
+
+def test_with_rows_but_no_live_window_the_series_has_not_enough_data():
+    assert V4Scoring(V2Rows(), SeriesOutcomes(Series({})), NoRegistrations()).question_report(SERIES).status == (
+        "not enough data yet"
+    )
+
+
+def test_forecast_days_before_the_series_start_are_neither_unresolved_nor_missed():
+    # A16 from DAYS[2]: the series starts at DAYS[1]; V2's rows on DAYS[0..3]; DAYS[0] is before the start
+    intraday = {d: 2e-5 for d in DAYS if d >= DAYS[2]}
+    report = V4Scoring(V2Rows(), SeriesOutcomes(Series(intraday)), NoRegistrations()).question_report(SERIES)
+    (comparison,) = report.cohorts[V4_COHORT_LIVE].comparisons
+    assert report.live_forecasts == 6  # 3 days x 2 forecasters, DAYS[0] left out
+    assert comparison.pairing.scored.days == tuple(DAYS[1:4]) and comparison.pairing.unresolved == 0
+
+
+def test_a_void_window_is_counted_void_in_the_pairing():
+    intraday = {d: 2e-5 for d in DAYS if d >= FIRST_A16}
+    intraday[DAYS[2]] = None  # voids the windows of DAYS[0], DAYS[1]
+    report = V4Scoring(V2Rows(), SeriesOutcomes(Series(intraday)), NoRegistrations()).question_report(SERIES)
+    (comparison,) = report.cohorts[V4_COHORT_LIVE].comparisons
+    assert comparison.pairing.void == 2 and comparison.pairing.scored.days == tuple(DAYS[2:4])
+
+
+def test_w3_option_a_leaves_the_series_without_a_baseline(monkeypatch):
+    import fno.forecast_scoring.v4.scoring as scoring_module
+    from fno.forecast_v4_rules.intraday_series import RATIO_INTRADAY
+
+    monkeypatch.setattr(scoring_module, "SERIES_RATIO_MEASURE", RATIO_INTRADAY)
+    intraday = {d: 2e-5 for d in DAYS if d >= FIRST_A16}
+    scoring = V4Scoring(V2Rows(), SeriesOutcomes(Series(intraday)), NoRegistrations())
+    (comparison,) = scoring.question_report(SERIES).cohorts[V4_COHORT_LIVE].comparisons
+    assert comparison.pairing.missing_baseline == 4 and not comparison.pairing.scored.days
+    (close,) = scoring.question_report(V2_RV_5S).cohorts[V4_COHORT_LIVE].comparisons
+    assert close.pairing.missing_baseline == 0  # V2's own close-proxy series keeps its baseline
+
+
+def test_v3s_series_uses_v3s_rows_block_and_horizon():
+    days = [date(2026, 9, 1) + timedelta(n) for n in range(60) if (date(2026, 9, 1) + timedelta(n)).weekday() < 5]
+
+    class Wide(Series):
+        def sessions(self):
+            return [(d, 25000.0, 14.0) for d in days]
+
+    class V3Rows(V4ForecastSource):
+        def forecasters(self, question):
+            return ["v3_close_blend", V4_BASELINE_PREMIUM_ADJUSTED] if question == V3_RV_20S else []
+
+        def values(self, question, forecaster):
+            assert question == V3_RV_20S
+            return values({d: 4e-4 for d in days[:3]}, live=True)
+
+    outcomes = SeriesOutcomes(Wide({d: 2e-5 for d in days})).outcomes(f"{V3_RV_20S}/intraday")
+    assert outcomes[days[0]].value == pytest.approx(20 * 2e-5)  # 20 sessions
+    report = V4Scoring(V3Rows(), SeriesOutcomes(Wide({d: 2e-5 for d in days})), NoRegistrations())
+    (comparison,) = report.question_report(f"{V3_RV_20S}/intraday").cohorts[V4_COHORT_LIVE].comparisons
+    assert comparison.question == V3_RV_20S  # V3's loss and block 20

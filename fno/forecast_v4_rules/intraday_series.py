@@ -12,6 +12,16 @@ from ..constants import V2_RV_5S, V3_RV_20S
 
 INTRADAY_SUFFIX = "/intraday"
 INTRADAY_SERIES = {f"{q}{INTRADAY_SUFFIX}": q for q in (V2_RV_5S, V3_RV_20S)}  # series key -> its question
+# Wording W3, the owner's choice (unsigned): the series' premium-adjusted baseline is the question's own, fitted on the
+# close proxy (option B, recommended, the build's default), or fitted on the intraday measure (option A: no value for
+# about two years, so every pair is missing). One place to change when the owner signs.
+RATIO_CLOSE_PROXY, RATIO_INTRADAY = "close_proxy", "intraday"
+SERIES_RATIO_MEASURE = RATIO_CLOSE_PROXY
+
+
+def question_of(key: str) -> str:
+    """The protocol question whose forecasts, baseline, loss, block and horizon a report key uses."""
+    return INTRADAY_SERIES.get(key, key)
 
 
 def intraday_horizon_sum(

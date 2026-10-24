@@ -206,3 +206,20 @@ def test_v5_settlement_seen_before_the_expirys_close_is_refused():
     assert isinstance(early, Refused) and "first seen" in early.reason
     on_time = V5Resolver(Settlements(26500.0), Created(EXPIRY_CLOSE), dict).resolve(V5_TERMS)
     assert isinstance(on_time, V5Outcome)
+
+
+def test_judge_585_sf1a_v5_base_outcome_is_dated_by_the_ist_day_it_was_first_seen():
+    # the expiry-day file first seen two days after the expiry: the base rate may use it only from then
+    seen = EXPIRY_CLOSE + timedelta(days=2)
+    outcome = V5Resolver(Settlements(26500.0), Created(seen), dict).resolve(V5_TERMS)
+    assert v5_base_outcome(D, outcome).resolved_on == MONTHLY + timedelta(days=2)
+    # 23:30 IST on the expiry day is 18:00 UTC the same day; 00:30 IST next day is still the previous UTC day
+    after_midnight = datetime.combine(MONTHLY + timedelta(days=1), time(0, 30), IST)
+    outcome = V5Resolver(Settlements(26500.0), Created(after_midnight), dict).resolve(V5_TERMS)
+    assert v5_base_outcome(D, outcome).resolved_on == MONTHLY + timedelta(days=1)
+
+
+def test_judge_585_sf1b_drives_created_time_wins_over_a8s_sighting():
+    created, sighting = EXPIRY_CLOSE + timedelta(hours=6), EXPIRY_CLOSE + timedelta(hours=2)
+    outcome = V5Resolver(Settlements(26500.0), Created(created), lambda: {MONTHLY: sighting}).resolve(V5_TERMS)
+    assert outcome.first_seen_at == created

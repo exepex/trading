@@ -13,7 +13,7 @@ from datetime import date, timedelta
 
 from ...constants import V4_BASELINE_BASE_RATE, V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE
 from ...forecast_v4.terms import HORIZON_SESSIONS, POINT_QUESTIONS
-from ...forecast_v4_rules.intraday_series import INTRADAY_SERIES
+from ...forecast_v4_rules.intraday_series import INTRADAY_SERIES, RATIO_INTRADAY, SERIES_RATIO_MEASURE, question_of
 from .comparison import Comparison, compare, paired_rows, seed_word
 from .inputs import ForecastValue, Outcome, V4ForecastSource, V4OutcomeSource
 from .primary import primary_names, primary_values
@@ -48,10 +48,11 @@ class V4Scoring:
     def question_report(self, question: str) -> QuestionReport:
         """`question` is a protocol question or a part f series key (its forecasts are its question's)."""
         names = self.forecasters(question)
-        if not names:
-            return QuestionReport(question, STATUS_NO_DATA)
-        outcomes = self.outcomes.outcomes(question)
-        values = {name: self.forecasts.values(_asked(question), name) for name in names}
+        outcomes = self.outcomes.outcomes(question) if names else {}
+        if not names or (question in INTRADAY_SERIES and not outcomes):
+            return QuestionReport(question, STATUS_NO_DATA)  # a part f series starts at its first live window
+        values = {name: self._started(question, self.forecasts.values(question_of(question), name), outcomes)
+                  for name in names}  # fmt: skip
         report = QuestionReport(question, STATUS_SCORED)
         report.live_forecasts = sum(v.live and v.value is not None for vs in values.values() for v in vs.values())
         report.cohorts = {
@@ -61,18 +62,34 @@ class V4Scoring:
 
     def _cohort(self, question: str, every: dict[str, dict[date, ForecastValue]], outcomes: dict[date, Outcome],
                 live: bool) -> Cohort:  # fmt: skip
-        asked = _asked(question)
+        asked = question_of(question)
         values = {name: rows for name, all_rows in every.items() if (rows := _in_cohort(all_rows, live))}
-        baseline = _in_cohort(primary_values(asked, self.forecasts), live)
-        base_rate = _in_cohort(self.forecasts.values(asked, V4_BASELINE_BASE_RATE), live)
+        baseline = _in_cohort(self._started(question, self._baseline(question), outcomes), live)
+        base_rate = _in_cohort(self._started(question, self.forecasts.values(asked, V4_BASELINE_BASE_RATE), outcomes),
+                               live)  # fmt: skip
         slots = {r.forecaster: slot for (q, slot), r in self.registry.registered().items() if q == question}
         cohort = Cohort({name: _scores(asked, rows, outcomes, base_rate) for name, rows in values.items()})
         for name in (n for n in values if n not in primary_names(asked)):
             cohort.comparisons.append(self._compare(question, name, values[name], baseline, outcomes, slots.get(name)))
         return cohort
 
+    def _baseline(self, question: str) -> dict[date, ForecastValue]:
+        """The primary baseline's values; a part f series under W3's option A has none yet (every pair missing)."""
+        if question in INTRADAY_SERIES and SERIES_RATIO_MEASURE == RATIO_INTRADAY:
+            return {}
+        return primary_values(question_of(question), self.forecasts)
+
+    @staticmethod
+    def _started(question: str, values: dict[date, ForecastValue], outcomes: dict[date, Outcome]):
+        """A part f series has not started before its first outcome day (resolved or void): earlier forecast days
+        are neither unresolved nor missed (W7). A protocol question keeps every day."""
+        if question not in INTRADAY_SERIES:
+            return values
+        start = min(outcomes)
+        return {day: v for day, v in values.items() if day >= start}
+
     def forecasters(self, question: str) -> list[str]:
-        return self.forecasts.forecasters(_asked(question))
+        return self.forecasts.forecasters(question_of(question))
 
     def member_comparisons(self, counted_after: date | None) -> dict[tuple[str, str], Comparison]:
         """Each registered member: its slot's forecaster against the question's primary baseline. After the freeze
@@ -92,14 +109,9 @@ class V4Scoring:
     @staticmethod
     def _compare(question, forecaster, values, baseline, outcomes, slot, miss_start=None) -> Comparison:
         """A part f series key seeds its own number (after 15) and is never a member's comparison."""
-        rows, asked = paired_rows(values, baseline, outcomes), _asked(question)
+        rows, asked = paired_rows(values, baseline, outcomes), question_of(question)
         return compare(asked, forecaster, " / ".join(sorted(primary_names(asked))), rows, outcomes,
                        seed_word(question, slot, forecaster), miss_start)  # fmt: skip
-
-
-def _asked(question: str) -> str:
-    """The protocol question whose forecasts, baseline, loss and block a report key uses."""
-    return INTRADAY_SERIES.get(question, question)
 
 
 def _counted(values: dict[date, ForecastValue], after: date | None) -> dict[date, ForecastValue]:
