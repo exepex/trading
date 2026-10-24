@@ -62,9 +62,9 @@ cancels orders.
    (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
    forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), protocol v4's release
    (story G10: from `daily.live_from.v4_pack`, after the `v4` quote part's 14:30-14:40 capture), E3's desk (pack, Book 1's
-   decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk and, from 15:33 IST (after
-   A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`: yesterday's 15-minute candles, read-only Groww),
-   A4h's close reads and, last, v4's 15:10 deadline check (G10). It writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
+   decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk, v4's 15:10 deadline check
+   (G10, from 15:12) and, from 15:33 IST (after A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`:
+   yesterday's 15-minute candles, read-only Groww) and, last, A4h's close reads. It writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
    done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
    same day skips the steps already done. A "waiting until HH:MM IST" line is a wait for the next step's time, never a
    hang: never stop the run while it waits. A second run beside a living one prints "another daily run of <day> is

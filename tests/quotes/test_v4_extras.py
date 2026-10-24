@@ -130,3 +130,35 @@ def test_the_v4_window_is_built_with_its_extras_on_the_window_s_own_provider():
     recorder = build_window_quote_recorder(load_app_config(), "v4")
     assert isinstance(recorder.extras, V4Extras) and isinstance(recorder.extras.provider, TimedProvider)
     assert recorder.extras.choose(MONDAY, [OCT, NOV3, NOV24]) == NOV3  # G7b's rule on A7's real calendar
+
+
+def test_slow_extras_run_last_so_every_required_field_is_already_in(tmp_path):
+    """Judge 584 SF2: the optional extras are asked only after NSE's levels and every monthly quote; extras taking 15
+    minutes (timeouts under load) leave the required fields' times untouched, so the day can still be `A`."""
+    from fno.quotes.capture_extras import CaptureExtras
+    from tests.quotes.test_quote_recorder import Clock
+
+    clock = Clock(datetime(2026, 10, 13, 14, 59, tzinfo=IST))
+    asked = []
+
+    class Levels:
+        name = "nse"
+
+        def levels(self, underlying):
+            asked.append(("levels", clock.t))
+
+    class Slow(CaptureExtras):
+        def capture(self, snapshot_id, day, listed, months):
+            asked.append(("extras", clock.t))
+            clock.sleep(15 * 60)
+            return []
+
+        def meta(self):
+            return {}
+
+    recorder = QuoteSnapshotRecorder(FakeProvider(), LocalFolderStore(tmp_path), clock.now, clock.sleep,
+                                     levels=Levels(), extras=Slow())  # fmt: skip
+    result = recorder.record(outside_window=True)
+    assert [what for what, _ in asked] == ["levels", "extras"] and result.complete
+    times = [line.split(",")[2] for line in next(tmp_path.rglob("*.csv")).read_text().splitlines()[1:]]
+    assert len(times) == result.rows and all(t <= asked[1][1].isoformat() for t in times)  # none after the extras start

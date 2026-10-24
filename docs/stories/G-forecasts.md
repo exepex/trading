@@ -1506,7 +1506,8 @@ The routine time stays **14:05 IST** (owner, 21 Oct). `DAILY_RUN_STEPS` (`fno/co
 `quotes` (now also starts the `v4` part), `owner_timing_fills`, `margin_check`, `weather`, `forecasts_v4`,
 **`v4_release`**, `forecasts_v4_pack` (G7b's step, added by G7b), `versions`, `pack`, `book1`, `decisions`, `snapshot`, `fills`, `exits`, `trade_marks`, `reviews`,
 `quotes_done`, `card`, `price_distribution`, `premium_ranges`, `price_distribution_scores`, `price_ranges`,
-`price_range_scores`, `premium_range_scores`, `candles`, `close_read`, `close_recheck`, **`v4_deadline`**.
+`price_range_scores`, `premium_range_scores`, **`v4_deadline`**, `candles`, `close_read`, `close_recheck` (code
+round 1: before `candles`, so A4h's two reads stay last).
 
 | Piece | When (IST) | What it runs | Commits (its own paths only) |
 |---|---|---|---|
@@ -1756,7 +1757,7 @@ to `build_commitment_times`), resolved by keeping both.
   says "on every v4 report, and joined to every record by its day". The builder's design choice, for the judge: one
   source of truth.
 - **D1 and D3: owner decided 24 Oct (DESK_DECISIONS)**, both as recommended and as built; the merge no longer waits
-  for them. D1 lives in one constant (`terms.V4_RELEASE_BY`) and D3 in the
+  for them. D1 lives in one constant (`V4_RELEASE_BY`, `fno/v4_pack/release_run.py`) and D3 in the
   release step's status mapping, each with its test, so another answer changes only those two places and their tests.
 
 #### Monday 26 Oct: what the live run would and would not do
@@ -1788,7 +1789,8 @@ the card's content or any order (none exist); count anything (no `FREEZE_v4.md`:
 on any branch (judge 580's re-read at d4e72f20d): it must be pushed, judged and merged before criterion 3a's code; until
 then criterion 3a cannot be built, and the other criteria do not wait for it.**
 **Touches:** `fno/daily/` (quote_parts, wiring, reason_codes), `fno/constants_operations.py`, `fno/v4_pack/`,
-`fno/forecast_scoring/v4/` (days, wiring, a new verdict reader), `fno/forecast_v4/terms.py` (one constant),
+`fno/forecast_scoring/v4/` (days, wiring, a new verdict reader), `fno/v4_pack/release_run.py` (D1's and D3's constants;
+`fno/forecast_v4/terms.py` unchanged, code round 1),
 `fno/config.py`, `config.yaml`, `CLAUDE.md` (daily routine lines), `.github/workflows/postmortem-weekly.yml`,
 `research/forecasts/PROTOCOL_v4.md` (1.6 and section 4), tests. G8's files are touched by this story with the
 orchestrator's assignment (G8's builder is out of reach). **Size:** L, built in one branch, judged as one story.

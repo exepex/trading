@@ -218,7 +218,7 @@ class QuoteSnapshotRecorder:
         if self.log:
             self.log.begin()
         snapshot_id = f"{self.slot.stem}_{started:%Y%m%d_%H%M%S}"
-        failures, rows, chains, expiry_source, check, extra = [], [], [], {"source": self.provider.name}, {}, []
+        failures, rows, chains, expiry_source, check, found = [], [], [], {"source": self.provider.name}, {}, ([], [])
         universe = self._universe(day, failures) if self.slot.check_listed else None
         try:
             if failures:
@@ -233,7 +233,7 @@ class QuoteSnapshotRecorder:
                     failures.append(withheld("expiry fallback", exc))
             for expiry in self._targets(listed, months, day, failures):
                 chains.append(self.provider.chain(self.underlying, expiry))
-            extra = self.extras.capture(snapshot_id, day, listed, months) if self.extras else []
+            found = (listed, months)  # for the extras, asked only after every required field (judge 584 SF2)
         except _NotRecorded:
             pass
         except Exception as exc:  # recorded, never hidden: the attempt is incomplete
@@ -247,6 +247,7 @@ class QuoteSnapshotRecorder:
                     continue
                 rows.append(snapshot_row(snapshot_id, self.provider.name, got, chain, day))
                 traded = traded or traded_today(got.book, day)
+        extra = self.extras.capture(snapshot_id, day, *found) if self.extras and chains else []  # G10: optional last
         if rows and not traded and self.slot.cross_check:
             if self.calendar is None:
                 return RecordResult("not a trading day", snapshot_id)  # A4 inference: no contract traded, closed

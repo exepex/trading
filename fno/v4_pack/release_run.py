@@ -22,10 +22,12 @@ from .model import Pack
 from .paths import release_path
 from .release import publish
 
-# Decision D1 (owner pending): a release record written later makes the day system_late. Kept out of the frozen-to-be
-# `fno/forecast_v4/terms.py`, which G7's and M1's method hashes read (a change there would move every record's hash)
+# Decision D1 (owner, 24 Oct 2026, DESK_DECISIONS): a release record written later makes the day system_late. Kept
+# out of the frozen-to-be `fno/forecast_v4/terms.py`, which G7's and M1's method hashes read (a change there would move
+# every record's hash)
 V4_RELEASE_BY = time(14, 45)
-# Decision D3 (owner pending): a `system_late` today is a failure of the release (the day ends "with problems")
+# Decision D3 (owner, 24 Oct 2026, DESK_DECISIONS): a `system_late` today is a failure of the release (the day ends
+# "with problems")
 SYSTEM_LATE_FAILS = True
 NOT_LIVE = "v4 release: not live (config.yaml daily.live_from.v4_pack is not set or is later)"
 RELEASED = "v4 release {day}: {label}{detail}"
@@ -77,7 +79,7 @@ class ReleaseRun:
         """A past session without a record gets `missing_label`'s answer, written once (the readers' same rule)."""
         if self._released(day) or missing_label(day, self.labels_from, today) != V4_DAY_SYSTEM_LATE:
             return ""
-        return self._publish(day, None) or CAUGHT_UP.format(day=day)
+        return self._publish(day, None)[0] or CAUGHT_UP.format(day=day)
 
     def _today(self, day: date) -> str:
         if self._released(day):
@@ -88,15 +90,16 @@ class ReleaseRun:
                 self.waiting = True
                 return WAITING.format(day=day, reasons="; ".join(built.reasons), end=by)
             built = Built(None, (NOT_ENDED.format(by=by),))
-        refused = self._publish(day, built.pack)
+        refused, label = self._publish(day, built.pack, lambda: self.clock() <= by)
         if refused:
             return refused
-        if built.pack is not None:
+        if label != V4_DAY_SYSTEM_LATE:
             self.notes = [NOTE.format(day=day, note=note) for note in built.notes]
-            return RELEASED.format(day=day, label=built.pack.label, detail="")
+            return RELEASED.format(day=day, label=label, detail="")
         note = self.excused(day)
         self.late_today = note is None
-        detail = f" ({'; '.join(built.reasons)})"
+        reasons = built.reasons if built.pack is None else (RELEASED_LATE.format(by=by),)  # upload ended after `by`
+        detail = f" ({'; '.join(reasons)})"
         return (
             EXCUSED.format(day=day, note=note) if note else RELEASED.format(day=day, label="system_late", detail=detail)
         )
@@ -109,14 +112,13 @@ class ReleaseRun:
             return Built(None, (RELEASED_LATE.format(by=by),))
         return built
 
-    def _publish(self, day: date, pack: Pack | None) -> str:
-        """'' when written; the refusal line when the write-once store refused."""
+    def _publish(self, day: date, pack: Pack | None, in_time: Callable[[], bool] = lambda: True) -> tuple[str, str]:
+        """('', the written label), or (the refusal line, '') when the write-once store refused."""
         try:
-            publish(self.store, day, pack)
+            return "", publish(self.store, day, pack, in_time).label
         except RawFileConflict as error:
             self.refused = True
-            return REFUSED.format(day=day, error=type(error).__name__)
-        return ""
+            return REFUSED.format(day=day, error=type(error).__name__), ""
 
     def _released(self, day: date) -> bool:
         return self.in_drive(f"{self.store.area}/{release_path(day)}")

@@ -92,3 +92,43 @@ def test_a_closed_day_writes_nothing_for_itself_and_does_not_fail(tmp_path):
     saturday = date(2026, 10, 24)
     release, drive = run_for(tmp_path, at(saturday, 15, 0), live_from=saturday)
     assert release.run(saturday) == [] and drive.files == {} and not release.failed
+
+
+class SlowDrive(FakeDrive):
+    """A pack upload that ends after 14:45:00 (it started at 14:44:59)."""
+
+    def __init__(self, clock):
+        super().__init__()
+        self.clock = clock
+
+    def put(self, path, data):
+        super().put(path, data)
+        if "/packs/" in path:
+            self.clock.now = at(DAY, 14, 45, 30)
+
+
+class Now:
+    def __init__(self, moment):
+        self.now = moment
+
+    def __call__(self):
+        return self.now
+
+
+def test_a_pack_upload_ending_after_14_45_leaves_the_day_system_late_and_the_pack_unreleased(tmp_path):
+    """Judge 584 m2: the release-by time is checked after the slow pack upload, right before the small record."""
+    from fno.storage.data_store import DataStore
+    from fno.storage.receipts import ReceiptFolder
+    from fno.v4_pack.paths import pack_path
+    from fno.v4_pack.release import parse_release
+    from fno.v4_pack.release_run import ReleaseRun
+    from tests.v4_pack.test_release_run import weekdays
+
+    clock = Now(at(DAY, 14, 44, 59))
+    drive = SlowDrive(clock)
+    builder, capture = complete(clock.now)
+    store = DataStore(drive, "data", ReceiptFolder(tmp_path / "receipts"), "v4-release", "run-1")
+    release = ReleaseRun(store, lambda path: drive.get(path) is not None, capture, builder, weekdays, DAY, clock)
+    assert release.run(DAY) == ["v4 release 2026-10-22: system_late (released late: after 14:45)"] and release.failed
+    record = parse_release(DAY.isoformat(), drive.files[f"data/{release_path(DAY)}"])
+    assert record.label == "system_late" and record.pack_path == "" and f"data/{pack_path(DAY)}" in drive.files

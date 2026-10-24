@@ -2,7 +2,13 @@
 makes itself on a day, (i) each live row of the CSV records in G8's folder (G7's rules, M1's weather) and (ii) each
 receipt of a Drive-stored live record (G7b's V4 and V5, `receipts/data/v4/records/live/`). The AI books are left out
 by their own set: their commitment is their sealed submission, checked by G11's timing (never `PACK_READERS`, which
-also holds G7b's pack-reading forecasters)."""
+also holds G7b's pack-reading forecasters).
+
+Limit, said plainly (judge 584 m3): the rows and receipts are read from this run's checkout when the check runs (15:12
+or later). Every G7, M1 and G7b live record is written and committed by the daily run's own checkout, so the check sees
+them all. A forecaster committing from another session must have its commit in this checkout by then, or G8 counts its
+row late (a row the day's verdict file does not name); G7b and G11 keep their v4 rows in the daily run's checkout, or
+this check first reads `origin/main` (a later change)."""
 
 from __future__ import annotations
 

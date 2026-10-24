@@ -14,6 +14,7 @@ from pathlib import Path
 from ..intraday.ledger import FILE_NAME
 from ..intraday.status import GOOD
 from ..models import IST
+from ..quotes.v4_extras import NO_MONTHLY, RECORDED
 
 A16_MARK = time(14, 30)
 LINE = "v4 14:30 overlap {day}: v4 capture {v4}; A16's 14:30 mark {a16} (Groww's messages are withheld: see the counts)"
@@ -32,7 +33,7 @@ class OverlapWatch:
         attempts = self._attempts(day)
         if not attempts:
             return None
-        failures = sum(len(meta.get("failures") or []) for meta in attempts.values())
+        failures = sum(_failures(meta) for meta in attempts.values())
         row = self._a16_row(day)
         if failures == 0 and row is not None and row["status"] == GOOD and not row["failures"]:
             return None
@@ -59,3 +60,11 @@ class OverlapWatch:
         with file.open(encoding="utf-8", newline="") as handle:
             rows = list(csv.DictReader(handle))
         return rows[-1] if rows else None
+
+
+def _failures(meta: dict) -> int:
+    """Every failed request of one attempt: A4's own, the extras' V4 expiry quotes and a future quote that did not come
+    (judge 584 SF1: the extras' requests are sent in the same minute as A16's mark)."""
+    future = meta.get("future_quote")
+    future_failed = future is not None and future not in (RECORDED, NO_MONTHLY)
+    return len(meta.get("failures") or []) + len(meta.get("v4_failures") or []) + int(future_failed)

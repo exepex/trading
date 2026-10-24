@@ -3,7 +3,9 @@ day (a miss under G9's caps), and so is a live row its day's verdict file does n
 check, which runs from 15:12); a live row of a day with no verdict file yet is counted "deadline not checked", and a
 confirmatory look refuses while one exists after the freeze up to its date (the reconciliation's pattern, response
 213). Back-fill rows and the AI
-books (their commitment is their sealed submission, G11) are never checked here."""
+books (their commitment is their sealed submission, G11) are never checked here. A row the day's file does not name is
+late on the rule that the check, run from the daily run's own checkout at 15:12 or later, saw every row committed on
+time; a forecaster committing from another session breaks that rule (see `fno/v4_pack/commitments.py`)."""
 
 from __future__ import annotations
 

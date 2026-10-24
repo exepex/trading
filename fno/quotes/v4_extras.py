@@ -21,6 +21,7 @@ from .quote_validity import quote_validity
 from .snapshot_rows import COLUMNS, snapshot_row
 
 FUTURE_KIND = "FUT"
+RECORDED, NO_MONTHLY = "recorded", "no monthly after the day"  # `future_quote` when nothing failed
 NOT_CHOSEN = "v4 expiry not chosen: {error}"
 FAILED = "{what}: {kind} (provider message withheld)"
 
@@ -69,7 +70,7 @@ class V4Extras(CaptureExtras):
     def _future_rows(self, snapshot_id: str, day: date, months: list[date]) -> list[dict]:
         expiry = min((m for m in months if m > day), default=None)
         if expiry is None:
-            self._meta["future_quote"] = "no monthly after the day"
+            self._meta["future_quote"] = NO_MONTHLY
             return []
         try:
             sent = self.sent()
@@ -77,7 +78,7 @@ class V4Extras(CaptureExtras):
         except Exception as error:
             self._meta["future_quote"] = FAILED.format(what=f"future {expiry}", kind=type(error).__name__)
             return []
-        self._meta["future_quote"] = "recorded"
+        self._meta["future_quote"] = RECORDED
         return [future_row(snapshot_id, self.provider.name, expiry, book, sent, self.now(), day)]
 
 

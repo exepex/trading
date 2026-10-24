@@ -62,3 +62,22 @@ def test_the_real_23_oct_14_30_row_reads_as_missed(tmp_path):
     assert "A16's 14:30 mark missed, failures: not_taken" in OverlapWatch(tmp_path / "v4", tmp_path / "intraday").line(
         day
     )
+
+
+def test_the_extras_failures_count_too(tmp_path):
+    """Judge 584 SF1: 30 failed V4-expiry quotes and a failed future quote, A16's 14:30 row good: an alert."""
+    v4 = tmp_path / "v4" / "2026" / "10"
+    v4.mkdir(parents=True)
+    meta = {"failures": [], "v4_failures": ["2026-11-03 25000 CE: TimeoutError (provider message withheld)"] * 30,
+            "future_quote": "future 2026-10-27: TimeoutError (provider message withheld)",
+            "recorded_contracts": 180, "expected_contracts": 180}  # fmt: skip
+    (v4 / "nifty_20261026_143000.meta.json").write_text(json.dumps(meta))
+    (v4 / "nifty_20261026.canonical").write_text("nifty_20261026_143000")
+    slots = tmp_path / "intraday" / "slots" / "2026" / "10" / "26"
+    slots.mkdir(parents=True)
+    (slots / "nifty_20261026_1430.csv").write_text(HEADER + "2026-10-26,2026-10-26T09:00:00+00:00,14:30,good,\n")
+    line = OverlapWatch(tmp_path / "v4", tmp_path / "intraday").line(DAY)
+    assert line is not None and "31 failure(s) in 1 attempt(s)" in line and "A16's 14:30 mark good" in line
+    meta.update(v4_failures=[], future_quote="recorded")
+    (v4 / "nifty_20261026_143000.meta.json").write_text(json.dumps(meta))
+    assert OverlapWatch(tmp_path / "v4", tmp_path / "intraday").line(DAY) is None  # all recorded: clean

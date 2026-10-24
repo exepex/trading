@@ -41,3 +41,35 @@ def test_a_record_with_a_v4_sidecar_counts_as_recorded(tmp_path):
     folder.mkdir(parents=True)
     (folder / "nifty_20261026_143000.meta.json").write_text("{}")
     assert recorded(tmp_path, day) and not recorded(tmp_path, date(2026, 10, 27))
+
+
+def test_claude_md_gives_the_steps_in_the_code_s_order():
+    """Judge 584 SF3: the routine reads CLAUDE.md; the deadline check runs before the candles, A4h's reads last."""
+    from fno.config import ROOT
+
+    text = " ".join((ROOT / "CLAUDE.md").read_text(encoding="utf-8").split())
+    section = text.split("## Daily desk routine", 1)[1].split("## ", 1)[0]
+    order = [section.index(words) for words in ("protocol v4's release", "E3's desk", "v4's 15:10 deadline check",
+                                                  "candle catch-up", "last, A4h's close reads")]  # fmt: skip
+    assert order == sorted(order) and "last, v4's 15:10 deadline check" not in section
+
+
+def test_nifty_s_14_55_files_and_the_v4_files_are_apart_by_git_itself(tmp_path):
+    """The NIFTY-glob plant without the constant: git stages NIFTY's part's own spec on a real tree, never a v4 file."""
+    import shutil
+    import subprocess
+
+    from fno.config import ROOT
+    from fno.daily.quote_parts import QUOTE_PARTS
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    shutil.copy(ROOT / ".gitignore", tmp_path / ".gitignore")
+    folders = ("quote-snapshots", "quote-snapshots-v4")
+    for folder in folders:
+        sidecar = tmp_path / f"research/data/quotes/groww/derivatives/{folder}/2026/10/nifty_20261026_143000.meta.json"
+        sidecar.parent.mkdir(parents=True)
+        sidecar.write_text("{}")
+    nifty = next(part for part in QUOTE_PARTS if part.name == "nifty")
+    staged = subprocess.run(["git", "add", "--dry-run", *nifty.pathspecs], cwd=tmp_path, capture_output=True,
+                            text=True, check=True).stdout  # fmt: skip
+    assert "quote-snapshots/2026" in staged and "quote-snapshots-v4" not in staged
