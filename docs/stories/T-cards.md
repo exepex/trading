@@ -830,6 +830,22 @@ Out, with reasons:
 11. The placement lives in one renderer function. Switching between (a) and (b) changes that function and its test
     only.
 
+Criteria 12-14 were added in the code round, after the text passed (judge 577 addendum 1), from the builder's
+self-review. Each only adds a warning or keeps one; none removes or weakens a criterion above.
+12. A status source that raises (T1's `STATUS_FAILED`) keeps the warning. The warning comes from its own
+    `WarningSource` (`ProblemSteps`), asked by `CardBuilder` apart from the status. A warning source that raises is
+    named in "Missing:" ("warning source failed (<Type>)"), and the card still goes out.
+    Reason: the step list does not depend on the status source, so a crash there (e.g. a malformed book entry in
+    the decisions result) must not also hide a failed `exits`. Before this, round 1's Out item ("no step list is
+    possible then") was wrong.
+13. The Drive card record keeps the warning as data: `"warning": {"headline", "detail"}`, or null. The repository's
+    delivery metadata still holds no warning text (criterion 9).
+    Reason: T1d's line was in the record's `sections`. T1e moves it out of the status lines, so without this field
+    the record would keep the list only inside the free text.
+14. An unreadable run log adds `data_check_failed`, never `step_problems`, even when no rule check reads the log.
+    Reason: `step_problems` means "a step failed or was refused". An unreadable log says nothing about the steps, and
+    criterion 6 must not depend on the rule checks happening to read the same file.
+
 **Test plan** (`tests/cards/test_card_warning.py`, new; T1d's tests in `tests/cards/test_problem_steps.py` are
 updated only where its bottom line moved; T1's two `startswith` tests are kept for a day without a warning). Every
 run log is written with O1's own `RunLog.record` (T1d's way).
@@ -894,6 +910,7 @@ run log is written with O1's own `RunLog.record` (T1d's way).
 | The dashboard contract allows the new code; T1e cannot go live before it (judge 577.1) | criterion 10, test 11 |
 | The contract change and re-pin, and `hard_rule_breach`/`trade_fields_not_built` | Out, owned by a dashboard builder |
 | Steps after the card; failures with no `status`; non-step problems; the status source failing | Out, with reasons (two open for the orchestrator) |
+| A failing status source never hides the warning; the Drive record keeps it; an unreadable log is never `step_problems` (self-review, added after the text passed) | criteria 12, 13, 14 |
 | Do not touch `fno/desk/` or `fno/daily/` | Scope (the diff is checked: `git diff 5cbd3c4c7 -- fno/desk fno/daily` empty) |
 
 **Answers to judge 577 (round 1), by number:**
@@ -904,14 +921,6 @@ run log is written with O1's own `RunLog.record` (T1d's way).
    restated correctly, and options (a) and (b) are given for the owner. The placement is one renderer function
    (criterion 11, W14). It is built with (a) until the owner answers.
 3. **Accepted.** `Status:` is on line 3 on a warning day and line 2 otherwise (criteria 1 and 5, tests 1 and 7).
-
-**Criteria added in the code round (self-review; each only adds a warning, never removes one):**
-12. A status source that raises (T1's `STATUS_FAILED`) keeps the warning: the card's warning comes from its own
-    `WarningSource` (`ProblemSteps`), asked by `CardBuilder` apart from the status. A warning source that raises is
-    named in "Missing:" ("warning source failed (<Type>)") and never loses the card.
-13. The Drive card record keeps the warning as data (`"warning": {"headline", "detail"}` or null), since T1d's line
-    in the record's `sections` moved out of them. The repository's delivery metadata still holds no warning text.
-14. An unreadable run log adds `data_check_failed`, never `step_problems`, even with no rule check reading the log.
 
 **Real output sample:** in the code claims, made by the committed code from a test's planted log.
 
