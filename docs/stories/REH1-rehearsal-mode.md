@@ -770,6 +770,26 @@ Test only; no code changed. Judge 616.1 is right: at 09:10:45 the 09:10:30 copy 
 nearest of every copy, then refuse one seen at or after the close): caught by that test (the only failure in
 `test_preopen_window.py`).
 
+**Real output sample** (the orchestrator's go, 24 Oct; round 1's code at 2d8ccb8d4, a full clone, the token kept):
+`rehearse preopen --day 2026-10-23`, run 20261024T195929Z-9d85d7, branch
+`refs/heads/rehearsal/2026-10-23-20261024T195929Z-9d85d7`, Drive `dryrun/20261024T195929Z-9d85d7/`. The lines:
+"gift ok (1 read(s))", "fo_list ok (1 read(s))", "nifty ok (1 read(s))", "banknifty failed (1 read(s)):
+rehearsal:NOT_RECORDED banknifty at 2026-10-23T09:11:01.039530+05:30: the day saved no answer near then", "pre-open
+recorded with problems: banknifty failed: ..." (no clock problem: L3), "open check: 0 checked, 0 waiting for NSE's
+file"; the cues: six levels and "taiex: FAILED (NotRecorded)" (the TWSE typhoon closure, as expected); then "not live
+in real runs (exercised): replay clock not checked (by design)" (L4) and "ended: failed: preopen record, global-cues
+preopen". Both failures are the record's own (no BANKNIFTY copy inside its window on 23 Oct, L2; no TAIEX session).
+#fno-desk, read back, each post labelled "*DRY RUN, 2026-10-23 replay, not a real trading day*": "Omenix F&O pre-open
+Asian levels: taiex: failed (NotRecorded)"; "A22 pre-open capture 2026-10-23: banknifty failed: rehearsal:NOT_RECORDED
+..."; "not live in real runs (exercised): replay clock not checked (by design)". None unlabelled.
+
+**Found in the sample, not fixed here (for the orchestrator):** BANKNIFTY's one read was at 09:11:01, after its window,
+not at 09:10:00. `PreopenRun` reads its parts one after another; NIFTY's read at 09:10:00 waited (a real sleep in
+`RecordedPreopenPart.answer`) for its copy seen at 09:10:59, then saved it, so BANKNIFTY's first read came at 09:11:01,
+past its last read (09:10:45): one read, `failed`. The outcome on 23 Oct is the same (BANKNIFTY has no copy inside
+its window), but a forward wait in one part can take another part's window in the same rehearsal; a real run's reads
+never wait. Out of REH1l's scope (its text did not cover the run's order); a follow-up is proposed to the orchestrator.
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
