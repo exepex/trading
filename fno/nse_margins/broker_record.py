@@ -20,7 +20,7 @@ RECORD_PATH = FOLDER + "/{as_of}/{run:%H%M%S}.csv"
 RECEIPTS = "receipts/data/" + FOLDER + "/"
 COLUMNS = ("checked_at", "as_of", "structure", "width", "span_broker_rs", "span_expected_rs", "exposure_broker_rs",
            "exposure_expected_rs", "nifty_before", "nifty_after", "status", "detail")  # fmt: skip
-DONE = (OK, MISMATCH)  # a result that is never asked again; an `error` is retried by a same-day rerun only
+DONE = (OK, MISMATCH)  # never asked again; an `error` is asked again by a by-hand run the same day
 UNREADABLE = "the day's earlier records cannot be read back from Drive: {problems}"
 
 

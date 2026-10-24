@@ -101,7 +101,7 @@ def test_the_record_is_written_once_with_its_receipt_and_read_back_as_done(tmp_p
     assert path == "data/margins/broker_checks/2026-10-14/100005.csv"
     assert (tmp_path / "receipts" / "data/margins/broker_checks/2026-10-14/100005.csv.sha256").is_file()
     assert drive.files[path].decode().splitlines()[0].startswith("checked_at,as_of,structure,width,span_broker_rs")
-    assert record.done(DAY) == {("SF", 100.0), ("SC", 100.0)}  # an error is asked again by a same-day rerun
+    assert record.done(DAY) == {("SF", 100.0), ("SC", 100.0)}  # an error is asked again by a by-hand run the same day
     assert record.done(date(2026, 10, 15)) == set()
     assert receipt_pathspecs() == ("receipts/data/margins/broker_checks/",)
 

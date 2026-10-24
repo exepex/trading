@@ -83,7 +83,7 @@ def test_a_lot_differing_from_nse_s_dated_lot_sends_no_basket():
     assert {r.detail for r in record.written[0]} == {f"lot {LOT} differs from NSE's dated lot {LOT + 10} for {expiry}"}
 
 
-def test_no_dated_lot_or_an_unreadable_lot_file_is_an_error_retried_the_same_day():
+def test_no_dated_lot_or_an_unreadable_lot_file_is_an_error_and_nothing_is_sent():
     for dated_lot, want in (
         (lambda day, expiry: "lot_unavailable", "no dated NSE lot for 2026-11-23 on 2026-10-14 (lot_unavailable)"),
         (lambda day, expiry: (_ for _ in ()).throw(ConnectionError("x")), "ConnectionError"),

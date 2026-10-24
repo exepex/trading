@@ -191,3 +191,23 @@ Plants: 10 of 10 caught.
   NIFTY's move in that minute, typically a few hundredths of a percent [reasoning only]. A stale exposure rule
   (2% to 2.5% is a 25% change) is still caught. A per-basket bracket would be tighter, at the cost of 15 more quotes;
   I kept the orchestrator's accepted design.
+
+### Judge 634's new should-fix: the failure lines promised a same-day retry O1 never makes
+
+**Accepted (strong evidence: the code read).** `fno/daily/steps.py` `outcome()` sets no `retry` key. `RunLog.done`
+counts a failed entry without `retry: true` as done (`fno/desk/run_log.py:41-43`, `_retried`). So a same-day
+`daily run` skips a failed `margin_check`; only exits and marks are retried (owner, 24 Oct). A by-hand
+`margins stress-broker-check` does ask again, because `BrokerRecord.done` skips `error` rows.
+
+**Fix (no retry added: that rule is the owner's).**
+- Text 7288035b9 (A14c part 2 and O1's story).
+- The two lines now end "today's broker figure is lost unless `python -m fno margins stress-broker-check` is run by
+  hand before 14:50". When the 14:50 stop is among the reasons they end only "today's broker figure is lost": after
+  14:50 no run can ask again, so naming one would be a second false promise (found while fixing).
+
+**Tests.**
+- `test_the_failure_line_promises_no_retry_because_o1_never_reruns_the_step`: the check's real failure output goes
+  through O1's `outcome()` into a `RunLog`. The entry is `done`, `retried_steps` is empty, and the reason names the
+  by-hand run and no "rerun".
+- The deadline and record-failure line tests.
+- Plants: the old promise put back, 2 failed; the by-hand hint after 14:50, 4 failed.

@@ -6,7 +6,10 @@ from datetime import date
 
 import pytest
 
+from fno.nse_margins.broker_check import BY_HAND
+
 from .broker_fakes import BASKETS, LEVEL, ROWS, MemoryRecord, at, exposure_at, make_check
+from .span_builder import DAY
 
 SF100 = ("SF", 100.0)
 
@@ -83,7 +86,7 @@ def test_no_request_starts_at_or_after_14_50_and_the_rest_are_errors(start, aske
     assert all(when.time().isoformat() < "14:50:00" for _, when in broker.asked)
     statuses = [(r.status, r.detail) for r in record.written[0]]
     assert statuses[max(0, asked - 1) :] == [("error", "deadline")] * (6 - max(0, asked - 1))
-    assert "not checked (deadline)" in printed[-1] and "else today's broker figure is lost" in printed[-1]
+    assert printed[-1].endswith("not checked (deadline); today's broker figure is lost")  # no by-hand run after 14:50
 
 
 def test_a_rerun_asks_only_what_is_not_done_and_a_done_day_asks_nothing():
@@ -116,10 +119,11 @@ def test_a_broker_failure_is_an_error_row_exit_1_and_no_own_alert(failing):
 
 def test_a_record_that_cannot_be_written_or_read_exits_1():
     check, broker, _, alerts, printed, _ = make_check(at(11, 0), record=MemoryRecord(refuse=RuntimeError("x")))
-    broker.answers[SF100] = (0.0, 0.0)  # a mismatch whose record did not land is not alerted: a rerun asks again
+    broker.answers[SF100] = (0.0, 0.0)  # a mismatch whose record did not land is not alerted
     assert check.run() == 1 and alerts.sent == []
-    assert printed[-1] == ("margin check 2026-10-14: 6 basket(s) checked but not saved (RuntimeError); a rerun today "
-                           "asks them again")  # fmt: skip
+    assert printed[-1] == ("margin check 2026-10-14: 6 basket(s) checked but not saved (RuntimeError); today's broker "
+                           "figure is lost unless `python -m fno margins stress-broker-check` is run by hand before "
+                           "14:50")  # fmt: skip
     check, broker, *_, printed, _ = make_check(at(11, 0), record=MemoryRecord(done=OSError("Drive answered 503")))
     assert check.run() == 1 and broker.asked == [] and "(OSError)" in printed[-1] and "503" not in printed[-1]
 
@@ -156,7 +160,24 @@ def test_a_malformed_row_is_a_failure_line_not_a_traceback():
     assert (
         check.run() == 1
         and broker.asked == []
-        and printed[-1].endswith(
-            "0 basket(s) not checked (ValueError); a rerun today retries them, else today's broker figure is lost"
-        )
+        and printed[-1].endswith("0 basket(s) not checked (ValueError); " + BY_HAND)
     )
+
+
+def test_the_failure_line_promises_no_retry_because_o1_never_reruns_the_step(tmp_path):
+    """Judge 634: O1's step sets no `retry` key, so a failed margin_check is done for the day and a same-day
+    `daily run` skips it. The line therefore names the by-hand run, never "a rerun today"."""
+    from datetime import datetime
+
+    from fno.daily.steps import outcome
+    from fno.desk.run_log import RunLog, retried_steps
+    from fno.nse_margins.broker_wiring import WRITER
+
+    check, broker, _, _, printed, _ = make_check(at(10, 0))
+    broker.fail[SF100] = ConnectionError("x")
+    assert check.run() == 1
+    step = outcome(WRITER.split(), 1, printed)
+    log = RunLog(DAY, tmp_path / "run.json")
+    log.record("margin_check", datetime(2026, 10, 14, 14, 6), datetime(2026, 10, 14, 14, 7), step.inputs, step.result)
+    assert log.done("margin_check") and retried_steps(log.steps) == []
+    assert step.result["reason"].endswith(BY_HAND) and "rerun" not in step.result["reason"]

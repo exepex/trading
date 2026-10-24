@@ -2112,7 +2112,9 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     failed entry and a same-day `daily run` skips it (only the exits and marks steps are retried, owner 24 Oct; judge
     634). An `error` basket is therefore lost for the day unless someone runs `python -m fno margins
     stress-broker-check` by hand before 14:50 IST: that run asks only the baskets not `ok` or `mismatch`. The failure
-    line says exactly this, never "a rerun today retries". Adding a retry is the owner's call, not this story's.
+    line says exactly this, never "a rerun today retries"; when the 14:50 stop is among its reasons it says only
+    "today's broker figure is lost", since no run can ask again. Adding a retry is the owner's call, not this
+    story's.
   - **Exit and lines (O1's rules, agreed 16 Oct):** a failure never alerts twice, and a finding is not a failure.
     O1's `daily run` records every step in `journal/runs/<date>.json` and sends the one #fno-desk line for a failed
     step, so the check writes no O10 `capture_errors.csv` row (O10 covers jobs outside the daily run) and sends no

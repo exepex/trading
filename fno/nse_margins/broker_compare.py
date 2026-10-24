@@ -69,7 +69,7 @@ def compare(basket: Basket, broker: tuple[float, float], levels: Levels, rule: E
             unclear = RATE_STEP.format(levels=levels)
         elif _outside(exposure, nearest):
             off.append(EXPOSURE_OFF.format(broker=exposure, expected=nearest, levels=levels))
-    status = ERROR if unclear else MISMATCH if off else OK  # an unclear exposure is asked again by a same-day rerun
+    status = ERROR if unclear else MISMATCH if off else OK  # an unclear exposure is never a finding
     detail = "; ".join(part for part in (*off, unclear) if part)
     return Comparison(span, basket.span_expected, exposure, nearest, status, detail)
 

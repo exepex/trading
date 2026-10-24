@@ -9,7 +9,8 @@ Exit and lines (O1's rules, agreed 16 Oct 2026): a finding is not a failure, and
 - 0: every basket `ok`, "nothing to check", "outside market hours", or "nothing written: <reason>" (O1: refused).
 - 0 with its own #fno-desk line: a `mismatch` (the data landed; the line says to review the stress factor).
 - 1, the reason last and no own alert (O1 sends the step's line): a broker failure, the deadline, a basket that is
-  not its row, or a record that could not be read or written. An `error` is retried only by a same-day rerun."""
+  not its row, or a record that could not be read or written. O1 never retries the step (judge 634), so an `error`
+  basket is asked again only by a by-hand run before 14:50 IST; the line says so, never "a rerun today retries"."""
 
 from __future__ import annotations
 
@@ -31,12 +32,11 @@ NO_ROWS = "margin check {day}: nothing written: margins.csv has no A14 row for {
 NOTHING = "margin check {day}: nothing to check ({count} baskets already checked)"
 CHECKED = "margin check {day}: {ok} ok, {mismatch} mismatch, {error} error; record {path}"
 MISMATCHED = "; mismatch: {baskets}"
-NOT_SAVED = "margin check {day}: {count} basket(s) checked but not saved ({reason}); a rerun today asks them again"
+LOST = "today's broker figure is lost"  # O1 never retries the step (judge 634)
+BY_HAND = LOST + " unless `python -m fno margins stress-broker-check` is run by hand before 14:50"
+NOT_SAVED = "margin check {day}: {count} basket(s) checked but not saved ({reason}); " + BY_HAND
 MISMATCH_LINE = "Omenix F&O margin check: Groww and A14 differ beyond tolerance for {baskets}: review the stress factor"
-FAILED = (
-    "margin check {day}: {count} basket(s) not checked ({reason}); a rerun today retries them, else today's "
-    "broker figure is lost"
-)
+FAILED = "margin check {day}: {count} basket(s) not checked ({reason}); {then}"
 DEADLINE, NO_FILE = "deadline", "the day's SPAN file is not in the archive"
 LOT_DIFFERS = "lot {lot} differs from NSE's dated lot {dated} for {expiry}"
 NO_LOT = "no dated NSE lot for {expiry} on {day} ({why})"
@@ -80,7 +80,7 @@ class BrokerMarginCheck:
         results = self._check(day, due)
         try:
             path = self.parts.record.write(day, started, results)
-        except Exception as exc:  # the answers did not land: no finding is alerted, a same-day rerun asks again
+        except Exception as exc:  # the answers did not land: no finding is alerted
             self.print_line(NOT_SAVED.format(day=day, count=len(results), reason=_named(exc)))
             return 1
         return self._finish(day, results, path)
@@ -191,7 +191,8 @@ class BrokerMarginCheck:
         return 0
 
     def _failed(self, day: date, count: int, reason: str) -> int:
-        self.print_line(FAILED.format(day=day, count=count, reason=reason))
+        then = LOST if DEADLINE in reason.split("; ") else BY_HAND  # past 14:50 no run can ask again
+        self.print_line(FAILED.format(day=day, count=count, reason=reason, then=then))
         return 1
 
     def _done(self, line: str) -> int:
