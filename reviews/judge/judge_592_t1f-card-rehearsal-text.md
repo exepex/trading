@@ -50,3 +50,26 @@ None (a text round). P1-P6 are planned; finding 1 needs one more (the record bui
 
 Doc-reading tests at a70c4cb23, with `FNO_SLACK_BOT_TOKEN` kept (owner, 24 Oct): 853 passed, 15 xfailed. Record scan
 clean.
+
+## Addendum 1: round 2 at 57a5f0f38 (diff a70c4cb23..57a5f0f38)
+
+**PASS, lane 1** (Judge I, own session). The diff changes only the T1f section of `T-cards.md`. It also carries REH1's
+owner's two conditions (2d4e93719).
+
+| Item | Verdict | My evidence |
+|---|---|---|
+| 592.1 should-fix | FIXED | Four stages after `poster.post`, in `issue.py`'s order, each guarded so a raise never skips the next: clocks, facts, Drive record build and save (now including `_section`, `_record_name` and `_json`), metadata JSON and write. The minimal facts are listed field by field and stored in both files with `failure: "facts not built (<Type>)"`. Exit 1 on any failed stage. Tests 3b and 3c, plants P6, P6b and P6c. The fallback keeps what the next card's `misses()` reads: `slack.sent/outcome`, `drive.saved/outcome` (added by the delivery) and `clock[].server/warning/line/checked` (`deliveries.py:80-86`), so `clock: []` is safe |
+| 592.2 minor | FIXED | Criterion 2 and the Scope: metadata only on `rehearsal/<day>-<run_id>` (`checkout.py`), never `main` |
+| 592.3 minor | FIXED | Criterion 6 asserts the rehearsal line on GitHub's entry (without the hook it becomes "RehearsalCallRefused"), and that no `HttpDateClock` is built (P8) |
+| REH1 condition 1 | MET (text) | Criterion 7, test 6, plant P7: the card's clocks join `guard.builders()` (`rehearsal/guard.py:24`, which already lists `build_card_poster`), with `test_guard.py`'s map and count updated |
+| REH1 condition 2 | MET (text) | `CardClocks` interface with `ServerCardClocks` and `RehearsalCardClocks`; GitHub's `HttpDateClock` is built only inside the real form's builder. One interface, two forms, chosen in the composition root (CLAUDE.md "Design for change") |
+
+Notes for the code round (not findings):
+- When the facts fail, `clock: []` drops checks already made in stage 1. That is safe for `misses()`. Keeping the
+  checks' `stored()` form, when it can be built, would lose less.
+- Test 3b could also feed the minimal metadata to `card_from_delivery` and the pinned contract
+  (`test_p1_t1_card.py`), since every committed delivery is validated there.
+- The 592.1 answer says the fallback keeps `drive`, but stage 2's list has no `drive`. It comes from the delivery
+  wrapper, which is fine; the code should keep it that way.
+
+Doc-reading tests at 57a5f0f38, with `FNO_SLACK_BOT_TOKEN` kept: 853 passed, 15 xfailed; record scan clean.
