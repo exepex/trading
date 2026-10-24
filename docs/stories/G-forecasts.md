@@ -589,9 +589,13 @@ it gives the yardstick that can show whether one is.
    option-implied probability, V4's and V5's outcome resolution and base rates, the two rule forecasters.
 3. **Part b2, c and d live (needs G10's released packs):** the post-release capture that writes the pack-derived rows
    for each live day, and the daily proxy-drift row.
-4. **Part e, G8's side:** V4 and V5 leave `NOT_STARTED`; G8 reads the new outcomes and records; the report prints the
-   proxy drift. Only if the orchestrator assigns it here (question 1).
-5. **Protocol wordings** W1-W6 below, in `PROTOCOL_v4.md` (not frozen), with a test that reads them.
+4. **Part e, G8's side (assigned here by the orchestrator, 24 Oct: G8's earlier owner is out of reach):** V4 and V5
+   leave `NOT_STARTED`; G8 reads the new outcomes and Drive records; the report prints the proxy drift. Rules below.
+5. **Part f, V2 and V3's intraday versions (protocol 1.1; assigned here by the orchestrator, 24 Oct):** the separate,
+   reported series, from A16's first full window. Rules below.
+6. **The O1 step** `forecasts_v4_pack` (its place in `DAILY_RUN_STEPS` and its `daily.live_from` key, null until the
+   owner's go), reviewed by O1's builder through the orchestrator.
+7. **Protocol wordings** W1-W7 below, in `PROTOCOL_v4.md` (not frozen), with a test that reads them.
 
 **Out, with reasons:**
 - Building the pack, its 14:30 capture, its release and which expiries and strikes it holds: G10's (owner rule "one
@@ -602,9 +606,8 @@ it gives the yardstick that can show whether one is.
 - Ledger registration and `FREEZE_v4.md` (G6 freeze); the routine's schedule and `daily.live_from` dates (owner and
   O1's builder).
 - Moving phase 1's committed CSVs to Drive: story O9, not this one.
-- **V2 and V3's intraday versions** (protocol 1.1: "a separate, reported series from A16's first full window"): an
-  extra outcome series for G8's report, not a section 1.4, 1.5, 3.1 or 3.2 rule, and no story owns it today. Not in
-  this brief; reported to the orchestrator as an open v4 gap (question 5), so it is not lost.
+- Setting `daily.live_from.forecasts_v4_pack` to a date: the owner's go (it stays null in this story).
+- G8's look reconciliation (register row "G8 look reconciliation"): its own story; nothing here changes it.
 
 ### The rules (exact; zero fitted parameters, design 5.7 rule 5; every cutoff is the pack's 14:40, protocol 1.6)
 
@@ -736,10 +739,57 @@ both name its SHA-256.
    imports it (one rule, one place).
 3. `future` keeps bid and ask (W2 prices `F` at mid).
 4. `iv30.flagged` as on main.
-5. O1 (with its builder's agreement): a daily-run step `forecasts_v4_pack` right after the pack's release step, live
-   from its own `daily.live_from` date; its receipts pushed before 15:10.
 
-### Protocol wordings to add before the freeze (W1-W6; the owner signs them with the freeze)
+**The O1 step (reviewed by O1's builder, session_016CU8KFuEEtWAM7ZNnFcKxv, through the orchestrator):**
+- `fno/constants_operations.py`: a new step `forecasts_v4_pack` in `DAILY_RUN_STEPS`, placed **directly after G10's
+  pack-release step** (its name is set by the G10 completion; if G10 releases inside another step, directly after that
+  step) and before `card`, so the card can say whether it ran. Its value is the subcommand above, run as a child
+  process like the other steps; it commits only its own receipt paths (`receipts/data/v4/records/`,
+  `receipts/data/v4/terms/`, `receipts/data/v4/outcomes/`, `receipts/data/v4/diagnostics/`).
+- `config.yaml`: `daily.live_from.forecasts_v4_pack: null` (`not_live` until the owner sets a date; `fno/config.py`'s
+  allowed keys gain it).
+- A `system_late` day: the step is `ok` with "no pack today, nothing written". A run that reaches it at or after
+  15:10:00: `refused`, one alert, as the other v4 captures (O1's existing handling).
+- Tests: the step's place in the order (after the release step, before `card`), `not_live` while the key is null, and
+  the committed paths. Said plainly: this edits O1's files (lane 1, outside services' schedule), so O1's builder
+  reviews that part before the judge.
+
+### Part e: G8's side (rules)
+
+- `fno/forecast_scoring/v4/scoring.py`: `NOT_STARTED` is removed. A question with no forecaster rows still prints "not
+  enough data yet" (protocol 1.3), never a failure.
+- `outcomes.py`: `OutcomeSeries` gains `v4_outcomes()` and `v5_outcomes()`, filled by G7b's resolvers (one rule, one
+  place, as V6 and V7). A V4 or V5 day with void terms is `Outcome(void=True)`; an unresolved day has no entry. V5's
+  outcome is read only from its written outcome record, never computed from a close. The regime inputs
+  (`_first_session`) stay as they are.
+- `inputs.py`: a second `V4ForecastSource`, `DriveForecastRecords`, reads the new live and back-fill records through
+  `DriveCache`; a composite gives G8 one source. Two rows for one forecaster, question and day (CSV and Drive, or two
+  Drive files) stop the report and name them; never a silent pick.
+- The report (`render.py`) prints, after the question blocks, the proxy-drift line from `diagnostics.proxy_drift`: the
+  paired pack / EOD IV30 ratio's median over all live days and the latest 20, and their drift, labelled "descriptive
+  only; the EOD proxy is not claimed equal to the pack's IV30" (protocol 3.1). V4's block carries "probabilistic
+  diagnostic, not a variance-risk-premium estimate" and V5's "terminal intrinsic-payoff proxy, not evidence of money"
+  (protocol 1.4, 1.5). The report's JSON only gains keys, so LR1's reader (`forecast_section.py`) keeps working; a test
+  reads one old report through it.
+- Wiring in `fno/forecast_scoring/v4/wiring.py` only.
+
+### Part f: V2 and V3's intraday versions (protocol 1.1, reported only)
+
+- **Outcome:** the sum of A16's live intraday `RV_s` (method `V1_INTRADAY_METHOD`, never A16b's back-fill) over
+  `d+1..d+h`, h = 5 or 20. Any void session voids the day; a missing session leaves it unresolved. The rule sits in
+  G7's `series.py` beside the close-proxy one.
+- **First full window:** the series starts at the first forecast day `d` whose `d+1..d+h` are all live A16 sessions
+  (16 Oct 2026 was A16's first live session, so V2's starts at the first such `d` after it).
+- **Forecasts scored:** the same V2 and V3 forecaster rows (no new forecaster, no new record); each is scored against
+  this outcome as its own series, `v2_rv_next_5_sessions/intraday` and `v3_rv_next_20_sessions/intraday` in the
+  report, never pooled with the close-proxy series and never in the family, Test A or a look.
+- **Its primary baseline:** premium-adjusted implied on this series' own measure (W3), so it is `not_eligible` until
+  500 window points (about two years for V2, longer for V3); until then the pair is missing and counted, and the
+  report prints each forecaster's QLIKE only.
+- Reasoning only, said plainly: QLIKE ranks correctly under either proxy (protocol 1.1, Patton 2011); this series
+  exists to show whether the close proxy's noise hides a difference, not to judge anyone.
+
+### Protocol wordings to add before the freeze (W1-W7; the owner signs them with the freeze)
 
 - **W1 (1.4):** V4's realised side is A16's intraday `RV_s` (method `V1_INTRADAY_METHOD`), live rows only.
 - **W2 (1.5, 3.1):** V5's `F` is the pack's future at mid, under the 5% spread rule; else void. V5's leg IVs use Black-76
@@ -752,6 +802,21 @@ both name its SHA-256.
 - **W6 (1.3, 3.1):** V4 starts when the pack holds an expiry with at least 5 scored sessions and A16 records `RV_s`
   (1.3 still says "when A16 records weekly ATM quotes", written before the pack); the V4 and V5 rule forecasters read
   the released pack and name its SHA-256.
+- **W7 (1.1):** V2 and V3's intraday versions sum A16's live intraday `RV_s` over the horizon; any void session voids
+  the day; they start at the first forecast day whose whole horizon is live A16 sessions; scored as separate reported
+  series with their own premium-adjusted baseline (W3), never pooled, never family members.
+
+**For the owner to sign, in plain words (one place):**
+
+| # | What it says | Why it is needed |
+|---|---|---|
+| W1 | V4 measures realised movement from the 15-minute intraday quotes (A16), not from daily closes | the protocol implies it but never says it |
+| W2 | V5 uses the future's mid price (halfway between bid and ask) as its forward, and drops the day if that quote's spread is over 5% | the protocol says "the future" without saying which price |
+| W3 | The "premium-adjusted" yardstick compares implied with realised movement on the same measure the question uses; so V1's (and part f's) version has no value for about two years | mixing daily and intraday measures would pool two series the protocol keeps apart |
+| W4 | (only if no stored archive time exists) V5's "first seen" time is when GitHub received that file's receipt; else A8's log; else the outcome waits | the protocol names a time no file stores today |
+| W5 | A "live" option quote means a bid and an ask are both present, ask not below bid; whether it traded today does not matter | the protocol does not define "live" |
+| W6 | V4 starts when the pack holds a suitable expiry and A16 records movement (old text named A16's weekly quotes); V4's and V5's rule forecasts read the pack and name its fingerprint | the old start line predates the pack |
+| W7 | V2's and V3's intraday versions: how they are summed, voided, started and reported | the protocol names the series but not its rules |
 
 ### Acceptance criteria (each with its test in `tests/forecast_v4_rules/`, good, bad, boundary and empty cases, and the planted break that must fail it)
 
@@ -771,9 +836,11 @@ both name its SHA-256.
 | 12 | `v5_ewma_lognormal` and `v4_ewma_chi2` equal hand values; chi-square(5) closed form equals known table values (e.g. `F(11.0705) = 0.95`) to 1e-6 | EWMA not eligible gives missing; void terms give missing | `v = s2` without `S_e`; chi-square with 4 degrees |
 | 13 | Post-release capture: nothing on `system_late`; every pack-reading row names the released SHA (guard); base rates empty SHA; nothing from 15:10:00; write-once (same bytes no-op, other bytes refused) | 15:09:59 writes, 15:10:00 refuses; another pack's SHA refused; no release record writes nothing | a pack row with an empty SHA; overwrite allowed |
 | 14 | Proxy drift: one `(day, pack IV30, EOD IV30)` row per live day once `d`'s EOD chain is archived; a flagged side is empty; G8's `proxy_drift` reads the rows | EOD not archived yet: pending, written on a later run; both flagged | EOD of `d+1` used for `d` |
-| 15 | Part e (if assigned): V4 and V5 leave `NOT_STARTED`; G8's outcomes for V4 and V5 come from these resolvers; G8 reads the Drive records beside the CSVs (one row per day; two rows for one day refused); the report prints the proxy drift | a V4 day without terms is void, not missing; G8's other tests unedited. Said plainly: the test that expects "not started" for V4 and V5 changes, a lane-1 test edit, shown in the claims | V5 scored on the index close |
-| 16 | W1-W6 in `PROTOCOL_v4.md`, read by a text test | each wording present once | a wording removed |
-| 17 | Design and size: no file or class over 350 lines; no `fno/forecast_v4/` rule re-implemented (imports checked); every outside source behind an interface (pack source, settlement prices, first-seen times, record store), wired in `fno/forecast_v4_rules/wiring.py`; the method hash covers the new files and the hash gate covers the back-fill's path | `tests/test_code_size.py`; the gate fails on a stale back-fill | a new method file left out of the hash |
+| 15 | Part e: V4 and V5 leave `NOT_STARTED` (no rows: "not enough data yet"); G8's V4 and V5 outcomes come from these resolvers; G8 reads the Drive records beside the CSVs; the report prints the proxy drift and the V4 and V5 labels; LR1's reader reads the new report | a V4 day with void terms is void, not missing; two rows for one day stop the report and name them; an old report still reads; G8's other tests unedited. Said plainly: the test that expects "not started" for V4 and V5 changes, a lane-1 test edit, shown in the claims | V5 scored on the index close; a duplicate day silently picked |
+| 16 | W1-W7 in `PROTOCOL_v4.md`, read by a text test | each wording present once | a wording removed |
+| 17 | Part f: the intraday V2 and V3 outcome (sum of live A16 `RV_s`; void and unresolved rules; first full window), scored as separate series, never pooled, never in the family | one void session voids; the 4th of 5 sessions missing is unresolved; A16b's rows ignored; no live window yet prints "not enough data yet"; the close-proxy series' scores unchanged | pooling the two series; a void session skipped |
+| 18 | The O1 step: `forecasts_v4_pack` directly after the release step and before `card`, `not_live` while its key is null, commits only its receipt paths, refused from 15:10:00 | key null: `not_live`; a date: runs; `system_late`: ok with nothing written | step placed before the release; another path committed |
+| 19 | Design and size: no file or class over 350 lines; no `fno/forecast_v4/` rule re-implemented (imports checked); every outside source behind an interface (pack source, settlement prices, first-seen times, record store), wired in `fno/forecast_v4_rules/wiring.py`; the method hash covers the new files and the hash gate covers the back-fill's path | `tests/test_code_size.py`; the gate fails on a stale back-fill | a new method file left out of the hash |
 
 **Real output sample (claims):** one back-filled V2 premium-adjusted row and one V5 outcome from a past expiry's public
 file, made by the committed code; a live-shaped sample only from a fixture pack (no Groww value, no live strike, record
@@ -811,22 +878,21 @@ they found and what was fixed or why not.
 | 1.5 Source path, SHA-256, `first_seen_at` order, before-15:30 refusal, missing file unresolved | criterion 8 (W4 if needed) |
 | 1.5 V5 not evidence of money | G8's report wording (15) |
 | 1.3 Starts (V4 from the pack and A16; V5 from the freeze) | W6; criterion 13 writes from `daily.live_from` |
-| 1.1 V2, V3 intraday versions (separate reported series) | **out**: not in this brief, no owner (question 5) |
+| 1.1 V2, V3 intraday versions (separate reported series) | part f, criterion 17 (W7) |
+| G8 scores V4 and V5; the report's diagnostics and labels | part e, criterion 15 |
+| The capture runs daily after the release | the O1 step, criterion 18 |
 | Rule forecasters for V4 and V5 (so G11's books answer them) | criterion 12 |
 | Point in time and the pack binding | criteria 3, 11, 13, 14 |
 
-### Questions for the orchestrator (recommendation first)
+### Decisions so far and what is still open
 
-1. **Part e (G8's V4/V5 side):** recommended here, agreed with G8's owner through you; otherwise G8's owner builds it
-   on these resolvers. Without it V4 and V5 stay "not started" in every report.
-2. **Storage:** recommended Drive for every new row (CLAUDE.md, O9, register row G7b). The alternative, phase 1's repo
-   CSVs, would put Groww-derived values in the repository: refused.
-3. **The G10 interface (items 1-5 above):** please route it to the G10 completion builder; I start the live wiring only
-   after its answer.
-4. **O1 step `forecasts_v4_pack`:** O1's builder's agreement, judge D's lane as before.
-5. **V2 and V3 intraday series (protocol 1.1):** uncovered by any story; name an owner, or add it to this story as part
-   f.
-6. **W1-W6:** the owner signs them with the freeze, as the four G7b wordings.
+- **Decided by the orchestrator, 24 Oct:** part e and part f are in this story; the G10 interface asks went to the
+  G10 completion builder (session_011hvvn9CahAD5dCPHS3kowN), its answer comes back through the orchestrator; the O1
+  step is written here and O1's builder reviews it; W1-W7 go to the owner at the freeze.
+- **Storage:** Drive for every new row (CLAUDE.md, O9, register row G7b). Phase 1's repo CSVs would put Groww-derived
+  values in the repository: refused.
+- **Open:** G10's answer on the interface. The live wiring (step 3 of the scope) starts only after it; if G10 cannot
+  hold the V4 expiry, V4 stays void every day and that is reported, never worked around with a nearer expiry.
 
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
@@ -835,7 +901,7 @@ reports); `v4_ewma_chi2` mixes a close-proxy variance with an intraday outcome; 
 exploratory (protocol 8).
 
 **Depends:** G7 and G7b part a (merged); G10's pack builder and release (live parts only); A16 (V4, V1's ratio); O9's
-`DataStore` (merged); E7's `NseFinalSettlement` (merged) · **Size:** L · **Status:** story text for the judge (rule 1);
+`DataStore` (merged); E7's `NseFinalSettlement` (merged); O1 (the step) · **Size:** L · **Status:** story text for the judge (rule 1);
 no code before its PASS
 
 ---
