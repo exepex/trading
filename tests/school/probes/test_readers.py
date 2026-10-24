@@ -33,10 +33,42 @@ def test_nse_s_session_headers_are_replaced_not_added_to():
     assert get.session.headers == {"User-Agent": NSE_USER_AGENT, "Accept": "application/json, text/plain, */*"}
 
 
-def test_the_probe_sends_nse_nothing_but_get():
-    source = (PACKAGE / "nse_reader.py").read_text()
-    for verb in ("post", "put", "delete", "patch", "request"):
-        assert f"session.{verb}(" not in source
+def test_the_probe_sends_nse_nothing_but_get(tmp_path):
+    rig = Rig(tmp_path)
+    used = []
+
+    class OnlyGet:
+        """Any name but `get` and `headers` fails the run: nothing else of the session may be touched."""
+
+        def __init__(self, inner):
+            object.__setattr__(self, "inner", inner)
+
+        def __getattr__(self, name):
+            used.append(name)
+            if name not in ("get", "headers"):
+                raise AssertionError(f"session.{name} used")
+            return getattr(self.inner, name)
+
+    rig.tools.nse.http.session = OnlyGet(rig.nse)
+    rig.run()
+    assert set(used) == {"get"} and rig.nse.calls == 44
+
+
+def test_no_module_the_probe_imports_names_a_trading_call_v4_or_the_fleet():
+    from tests.intraday.test_read_only_and_fallback import FORBIDDEN, _closure
+
+    modules = set()
+    for file in sorted(PACKAGE.glob("*.py")):
+        _closure(f"fno.school.probes.{file.stem}", modules)
+    assert "fno.intraday.read_only" in modules and "fno.providers.groww" in modules
+    assert not [m for m in modules if m.startswith(("fno.forecast_v4", "fno.school.fleet", "fno.v4_pack"))]
+    found = {}
+    for module in modules:
+        path = PACKAGE.parents[2].joinpath(*module.split("."))
+        file = path.with_suffix(".py") if path.with_suffix(".py").is_file() else path / "__init__.py"
+        if hits := [name for name in FORBIDDEN if name in file.read_text(encoding="utf-8")]:
+            found[module] = hits
+    assert found == {}
 
 
 def test_no_probe_module_names_the_trading_client():
@@ -64,7 +96,7 @@ def test_a_failed_sign_in_stops_groww_with_no_second_sign_in(tmp_path):
     rig.tools.groww.client = NeverSignedIn()
     code, lines = rig.run()
     assert len(tries) == 1 and code == 1
-    assert rig.counts().stops[Source.GROWW] == "p0b groww stopped for the day at 10:07: SignIn"
+    assert rig.counts().stops[Source.GROWW] == "p0b groww stopped for the day at 10:07: sign-in failed: SignIn"
 
 
 def test_a_good_sign_in_is_used_for_the_whole_day(tmp_path):

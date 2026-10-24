@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 TOO_MANY = 429
+UNEXPECTED = "answer is not the expected JSON"
 
 
 class Verdict(StrEnum):
@@ -46,5 +47,5 @@ def judge(answer: RawAnswer, first_429_stops: bool) -> tuple[Verdict, str]:
     if answer.error_name:
         return Verdict.STOP, answer.error_name  # an error we cannot place fails closed
     if not answer.shape_ok:
-        return Verdict.STOP, "answer is not the expected JSON"
+        return Verdict.STOP, UNEXPECTED
     return Verdict.OK, ""

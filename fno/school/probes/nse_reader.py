@@ -27,7 +27,7 @@ from .constants import (
     RowKind,
 )
 from .rows import captured, missing
-from .slot_capture import LotLookup, SlotCapture, near_money
+from .slot_capture import LotLookup, SlotCapture, near_money, parsed
 
 NSE_TIME = "%d-%b-%Y %H:%M:%S"
 FUTURE_TYPES = ("Index Futures", "Stock Futures")
@@ -64,7 +64,7 @@ def _is_page(payload: object) -> bool:
 
 
 def _has_stocks(payload: object) -> bool:
-    return isinstance(payload, dict) and isinstance(payload.get("stocks"), list)
+    return isinstance(payload, dict) and isinstance(payload.get("stocks"), list) and bool(payload["stocks"])
 
 
 def _has_records(payload: object) -> bool:
@@ -113,15 +113,18 @@ class NseReader:
     def _future(self, caller, capture: SlotCapture, underlying: str, session: date) -> float | None:
         answer = caller.call("future", lambda: self.http.get(NSE_FUTURES_PATH, {"symbol": underlying}, _has_stocks))
         seen = self.now()
-        entry = near_future(answer.payload, session) if answer else None
+        entry = parsed(lambda: near_future(answer.payload, session)) if answer else None
         if entry is None:
             capture.rows.append(missing(RowKind.FUTURE, underlying, "", None, seen))
             return None
         digest = capture.keep(f"future {underlying}", seen, answer)
+        return parsed(lambda: self._future_row(capture, underlying, entry, answer.payload, seen, digest))
+
+    def _future_row(self, capture, underlying: str, entry: dict, payload: dict, seen, digest: str) -> float | None:
         meta, book = entry.get("metadata") or {}, entry.get("marketDeptOrderBook") or {}
         expiry = parse_nse_date(str(meta["expiryDate"]))
         contract = str(meta.get("identifier") or f"{underlying} FUT {expiry}")
-        source_time = nse_time(answer.payload.get("fut_timestamp"))
+        source_time = nse_time(payload.get("fut_timestamp"))
         capture.rows.append(captured(RowKind.FUTURE, underlying, contract, expiry, self.lot(underlying, expiry),
                                      _top(book, "bid"), _top(book, "ask"), source_time, seen, digest))  # fmt: skip
         last = meta.get("lastPrice")
@@ -130,16 +133,12 @@ class NseReader:
     def _chain(self, caller, capture: SlotCapture, underlying: str, session: date, future_last: float | None) -> None:
         answer = caller.call("chain", lambda: self.http.get(NSE_CHAIN_PATH, {"symbol": underlying}, _has_records))
         seen = self.now()
-        expiry = self._near_expiry(answer.payload, session) if answer else None
+        expiry = parsed(lambda: self._near_expiry(answer.payload, session)) if answer else None
         if expiry is None:
             capture.rows.append(missing(RowKind.OPTION, underlying, "chain", None, seen))
             return
         digest = capture.keep(f"chain {underlying}", seen, answer)
-        try:
-            chain = parse_nse_chain(answer.payload, underlying, expiry, 0)
-        except (KeyError, TypeError, ValueError):
-            capture.rows.append(missing(RowKind.OPTION, underlying, "chain", expiry, seen))
-            return
+        chain = parsed(lambda: parse_nse_chain(answer.payload, underlying, expiry, 0))
         lot = self.lot(underlying, expiry)
         for strike in near_money([s for s, _ in chain.quotes], future_last or chain.spot):
             for kind in OPTION_TYPES:

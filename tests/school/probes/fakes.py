@@ -71,7 +71,7 @@ class FaultyNse(MadeUpNse):
         if self.calls in self.faults:
             self.clock.sleep(0.2)
             fault = self.faults[self.calls]
-            if isinstance(fault, Exception):
+            if isinstance(fault, BaseException):
                 raise fault
             return fault
         return super().get(url, params, timeout)

@@ -41,6 +41,8 @@ class PacedCaller:
             if not self._may_send():
                 return None
             answer = self._send(kind, request)
+            if answer is None:
+                return None
             verdict, reason = judge(answer, self.first_429_stops)
             if verdict is Verdict.OK:
                 return answer
@@ -74,8 +76,11 @@ class PacedCaller:
             return False
         return self.wall_clock() < self.deadline
 
-    def _send(self, kind: str, request: Callable[[], RawAnswer]) -> RawAnswer:
+    def _send(self, kind: str, request: Callable[[], RawAnswer]) -> RawAnswer | None:
+        """None when the pace's wait reached the hard stop: nothing is sent after it (self-review 6)."""
         self.pace.wait_turn()
+        if self.wall_clock() >= self.deadline:
+            return None
         started = self.timer()
         self.sent += 1
         answer = request()

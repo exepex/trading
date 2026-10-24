@@ -8,11 +8,13 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-from .answers import RawAnswer
+from .answers import UNEXPECTED, RawAnswer
+from .caller import SourceStopped
 from .constants import STRIKES_EACH_SIDE
 from .rows import CaptureRow
 
 LotLookup = Callable[[str, date], "int | None"]
+PARSE_ERRORS = (KeyError, TypeError, ValueError, AttributeError, IndexError)
 
 
 @dataclass
@@ -47,3 +49,11 @@ def near_money(strikes: list[float], reference: float) -> list[float]:
         return []
     at = min(range(len(ordered)), key=lambda i: abs(ordered[i] - reference))
     return ordered[max(0, at - STRIKES_EACH_SIDE) : at + STRIKES_EACH_SIDE + 1]
+
+
+def parsed(read: Callable[[], object]):
+    """The value `read` builds from an answer; an answer it cannot read stops the source cleanly (self-review 4)."""
+    try:
+        return read()
+    except PARSE_ERRORS:
+        raise SourceStopped(UNEXPECTED) from None

@@ -33,7 +33,6 @@ OPTION_TYPES = ("CE", "PE")
 MIN_GAP_SECONDS = {Source.GROWW: 1.0, Source.NSE: 3.0}
 DAILY_CAP = {Source.GROWW: 240, Source.NSE: 50}
 SLOT_BUDGET = {Source.GROWW: 50, Source.NSE: 11}  # reserved before a slot's first request (judge 626)
-EXPIRY_LOOKUPS = len(FUTURES)  # Groww's get_expiries, once a day, outside the slot budget but inside the cap
 RATE_LIMIT_WAIT_SECONDS = 60.0  # NSE only: Groww stops at its first 429 (orchestrator's Groww audit)
 SERVER_ERROR_WAIT_SECONDS = 30.0
 REQUEST_TIMEOUT_SECONDS = 20.0

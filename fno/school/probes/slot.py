@@ -15,7 +15,6 @@ from .constants import (
     CAP_LINE,
     CHAINS,
     DAILY_CAP,
-    EXPIRY_LOOKUPS,
     FUTURES,
     OPTION_TYPES,
     RESERVATION_NOT_PUSHED,
@@ -79,7 +78,7 @@ class SlotRunner:
         return lines
 
     def _wanted(self, source: Source) -> int:
-        lookups = EXPIRY_LOOKUPS if source is Source.GROWW and not self.tools.groww.expiries else 0
+        lookups = len(self.tools.groww.unlooked()) if source is Source.GROWW else 0
         return SLOT_BUDGET[source] + lookups
 
     def _reservation(self, source: Source, counts: DayCounts) -> int:
@@ -98,9 +97,7 @@ class SlotRunner:
         try:
             self._read(source, caller, capture, session)
         except SourceStopped as stopped:
-            lines += tools.stops.stopped(session, source, name, stopped.reason)
-            counts.stops[source] = lines[0]
-            entry.stop = stopped.reason
+            lines += self._stop(session, name, source, counts, stopped.reason)
         drive = tools.archive.save(source, str(session), name, capture.all_lines())
         if drive == CONFLICT:
             lines.append(CONFLICT_LINE.format(slot=name, source=source))
@@ -110,11 +107,21 @@ class SlotRunner:
                                          stop=entry.stop or "no stop"))  # fmt: skip
         return lines
 
+    def _stop(self, session: date, name: str, source: Source, counts: DayCounts, reason: str) -> list[str]:
+        """Records the stop and pushes it at once, before anything else runs: a run that dies later must not leave a
+        rerun free to ask the stopped source again (self-review 2)."""
+        lines = self.tools.stops.stopped(session, source, name, reason)
+        counts.stops[source], counts.slots[name][source].stop = lines[0], reason
+        self.tools.folder.write(counts)
+        if failed := self.tools.publisher.publish(f"{session} {source} stopped"):
+            lines.append(failed)
+        return lines
+
     def _read(self, source: Source, caller: PacedCaller, capture: SlotCapture, session: date) -> None:
         if source is Source.NSE:
             self.tools.nse.read_slot(caller, capture, session)
             return
-        if not self.tools.groww.expiries:
+        if self.tools.groww.unlooked():
             self.tools.groww.read_expiries(caller, session)
         self.tools.groww.read_slot(caller, capture)
 
