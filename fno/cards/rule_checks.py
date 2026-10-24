@@ -22,7 +22,7 @@ from ..constants import (
     RUN_LOG_DECISIONS_STEP,
     VALIDITY_FAILURES_FILE,
 )
-from ..desk.run_log import PROBLEMS, RUNS_FOLDER, book_results
+from ..desk.run_log import RUNS_FOLDER, book_results, problem_steps
 from ..desk.timetable import Timetable
 from .committed import CommittedRecords
 from .sections import UsedRecord
@@ -33,6 +33,7 @@ PENDING = "not yet decided (final at {at:%H:%M} IST)"
 UNREADABLE = "{path}: not readable ({why})"
 MALFORMED = "steps are not name -> {result: {...}}"
 STEP_PROBLEM = "decisions step {status}: {reason}"  # O1's R2 result, the orchestrator's wording (T1d)
+STEP_STATUS = "decisions step {status}"  # a step-level result that logged no reason
 
 
 @dataclass(frozen=True)
@@ -103,21 +104,14 @@ class DecisionOutcome(RuleSource):
         steps, used = self.runs.steps(day)
         if steps is None or RUN_LOG_DECISIONS_STEP not in steps:
             return RuleOutcome(self.name, False, _pending(steps, self.at), used=used)
-        result = steps[RUN_LOG_DECISIONS_STEP]["result"]
-        if isinstance(result.get("status"), str):  # a step-level result (O1's R2 and later), never books (T1d)
-            return self._step_level(result, used)
-        late = [b for b, r in book_results(result).items() if "run_id" not in r]
-        refused, files = self._refusals(day)
-        parts = [f"late or not committed: {', '.join(late)}" if late else "every book on time"]
+        step = steps[RUN_LOG_DECISIONS_STEP]
+        failed = bool(problem_steps({RUN_LOG_DECISIONS_STEP: step}))  # O1's one rule: failed or refused (T1d)
+        refused, files = self._refusals(day)  # C4's refusals are read on every path, a failed step's too
+        parts = [_decided(step["result"])]
         parts.append("C4 refused: " + "; ".join(f"{b} ({', '.join(c)})" for b, c in refused.items()) if refused
                      else "no C4 refusal")  # fmt: skip
-        code = CARD_HARD_RULE_BREACH if refused else ""
+        code = CARD_DATA_CHECK_FAILED if failed else CARD_HARD_RULE_BREACH if refused else ""
         return RuleOutcome(self.name, True, ", ".join(parts), code, used + files)
-
-    def _step_level(self, result: dict, used: tuple[UsedRecord, ...]) -> RuleOutcome:
-        """O1's problem statuses (failed, refused) are a data check failure; any other status is shown as it is."""
-        line = STEP_PROBLEM.format(status=result["status"], reason=result.get("reason", ""))
-        return RuleOutcome(self.name, True, line, CARD_DATA_CHECK_FAILED if result["status"] in PROBLEMS else "", used)
 
     def _refusals(self, day: date) -> tuple[dict[str, list[str]], tuple[UsedRecord, ...]]:
         refused, used = {}, []
@@ -161,6 +155,20 @@ class ExecutionOutcome(RuleSource):
         if steps is None or SNAPSHOT_STEP not in steps:
             return f"last session ({previous}): no execution record"
         return f"last session ({previous}): {_verdict(steps[SNAPSHOT_STEP]['result'])[0]}"
+
+
+def _decided(result: dict) -> str:
+    """A step-level result (O1's R2 and later: a top-level `status`, which no book id is) is shown as it is, never
+    read as books (T1d); otherwise which books were late."""
+    if "status" in result:
+        reason = result.get("reason")
+        return (
+            STEP_PROBLEM.format(status=result["status"], reason=reason)
+            if reason
+            else STEP_STATUS.format(status=result["status"])
+        )
+    late = [b for b, r in book_results(result).items() if "run_id" not in r]
+    return f"late or not committed: {', '.join(late)}" if late else "every book on time"
 
 
 def _verdict(result: dict) -> tuple[str, str]:
