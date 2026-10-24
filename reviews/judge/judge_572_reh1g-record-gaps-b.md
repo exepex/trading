@@ -58,3 +58,39 @@ equivalent on today's data.
 - Hunted: no write path (`ListedQuoteRecord.put` reaches `RecordReader.put`, which raises; raw reads use
   `record_view()`); no new post; holidays and empty days end NOT_RECORDED; every time compared is tz-aware.
 - REH1g was finished by session_01Mt6dcBU5kp2htdPN2KmiZH, which launched this judge (no shared context); builders never merge.
+
+## Addendum 1
+
+**REH1g code, round 2 (story/reh1g-record-gaps @ f1f37f3a5), judge B: PASS (1 minor). Lane 1.** Round 2's code:
+`manifest_rows.py` (+29/-8) and three test files (`git diff f9562dfe1 f1f37f3a5 -- fno tests`).
+
+| Round-1 item | Outcome | My evidence |
+|---|---|---|
+| SF1 revision rows date a raw file | **Accepted** | `_index` now reads `path` rows only from the top-level files of `global-cues/` and `groww-candles/` (`_path_logs`, from the writers' own constants), and A9 rows only from the 20 `RAW_SOURCES` manifests. I ran `seen_at` read-only on my trial merge with full history: span-bod 21 Oct 20 Oct 02:23:12, 23 Oct close 17:01:15, 12 Oct close 13 Oct 01:54:09, 16 Oct close 16 Oct 22:40:15, KOSPI 03:23:35 (all UTC); a made-up file None. `global-cues/attempts/` has no `path` column, so `glob` loses nothing |
+| m1 Pj committer time | **Accepted** | new test with author 03:20:00, committer 03:23:35; my Q3 (`author-time`) caught |
+| m2 Pc trailing `/` | **Accepted** | both source orders tested; my Q6 caught |
+| m3 three manifests never visible | **Accepted** | gap-list row added; `rehearsal/routines.py` runs none of them |
+| m4 limit 2 wording | **Accepted** | reworded: late through a routine's merge, early only for a branch commit pushed as `HEAD:main` (seconds). Note below |
+
+**Gates** (trial merge of f1f37f3a5 with origin/main d5ee18d02, full history): ruff clean; format 2,443 files;
+imports clean (2,572 files); record scan clean (9,007 files); **15,150 passed, 1 skipped, 15 xfailed**. The skip is
+`tests/intraday/test_feed_tls.py:190`: `growwapi` is not installed in my container. It is unrelated to this change.
+
+**Plants** (9, each run alone on `tests/rehearsal`, file restored, `__pycache__` cleared): 8 caught.
+- Q1 `revisions` and `filings` added to the logs (2 failed); Q2 `rglob`; Q3 author time; Q4 `_keep` keeps the later
+  commit; Q6 no `/`; Q7 the closes serve the latest answer; Q8 no `--first-parent`; Q9 blame of `HEAD` (each 1 failed).
+- Survived: Q5, `groww-candles` dropped from `_path_logs` (105 passed).
+
+## Minor (round 2)
+
+1. Q5 survives: no test has a candle `path` row. The candle source itself does not depend on it, because
+   `RecordedCandles` reads its manifest directly (`candle_wiring.py:24`). But a candle file read through the rehearsed
+   Drive would then be NOT_RECORDED. That is late, never early. Add one candle row to a `seen_at` test.
+
+## Notes
+
+- A shallow clone dates every row to its oldest fetched commit. My first run, before `--unshallow`, put every file at
+  24 Oct 06:20:57 UTC. The checkout already unshallows the source before it starts (`checkout.py:48-49`), so this is
+  late only and covered.
+- Limit 2's early case is real but bounded: a commit's time is not its push time. Rows come from routines that push
+  within seconds, as the Claims say. No fix is asked; git has no push time to use.
