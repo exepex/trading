@@ -10,6 +10,11 @@ from datetime import date
 from .models import CheckResult, StagedVersion
 
 
+class SourceUnreadable(RuntimeError):
+    """A source the checks need could not be read at all (no store, a store refusing, a damaged file): the session is
+    not recorded and the run fails loudly, never as an ordinary "not out yet" (orchestrator, 24 Oct 2026)."""
+
+
 @dataclass(frozen=True)
 class Choice:
     version: StagedVersion | None  # None: no record, `reason` says why

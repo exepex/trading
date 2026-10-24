@@ -54,12 +54,12 @@ def build_sections(facts: RepositoryFacts, sessions: RegularSessions, official: 
     from ..global_cues.as_of import OPEN
     from ..global_cues.wiring import build_reader
     from ..storage.data_wiring import build_drive_cache
-    from ..storage.wiring import build_index_close_files
+    from ..storage.wiring import build_stored_index_close_files
 
     reader, known = functools.cache(build_reader), functools.cache(facts.facts)
     return (
         *(GlobalCueSection(reader, spec, {"morning": (OPEN,), "evening": (EVENING_RUN, OPEN)}) for spec in SPECS),
-        VixSection(build_index_close_files(), sessions.previous, lambda day: known(day).vix),
+        VixSection(build_stored_index_close_files(), sessions.previous, lambda day: known(day).vix),
         FlagsSection(known),
         GiftSection(build_drive_cache(), lambda day: official.close(NIFTY_SYMBOL, sessions.previous(day))),
     )

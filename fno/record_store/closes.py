@@ -29,7 +29,7 @@ from ..close_read.records import raw_path, record_path
 from ..storage.raw_store import RawFileStore
 from .constants import CERTIFIED, DATA_AREA
 from .models import CheckResult, Record, StagedVersion
-from .rules import Choice, DatasetRules
+from .rules import Choice, DatasetRules, SourceUnreadable
 
 DATASET = "closes"
 MAX_MOVE = 0.20  # NSE's widest index circuit band: a close more than 20% from its open is not a real close
@@ -37,6 +37,7 @@ AGREE = "{count} passing version(s) agree on {names}"
 SUPERSEDED = "the later read supersedes the earlier ({changes})"
 OFFICIAL = "closest to NSE's official file {filename}, within {tolerance}"
 OFFICIAL_CHECK = "official file"
+UNREADABLE = "NSE's official index-close files could not be read ({kind})"
 MATCHES, DIFFERS, NO_A4H = "matches A4h's record", "differs from A4h's record (it cites {which})", "A4h wrote no record"
 
 
@@ -89,20 +90,22 @@ class ClosesRules(DatasetRules):
         try:
             found = self.official.values(day)
             previous = self.official.values(self.previous_session(day)) if _has_previous(values) else None
-        except Exception as failure:  # noqa: BLE001 - a damaged official file fails the check with its class only
-            return CheckResult(OFFICIAL_CHECK, False, f"unreadable ({type(failure).__name__})")
+        except Exception as failure:  # noqa: BLE001 - any read failure stops the session loudly, never "not yet"
+            raise SourceUnreadable(UNREADABLE.format(kind=type(failure).__name__)) from failure
         if found is None:
             return CheckResult(OFFICIAL_CHECK, False, "no official index-close file in Drive yet")
         if _has_previous(values) and previous is None:
             return CheckResult(OFFICIAL_CHECK, False, "no official index-close file in Drive for the previous session")
         filename, official = found
+        previous_name, previous_values = previous or ("", {})
         for index in (n for n in INDICES if n.checked):
-            theirs = _official_fields(official.get(index.official) or {}, (previous or ("", {}))[1].get(index.official))
+            theirs = _official_fields(official.get(index.official) or {}, previous_values.get(index.official))
             for field, mine in values[index.listed].items():
                 if field not in theirs or mine is None:
                     continue
-                if theirs[field] is None:
-                    return CheckResult(OFFICIAL_CHECK, False, f"{index.listed} {field} not in {filename}")
+                if theirs[field] is None:  # judge 554's note: the previous close's file is the previous session's
+                    source = previous_name if field == "previous_close" else filename
+                    return CheckResult(OFFICIAL_CHECK, False, f"{index.listed} {field} not in {source}")
                 gap = abs(mine - theirs[field])
                 if gap > TOLERANCE + 1e-9:
                     return CheckResult(OFFICIAL_CHECK, False, f"{index.listed} {field} differs by {gap:.2f}")

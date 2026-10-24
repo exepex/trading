@@ -12,7 +12,7 @@ from ..models import now_ist
 from ..providers.public import PublicData
 from ..storage.data_wiring import RECEIPTS_FOLDER, RECEIPTS_MESSAGE, build_data_store, receipt_folder
 from ..storage.manifest_commit import GitManifestRecorder
-from ..storage.wiring import REPOSITORY, build_index_close_files, build_owner_drive, build_session_calendar
+from ..storage.wiring import REPOSITORY, build_owner_drive, build_session_calendar, build_stored_index_close_files
 from .confirm import Confirmer
 from .constants import DATA_AREA, ROOT, WRITER
 from .official import ArchivedIndexCloses
@@ -43,5 +43,5 @@ def build_close_reader(env=os.environ) -> CloseReader:
     store = DriveClosesStore(drive, build_data_store(WRITER, env=env), receipt_folder())
     calendar = build_session_calendar()
     alerts = ReportedAlerts(build_alert_sender())  # an unsent alert is printed with its text (O2)
-    confirmer = Confirmer(store, ArchivedIndexCloses(build_index_close_files()), calendar, alerts, now=now_ist)
+    confirmer = Confirmer(store, ArchivedIndexCloses(build_stored_index_close_files()), calendar, alerts, now=now_ist)
     return CloseReader(NseIndexList(PublicData().nse_json), store, confirmer, calendar, now_ist, time.sleep)

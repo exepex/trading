@@ -7,8 +7,8 @@ import pytest
 
 from fno.close_read.constants import READ, RECHECK
 from fno.record_store.constants import CERTIFIED, PROVISIONAL
+from fno.storage.raw_library import NoReadableStore
 from tests.record_store.helpers import (
-    DAY,
     LEVELS,
     OFFICIAL,
     PREVIOUS_OFFICIAL,
@@ -136,17 +136,44 @@ def test_the_certified_record_names_the_recheck_when_it_is_the_closer_read(world
     assert outcome.record.chosen.path.endswith(".recheck.raw.json")
 
 
-def test_the_certifiers_official_file_comes_from_the_stores_only_never_from_nse(tmp_path):
-    from fno.record_store.wiring import stored_index_closes
-    from fno.storage.raw_source import NseIndexCloseSource
-    from fno.storage.raw_store import LocalFolderStore
+@pytest.mark.parametrize(
+    "failure",
+    [NoReadableStore("no store to read raw/x.csv from: set the owner's Drive settings"), OSError("sign-in refused")],
+)
+def test_an_unreadable_official_source_fails_loudly_never_as_not_out_yet(tmp_path, failure):
+    """Orchestrator, 24 Oct: "no store can be read" must never look like "the file isn't in Drive yet"."""
 
-    store = LocalFolderStore(tmp_path / "archive")
-    files = stored_index_closes([store])
-    assert files.get(DAY) == ("ind_close_all_23102026.csv", None)  # not archived: None, and nothing fetched or saved
-    assert not (tmp_path / "archive").exists()
-    store.put(NseIndexCloseSource.path_for(DAY), b"Index Name,Closing Index Value\n")
-    assert files.get(DAY) == ("ind_close_all_23102026.csv", b"Index Name,Closing Index Value\n")
+    class Unreadable(Official):
+        def values(self, day):
+            raise failure
+
+    world = World(tmp_path, Unreadable())
+    world.a4h_saves(READ, answer())
+    outcome = world.certifier().certify(SESSION, CERTIFIED)
+    assert not outcome.recorded and outcome.alert
+    kind = type(failure).__name__
+    assert f"NOT recorded: a source could not be read: NSE's official index-close files could not be read ({kind})" in (
+        outcome.line
+    )
+    assert "in Drive yet" not in outcome.line
+
+
+def test_a_file_not_archived_yet_stays_an_ordinary_not_recorded_line(tmp_path):
+    world = World(tmp_path, Official(None))
+    world.a4h_saves(READ, answer())
+    outcome = world.certifier().certify(SESSION, CERTIFIED)
+    assert not outcome.recorded and not outcome.alert and "no official index-close file in Drive yet" in outcome.line
+
+
+def test_the_certifier_reads_official_files_through_o9s_one_reader_builder(monkeypatch):
+    """One reader builder (judge 558 note 2): the certifier never builds its own store list."""
+    import fno.record_store.wiring as wiring
+
+    sentinel = object()
+    monkeypatch.setattr(wiring, "build_stored_index_close_files", lambda: sentinel)
+    monkeypatch.setattr(wiring, "_drive", lambda env=None: object())
+    certifier = wiring.build_certifier("closes", commit=False)
+    assert certifier.rules.official.files is sentinel
 
 
 @pytest.mark.parametrize(
@@ -173,3 +200,14 @@ def test_india_vixs_range_is_recorded_never_certified(tmp_path):
     world = World(tmp_path, Official(official_values(ranges={"INDIA VIX": (15.0, 12.0)})))
     world.a4h_saves(READ, answer())
     assert world.certifier().certify(SESSION, CERTIFIED).recorded
+
+
+def test_a_previous_file_lacking_an_index_is_named_by_its_own_file(tmp_path):
+    """Judge 554's note: the previous close's source is the previous session's file, not today's."""
+    previous = {k: v for k, v in PREVIOUS_OFFICIAL.items() if k != "Nifty 50"}
+    world = World(tmp_path, Official(OFFICIAL, previous))
+    world.a4h_saves(READ, answer())
+    assert (
+        "NIFTY 50 previous_close not in ind_close_all_22102026.csv"
+        in world.certifier().certify(SESSION, CERTIFIED).line
+    )
