@@ -8,10 +8,13 @@ from datetime import date, datetime
 
 import pytest
 
+from fno.daily.full_log import FULL_LOGS
 from fno.models import IST
 from fno.rehearsal.checkout import RehearsalCheckout, RehearsalCheckoutError, refuse_unless_rehearsal_ref
 from fno.rehearsal.mode import Rehearsal
 from fno.rehearsal.rehearse import rehearse_daily
+
+from .test_exercised_line import LINE, STEPS, Recording, full_log
 
 DAY = date(2026, 10, 23)
 START = datetime(2026, 10, 23, 14, 5, tzinfo=IST)
@@ -237,3 +240,38 @@ def test_a_file_moved_out_of_the_repository_after_the_start_stays_out_and_the_sc
     assert not (checkout.clone / vix).exists() and (checkout.clone / calendar).is_file()
     assert (checkout.root / "hook-ran").is_file()
     assert vix not in git(checkout.clone, "ls-files")
+
+
+# REH1j, J5: the exercised line through `rehearse` itself, on the real checkout (helpers: test_exercised_line)
+
+
+def test_rehearse_prints_the_line_after_the_day_s_last_line_and_posts_it_once(source, tmp_path):
+    repo, _ = source
+    lines, sent = [], Recording()
+
+    def day_run(clone, routine, day, env, out):
+        full_log(clone, STEPS)
+        out("day done")
+        return 0, "day done"
+
+    rehearse_daily(DAY, repo, lines.append, tmp_path / "home", is_session=lambda d: True, run_child=day_run,
+                   guard=lambda env, cwd: [], alerts=sent)  # fmt: skip
+    at = lines.index("day done")
+    assert lines[at + 1] == LINE and lines[at + 2].startswith("rehearsal daily 2026-10-23 ")  # then the end line
+    assert sent.sent == [LINE]
+
+
+def test_an_unreadable_full_log_never_stops_the_publish(source, tmp_path):
+    repo, github = source
+    lines = []
+
+    def day_run(clone, routine, day, env, out):
+        path = clone / FULL_LOGS / f"{DAY}.json"
+        path.parent.mkdir(parents=True)
+        path.write_text("{not json")
+        return 0, "day done"
+
+    code = rehearse_daily(DAY, repo, lines.append, tmp_path / "home", is_session=lambda d: True, run_child=day_run,
+                          guard=lambda env, cwd: [], alerts=Recording())  # fmt: skip
+    assert code == 0 and any(line.startswith("rehearsal: the exercised steps could not be read") for line in lines)
+    assert lines[-1].startswith("rehearsal daily 2026-10-23 ")  # published

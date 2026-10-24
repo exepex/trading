@@ -618,6 +618,22 @@ reader on `fno/health/wiring.py` with the planted bare builder at line 56, then 
 {'ai/wiring.py': [], 'cards/wiring.py': [], 'health/wiring.py': [], 'price_ranges/wiring.py': [], 'v4_pack/wiring.py': []}
 ```
 
+### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
+
+Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
+
+- **Finding (REH1j's first 23 Oct sample, run 20261024T151531Z-97c17d):** "day done with problems: candles", "candle
+  back-fill stopped (RuntimeError)". `build_candle_backfill` built `GrowwProvider(cfg)` before REH1b's
+  `rehearsed_candle_source` replaced the source, and without the Groww SDK that raises "Install the Groww SDK first".
+  A rehearsal never calls Groww, so it must not need the SDK.
+- **Fix:** `rehearsed_candle_source` takes the live source's builder and calls it only in a real run; the builder
+  builds `GrowwProvider` inside it (`fno/intraday/backfill_wiring.py`). A real run builds exactly what it built.
+- **Tests** (`tests/rehearsal/test_routine_wiring.py`): the real `build_candle_backfill` under the mode with
+  `GrowwProvider` planted to raise gives `RecordedCandles`; with no mode it builds the provider once and gives
+  `GrowwCandleSource`; the source builder is never called in a rehearsal.
+- **Plants (2, both caught):** the provider built eagerly again (the rehearsal test fails); the builder returned
+  uncalled in a real run (both real-run tests fail).
+
 ### REH1g: DRY2's rehearsal gaps (for judges B and E)
 
 Branch `story/reh1g-record-gaps`, from main. Built by the O1 builder (session_014zYLf18PgCzR7YoHs1X5Dp) to b5ab43ef6;
@@ -1031,6 +1047,205 @@ A rehearsal's record checkout must be a full clone: in a shallow one `git blame`
 | 582 m1 = 583 m2: H5's morning ban-list line was false for 23 Oct | H5 now says NOT_RECORDED only when the list reached main the evening before, naming both record cases (22 Oct: row on 21 Oct 20:00:23; 23 Oct: row at 00:04:12, served) | `test_a_morning_ban_list_read_is_not_recorded_only_when_its_list_reached_main_the_evening_before` replaces the old test, whose premise ("taken on the evening of 22 Oct") described the wrong day: both cases, at 08:40 | Dropping the replay-day bound still fails `test_a_row_committed_on_the_day_before_is_never_a_candidate` and the 22 Oct half of this test |
 
 Gates on the tree merged with `origin/main`: see the push message to the orchestrator (head SHA there).
+
+### REH1j: a step not live in real runs is exercised, never a problem of the day (DRY3's finding; story text first)
+
+Branch `story/reh1j-not-live`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV. Lane 1 (what a rehearsal
+reports to Slack and its run log; two judges, as REH1's other parts). This section is pushed alone (docs/JUDGE.md
+rule 1); code starts after the judges.
+
+#### The finding (the orchestrator's full 23 Oct dry run, 24 Oct; strong evidence: its run log)
+
+`daily run --rehearse --day 2026-10-23` ended "day done with problems: margin_check, quotes_done, card". The real
+23 Oct had all three `not_live`. Every rehearsal so reports false problems, and they hide real ones (the card's real
+failure is T1f, owned by session_017q19WnkrRJvfQoXBLCy3hA). The three causes:
+- `margin_check`: its command `margins stress-broker-check` (A14c) is not built; the child exits 2 ("invalid
+  choice"), and the step is `failed`.
+- `quotes_done`: the `v4` quote part (live from 26 Oct) has no recorded capture to replay, so the part is not ok and
+  `FinishQuoteParts` marks the whole step `failed`.
+- `card` (and, in a 22 Oct replay, `premium_range_scores`: "no receipts under data/premium_ranges/v1"): a not-live
+  step that ran on a day its inputs did not exist yet.
+
+#### Root cause (in REH1's design, not in the steps)
+
+REH1c (section 1, "Every report runs in a rehearsal", judges 563 and 564) made every step that is not live on the
+replayed day run, for the owner's ask "all type of data and reports ... send to slack for review". It chose to let
+their outcome stand as the step's own: "`margin_check`'s command does not exist yet, so in a rehearsal it fails and
+says so: an honest result, not hidden". `NotLiveInRealRuns.run` (`fno/rehearsal/live_wiring.py`) returns the step's
+outcome unchanged, so its `failed` enters the run log, and `problem_steps` (`fno/desk/run_log.py`), the one rule the
+last line and the card read, counts it. A real run records such a step `not_live`, which is never a problem. So the
+rehearsal answers a different question from the real day ("would this step work if it were live?") in the same
+status field the real day uses for "did the day work?". `test_rehearsed_day.py` pins that wrong rule ("fails only in
+the steps not live in real runs"). The quote parts have the same split: a part whose live key is not live joins the
+replayed day's parts and its result counts in `quotes_done`.
+
+#### Design (what changes; the owner's ask kept)
+
+Kept: every not-live step still runs in a rehearsal, with its labelled posts carrying the not-live line (REH1c). What
+changes is only what its outcome counts for.
+
+1. **A not-live step's outcome is `not_live`, with what it did kept beside it.** `NotLiveInRealRuns.run` returns the
+   step's inputs and paths unchanged (so its files are still committed in the rehearsal's checkout) and the result
+   `{"status": "not_live", "reason": <the note>, "exercised": <the step's own result>}`. `not_live` is the status a
+   real run gives the same step that day, so `problem_steps`, the retry rule, the card and the last line read it as
+   on the real day. No status is added and no desk, runner or card code changes. No step reads another not-live
+   step's result from the log (checked: the readers of `log.result` are the snapshot, decisions, exits and E8's
+   step in `daily_run.py`, `reviews.py:60` (snapshot), `feed_gate.py:48` (candles), the scoreboard (decisions,
+   exits) and `NEEDS` (fills: snapshot, decisions). None of those steps has a `daily.live_from` key, so none is ever
+   wrapped, and E8 stays real; judge 593).
+2. **A not-live step whose command is not built is "not built", never run.** Before a not-live `CommandStep` runs, the
+   rehearsal asks fno's own command parser whether the command path exists. `fno/cli.py` gets one function,
+   `build_parser()`, holding the parser `main()` builds today (no change of behaviour); the check walks its
+   subcommands. A missing path gives `"exercised": {"status": "not_built", "reason": "no command 'margins
+   stress-broker-check' in fno"}`, no child process and no alert. It never reads an error text. Only not-live steps
+   are checked this way: a live step whose command is missing is a real failure and stays `failed`. The walk goes
+   one word at a time: while the parser reached has subcommands, the word must be one of them; it stops at the first
+   word that is not a subcommand (an option such as `--day <d>`, or a value) of a parser with none (judge 593.1's
+   minor). The path is built when it ends on a parser that needs no further subcommand and a handler
+   (`set_defaults(func=...)`) is set on it or on a group above it (found while building: 84 of fno's commands,
+   `quotes record` and `intraday run` among them, are dispatched by their group's handler). So a missing child under
+   a real parent (`margins stress-broker-check` beside `margins stress-factor`) and a prefix of a real command
+   (`margins` alone) are both not built (judge 593 m2); `pricedist record --day D --live` is built.
+3. **A not-live quote part does not decide `quotes_done`.** In the rehearsal's composition root, the `quotes_done`
+   step is wrapped (`fno/rehearsal/`) so that a part whose live key is not live on the replayed day is moved from
+   `parts` into `exercised_parts`, and the step's status is decided by the live parts only, by
+   `FinishQuoteParts`'s own rule. A day whose not-live `v4` part failed and whose three live parts were ok is `ok`.
+4. **The rehearsal's own line names what was exercised, in the terminal and in Slack.** After the daily run's last
+   line, `rehearse` prints one more:
+   `not live in real runs (exercised): margin_check not built; quotes_done's v4 part failed: <reason>; card failed:
+   <reason>` (each not-live step and part, in run order, with its exercised status and, unless ok, its reason). The
+   day's own last line is then the real day's rule: "day done" when every live step was fine.
+   The same line is posted once per rehearsal of the daily run to #fno-desk through `build_alert_sender()` (so it
+   carries REH1's bold label first, as every rehearsal post does), right after the run ends, when at least one step
+   or part was exercised. That is where the owner reviews the dry run (rows 322 and 329, below): a not-built
+   `margin_check` and the card's own failure on 23 Oct reach Slack, warned, not hidden. A post that fails prints
+   "alert NOT sent" with the line, as every alert of the run does. With nothing exercised, nothing is posted.
+5. **Slack, otherwise.** A not-live step's own posts and alerts are unchanged: labelled, with the not-live line
+   (REH1c). A not-built step posts nothing of its own (it never runs); the line in 4 names it. The card is not
+   changed: it is T1's (one builder per function), and on 23 Oct the card is itself one of the exercised steps, so
+   it cannot report them; the #fno-desk line can.
+6. **Reason codes.** The public run log keeps a reason only as a closed code (`reason_codes.COMMON`). REH1j
+   registers REH1c's two notes and the new text there, so none logs as `unlisted` (judge 593 m1):
+   `rehearsal:NOT_LIVE_UNSET` (`live_wiring.NOT_LIVE_UNSET`), `rehearsal:NOT_LIVE_UNTIL` (`NOT_LIVE_UNTIL`) and
+   `rehearsal:NOT_BUILT` (`NOT_BUILT = "no command '{command}' in fno"`).
+
+Real runs are unchanged: every change sits behind `rehearsal()` in `fno/rehearsal/` and the daily run's composition
+root, except `build_parser()`, a pure extraction.
+
+#### Criteria (each with good, bad, boundary and empty cases, a test and a plant)
+
+- **J1. Not counted.** Over O2's fixture day under the mode, with a not-live step that fails, the run ends "day done"
+  and the step's log entry is `not_live` with `exercised.status == "failed"`; its reason is the note, whose public
+  code is `rehearsal:NOT_LIVE_UNSET` or `rehearsal:NOT_LIVE_UNTIL`, never `unlisted`. Boundaries: a not-live step that is ok
+  is `not_live` with `exercised.status == "ok"`; a live step that fails is still a problem; with no mode, no step is
+  wrapped (REH1c's test kept). Plant: the outcome returned unchanged.
+- **J2. Files kept.** A not-live step's paths are still committed in the rehearsal's checkout. Plant: paths dropped.
+- **J3. Not built.** A not-live `margin_check` with no `margins stress-broker-check` in the parser is `not_built`
+  (public code `rehearsal:NOT_BUILT`), starts no child and sends no alert of its own; a live step with a missing
+  command still runs and fails; a not-live step whose command exists runs. Boundaries: a missing child under a real
+  parent (`margins stress-broker-check` beside `margins stress-factor`) and a prefix of a real command (`margins`
+  alone) are not built; a full real path (`margins stress-factor`) and one ending in options (`pricedist record
+  --day D --live`) are built; every command path fno has is built and every group alone is not. Empty: a not-live step that is not a
+  command (a Python step) is never checked. Plants: the check removed; the check applied to live steps; the walk
+  stopping at the first word that exists (fooled by a real parent); a prefix accepted.
+- **J4. Quote parts.** A failed not-live `v4` part beside three ok live parts gives `quotes_done` `ok` with the `v4`
+  result under `exercised_parts`; a failed live part still fails the step; with every part live the step is as today.
+  Plant: the not-live part left in `parts`.
+- **J5. The line, printed and posted.** The rehearsal prints the exercised line with each not-live step and part in
+  run order, and posts it once to #fno-desk through the real `build_alert_sender()` under the mode: a recording
+  sender gets exactly one message, the label first, then the line. With nothing exercised it prints and posts
+  nothing. A failed post prints "alert NOT sent" with the line. Plants: a step left out; the post removed; the post
+  sent once per step instead of once.
+- **J6. Real runs unchanged.** `build_parser()` gives the same parser as `main()` (every subcommand path the same);
+  the full suite passes; the grep test still finds the mode only in the roots.
+
+#### Gap list (rule 2)
+
+| Requirement (the orchestrator's finding, 24 Oct) | Covered by | Or out of scope, with reason |
+|---|---|---|
+| "a not-live step runs but its outcome never counts toward the day's problems" | J1 | |
+| "reported in its own 'not live (exercised)' line" | J5 | |
+| "a step whose command does not exist is reported 'not built', never 'failed'" | J3 | |
+| `quotes_done` failing on the not-live `v4` part | J4 | |
+| "Keep what the owner wanted from exercising not-live steps" | Design (kept), J2 | |
+| Owner, 24 Oct (DESK_DECISIONS line 322): "I want warning so that we could understand and know that there was some issue instead of hiding is plainly or not highlighting it." | Design 4, J5 | The exercised failures and not-built steps are posted to #fno-desk, labelled; they stop counting as the real day's problems only |
+| Owner, 24 Oct (line 329): "Publish to slack ... Run everything including full dry run stages" | Design (kept: every not-live step runs), Design 4, J5 | |
+| The public log's closed reason codes (judge 593 m1) | Design 6, J1, J3 | |
+| `premium_range_scores` in a 22 Oct replay (no receipts yet) | J1 | Its exercised failure is honest (the data did not exist then) and now in the line, not a problem |
+| The card's real failure | | T1f (session_017q19WnkrRJvfQoXBLCy3hA): one builder per function. On 23 Oct the card is not live, so after REH1j its failure shows in the exercised line, not hidden |
+| Building A14c's `margins stress-broker-check` | | A14c's own story; REH1j only reports it not built |
+
+#### Round 2 of the text (judge 593 B: FAIL, 1 should-fix, 2 minor; every finding answered)
+
+| Finding | Outcome |
+|---|---|
+| SF: where the owner sees an exercised failure; rows 322 and 329 missing | **Fixed:** Design 4 posts the exercised line once per rehearsal, labelled, to #fno-desk through `build_alert_sender()`; Design 5 says why the card is not the place (T1's, and itself exercised on 23 Oct); both owner rows in the gap list; J5 tests the post |
+| m1: reason codes | **Fixed:** Design 6 registers `rehearsal:NOT_LIVE_UNSET`, `rehearsal:NOT_LIVE_UNTIL` and `rehearsal:NOT_BUILT` in `reason_codes.COMMON`; J1 and J3 name them |
+| m2: the parser walk's boundaries | **Fixed:** Design 2 says the walk; J3 adds a missing child under a real parent and a prefix of a real command, with their plants |
+| Readers list | **Completed** in Design 1: `reviews.py:60`, `feed_gate.py:48`, the scoreboard and `NEEDS` |
+
+#### Claims, code round 1 (for judges B and E)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1j-not-live` (main merged in). Code:
+- `fno/rehearsal/live_wiring.py`: `NotLiveInRealRuns` returns `not_live` with `exercised`, keeps inputs and paths,
+  checks a command step's command first (`command_of` finds it through the decorators' `step`), and records a lookup
+  that raises as an exercised failure.
+- `fno/rehearsal/built_commands.py` (new): `is_built`, the walk of Design 2 over `fno.cli.build_parser()`.
+- `fno/cli.py`: `build_parser()` extracted from `main()`, no other change.
+- `fno/rehearsal/exercised_parts.py` (new): `ExercisedPartsApart`, chosen in `fno/daily/wiring.py` (one line);
+  `fno/daily/quote_steps.py`: `parts_result`, `FinishQuoteParts`'s own rule, now shared.
+- `fno/rehearsal/exercised_line.py` (new) and `rehearse.py`: the line printed after the day's last line and posted
+  once through `build_alert_sender()` (`ReportedAlerts`: "alert NOT sent" on a refusal); an unreadable full log prints
+  one line and never stops the receipts or the publish.
+- `fno/daily/reason_codes.py`: the three codes; `fno/constants_operations.py`: `STEP_EXERCISED`, `STEP_NOT_BUILT`,
+  `EXERCISED_PARTS`.
+
+| Criterion | Tests (`tests/rehearsal/`) | Plants that break it (each caught) |
+|---|---|---|
+| J1 | `test_not_live_exercised.py`: a failing and an ok not-live step, a live step never wrapped, the three public codes, a lookup that raises; `test_rehearsed_day.py`: O2's fixture day under the mode now ends `(0, "day done")` with every exercised step `not_live` and at least one exercised failure | outcome returned unchanged; codes not registered; the wrapper not chosen in the root; the lookup failure not caught |
+| J2 | `test_a_not_live_step_s_files_are_kept`, and a command step's changed paths kept | paths dropped |
+| J3 | `test_not_live_exercised.py`: not built (no child, no alert), an existing command runs, a live step with a missing command still fails and alerts, a Python step never checked, the real daily run's every wrapped step has its command; `test_built_commands.py`: the walk's good, bad, boundary and empty cases (incl. `margins stress-broker-check`, `margins`, `quotes no-such-part`, `pricedist record --day D --live`), every one of fno's 136 command paths built and every group alone not | the check removed; every step wrapped; the walk fooled by a parent with a handler; a prefix accepted; a group's handler ignored; the command not found through the decorators |
+| J4 | `test_exercised_parts.py`: a failed not-live part beside ok live parts gives `ok`; a failed live part fails; every part live is as today; a step that never reached its parts keeps its result; the real root keeps `v4` apart on 23 Oct | the part left in `parts`; the wrapper not chosen in the root |
+| J5 | `test_exercised_line.py`: the line in run order, none when nothing exercised or no daily log, posted once labelled through the real `build_alert_sender()`, "alert NOT sent"; `test_checkout.py`: `rehearse()` prints it right after the day's last line and before the end line, sent once; an unreadable full log never stops the publish | a part left out; the post removed; one post per item; not reported by `rehearse`; a second report after the end line; the unreadable log not guarded |
+| J6 | `test_built_commands.py::test_main_parses_with_build_parser`; the full suite | `main` parsing with its own parser |
+
+**Plants:** 21 planted in a separate worktree, each restored with `git checkout --`; 21 caught. Two survived a first
+round and were answered: "the walk fooled by a real parent" changed nothing, because the end check already refuses a
+group, so the redundant early return was removed (and the plant redone as "fooled by a parent with a handler", caught
+by `quotes no-such-part`); "the quotes_done wrapper not chosen in the root" had no test, now pinned.
+
+**Self-review** (an independent review agent on `07f134460`): no blocking bug; real runs unchanged; all 14 wrapped
+steps' commands found in the real wiring (close reads through `NotBefore`, `v4_release` through `AfterPart`); the walk
+agrees with argparse's exit codes on every group and real step path. Its findings, all fixed in the next commit:
+`rehearse()` had no end-to-end test of the line (added, with the order checked); the real-wiring command test could
+not fail (made strict); a raise in the lookup would have escaped the step (recorded now); an unreadable full log
+would have stopped the publish (guarded); two argparse edges (an option before the command, an extra value after it)
+noted in the docstring; `EXERCISED_PARTS` moved to the constants. Noted, not a bug: an exercised failure reaches Slack
+twice, through the step's own labelled alert (Design 5, unchanged) and in the line.
+
+**Real output sample** (rule 6; the orchestrator's go, 24 Oct): `python -m fno daily run --rehearse --day
+2026-10-23` at the branch's head with `main` merged, a full clone, the Slack token kept. Run 20261024T155718Z-1a7897;
+its last lines, verbatim:
+
+```
+day done
+not live in real runs (exercised): margin_check not built; v4_release ok; quotes_done's v4 part failed: window closed: - (0 contracts, complete=False) - rehearsal: no recorded in-window attempt of nifty on 2026-10-23; card failed:   research/forecasts/scores/2026-10-22.json 6241c90b9e85bc9e64951db6d102b7057e681aac2b0879b4cae0bbb70e243880; premium_range_scores ok; v4_deadline ok
+rehearsal daily 2026-10-23 20261024T155718Z-1a7897 ended: day done; branch refs/heads/rehearsal/2026-10-23-20261024T155718Z-1a7897; Drive dryrun/20261024T155718Z-1a7897/
+```
+
+The same line reached #fno-desk once, under the bold label "*DRY RUN, 2026-10-23 replay, not a real trading day*"
+(read back from the channel). The dry run's three false problems (margin_check, quotes_done, card) are now in that
+line, and the day ends as the real 23 Oct would. The card's failure is T1f's (its fix makes it exit 0); `v4_release
+ok` is today's NOT_LIVE exit 0 of its child, which G10's story/v4pack-rehearsed-live turns into a real exercise.
+
+A first run (20261024T151531Z-97c17d) ended "day done with problems: candles": this container had not run the
+routine's setup (`sh tools/routine_setup.sh --groww`), and `build_candle_backfill` builds `GrowwProvider(cfg)` before
+the rehearsal's recorded source replaces it, so a missing Groww SDK raised "Install the Groww SDK first". After the
+routine's own setup the rerun above has no problem. A rehearsal needing the Groww SDK it never calls is a small REH1b
+wiring point (build the recorded source without the provider), reported to the orchestrator, not in REH1j.
+
+**Related, not in REH1j:** G10's builder makes `v4-pack release` and `deadline` read the rehearsal's live dates
+(story/v4pack-rehearsed-live); their outcome then lands under `exercised` here with no change to REH1j.
 
 ### REH1k: the lab's editions in a rehearsal of a day before their live date (story text first)
 
