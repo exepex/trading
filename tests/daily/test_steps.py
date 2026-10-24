@@ -67,12 +67,13 @@ def test_the_live_dates_come_from_config_phase_1_from_22_oct():
     assert "daily" in ALLOWED_APP_KEYS
     phase_1 = date(2026, 10, 22)  # owner, 21 Oct (DESK_DECISIONS c58788bc): G13, G13b and FL1-1 live
     assert live_dates(load_app_config()) == {
-        "margin_check": None, "card": None, "owner_timing_fills": None,
+        "margin_check": None, "owner_timing_fills": None,
+        "card": date(2026, 10, 26),  # T1: live Mon 26 Oct (owner, 24 Oct: "enable/activate everything that has been completed")
         "weather": phase_1,  # M1, on before the v4 freeze (owner, 21 Oct, DESK_DECISIONS 3a24ba24; response 299)
         "forecasts_v4": phase_1,  # G7's rule forecasts, the same; uncounted until the day after `Frozen on:`
         "price_distribution": phase_1,  # story G13
         "premium_ranges": date(2026, 10, 23),  # story G13d: judge 465.2 PASS, merged on 22 Oct evening
-        "premium_range_scores": None,  # G13d's scores: off until their own go-live
+        "premium_range_scores": date(2026, 10, 26),  # G13d's scores: live Mon 26 Oct (owner, 24 Oct: the same)
         "price_distribution_scores": phase_1,  # G13's daily scores
         "price_ranges": phase_1,  # story G13b
         "price_range_scores": phase_1,  # G13b's daily scores and seals

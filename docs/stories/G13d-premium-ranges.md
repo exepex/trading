@@ -115,6 +115,15 @@ over plain carry.
 5. Real-data run on two consecutive sessions' chains (16 and 19 Oct NSE) gives a report that the judge can rerun.
 6. Gates: full suite, ruff, format, imports, records scan; every file under 350 lines.
 
+**Live date of the scores (owner, 24 Oct 2026, DESK_DECISIONS: "Merge and enable/activate everything that has been
+completed"):** `daily.live_from.premium_range_scores: "2026-10-26"` (branch `story/activate-26oct`; issuing has been
+live since 23 Oct). On Monday 26 Oct the `premium_range_scores` step (`premrange score`, after `price_distribution` and
+`premium_ranges` in the same run) syncs G13's and G13d's files through the verified Drive cache, stores the final seals
+and scores the 23 Oct issues (NIFTY 178 rows, BANKNIFTY 208, both with next session 26 Oct) against G13's 26 Oct
+record; their receipts reached `main` at 15:19 IST on 23 Oct, before the 15:30 seal deadline. The "no receipts under
+data/premium_ranges/v1" stop seen in a rehearsal of 22 Oct is that replay's own: on 22 Oct no issue existed yet (the
+first is 23 Oct's).
+
 ## Open questions for the owner
 
 - Q1. If the rule's ranges reach *covers well* at a fixed look (above), may the paper desk use them for stop

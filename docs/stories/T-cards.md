@@ -149,6 +149,18 @@ failures and the delivery metadata; checks the delivery file for card text and s
 **Depends:** D3, E2, G3, G4 (M1 for weather later) · **Size:** M · **Status:** done: judge 101 PASS (44fa45d,
 merged f0c47ae; follow-ups 9d5310b and a84f92d, merged 860030c, addendum 5).
 
+**Live date (owner, 24 Oct 2026, DESK_DECISIONS: "Merge and enable/activate everything that has been completed"):**
+`daily.live_from.card: "2026-10-26"` (branch `story/activate-26oct`; T1, T1d and T1e judged and merged). From
+Monday 26 Oct the daily run's `card` step runs `card daily --on <day> --post` after the quote parts' end: it posts the
+card to #fno-desk, saves the full record to Drive (`cards` area) and writes the delivery metadata under
+`research/cards/deliveries/`, which the step commits alone. Each later failure is a printed line and a stored fact
+(Drive down: "NOT saved"; a server clock not reached: "unchecked"; a metadata file not written: printed for a hand
+commit), and the step then fails with its alert; the card is already out. T1f's post-guard is not on `main`: an
+exception that escapes after the post (none is known in a real run; in a rehearsal REH1's network guard refuses the
+GitHub clock check and raises, so a rehearsed card always ends "failed" after its post) leaves the Slack post with no
+Drive record and no delivery file, the step failed and alerted, and no second post (a failed `card` step is never
+retried by a same-day rerun: `RETRIED_ON_RERUN` holds only exits and marks).
+
 ---
 
 ## T2 + T3. The devil's advocate on the daily card: rule checks (code) and objections (AI)
