@@ -36,6 +36,7 @@ BYTE_CHECKED_GLOBS = (
 
 _V1_V3 = "named in FREEZE.md, FREEZE_v2.md or FREEZE_v3.md (byte-checked there or recorded with v1-v3's golden values)"
 _IV30_HASH = "its bytes are in every pack's `iv30_method` (v4_pack/wiring.IV30_METHOD_FILES); v2's golden cases"
+_A4 = "A4's baseline-bytes test (tests/quotes/test_recorder_baseline.py) and the pack's codec checks"
 _AI = "the v1/v2 AI run's too; hashed with G11's slot rows (owner, 21 Oct 2026 (3); judge 597.1 m2); G11's tests"
 RECORDED = {  # path -> what it decides and its lock
     "fno/constants.py": "question, slot and label names; protocol section 10's list; v4's tests read every name",
@@ -91,6 +92,12 @@ RECORDED = {  # path -> what it decides and its lock
     "fno/research_data/panel_store.py": f"the EOD panel's file layout; {_V1_V3}",
     "fno/fo_bhavcopy.py": "parses NSE's daily F&O file: V5's `SttlmPric`; S1's protocol names it; E7's and A11's tests",
     "fno/storage/raw_library.py": "the archived raw file V5's settlement reads; O9's tests",
+    "fno/quotes/recorder.py": f"A4's capture behind the pack (judge 597.2 m3); {_A4}",
+    "fno/quotes/expiry_listing.py": f"which expiries the capture lists; {_A4}",
+    "fno/quotes/market_levels.py": f"the captured spot and VIX levels; {_A4}",
+    "fno/quotes/monthly_contracts.py": f"which monthly contracts are captured; {_A4}",
+    "fno/quotes/slot.py": f"the capture's time slot; {_A4}",
+    "fno/quotes/weekly.py": f"which weekly contracts are captured; {_A4}",
     "fno/server_clock.py": "the checked host clock behind honest times (protocol 1.6); its clock tests",
 }
 
@@ -112,7 +119,6 @@ NOT_DECIDING = {  # path -> why its bytes compute no v4 value
     "fno/rehearsal/v4_pack.py": "REH1's rehearsal excuses; never on a counted day",
     "fno/global_cues/reading.py": "M1's US flag on the card, outside its METHOD_FILES",
     "fno/global_cues/wiring.py": "composition root of the global cues (the card's flag)",
-    "fno/quotes/recorder.py": "the quote dataset's name and paths",
     "fno/quotes/window.py": "the capture window; the cutoff itself is enforced by `terms` in v4_pack/codec.py",
     "fno/research_engine/ledger.py": "git questions (this check's own reader)",
     "fno/intraday/wiring.py": "composition root of A16",
@@ -130,6 +136,8 @@ NOT_DECIDING = {  # path -> why its bytes compute no v4 value
     "fno/constants_channels.py": "Slack channel IDs",
     "fno/constants_operations.py": "the daily run's step names and order",
     "fno/http_pacing.py": "network pacing",
+    "fno/intraday/pacing.py": "request pacing",
+    "fno/quotes/capture_log.py": "the capture's log lines",
     "fno/storage/retry_policy.py": "network retries",
     "fno/storage/google_drive.py": "the Drive client",
     "fno/research_data/events.py": "the desk's event feature; the IV30 rule does not read it",

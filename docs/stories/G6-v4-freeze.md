@@ -129,9 +129,9 @@ one-line reason in `freeze_check.RECORDED` or `NOT_DECIDING`, listed in the reco
 **Not deciding (named, not hashed), examples:** `fno/config.py`, `fno/models.py`, `fno/composition.py` (reached
 through `v4_pack/cli.py`), `fno/daily/wiring.py`, `fno/storage/*` wiring and stores, `fno/alerts/sender.py`,
 `fno/health/*`, `fno/pipeline/trigger.py`, `fno/rehearsal/*`, `fno/global_cues/*` (M1's US flag, outside its
-`METHOD_FILES`), `fno/quotes/recorder.py` and `window.py` (dataset names, capture window; the cutoff is enforced in
-`terms`), `fno/research_engine/ledger.py` (git), `fno/weather/records.py`, `drivers.py`, `model.py` (row shapes and the
-card's drivers, outside M1's `METHOD_FILES`).
+`METHOD_FILES`), `fno/quotes/window.py` (the capture window; the cutoff is enforced in `terms`),
+`fno/research_engine/ledger.py` (git), `fno/weather/records.py`, `drivers.py`, `model.py` (row shapes and the card's
+drivers, outside M1's `METHOD_FILES`).
 
 **Data, not hashed (it grows):** `research/data/nifty-panel/warmup_closes.csv` (O6, outcomes of V2, V3, V6, V7),
 A16's `rv/` rows, A16b's candle rows, `research/data/calendar/nse_sessions.csv` (2027 rows to come), the Drive
@@ -168,7 +168,7 @@ archives. Each row's own provenance and the readers' checks protect them; the re
   `V4_PACK_WINDOW_END` in `v4_pack/codec.py:119-131`, so a config edit cannot put a later quote in a pack.
 - `daily.live_from.*` (`weather`, `forecasts_v4`, `v4_pack`, G7b's `forecasts_v4_pack`, G11's `ai_books_v4`): which
   days run; a late date makes misses, never better scores.
-- `budget.stop_rule.v4_freeze_date`: set to `Frozen on:` (section 7).
+- The freeze date: read by BG1 from `FREEZE_v4.md`'s `Frozen on:` (section 7), no config key.
 
 ## 3. The protocol's final form (one commit, before the record)
 
@@ -305,15 +305,15 @@ One row per question scored under v4, as `forecasts-v1`/`-v2` did (trials 32-41)
 nothing lands first). Recommendation (reasoning only): per question, not per slot: the family's count (15) is fixed
 by the protocol (5.7), and v1/v2 registered per question.
 
-## 7. `config.yaml` `budget.stop_rule.v4_freeze_date`
+## 7. The stop-rule review date (BG1)
 
-Set to `"2026-10-25"` in the freeze commit (the comment's own rule: "protocol v4's freeze day once it exists").
+**Changed after judge 597.2 (orchestrator, 24 Oct: coordination with BG1-t, `story/bg1t-test-a-inputs`):** BG1-t
+removes `budget.stop_rule.v4_freeze_date` and reads the freeze date from `FREEZE_v4.md`'s `Frozen on:` line, one
+source; so the freeze commit sets no config key. Whichever of the two merges second carries the change.
 **Effect, said plainly:** BG1's review date (`stop_rule_tracker.review_date`: the last session of the sixth full month
-after the freeze) moves from the projected **end of May 2027** (freeze month November) to **Fri 30 Apr 2027**, one
-month earlier, and rests on a weekday fallback until NSE's 2027 calendar is added. `projected_v4_freeze_month` stays
-(unused once the date is set). **Found while reading, for BG1's owner (session_016CU8KF), not built here:** Test A's
-input "protocol v4's registered family, frozen" (`stop_rule_tracker.INPUTS`, story G6) has no path, so Test A reads
-"not computable yet" forever; its path is `research/forecasts/FREEZE_v4.md`.
+after the freeze) moves from the projected **end of May 2027** (freeze month November) to **Fri 30 Apr 2027** for a
+25 Oct freeze, one month earlier, and rests on a weekday fallback until NSE's 2027 calendar is added. Test A's input
+"protocol v4's registered family, frozen" gets its path (`research/forecasts/FREEZE_v4.md`) in BG1-t too.
 
 ## 8. Acceptance criteria (each with its code, its test, the plant that must break it; good, bad, boundary, empty)
 
@@ -352,8 +352,9 @@ input "protocol v4's registered family, frozen" (`stop_rule_tracker.INPUTS`, sto
    freeze (existing test, kept). Plants: change one frozen row; start one row a session after S.
 7. **Ledger:** the `forecasts-v4` rows exist, one per question, `protocol_commit` equal to the record's, through
    `read_ledger`. Plants: a wrong protocol commit; a missing V6b row.
-8. **Freeze date:** `budget.stop_rule.v4_freeze_date` equals `Frozen on:`, and `build_review_date()` gives 2027-04-30
-   with the weekday-fallback note. Plant: a date one day off.
+8. **Freeze date:** with the record in place, BG1-t's `build_review_date()` gives the date from `FREEZE_v4.md`'s
+   `Frozen on:` (2027-04-30 for 25 Oct, with the weekday-fallback note); BG1-t's test, run on the merged freeze
+   tree. Plant: a `Frozen on:` one month later moves it to 2027-05-31.
 9. **Disclosure** (new module beside `freeze_check`, printed by `tools/v4_freeze_table.py`; it refuses a dirty tree, so
    "as of commit" is true; a record file it cannot parse is named, never a traceback; Drive live rows made before
    the freeze are listed by receipt beside Drive back-fills, folders taken from G7b's constants): one row per source
@@ -399,7 +400,7 @@ Every new file under 350 lines; the freeze tool and check stay pure functions ap
 | Disclosure of back-fills with commits and ranges (section 8) | criterion 9 |
 | Slot registration, `effective_start` no later than first eligible (4, 5.6) | criterion 6; G8's `slot_file.py` (merged) |
 | AI slots registered at the freeze (owner 24 Oct) | section 5; blocker 2 (G11's command) |
-| `budget.stop_rule.v4_freeze_date` | criterion 8 |
+| The freeze date for BG1's review | criterion 8 (BG1-t reads `Frozen on:`; no config key) |
 | Known limits: libm replay, v3 silent read, 2027 calendar | record item 11 (text, read by criterion 5's test) |
 | M1's stale method hash (response 250 item 10) | merged with piece 3 (M1's hash gate); G7's gate; nothing to build |
 | Back-fills regenerated on the frozen code | out: each owner's hash gate fails the suite on a stale row (G7, M1, G7b), so the merged tree is current |
@@ -415,8 +416,8 @@ Every new file under 350 lines; the freeze tool and check stay pure functions ap
    agents, plants run one at a time; judge.
 3. When G7b and G11 are on `main` and W1-W8 are in the protocol: merge `main`; the protocol commit (section 3); then
    the freeze commit: `FREEZE_v4.md` (tool output pasted), `v4_slots.csv` (rules rows plus G11's `--print`), the
-   ledger rows, `v4_freeze_date`; full gates on the merged tree; the judge's final check of the exact SHA; merge on
-   25 Oct IST (no merge 14:00-16:15 IST on a session day).
+   ledger rows, `daily.live_from.ai_books_v4` = S; full gates on the merged tree; the judge's final check of the
+   exact SHA; merge on 25 Oct IST (no merge 14:00-16:15 IST on a session day).
 4. After merge (JUDGE.md rule 8): `python -m fno forecast-v4-scores report` on the merged `main` shows "v4 freeze:
    intact" and 15 registered members; `ai register-v4-slots` (without `--print`) answers "already registered".
 
@@ -445,6 +446,9 @@ not the final-text commit (criterion 2), and the disclosure's robustness and Dri
 - **Import walk (orchestrator's note, judges 596-597), accepted:** criterion 11; A16b's `candle_rv_table.py`,
   `rv_table.py` and `row_files.py` are recorded with A16b's tests as their lock, and G7b names the W8 reader module.
 - **The first counted session S** is held open for the owner (section 5), with what it forces on `Frozen on:`.
+- **After the PASS (judge 597.2, orchestrator, 24 Oct):** m3, `fno/quotes/recorder.py` is recorded (A4's capture
+  behind the pack; lock: A4's baseline-bytes test), with the five capture modules it imports; criterion 8 reads the
+  freeze date from `FREEZE_v4.md` (BG1-t), no config key.
 - **m2 (addendum 597.1), accepted:** keep-or-change row 22 splits: 22a replaced by the 24 Oct sign-off; 22b kept, and
   it is how SF3's shared AI files are hashed (section 2's AI row: the record's "AI registration" table, in the same
   freeze commit as G11's rows).
