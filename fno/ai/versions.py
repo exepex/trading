@@ -63,10 +63,10 @@ VERSIONS = (
     BookVersion(BOOK3_AI, 1, "agents/forecast/book3_ai_v1.md",
                 "6917786dac7430c951a7f80027b8d7c5ba40701d21288aebe7cfadccad77259a", "claude-opus-5-5", None),
     BookVersion(BOOK2_HYBRID, 2, "agents/forecast/book2_hybrid_v2.md",
-                "37b4e3dbf1e9ebfc9273763eca2da08fdf71dce3c336a40a7cca36f246a3cb03", "claude-opus-5-5", 0.10,
+                "c73e452042326029c6af757b303edf7db398b27da69df652f5699fe362368165", "claude-opus-5-5", 0.10,
                 questions=V4_AI_QUESTIONS, protocol=FORECAST_PROTOCOL_V4, point_envelope_width=0.25),
     BookVersion(BOOK3_AI, 2, "agents/forecast/book3_ai_v2.md",
-                "c8ee48c1c5850160bfb1391773f19303ee69dc2bba4403da2faee72972a05dde", "claude-opus-5-5", None,
+                "8f9dd780f81223cb5856b3ea76d6a3586c02c5a1eeedd1e9adb078672bb2f3cd", "claude-opus-5-5", None,
                 questions=V4_AI_QUESTIONS, protocol=FORECAST_PROTOCOL_V4),
 )  # fmt: skip
 

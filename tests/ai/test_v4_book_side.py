@@ -113,3 +113,16 @@ def test_hybrids_seal_keeps_v4s_envelope(desk):
     with pytest.raises(BookStepRefused, match="outside the envelope"):
         routine.run(pointer(BOOK2_HYBRID).to_text(), draft((9.5e-05, 4.5e-04, 0.95, 0.4, 0.47)), at(14, 45),
                     reveal=False)  # fmt: skip
+
+
+def test_reveal_refuses_a_sealed_answer_of_another_day(desk):
+    """Review of dfb26381: in a reused container, yesterday's sealed answer is never revealed at today's path."""
+    routine = sealed_routine(desk)
+    sealed_file = desk / ".ai_book" / "sealed.json"
+    sealed = json.loads(sealed_file.read_text(encoding="utf-8"))
+    sealed["answer"]["day"] = "2026-10-23"
+    sealed_file.write_text(json.dumps(sealed), encoding="utf-8")
+    routine.clock.now = at(15, 10, 10)
+    with pytest.raises(BookStepRefused, match="not this run's"):
+        routine.session().reveal()
+    assert not (desk / V4_TERMS.reveal_path(DAY, BOOK3_AI)).exists()

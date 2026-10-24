@@ -85,8 +85,13 @@ def _rules(value, book: str) -> Rules | None:
 
 
 def is_number(value) -> bool:
-    """A finite JSON number (never a bool)."""
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+    """A finite JSON number (never a bool); an integer too large for a float is not one (never an OverflowError)."""
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def is_probability(value) -> bool:

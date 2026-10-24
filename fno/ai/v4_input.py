@@ -33,7 +33,9 @@ CE, PE = "CE", "PE"
 PRIMARY = "primary_baseline"  # Hybrid's input names the primary baseline's value under this key (its name can change)
 
 Rules = Mapping[str, Mapping[str, float | None]]  # question -> forecaster -> its value (None: no forecast)
-History = Mapping[str, Sequence[Mapping]]  # point question -> [{"date": ..., "rv_s": ... or None}], oldest first
+History = Mapping[str, Mapping[str, list]]  # point question -> {"dates": [...], "rv_s": [... or None]}, oldest first
+CHAIN_COLUMNS = ["strike", "kind", "bid", "ask", "last"]  # the chain as rows of columns: the pointer is retyped by the
+# routine's model into `brief`, so no key is repeated per row (review of dfb26381: 33 KB as dicts, about half as rows)
 
 
 @dataclass(frozen=True)
@@ -61,9 +63,13 @@ def build_v4_input(who: V4InputFor, pack: Pack, closes: Sequence[tuple[str, floa
         "questions": list(who.questions),
         "pack_sha256": who.pack_sha256,
         "pack": pack_summary(pack),
-        "closes_before_day": [{"date": d, "nifty": n, "vix": v} for d, n, v in closes],
+        "closes_before_day": {
+            "dates": [c[0] for c in closes],
+            "nifty": [c[1] for c in closes],
+            "vix": [c[2] for c in closes],
+        },  # fmt: skip
         "derived": derived_facts(pack, closes),
-        "history": {q: [dict(row) for row in rows] for q, rows in sorted(history.items())},
+        "history": {q: {"dates": list(h["dates"]), "rv_s": list(h["rv_s"])} for q, h in sorted(history.items())},
     }
     if rules is not None:
         asked = {q: dict(rules.get(q, {})) for q in who.questions}
@@ -95,7 +101,7 @@ def pack_summary(pack: Pack) -> dict:
             "expiries": [e.isoformat() for e in pack.iv30.expiries],
         },  # fmt: skip
         "atm_by_expiry": [_atm(pack, e) for e in expiries],
-        "chain_near_spot": _near_spot(pack, expiries[0]) if expiries else [],
+        "chain_near_spot": {"columns": CHAIN_COLUMNS, "rows": _near_spot(pack, expiries[0]) if expiries else []},
     }
 
 
@@ -122,8 +128,7 @@ def _mid(quotes: Sequence[ChainQuote], strike: float, kind: str) -> float | None
     return next((q.mid for q in quotes if q.strike == strike and q.kind == kind), None)
 
 
-def _near_spot(pack: Pack, expiry: date) -> list[dict]:
+def _near_spot(pack: Pack, expiry: date) -> list[list]:
     low, high = pack.spot.value * (1 - NEAR_SPOT), pack.spot.value * (1 + NEAR_SPOT)
     near = [q for q in pack.chain if q.expiry == expiry and low <= q.strike <= high]
-    return [{"strike": q.strike, "kind": q.kind, "bid": q.bid, "ask": q.ask, "last": q.last}
-            for q in sorted(near, key=lambda q: (q.strike, q.kind))]  # fmt: skip
+    return [[q.strike, q.kind, q.bid, q.ask, q.last] for q in sorted(near, key=lambda q: (q.strike, q.kind))]

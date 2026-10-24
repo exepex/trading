@@ -46,3 +46,4 @@ def test_prompt_v2_names_every_question_its_measure_and_the_reveal_loop(book):
     assert all(f"`{q}`" in text for q in FAMILY_QUESTIONS)
     assert "close-proxy `RV_s`" in text and "intraday `RV_s`" in text and "squared log returns" in text
     assert "waiting until 15:10:10 IST: run reveal again" in text and "15:10:00 IST" in text
+    assert "at most 0.01, V2's at most 0.05" in text  # the caps `answer.VARIANCE_CAP` applies

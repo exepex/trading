@@ -31,6 +31,7 @@ from .versions import BookVersion
 
 NOT_DEFINED = "{label} is registered for {questions}, which its prompt does not define: register a new version first"
 V1_HISTORY, V2_HISTORY = 60, 260  # sessions of each point question's own measure shown (V2: as many as the closes)
+RV_DIGITS = 6
 
 
 @dataclass
@@ -68,14 +69,19 @@ class V4BookInputs:
             out[question] = values | {PRIMARY: _live(primary_values(question, self.forecasts), day)}
         return out
 
-    def _history(self, day: date, questions: Sequence[str]) -> dict[str, list[dict]]:
+    def _history(self, day: date, questions: Sequence[str]) -> dict[str, dict[str, list]]:
         measures = {V1_RV_1S: (self.series.intraday_rv, V1_HISTORY), V2_RV_5S: (self.series.close_proxy_rv, V2_HISTORY)}
         out = {}
         for question in (q for q in questions if q in measures):
             read, count = measures[question]
             before = sorted((d, v) for d, v in read().items() if d < day)[-count:]
-            out[question] = [{"date": d.isoformat(), "rv_s": v} for d, v in before]
+            out[question] = {"dates": [d.isoformat() for d, _ in before], "rv_s": [_significant(v) for _, v in before]}
         return out
+
+
+def _significant(value: float | None) -> float | None:
+    """An RV_s to `RV_DIGITS` significant digits: the routine retypes every digit, and more say nothing more."""
+    return None if value is None else float(f"{value:.{RV_DIGITS}g}")
 
 
 def _live(values: dict, day: date) -> float | None:

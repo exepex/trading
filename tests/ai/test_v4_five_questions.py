@@ -61,7 +61,11 @@ def test_good_answers_are_kept_by_kind():
     [(V1_RV_1S, {"value": 0, "reason": "r"}, "variance above 0"),
      (V1_RV_1S, {"value": -1e-05, "reason": "r"}, "variance above 0"),
      (V1_RV_1S, {"value": math.nan, "reason": "r"}, "variance above 0"),
-     (V2_RV_5S, {"value": 15.2, "reason": "vol points"}, "at most 1"),
+     (V2_RV_5S, {"value": 15.2, "reason": "vol points"}, "at most 0.05"),
+     (V1_RV_1S, {"value": 0.64, "reason": "a 0.8% day in percent squared"}, "at most 0.01"),
+     (V1_RV_1S, {"value": 0.0225, "reason": "annualised"}, "at most 0.01"),
+     (V1_RV_1S, {"value": 10**400, "reason": "huge"}, "variance above 0"),
+     (V7_VIX_UP_5S, {"probability": 10**400, "reason": "huge"}, "probability must be"),
      (V1_RV_1S, {"probability": 0.5, "reason": "r"}, '"value"'),
      (V7_VIX_UP_5S, {"probability": 1.2, "reason": "r"}, "probability must be"),
      (V7_VIX_UP_5S, {"value": 0.4, "reason": "r"}, '"probability"')],
@@ -72,8 +76,10 @@ def test_bad_answers_are_refused_for_that_question_only(question, entry, why):
 
 
 def test_the_boundaries_of_each_kind():
-    assert problems(**{V1_RV_1S: {"value": VARIANCE_CAP, "reason": "r"}})[V1_RV_1S] == ""
-    assert "at most 1" in problems(**{V1_RV_1S: {"value": 1.000001, "reason": "r"}})[V1_RV_1S]
+    assert problems(**{V1_RV_1S: {"value": VARIANCE_CAP[V1_RV_1S], "reason": "r"}})[V1_RV_1S] == ""
+    assert "at most 0.01" in problems(**{V1_RV_1S: {"value": 0.010001, "reason": "r"}})[V1_RV_1S]
+    assert problems(**{V2_RV_5S: {"value": 0.05, "reason": "r"}})[V2_RV_5S] == ""
+    assert "at most 0.05" in problems(**{V2_RV_5S: {"value": 0.050001, "reason": "r"}})[V2_RV_5S]
     assert problems(**{V7_VIX_UP_5S: {"probability": 0, "reason": "r"}})[V7_VIX_UP_5S] == ""
     assert problems(**{V7_VIX_UP_5S: {"probability": 1, "reason": "r"}})[V7_VIX_UP_5S] == ""
 
@@ -129,8 +135,8 @@ def test_v2s_history_is_the_close_proxy_before_the_day_only(tmp_path):
     expected = [math.log(b / a) ** 2 for a, b in zip(closes, closes[1:], strict=False)][
         :-1
     ]  # DAY's own return left out
-    assert list(shown) == [V2_RV_5S] and [r["rv_s"] for r in shown[V2_RV_5S]] == pytest.approx(expected)
-    assert all(date.fromisoformat(r["date"]) < DAY for r in shown[V2_RV_5S])
+    assert list(shown) == [V2_RV_5S] and shown[V2_RV_5S]["rv_s"] == pytest.approx(expected, rel=1e-5)
+    assert all(date.fromisoformat(d) < DAY for d in shown[V2_RV_5S]["dates"])
 
 
 def test_v1s_history_is_a16s_intraday_rv_with_void_sessions_kept_void(tmp_path):
@@ -142,10 +148,10 @@ def test_v1s_history_is_a16s_intraday_rv_with_void_sessions_kept_void(tmp_path):
             return {DAY - timedelta(days=2): 9e-05, DAY - timedelta(days=1): None, DAY: 1e-04}
 
     inputs = V4BookInputs(tmp_path, Rules(), ForecastFiles(tmp_path / "v4"), Series())
-    assert inputs._history(DAY, [V1_RV_1S])[V1_RV_1S] == [
-        {"date": (DAY - timedelta(days=2)).isoformat(), "rv_s": 9e-05},
-        {"date": (DAY - timedelta(days=1)).isoformat(), "rv_s": None},
-    ]
+    assert inputs._history(DAY, [V1_RV_1S])[V1_RV_1S] == {
+        "dates": [(DAY - timedelta(days=2)).isoformat(), (DAY - timedelta(days=1)).isoformat()],
+        "rv_s": [9e-05, None],
+    }
     assert inputs._history(DAY, [V6_BIG_MOVE_1S]) == {}  # no point question asked: no history
 
 

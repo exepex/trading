@@ -1,7 +1,8 @@
 """A book's answer (stories F1 and G5): per question a probability (or null for "no forecast") and its reason, plus
 the model the session reports. Protocol v4's point questions (V1, V2: `terms.POINT_QUESTIONS`) take a `value`
-instead, a variance in the protocol's own unit (squared log returns), finite and above 0; one above `VARIANCE_CAP`
-is refused as a unit error (volatility points given for a variance; G11 C2). The routine writes only those parts;
+instead, a variance in the protocol's own unit (squared log returns), finite and above 0; one above its question's
+`VARIANCE_CAP` is refused as a unit error (G11 C2; the caps tightened after review: percent squared, an annualised
+figure or volatility points all land above them). The routine writes only those parts;
 `seal` adds the book, day, hashes and version from its own pointer and export, so the model cannot mislabel them. The
 same checks run when sealing (the model can fix a refused answer before the deadline) and when collecting (nothing
 unchecked becomes a record)."""
@@ -11,14 +12,17 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from ..constants import FORECAST_QUESTIONS
+from ..constants import FORECAST_QUESTIONS, V1_RV_1S, V2_RV_5S, V3_RV_20S
 from ..forecast_v4.terms import POINT_QUESTIONS
 from .envelope import Envelope
 from .pointer import is_number, is_probability
 
 MAX_REASON_CHARS = 600
 MAX_MODEL_CHARS = 100
-VARIANCE_CAP = 1.0  # a session or 5-session variance above 1 is a 100% log move squared: a unit error, not a forecast
+# A forecast is an expected variance, so it sits far below the largest one ever realised (strong evidence, NIFTY's
+# official closes 2017-2026: one session's close-proxy RV_s at most 0.0193, 23 Mar 2020; 5 sessions 0.0287; 20
+# sessions 0.064). Above these it is a unit mistake. A standard deviation given for V1 (about 0.008) still passes.
+VARIANCE_CAP = {V1_RV_1S: 0.01, V2_RV_5S: 0.05, V3_RV_20S: 0.2}
 ANSWER_FIELDS = ("book", "day", "export_sha256", "forecasts", "model_reported", "pack_sha256", "version")
 
 
@@ -57,13 +61,16 @@ def check_answer(answer: dict, labels: dict, envelope: Envelope | None,
         raise AnswerRefused(f"forecasts must name exactly {', '.join(questions)}")
     kept, problems = {}, {}
     for question in questions:
-        value, problem = _question(forecasts[question], question in POINT_QUESTIONS)
+        cap = VARIANCE_CAP.get(question) if question in POINT_QUESTIONS else None
+        value, problem = _question(forecasts[question], cap)
         problem = problem or (envelope.problem(question, value) if envelope else "")
         kept[question], problems[question] = (None if problem else value), problem
     return CheckedAnswer(kept, problems, model.strip())
 
 
-def _question(entry, point: bool) -> tuple[float | None, str]:
+def _question(entry, cap: float | None) -> tuple[float | None, str]:
+    """`cap`: a point question's variance cap; None for a probability."""
+    point = cap is not None
     key = "value" if point else "probability"
     if not isinstance(entry, dict) or sorted(entry) != sorted((key, "reason")):
         return None, f'must be {{"{key}": ..., "reason": ...}}'
@@ -72,8 +79,8 @@ def _question(entry, point: bool) -> tuple[float | None, str]:
         return None, f"reason must be one line of 1 to {MAX_REASON_CHARS} characters"
     if value is None:
         return None, ""
-    if point and not (is_number(value) and 0 < value <= VARIANCE_CAP):
-        return None, f"value must be a variance above 0 and at most {VARIANCE_CAP:g} (squared log returns) or null"
+    if point and not (is_number(value) and 0 < value <= cap):
+        return None, f"value must be a variance above 0 and at most {cap:g} (squared log returns) or null"
     if not point and not is_probability(value):
         return None, "probability must be a number in [0, 1] or null"
     return float(value), ""

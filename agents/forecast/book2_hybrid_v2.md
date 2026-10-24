@@ -21,7 +21,8 @@ official close, still to come when you answer.
 **Units of the two values:** a variance in squared log returns, never volatility points and never annualised: a 1%
 session move alone is 0.0001. Your input's `history` shows each one's own recent values (V1: the last 60 sessions'
 intraday `RV_s`, null for a void session; V2: the last 260 sessions' close-proxy `RV_s`; a 5-session V2 value is the
-sum of five of them). A value must be above 0 and at most 1; anything above 1 is refused as a unit error.
+sum of five of them). V1's value must be above 0 and at most 0.01, V2's at most 0.05 (the largest ever realised,
+2017-2026: 0.0193 for one session, 23 Mar 2020, and 0.0287 for five); anything above is refused as a unit error.
 
 **Scoring:** a value by the QLIKE loss, which is lowest at your **expected** variance (the mean, not the median), and
 punishes a forecast that is too low more than one too high; a probability by the Brier score against its base rate:

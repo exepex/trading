@@ -84,6 +84,8 @@ class BookSession:
     def reveal(self) -> None:
         run = self._run()
         sealed = json.loads(self._load(SEALED_FILE))
+        if any(sealed["answer"][k] != run.labels[k] for k in ("book", "day")):
+            raise BookStepRefused("the sealed answer is not this run's (another day or book): seal this run first")
         self.timing.reveal_called(run)
         opens = run.terms.reveal_opens(run.day)
         wait = (opens - self.clock()).total_seconds()

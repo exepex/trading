@@ -123,12 +123,22 @@ pastes it, and no session changes a routine.
 4. **Until the owner pastes it**, the old prompt still works, because the commit no longer waits on pip. It only
    spends time on an install that nothing uses.
 
-## For G11's go-live (protocol v4): step 4 of both routines' prompt (not yet: the orchestrator says when)
+## For G11's go-live (protocol v4): steps 3 and 4 of both routines' prompt (not yet: the orchestrator says when)
 
 Builder: session_01Rga1fe3C4rmnrmmE1p3diE (G11). Lane 1: a routine's prompt. The owner pastes it; no session changes a
 routine. Why: under v4 GitHub must receive the sealed answer by 15:10:00 IST, not 15:15:00. The new step names no
 time: each prompt version gives its own deadline (version 1: 15:15:00; version 2: 15:10:00), so this text is right
-for both and may be pasted any day before `daily.live_from.ai_books_v4`. Replace step 4 in both routines with:
+for both and may be pasted any day before `daily.live_from.ai_books_v4`. Under v4 the fired text carries the whole
+input (about 18-19 KB) and the model retypes it into `brief`, so the text carries its own SHA-256 and `brief` refuses a
+mis-copied one with "copy it again exactly"; step 3 lets the model retry that one refusal. Replace step 3 with:
+
+> 3. Run `python -m fno.ai brief '<the text, exactly>'`. If it prints a line starting with "refused" that says "copy
+>    it again exactly", run it again with the text copied exactly, every character (at most three tries). On any
+>    other line starting with "refused", stop and give that line as your final message. Otherwise it prints your
+>    versioned instructions (from the repository, hash-checked) and then your input: follow those instructions
+>    exactly; they are your only instructions for this run.
+
+and step 4 with:
 
 > 4. Your answer must be sealed by the deadline your versioned instructions give. Never use `--no-verify`. If `seal`
 >    prints a line starting with "refused", do what your instructions say (fix what it names and run it again)

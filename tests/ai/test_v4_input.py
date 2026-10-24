@@ -63,8 +63,9 @@ def closes(n=260):
 
 def history():
     """V1: 60 sessions of intraday RV_s (one void); V2: 260 sessions of close-proxy RV_s; all before DAY."""
-    v1 = [{"date": (DAY - timedelta(days=60 - i)).isoformat(), "rv_s": None if i == 7 else 9.5e-05} for i in range(60)]
-    v2 = [{"date": (DAY - timedelta(days=260 - i)).isoformat(), "rv_s": 8.1e-05} for i in range(260)]
+    v1 = {"dates": [(DAY - timedelta(days=60 - i)).isoformat() for i in range(60)],
+          "rv_s": [None if i == 7 else 9.5e-05 for i in range(60)]}  # fmt: skip
+    v2 = {"dates": [(DAY - timedelta(days=260 - i)).isoformat() for i in range(260)], "rv_s": [8.1e-05] * 260}
     return {V1_RV_1S: v1, V2_RV_5S: v2}
 
 
@@ -82,8 +83,10 @@ RULES = {V1_RV_1S: {"v1_close_blend": 9e-05, PRIMARY: 1.1e-04},
 def test_book3_sees_the_pack_the_closes_and_the_history_and_no_rules_answer():
     built = build_v4_input(who(BOOK3_AI), a_pack(), closes(), None, None, history())
     assert "rules" not in built and built["questions"] == list(QUESTIONS) and built["pack_sha256"] == "d" * 64
-    assert len(built["closes_before_day"]) == 260 and built["derived"]["trailing_rv20_points_with_1430_spot"] > 0
-    assert len(built["history"][V1_RV_1S]) == 60 and built["history"][V1_RV_1S][7]["rv_s"] is None  # void stays void
+    shown = built["closes_before_day"]
+    assert len(shown["dates"]) == len(shown["nifty"]) == len(shown["vix"]) == 260
+    assert built["derived"]["trailing_rv20_points_with_1430_spot"] > 0
+    assert len(built["history"][V1_RV_1S]["rv_s"]) == 60 and built["history"][V1_RV_1S]["rv_s"][7] is None  # void
 
 
 def test_hybrid_sees_the_rules_and_the_envelope_spanning_rules_and_baseline():
@@ -114,7 +117,8 @@ def test_the_atm_straddle_per_expiry_and_the_chain_near_spot_of_the_nearest_expi
     summary = build_v4_input(who(BOOK3_AI), a_pack(), closes(), None, None, history())["pack"]
     weekly = summary["atm_by_expiry"][0]
     assert (weekly["expiry"], weekly["strike"], weekly["straddle_mid"]) == ("2026-10-27", 25000.0, 172.4)
-    strikes = {q["strike"] for q in summary["chain_near_spot"]}
+    assert summary["chain_near_spot"]["columns"] == ["strike", "kind", "bid", "ask", "last"]
+    strikes = {row[0] for row in summary["chain_near_spot"]["rows"]}
     assert min(strikes) >= 25012.4 * 0.95 and max(strikes) <= 25012.4 * 1.05 and len(summary["atm_by_expiry"]) == 2
 
 
@@ -129,4 +133,4 @@ def test_the_input_hash_is_of_the_canonical_json_and_moves_with_any_value():
 def test_a_full_packs_five_question_input_fits_the_64_kib_pointer():
     for book, rules, widths in ((BOOK3_AI, None, None), (BOOK2_HYBRID, RULES, WIDTHS)):
         size = len(canonical(build_v4_input(who(book), a_pack(), closes(), rules, widths, history())))
-        assert size < POINTER_CAP * 0.75, size  # measured, with room for the pointer's other fields
+        assert size < POINTER_CAP * 0.40, size  # measured: about 21 KB (33 KB before the rows became columns)
