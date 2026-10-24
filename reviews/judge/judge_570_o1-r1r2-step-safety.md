@@ -55,3 +55,28 @@
      owner is not misled.
 
 ## Plants: 10 planted, 9 caught, 1 survived (R2b2, minor)
+
+## Addendum 1 (PENDING: judge E handed over, usage limit)
+
+- **Head:** f0bb2aa9, round 2, answering judge 567 and the orchestrator.
+- **Done:**
+  - Code delta read: fills is refused when an input step has not run or failed; `problem_steps` and
+    `book_results` live in run_log.py; the scoreboard reads a failed decisions step as no books.
+  - Plants on tests/daily, tests/timetable, tests/desk, tests/scoreboard and tests/cards (592 tests):
+    - M1 (missing-input check dropped): caught.
+    - M2 (scoreboard decisions without `book_results`): caught.
+    - R2b2 (`NEEDS` without decisions): survives again. It fails closed anyway: no run_ids, so nothing
+      is filled.
+    - M3 (scoreboard exits without `book_results`): survives, but it is equivalent. A failed result looked
+      up by book gives `{}` either way.
+- **Remains for the next judge:**
+  1. The full gates on f0bb2aa9 merged with main. My run was cut off.
+     - Run: `env -u FNO_SLACK_BOT_TOKEN PYTHONDONTWRITEBYTECODE=1 python -m pytest -q -p no:cacheprovider
+       -n auto`, then ruff check, ruff format --check, check_imports and check_records.
+     - If green, the verdict is PASS. 570's round-1 PASS stands for e8dc9498.
+  2. A merge-order risk: `fno/cards/rule_checks.py:97` iterates the decisions result.
+     - On a failed decisions step it would list "status" and "reason" as late books, because
+       `"run_id" not in "failed"` is True on strings.
+     - The builder says T1d fixes the card's reader and merges together with R2. Do not merge R2 without
+       T1d.
+- REH1g has not reached me.
