@@ -596,6 +596,7 @@ section 4, row 4.
 | G5, `lab release-check` says "unreachable" | | Accepted at the handover as known. It is A8's own outcome for an unanswered read; a rehearsal-only outcome would put the mode into A8's code, which the only-the-roots-know-the-mode test forbids |
 | G6, dropped paths and the HTTP guard in the parent | | Handover row 6: a separate small lane-1 item after DRY2 |
 | G7, one command's arguments print unformatted | | Cosmetic; the command ran with the real dates. Not in this story |
+| Files of `announcements`, `board-meetings`, `india-vix-history` and the `filings/` lists (round 2, judges 572 m3 and 574 m1) | | No `RAW_SOURCES` entry and no snapshot log, so never visible in a rehearsal (NOT_RECORDED, never a fetch). None of the four rehearsed routines reads them (`rehearsal/routines.py`) |
 
 #### Criteria, code, cases (rules 4 and 5) and plants
 
@@ -631,9 +632,14 @@ Each plant was run alone on 2fd8ebf83, the file restored after; each fails the t
     from its own row's commit.
   - Empty: a day with no row (26 Oct) is None; a file name under another dataset's folder never matches.
   - Plant: P8 (the day left out of the key): fails.
-- **C2c. A `path`-column row (cues, candles) matches only that path inside the raw area.**
-  - Good: `raw/cboe/...` matches the S&P row. Bad: `processed/...`, `dryrun/r/raw/...` and a bare path never match.
-  - Plant: P9 (any area matched): fails.
+- **C2c. Only a file's own writer's rows date it** (round 2). A `path` row counts only from the files directly in a
+  snapshot-log folder, named by its writer (`global-cues/`, `groww-candles/`), and matches only that path inside the
+  raw area; an A9 row only from its `RAW_SOURCES` dataset's manifest. A revision log's or a filings list's `path`
+  names a file someone else archived and never dates it.
+  - Good: `raw/cboe/...` matches the S&P row. Bad: `processed/...`, `dryrun/r/raw/...` and a bare path never match;
+    a revision row, a filings row and a log subfolder's row never move a file's time.
+  - Boundary: of two rows for one file, the earlier commit counts, whichever is read first.
+  - Plants: P9 (any area matched), R1, R1b, R4, R4b (round 2): each fails.
 - **C2d. The rehearsal's Drive is wired with the rows** (`drive_wiring.rehearsed_drive`; the rows are read once per
   record and process, `lru_cache`). Good: the wired Drive reads the 16 Oct index-close. Plant: P10 (wired without
   rows): fails.
@@ -698,84 +704,67 @@ First-parent dating is later than the old blame's (16 Oct index-close 22:40:15 U
 - **A row's commit is later than its file's Drive write.** KOSPI's copy was in Drive at 08:50:34 IST; its row reached
   main at 08:53:35. A step that read Drive between the two on the day saw the file; the rehearsal does not. It errs
   late, never early (no look-ahead).
-- **First-parent dating is as good as main's history.** A branch pushed as `HEAD:main` after merging main into it puts
-  the branch's own commits on main's first-parent line with their branch times. Data jobs commit on main directly, so
-  manifest rows are not written this way today; the checkout's own `rev-list --before` (REH1a) makes the same
-  assumption.
+- **First-parent dating can be late, and early only in one case** (reworded in round 2, judge 572 minor 4).
+  - Late: a routine commits, then `pull --no-rebase` and `push HEAD:main`. Its merge puts the commits main already
+    had on the second-parent side, so they count from the merge. The 16 Oct close was committed at 19:01:48 UTC
+    and counts from 22:40:15 UTC.
+  - Early: a commit made on a branch and pushed as `HEAD:main` sits on main's first-parent line with its own
+    commit time, which can be before the push. Data rows are committed by the routines on a checkout of main and
+    pushed within seconds, so the gap is seconds. The checkout's own `rev-list --before` (REH1a) makes the same
+    assumption.
 - **The rows are read once per process.** A rehearsal does not fetch `origin/main` while it runs, so nothing is missed.
 
-### REH1h: files a routine archives during its own run (DRY2's gap G2b; story text first, for judges B and E)
+#### Round 2 (judges 572 B and 574 E: FAIL; every finding answered by number)
 
-Branch `story/reh1h-archive-serving`, from `story/reh1g-record-gaps`. Builder session_01Mt6dcBU5kp2htdPN2KmiZH.
-Lane 1 (it serves the record's files into a rehearsal: a wrong rule is a look-ahead). This section is pushed alone
-(docs/JUDGE.md rule 1); code starts after a judge has checked it against G2b and the owner's dry-run goal.
+Round 2's commits: d9923bfdf (the fix and its tests), 83d70f809 (the round-2 self-review's fixes), then this text.
+Plants R1-R5b were each run alone on 83d70f809 with `tests/rehearsal`, and the file was restored with `git checkout`.
 
-#### Why (strong evidence: DRY2 rows e3-e5 and this record's manifests)
-
-The evening routine archives three of its own inputs: on 23 Oct the real routine (19:53 IST) committed the F&O
-bhavcopy's row at 19:55:20, participant OI's at 19:55:29 and the FII/DII cash snapshot's at 19:55:39 (first-parent
-times on main, REH1g's C2a). A rehearsal of that evening starts at 19:53 on the replay clock, so it reaches those reads
-before the rows exist: REH1g's G2 rightly hides them, and the session REH1b gave NSE's archive answers every request
-"rehearsal:NOT_RECORDED". DRY2 e3, e4 and e5 ended so, and `lab close` then lacked inputs the real edition had. The
-owner's goal (handover section 1): a dry run that "generate[s] all data and reports".
-
-#### Design (the recorded-source pattern of REH1b and REH1c, one new class)
-
-- **`recorded_archive.RecordedArchiveSession`**, a new class behind the session seam `build_nse_source` already passes
-  through (`nse_wiring.rehearsed_session`, where REH1b's `NotRecordedSession` is chosen today). It extends
-  `NotRecordedSession`, so every request it cannot answer is still the same NOT_RECORDED. No NSE source class, no
-  library, no step and no composition root outside `fno/rehearsal/` changes.
-- **What it serves:** for `get(url)`, the record's A9 manifest rows with that URL (C2b's index in `manifest_rows`,
-  reused, not a second reading of the manifests) whose row reached main near now (`serving.is_near`: from 60 s before
-  to 10 min after; the scheduled-read rule, since the routine's read is one scheduled read). The Drive path is that
-  dataset's own path for the row's day (`path_for(day)`, accepted only when its `url_for` gives the same URL back).
-- **When:** it waits until the row's commit time, then answers. The A9 rows hold no fetch time; the commit is the
-  first moment the record proves the file was held, so it is never served earlier (no look-ahead).
-- **How:** the bytes come from the real Drive record, read-only (`record_drive.RecordFiles(RAW_AREA)`, as the cue
-  and candle sources read), and must hash to the row's SHA-256; the answer is a 200 with those bytes. The library then
-  does what it does on a real day: it archives the file into the rehearsal's Drive (`DryrunDrive`, under
-  `dryrun/<run_id>/`) and commits its manifest row in the rehearsal's own checkout (REH1a).
-- **Wiring:** `nse_wiring.rehearsed_session` returns the new session in the mode (PacedSession unchanged outside it);
-  the guard's "NSE's archive session" entry names the new class.
-
-#### Criteria (each with good, bad, boundary and empty cases, a test and a plant in the Claims)
-
-- **H1. A file the routine archived in its own run is served at its row's commit.** The 23 Oct F&O bhavcopy read at
-  19:53:30 on the replay clock is answered at 19:55:20 with the day's bytes; the same for participant OI (19:55:29)
-  and the FII/DII cash snapshot (19:55:39), if its taker sends only that one request (checked in the build; if it
-  sends another first, that request stays NOT_RECORDED and the Claims say so).
-- **H2. Never before the record held it.** The answer waits until the row's commit time. A row committed more than
-  10 min after now is NOT_RECORDED; one committed more than 60 s before now is not served by the session (the library
-  already reads that file from the stores through REH1g's G2). Boundaries exact to the microsecond.
-- **H3. A copy that differs from its row, or is missing from Drive, is refused**, with a line naming the path; never
-  served.
-- **H4. One copy or none.** The same URL with rows on two days (the snapshot datasets: `fo_secban.csv`,
-  `fiidiiTradeReact`): the row whose commit is nearest now. Two rows equally near with different SHA-256 (two
-  datasets sharing one URL) are refused as ambiguous, never guessed.
-- **H5. Empty:** a URL with no row near now (a holiday, a file NSE had not published, a warm-up page, a dataset with
-  no A9 manifest) and every HEAD request are NOT_RECORDED with today's exact message.
-- **H6. Nothing reaches the real record.** The real Drive is only read; the archived copy is written under
-  `dryrun/<run_id>/` and the manifest row in the rehearsal's checkout; outside the mode `build_nse_source` is
-  unchanged. A test with the real `build_librarian` composition under the mode and a recording Drive shows it.
-
-#### Gap list (rule 2)
-
-| Requirement | Covered by | Or out of scope, with reason |
+| Finding | Outcome | Proof |
 |---|---|---|
-| G2b: "a file the real routine itself archived ... served once the replay clock nears its row's commit" | H1, H2 | |
-| G2b: "Until then, those reads stay NOT_RECORDED, which is honest and never a fetch" | H5 (and the guard) | |
-| The orchestrator's brief: a recorded NSE-archive source, a new class behind the existing interface, wired in the rehearsal's composition root | Design, H6 | |
-| The orchestrator's brief: never a real Drive write; writes only under `dryrun/` | H6 | |
-| DRY2 e3 (fo-bhavcopy), e4 (participant OI) | H1 | |
-| DRY2 e5 (fii-dii-cash-by-session) | H1 | Only if its taker sends the one API request; otherwise named in the Claims |
-| A day NSE had not published yet ("not published by the source") | | Not replayed: NSE's 404s are not recorded, so a rehearsal cannot know the day saw one. The read says NOT_RECORDED, which is honest; the routine's line differs from the day's |
-| `lab release-check`'s Last-Modified (G5) | | Not in A9 rows, so never replayed: HEAD stays NOT_RECORDED. Its GET is served like any read when it falls in the window (it then says "present" with no "last written" time); after the window it keeps the accepted "unreachable" (handover, "Known, accepted"). The Claims will say which DRY2 showed |
-| `corporate-actions-by-symbol` | | Its path needs a symbol the URL alone cannot be mapped back from without a second rule; no routine reads it |
-| The filings librarian (`NseFilingFileSource`) | | Its files have no A9 manifest row of this shape, and no routine runs it |
-| The morning's `data-librarian index-close` | H1, H2 (no change needed) | The 22 Oct close's row reached main at 01:06:53 on 23 Oct, before the 08:38 morning: REH1g's G2 already shows it |
-| The library's line "already in Drive" where the day said "archived" (a read that reaches the store after the row's commit) | | Accepted difference: the file is the same; said in the DRY2 report |
+| 572 SF1 = 574 SF1: revision-log rows (`revisions/*.csv`) and `filings/outside-layout.csv` dated a raw file late | **Fixed.** Only a file's own writer's rows date it: the `path` rows of the files directly in the snapshot-log folders, named by their writers (`global_cues.wiring.SNAPSHOT_LOG_FOLDER`, `intraday.backfill_daily.MANIFESTS`), and the `date,url` rows of the one manifest per `RAW_SOURCES` entry (`manifest_rows._index`, `_path_logs`). C2c below is reworded to match | Tests: `test_a_revision_row_committed_after_the_a9_row_does_not_change_the_file_s_time` (a revision row on 18 Oct leaves the 16 Oct close at its A9 commit), `test_a_filings_list_row_naming_a_cue_path_does_not_date_it`, `test_a_path_row_in_a_log_s_subfolder_never_dates_a_file`. Plants R1 (path rows from every manifest) and R1b (a log's subfolders read) caught. Real record: the cases the judges reproduced are back at their A9 times (sample below) |
+| 574 SF2 = 572 minor 1: committer time not pinned (Pj, E3) | **Fixed** | `test_the_time_is_the_committer_time_not_an_older_author_time`: a commit authored 03:20:00, committed 03:23:35 UTC, is seen at 03:23:35. Plant R2 (`author-time`) caught |
+| 572 minor 2: the trailing `/` in `_a9_key` (Pc) | **Fixed (pinned)** | `test_a_dataset_is_matched_by_its_whole_folder_name_whatever_the_source_order` runs both orders of `RAW_SOURCES`. Plant R3 caught |
+| 572 minor 3 = 574 minor 1: `announcements`, `board-meetings`, `india-vix-history` and the `filings/` lists | **Answered: out of scope**, added to the gap list | No `RAW_SOURCES` entry, so their files are never visible in a rehearsal (NOT_RECORDED, never a fetch). None of the four rehearsed routines reads them (`rehearsal/routines.py`; judge 572's grep). They are no longer blamed at all (round-2 self-review) |
+| 572 minor 4: limit 2's wording | **Fixed**, limit 2 rewritten below | The 16 Oct close: committed 19:01:48 UTC, first on main's first-parent line at 22:40:15 UTC, because a routine's `pull --no-rebase` then `push HEAD:main` put it on the second-parent side |
+| 574 minor 2: the closes' "first answer" (E5) and `_keep`'s "earliest commit" (E7) | **Fixed (pinned)** | `test_of_two_answers_near_the_read_the_first_saved_is_served` (the later answer's name sorts first) and `test_of_two_rows_for_one_file_the_earlier_commit_counts` (the later row's log is read first). Plants R4 (latest commit), R4b (first row read), R5 (latest answer), R5b (path order, not save time) caught |
+| 572 Pb, Pk (equivalent on today's data) | **Answered** | Pb, keeping the later of two equal keys: now caught by R4 and R4b. Pk, dropping `top_level`: gone, because the A9 loop now reads only the `RAW_SOURCES` manifests |
 
-#### Plants planned (the Claims will report each run)
+**Round-2 self-review.** One independent code-review agent read the round-2 diff (f9562dfe1..d9923bfdf), the story and
+both verdicts. It made 8 findings:
+1. The story was not updated yet: done here.
+2. The earliest-commit test passed by file order: fixed (`aaa_again.csv`).
+3. The first-answer test passed by name order: fixed (`again` sorts before `first`).
+4. `PATH_LOGS` copied the writers' folder names: fixed (`_path_logs` imports them).
+5. `rglob` read a log's subfolders (`global-cues/attempts/`): fixed (`glob`, plus a test).
+6. The three manifests with no source were blamed for nothing: fixed (the A9 loop reads only `RAW_SOURCES`).
+7. Same as 5.
+8. The whole-folder test's second half could not fail: replaced by both orders for the by-session path.
 
-The wait removed; the window widened; the SHA-256 check removed; `url_for` not checked back; the nearest row replaced
-by the first; the ambiguity refusal removed; the old `NotRecordedSession` wired back; HEAD answered.
+**Plants R1-R5b** (each caught; output in the builder's run, one line each):
+
+- R1 path rows from every manifest (the round-1 rule): caught | 3 failed, 102 passed in 57.03s
+- R1b a log's subfolders read too: caught | 1 failed, 104 passed in 23.01s
+- R2 author time for committer time (Pj, E3): caught | 1 failed, 104 passed in 22.07s
+- R3 no trailing slash in _a9_key (Pc): caught | 1 failed, 104 passed in 24.34s
+- R4 _keep keeps the latest commit (E7): caught | 1 failed, 104 passed in 22.25s
+- R4b _keep keeps the first row read: caught | 1 failed, 104 passed in 22.86s
+- R5 closes serve the latest answer (E5): caught | 1 failed, 104 passed in 25.28s
+- R5b closes in path order, not save time: caught | 1 failed, 104 passed in 20.44s
+
+**Refreshed real output sample** (this checkout as the record, origin/main 2f4df2fa3; read-only, no Drive, no network):
+
+```
+G2 ind_close_all_16102026.csv -> 2026-10-16T22:40:15+00:00
+G2 ind_close_all_12102026.csv -> 2026-10-13T01:54:09+00:00
+G2 ind_close_all_23102026.csv -> 2026-10-23T17:01:15+00:00
+G2 nsccl.20261021.i1.zip -> 2026-10-20T02:23:12+00:00
+G2 BhavCopy_NSE_FO_0_0_0_20261023_F_0000.csv.zip -> 2026-10-23T14:25:20+00:00
+G2 085034_kospi_5m.json -> 2026-10-23T03:23:35+00:00
+G2 made_up.csv -> None
+G1 listed for 23 Oct: 9 ['banknifty_20261023.canonical', 'banknifty_20261023_150100.meta.json', 'finnifty_20261023.canonical'] ...
+G4 KOSPI read at 08:50:40.136560 -> 2026-10-23T08:50:34.020913+05:30 yahoo/preopen/2026/10/23/085034_kospi_5m.json
+G4 the same read again -> None
+```
+
+The 12 Oct, 23 Oct and 16 Oct closes and the 21 Oct SPAN file now date from their own A9 rows, as the judges asked
+(span-bod 21 Oct: 20 Oct 02:23:12 UTC, not 24 Oct 00:34; 23 Oct close: 17:01:15, not 19:36:03).

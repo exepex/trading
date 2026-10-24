@@ -5,11 +5,13 @@ it, so a rehearsal sees a librarian or cue file only once the replay clock reach
 look-ahead). A row only in the working tree, or only on a branch not merged into `main`, never counts.
 
 Two row shapes, each matched by its own writer's rule:
-- a `path` column (the global cues, Groww's candles): the Drive path inside the raw area, matched whole;
+- a `path` column in a snapshot log (`global-cues/`, `groww-candles/`): the Drive path inside the raw area, matched
+  whole (the revision logs and the filings lists also have a `path` column, naming a file someone else archived:
+  never read);
 - A9's `date,url,...` (`ManifestFolder`): a Drive path is its dataset's (day, URL) as the dataset's source names it
   (`day_for_path`, `url_for`: `Fingerprint.of`'s rule), so the same URL fetched on two days is two files.
 
-The rows are read once per record checkout and process (`git blame` on 65 files takes about 5 s)."""
+The rows are read once per record checkout and process (`git blame` on about 55 files takes a few seconds)."""
 
 from __future__ import annotations
 
@@ -54,20 +56,35 @@ def _a9_key(path: str) -> tuple[str, date, str] | None:
 
 @lru_cache(maxsize=4)
 def _index(record: Path) -> tuple[dict[str, datetime], dict[tuple[str, date, str], datetime]]:
+    """Only the rows a file's own writer committed: its snapshot log's `path` rows (the files directly in each log
+    folder) and its A9 dataset's `date,url` rows (one manifest per `RAW_SOURCES` entry). A revision log's or a
+    filings list's `path` names a file another writer archived, so it never dates that file (judges 572 and 574)."""
+    folder = record / MANIFESTS
     paths: dict[str, datetime] = {}
     files: dict[tuple[str, date, str], datetime] = {}
-    for manifest in sorted((record / MANIFESTS).rglob("*.csv")):
-        top_level = manifest.parent == record / MANIFESTS
+    for manifest in sorted(m for log in _path_logs() for m in (folder / log).glob("*.csv")):
         for row, committed in _rows(record, manifest):
             if row.get("path"):
                 _keep(paths, row["path"].strip("/"), committed)
-            elif top_level and row.get("url") and row.get("date"):
-                _keep(files, (manifest.stem, date.fromisoformat(row["date"]), row["url"]), committed)
+    for name in sorted({dataset_name(source) for source in RAW_SOURCES}):
+        for row, committed in _rows(record, folder / f"{name}.csv"):
+            if row.get("url") and row.get("date"):
+                _keep(files, (name, date.fromisoformat(row["date"]), row["url"]), committed)
     return paths, files
+
+
+def _path_logs() -> tuple[str, ...]:
+    """The snapshot logs' folders, as their writers name them (A17's global cues, A16b's Groww candles)."""
+    from ..global_cues.wiring import SNAPSHOT_LOG_FOLDER
+    from ..intraday.backfill_daily import MANIFESTS as CANDLE_MANIFESTS
+
+    return SNAPSHOT_LOG_FOLDER.name, CANDLE_MANIFESTS.as_posix()
 
 
 def _rows(record: Path, manifest: Path):
     """Each data row of the manifest as `main` holds it, with the committer time of its first-parent commit."""
+    if not manifest.is_file():  # a dataset with no manifest yet: no row
+        return
     relative = manifest.relative_to(record).as_posix()
     blame = subprocess.run(["git", "blame", "--first-parent", "--line-porcelain", RECORD_MAIN, "--", relative],
                            cwd=record, capture_output=True, text=True, check=False)  # fmt: skip
