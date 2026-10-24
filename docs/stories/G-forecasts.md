@@ -294,7 +294,8 @@ v4's freeze record after G7 and G8 exist and the judge checks them, so G7's file
 6. **V1 inputs and switch:** V1 starts after 20 non-void **live** A16 sessions (19: not started); `HarIntraday` is
    eligible from 250 live sessions (up to 750), and from its first eligible day it is V1's primary for good
    (`forecast_v4.eligibility.primary_baseline`); rows with provenance `backfilled` (A16b's `rv-candle/`) never count
-   toward 20, 250 or any live input (decision 56); a void session is never a value.
+   toward 20, 250 or any live input, except a baseline's ratio window, W8 (decision 56); a void session is never a
+   value.
 7. **Trailing (V1):** the last live non-void intraday `RV_s` before the cutoff.
 8. **Rule forecasters:** `v6_ewma_t4` and `v1_close_blend` reproduce hand-computed values; missing when an input is
    missing.
@@ -651,21 +652,26 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
   - **B, close proxy (`premium_adjusted_implied`, version `1 ratio close_proxy`):** the close-proxy method (close-to-
     close `RV_h` over the EOD-IV30 raw implied) at the question's own `h` (1 for V1; 5 and 20 for part f, where it is
     V2's and V3's own row). Available now. Cost: a measure mismatch against an intraday target; every report prints
-    the mean ratio of intraday to close-proxy `RV_s` over the live days, so the gap is seen.
+    the ratio of the mean intraday to the mean close-proxy `RV_s` over the live days (a ratio of sums: one day's
+    close proxy is a single squared return, so a median or mean of daily ratios would overstate the gap), so the gap
+    is seen.
   - **A, intraday (`premium_adjusted_implied_intraday`, version `1 ratio intraday`):** the window's `RV_h(t)` is the
-    intraday session variance. Live A16 rows alone give about two years with no value; W8 below proposes A16b's
-    candle back-fill for the window's history, so A has a value now.
+    intraday session variance. Live A16 rows alone give about two years with no value; W8 below (owner: "W8 - yes",
+    DESK_DECISIONS fa605291a) puts A16b's candle back-fill in the window's history, so A has a value now.
   - G8 prints each V1 and part f forecaster against both yardsticks, each comparison labelled; V2's and V3's
     close-proxy series keep B only (their own measure). Both are "also reported" (protocol 3.2), never a member's test.
 
-**W8, A16b's candle back-fill in option A's ratio window (proposed; text for judge K and the owner).**
+**W8, A16b's candle back-fill in option A's ratio window (decided by the owner, 24 Oct: "W8 - yes", DESK_DECISIONS
+fa605291a).**
 - **Same measure? Some evidence: yes, by construction and on 3 days.** A16's live `RV_s` (`rv-quote-15m-v1`) is the
   squared log returns between the 26 marks 09:15-15:30 plus the overnight return, each mark NIFTY's level from Groww;
   in practice every live mark is a 1-minute candle's close (Groww gives no index last-trade time: `basis_counts`
   `candle_1m_close:25;candle_1m_open:1` on each live day). A16b's back-fill (`rv-candle-15m-v1`, `provenance
   backfilled`) is the same formula on the same 26 marks, each the 15-minute candle's close (strong evidence: both
-  tables' columns and A16b's step 0, which found the 15-minute closes equal A16's live levels on 75 of 75 marks, 3
-  days of 2026).
+  tables' columns). What A16b's step 0 actually compared (judge 591 m1): the 15-minute candle closes against the
+  1-minute candle closes at the same marks, 75 of 75 equal, on 13 Oct, 14 Oct and 1 Sep 2026, before A16 went live;
+  the 1-minute close is A16's live rule, so the link to A16's levels is by that rule, not a live comparison. **No
+  2024-25 day was checked**, while about 95% of the back-fill is 2020-2025 (some evidence only for those years).
 - **The gap, every live day so far (all of them):** A16 has 5 live sessions (16, 19, 21, 22, 23 Oct); 16 and 23 Oct
   are void live (16 Oct: no usable 09:15-09:45 levels; 23 Oct: void, and A16b has no row yet), so **3 days compare**:
   back-fill / live `RV_s` = **0.962 (19 Oct), 0.997 (21 Oct), 1.009 (22 Oct)**, mean 0.989. Some evidence only: 3 days
@@ -676,14 +682,23 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
   yardstick (V1, and V2's and V3's intraday versions), a window point's `RV_h(t)` is A16's live intraday `RV_s` where
   A16 recorded `t+1..t+h`, else A16b's back-filled candle-close `RV_s` (`rv-candle-15m-v1`), labelled
   `backfill_window`. Back-filled rows enter only this ratio window: never a forecast's input, never an outcome, never
-  a base rate (decision 56 unchanged). Every report prints the paired back-fill / live `RV_s` ratio over all live days
-  with both rows, its median and the latest 20, as the IV30 proxy's drift line."
+  a base rate (decision 56 read as never a forecast input, outcome or base rate; owner, 24 Oct). Every report prints
+  the paired back-fill / live `RV_s` ratio over all live days with both rows, its median and the latest 20, as the IV30
+  proxy's drift line."
 - **Why it is honest (reasoning only):** the window already uses a labelled end-of-day proxy for the IV side (3.1); the
   ratio is a baseline's scale, not a forecast input, so decision 56's point (no hindsight in a forecast) is untouched;
   the paired line makes any level gap visible. **Risk:** if the 15-minute close differs systematically from the live
   1-minute close (a microstructure bias), A's ratio is biased by that factor; 3 days say under 4%, not proven.
-- **If W8 is not accepted:** A's rows are written `not_eligible` until 500 live window points (about two years), as
-  the text said before.
+- **How decision 56 is read (judge 591 SF1, said plainly):** W8 narrows how decision 56 (response 113) has been read
+  until now. The owner's approved reading: back-filled rows are never a forecast input, outcome or base rate; a
+  baseline's ratio window may use back-filled rows labelled `backfill_window`. Reason: the ratio is a baseline's scale
+  only, every window point resolves before the refit that uses it, and the EOD IV30 proxy in the same window is the
+  same precedent (a labelled proxy in a scale, never in a forecast).
+- **Review trigger (judge 591 m2):** when the drift line's median back-fill / live ratio over the latest 20 live days
+  leaves [0.95, 1.05], the report raises one alert to #fno-desk and an owner row is opened (keep W8, correct the
+  window by the measured factor, or drop it); fewer than 20 paired live days raise nothing.
+- **Had W8 been refused** (kept for the record): A's rows would be `not_eligible` until 500 live window points
+  (about two years).
   V1's raw implied (`h` = 1, its horizon) is computed only as this input: protocol 3.2 does not report raw implied for V1.
 
 **V5 terms, frozen from the pack of `d` (protocol 1.5).** `e` = the nearest monthly expiry strictly after `d`, read
@@ -885,7 +900,8 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
   V5's leg IVs use Black-76 on that `F` at 6.5%.
 - **W3 (3.1), decided by the owner (24 Oct, "both"):** V1 and part f carry both premium-adjusted yardsticks, (A) on the
   intraday measure and (B) on the close proxy, each a labelled row, never pooled. V2 and V3 use the close proxy.
-- **W8 (3.1), proposed:** A16b's candle back-fill fills option A's ratio window, never a forecast input (above).
+- **W8 (3.1), decided by the owner (24 Oct, "W8 - yes", DESK_DECISIONS fa605291a):** A16b's candle back-fill fills
+  option A's ratio window, never a forecast input, outcome or base rate (above).
 - **W4: dropped** (judge 578 SF3). Protocol 1.5's "archive time of A11's first version" exists: Drive's `createdTime`
   through `CreationTimes`. No wording needed.
 - **W5 (1.4, 1.5):** "a live two-sided quote" is bid > 0 and ask >= bid, both in the pack, and a trade in the contract
@@ -904,7 +920,7 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 | W1 | V4 measures realised movement from the 15-minute intraday quotes (A16), not from daily closes | the protocol implies it but never says it |
 | W2 | V5 uses the future's mid price (halfway between bid and ask) as its forward, and drops the day if that quote's spread is over 5% or the future did not trade that day | the protocol says "the future" without saying which price |
 | W3 | **Decided by you (24 Oct): both.** For V1 and the intraday V2/V3 series, the "premium-adjusted" yardstick (implied movement scaled by how much realised movement has run below it) is reported twice: scaled on the intraday measure (A) and on daily closes (B), each labelled, never mixed; both side reports. The code keeps the two in `fno/forecast_v4_rules/intraday_series.py` (judge 585.1 s1) | the protocol did not say which |
-| W8 | **Proposed, for you:** let the 15-minute candle history (A16b, 2020-2026, fetched later) fill the intraday yardstick's history, so it has a value now instead of in about two years. Those rows never become a forecast or a result; every report shows how far they differ from the live readings (3 days so far: within 4%) | without it, A has no value for about two years |
+| W8 | **Decided by you (24 Oct, "W8 - yes", DESK_DECISIONS fa605291a): yes.** The 15-minute candle history (A16b, 2020-2026, fetched later) fills the intraday yardstick's history, so it has a value now instead of in about two years. Decision 56 read as never a forecast input, outcome or base rate (owner, 24 Oct): those rows never become a forecast, a result or a base rate, only the yardstick's scale. Every report shows how far they differ from the live readings (3 days so far: within 4%); a median outside 0.95-1.05 over 20 live days raises one alert and a new row for you | without it, A has no value for about two years |
 | W4 | Dropped: the "first seen" time of the expiry-day file is Drive's own creation time, which the protocol already means | nothing to sign |
 | W5 | A "live" quote (each option leg **and the future**) needs a bid, an ask (ask not below bid) and a trade in that contract the same day, the rule the 3 pm quotes already use; order sizes are not checked because the pack does not hold them | the protocol does not define "live"; without the trade check a stale quote could pass |
 | W6 | V4 starts when the pack holds a suitable expiry and A16 records movement (old text named A16's weekly quotes); V4's and V5's rule forecasts read the pack and name its fingerprint | the old start line predates the pack |
