@@ -159,7 +159,9 @@ def build_nse_library(source_type: type[NseArchiveSource], project_folder: Path 
 
 def build_nse_source(source_type: type[NseArchiveSource]) -> NseArchiveSource:
     """One NSE dataset straight from NSE's archive, through the shared polite session."""
-    session = PacedSession()
+    from ..rehearsal.nse_wiring import rehearsed_session
+
+    session = rehearsed_session(PacedSession())  # story REH1b: a rehearsal never fetches
     session.headers["User-Agent"] = RESEARCH_USER_AGENT  # NSE refuses the default python-requests identity
     return source_type(session)
 

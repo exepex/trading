@@ -99,5 +99,9 @@ def build_card_issuer(env=os.environ, root: Path = ROOT) -> CardIssuer:
 
 def build_issuance_witness(env=os.environ, root: Path = ROOT) -> IssuanceWitness:
     history = RepoHistory(root)
-    receipts = GitHubActivityReceipts(_repository(env), env.get(ENV_GITHUB_TOKEN, ""), history)
+    from ..rehearsal.receipts_wiring import rehearsed_receipts
+
+    receipts = rehearsed_receipts(
+        GitHubActivityReceipts(_repository(env), env.get(ENV_GITHUB_TOKEN, ""), history), history
+    )  # REH1b: the rehearsal's push log
     return IssuanceWitness(RepoDeliveryFiles(root, GitHeadRecords(root)), history, receipts)

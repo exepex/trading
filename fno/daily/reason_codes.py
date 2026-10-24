@@ -7,6 +7,7 @@ from __future__ import annotations
 from ..desk import book_versions, daily_run, daily_steps, exits, recorded_c4, trade_marking
 from ..desk.owner_timing import entry_fills, exit_fills, outcomes, pending_entries
 from ..desk.owner_timing import step as owner_timing
+from ..rehearsal import recorded_quotes
 from . import earlier_run, quote_parts, reviews, steps
 
 # O1's own messages: any step may carry them (a raise, a stop at the limit, a step not yet live)
@@ -14,6 +15,7 @@ COMMON = (
     ("o1:NOT_LIVE", steps.NOT_LIVE),
     ("o1:NO_DATE", steps.NO_DATE),
     ("o1:STOPPED_AT_LIMIT", steps.STOPPED_AT_LIMIT),
+    ("rehearsal:NOT_RECORDED", recorded_quotes.NOT_RECORDED),  # story REH1b: a capture the day never recorded
 )
 BLOCKS = (
     ("desk:NO_LOG", daily_run.NO_LOG),

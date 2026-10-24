@@ -16,6 +16,7 @@ from ..constants import ENV_FNO_REHEARSAL
 from ..models import IST
 from .checkout import RehearsalCheckout, RehearsalCheckoutError, run_git
 from .clock import ReplayClock
+from .git_dates import install_git_shim
 from .mode import Rehearsal
 
 ROUTINE_START = time(14, 5)  # CLAUDE.md: the daily routine's scheduled start
@@ -34,14 +35,15 @@ def rehearse_daily(day: date, source: Path, out: Callable[[str], None] = print, 
     mode = Rehearsal.new(day, home, source)
     start = datetime.combine(day, ROUTINE_START, IST)
     checkout = RehearsalCheckout(source, mode, home)
+    ReplayClock(mode.state).start(start)  # first: the origin's push log reads it from the first push on
     try:
         checkout.create(start)
     except RehearsalCheckoutError as failed:
         out(str(failed))
         return 1
-    ReplayClock(mode.state).start(start)
     out(STARTED.format(day=day, run_id=mode.run_id, at=start.isoformat(), checkout=checkout.clone))
-    env = {**os.environ, ENV_FNO_REHEARSAL: mode.to_env()}
+    path = install_git_shim(checkout.root / "bin", mode.state)  # every commit dated by the replay clock
+    env = {**os.environ, ENV_FNO_REHEARSAL: mode.to_env(), "PATH": path}
     for problem in (guard or _guard)(env):
         out(GUARD_STOPPED.format(problem=problem))
         return 1

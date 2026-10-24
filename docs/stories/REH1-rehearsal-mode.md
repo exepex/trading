@@ -309,3 +309,53 @@ clean.
 - The AI books' sealed answers are not replayed. In REH1a they are never fired (the HTTP guard), and the daily run
   has no AI step.
 - No rehearsal of the real 23 Oct has run yet. It waits for REH1b and O9's read-only index-close fix.
+
+### REH1b: the recorded sources (for its two judges)
+
+Branch `story/reh1b-sources`, stacked on REH1a (b2e5337d) so REH1a's judges' fixes stay apart. The live sources each
+daily step reaches were mapped first, read-only (a search over every step's composition root). Each one now has its
+rehearsal form, chosen in the builder that builds it:
+
+| Live source | Step(s) | Rehearsal form | Chosen in |
+|---|---|---|---|
+| A4's capture: Groww / NSE chain, NSE levels | quotes (3 parts), snapshot | `RecordedRecorder`: the day's recorded attempts, republished byte for byte at their own `finished_at`, with the day's canonical marker; Groww's files from the real Drive checked against their sidecars' SHA-256 | `composition._quote_recorder`, `quotes/index_wiring`, `quotes/window_wiring` |
+| NSE's archive (a file missing from Drive) | book1, exits, the recorder's fallback, the index closes | the source's session never sends: `RawSourceUnavailable` "rehearsal:NOT_RECORDED ... (not sent)", no retry, no wait, nothing archived | `storage/wiring.build_nse_source` |
+| NSE's index list | close_read, close_recheck | `RecordedCloseList`: the day's raw answer saved at or just after now (15:40 the first, 16:00 the recheck), once the replay clock reaches its save time | `close_read/wiring` |
+| Groww's candles | candles | `RecordedCandles`: the day's archived answer for the same window, checked against its manifest row | `intraday/backfill_wiring` |
+| GitHub's activity log (push receipts) | premium_ranges, price_ranges, price_range_scores (seals); also the AI collector, v4 packs, health, the card | `LocalPushReceipts`: the rehearsal origin's `post-receive` hook logs each push to main with the replay time | the five `GitHubActivityReceipts` builders |
+| Git's commit dates (the wall clock) | every commit: D3's late rule, the seals | a `git` shim first on the rehearsal's `PATH` dates every commit by the replay clock | `rehearsal/daily.py` |
+
+**Also:**
+- The guard checks the 3 pm recorder and NSE's session, and probes NSE's archive and GitHub's activity log.
+- The run log's registry names `rehearsal:NOT_RECORDED`.
+- The label's pending line now names only REH1c.
+- The composition-root test uses the repository's own rule: a root is any `wiring.py` or `<part>_wiring.py`.
+
+**Two of my mistakes, said plainly:**
+- I committed part 1 (38f9d5ab) with one test red, because a pipe to `tail` hid pytest's exit code. That test is the
+  composition-root list, fixed in the next commit. The gates now run through a script that exits with their own
+  status.
+- The replay clock was started after the checkout, so the origin's first push (the data commit) was logged with no
+  offset. It now starts first.
+
+**Tests:**
+- `tests/rehearsal/test_recorded_quotes.py` (5): the 3 pm record at its own time with its marker, the 15:15 capture,
+  a day with no attempt ending "none", the record never written, and a Groww file whose bytes differ from its sidecar
+  refused.
+- `test_recorded_closes.py` (3) and `test_recorded_candles.py` (2).
+- `test_nse_archive.py` (2): never sent, no retry, no wait.
+- `test_git_dates.py` (1): a commit through the shim carries the replay time.
+- `test_checkout.py`, push receipts on real repositories.
+- `test_guard.py`, with five planted breaks.
+- `tests/intraday_backfill/test_read_only.py` still passes: the back-fill's import closure names no trading call.
+
+**Gates** (on main): 14905 passed, 1 skipped, 16 xfailed. ruff, format, imports, records and numbers are all clean.
+
+**Not in REH1b (said plainly):**
+- There is no end-to-end rehearsal of a recorded day with these sources yet. O2's fixture harness replaces the same
+  seams with its own fakes, so it cannot exercise them. The first whole run is the 23 Oct rehearsal itself, after the
+  judges and O9's read-only fix.
+- The card does not run. Its `daily.live_from` is null (config.yaml), on 23 Oct and today, so a rehearsal posts no
+  card, as the real day posted none.
+- The shared Drive's raw NSE files are read as they are now, not point in time. They are published files of past
+  sessions, and no step asks for one of the replayed day before NSE publishes it (reasoning only).

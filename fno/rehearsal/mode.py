@@ -18,10 +18,7 @@ DRYRUN_ROOT = "dryrun"
 BRANCH_PREFIX = "rehearsal/"
 LABEL = "*DRY RUN, {day} replay, not a real trading day*\nNot yet in rehearsal: {pending}"
 # The parts of the day not yet replayed (the orchestrator's addition 3): named in every post until each part lands
-NOT_YET_IN_REHEARSAL = (
-    "Groww's and NSE's recorded captures (REH1b)",
-    "the pre-open, morning and evening routines (REH1c)",
-)
+NOT_YET_IN_REHEARSAL = ("the pre-open, morning and evening routines (REH1c)",)
 RUN_ID_TIME = "%Y%m%dT%H%M%SZ"
 
 

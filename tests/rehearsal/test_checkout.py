@@ -91,3 +91,23 @@ def test_a_guard_problem_stops_before_any_step_and_a_closed_day_is_refused(sourc
     assert refs(github) == ["refs/heads/main"]  # nothing published
     assert rehearse_daily(date(2026, 10, 24), repo, lines.append, tmp_path / "h2", is_session=lambda d: False) == 1
     assert lines[-1] == "rehearsal refused: 2026-10-24 is not a session day (NSE's calendar)"
+
+
+def test_a_push_to_the_rehearsal_s_origin_has_a_receipt_at_the_replay_time(source, tmp_path):
+    """REH1b: G13b's seals ask when a commit was pushed; a rehearsal answers from its origin's push log."""
+    from fno.ai.history import RepoHistory
+    from fno.rehearsal.clock import ReplayClock
+    from fno.rehearsal.push_receipts import PUSH_LOG, LocalPushReceipts
+
+    repo, _ = source
+    mode = Rehearsal.new(DAY, tmp_path / "home", repo)
+    ReplayClock(mode.state).start(datetime(2026, 10, 23, 15, 29, tzinfo=IST))
+    checkout = RehearsalCheckout(repo, mode, tmp_path / "home")
+    checkout.create(START)
+    (checkout.clone / "seal.json").write_text("{}")
+    git(checkout.clone, "add", "seal.json")
+    git(checkout.clone, "commit", "-q", "-m", "seal")
+    git(checkout.clone, "push", "-q", "origin", "HEAD:main")
+    commit = git(checkout.clone, "rev-parse", "HEAD").strip()
+    received = LocalPushReceipts(mode.state / PUSH_LOG, RepoHistory(checkout.clone)).received_at(commit)
+    assert abs((received - datetime(2026, 10, 23, 15, 29, tzinfo=IST)).total_seconds()) < 30
