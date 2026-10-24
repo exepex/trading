@@ -709,10 +709,24 @@ always leave its Drive record and delivery metadata. Then a rehearsal proves the
 **Scope.** In:
 - **A rehearsal hook for the card's clocks (REH1c's pattern).** In a rehearsal, the issuer's clock checks are one
   unchecked line per server: "<server>: not checked (rehearsal: replay clock, not checked against GitHub's and
-  Slack's servers)". REH1c's `NOT_CHECKED` text is reused, never copied. No GitHub call is made, and no Slack skew
-  is computed. A real run is unchanged.
-  - The hook is one function beside `rehearsed_card_poster` in `fno/rehearsal/card_label.py`, chosen in
-    `fno/cards/wiring.py`. That file is in REH1's package, so this is agreed with REH1's owner before code.
+  Slack's servers)". REH1c's `NOT_CHECKED` text is imported from `fno/rehearsal/preopen_wiring.py`, never copied. No
+  GitHub call is made, and no Slack skew is computed. A real run is unchanged.
+  - **Agreed with REH1's owner (session_01GAACYjcfHWkC3hp33iiMXV, 24 Oct), with two conditions, both in scope:**
+    1. The card's clocks join `guard.builders()` in `fno/rehearsal/guard.py` (a one-line edit agreed by REH1's
+       owner), as REH1c did for "A16's clock check". The real builder is called and the rehearsal form is
+       expected, so REH1's guard proves the card's clocks before any step. `tests/rehearsal/test_guard.py`'s
+       "without the mode" map gains the real form, and its count of unlabelled services grows by one.
+    2. In a rehearsal, no GitHub client is built at all. The HTTP guard stays the backstop, never the means.
+  - **Design:** the issuer's clocks become one object behind an interface, `CardClocks` (`fno/cards/`), with two
+    forms:
+    - `ServerCardClocks`, the real run: today's Slack check from the post's `ts` plus `HttpDateClock` for GitHub,
+      unchanged;
+    - `RehearsalCardClocks`: one unchecked line per server, no client built.
+    `build_card_clocks()` in `fno/cards/wiring.py` is the real builder. It returns
+    `rehearsed_card_clocks(<real>)`, a function in `fno/rehearsal/card_label.py` beside `rehearsed_card_poster`, which
+    picks the rehearsal form when `FNO_REHEARSAL` is set. The GitHub `HttpDateClock` is made only inside the real
+    form's builder, so a rehearsal never constructs it. `CardIssuer` takes a `CardClocks` in place of its list of
+    server clocks.
 - **Nothing after the post stops the records.** In `CardIssuer.issue`, each step after the post is guarded: the
   clock checks, building the facts, the Drive save (already guarded) and the metadata write (today `OSError` only).
   - A step that raises becomes its own printed and stored line, by error type only (T1's rule: no message reaches
@@ -735,7 +749,7 @@ Out, with reasons:
 - **A16's and A22's clock checks:** already REH1c's; unchanged.
 
 **Acceptance criteria:**
-1. In a rehearsal (`FNO_REHEARSAL` set), `card daily --post` makes no call to GitHub. Its delivery metadata stores one
+1. In a rehearsal (`FNO_REHEARSAL` set), `card daily --post` builds no GitHub client and makes no call to GitHub. Its delivery metadata stores one
    unchecked entry per server ("Slack" and "GitHub"), each with the rehearsal line and `checked: false`, and no
    WARNING. A real run is unchanged: the same servers are asked, and T1 criterion 7 holds.
 2. In a rehearsal, after a sent post, the Drive record is saved (the dryrun store) and the delivery metadata is
@@ -748,6 +762,9 @@ Out, with reasons:
 5. On every path after the post, the CLI's last printed line is one of the issuer's result lines (the delivery line),
    never a line of the card's text.
 6. With the guard installed and the hook removed, a test fails (the reproduction above, kept as a test).
+7. REH1's guard lists the card's clocks: `guard.builders()` has "the card's clocks" with `build_card_clocks` and
+   `RehearsalCardClocks`. In the mode it reports no problem; without the mode, `test_guard.py`'s map names the real
+   form and the unlabelled count includes it.
 
 **Test plan** (`tests/cards/test_rehearsal_issue.py`, new):
 1. The reproduction: guard installed, the real `HttpDateClock` for GitHub, a fake sent poster.
@@ -759,7 +776,9 @@ Out, with reasons:
    exit code is 1.
 4. CLI: `cmd_card_daily` with a raising clock prints the delivery line last.
 5. A real run (no `FNO_REHEARSAL`): the GitHub clock is asked as before (T1's tests unchanged).
-6. Empty and boundary cases: no clocks at all; a poster that did not send (no Slack time, so Slack is unchecked as
+6. Guard: `problems()` in the mode is empty with the card's clocks listed; without the mode the card's clocks are
+   counted as unlabelled (REH1's `test_guard.py`, its map and count updated).
+7. Empty and boundary cases: no clocks at all; a poster that did not send (no Slack time, so Slack is unchecked as
    today); a rehearsal with no Drive settings (`NoCardRecords`), which still writes the metadata.
 
 **Planned plants:**
@@ -769,6 +788,9 @@ Out, with reasons:
 - P4: the CLI prints the result lines only on success (test 4).
 - P5: the hook active in a real run (test 5).
 - P6: the facts built outside the guard (test 3).
+- P7: the card's clocks left out of `guard.builders()` (test 6).
+- P8: the rehearsal form built from the real one, so a GitHub client is constructed in the mode (test 1: a builder
+  spy counts zero `HttpDateClock`s in the mode).
 
 **Gap list:**
 
@@ -779,6 +801,7 @@ Out, with reasons:
 | The alert names the real problem, not a card line | criterion 5 (card side); O1's side is Out, proposed to O1's owner |
 | No double post | criterion 4 |
 | A real run unchanged | criterion 1, test 5 |
+| REH1's conditions: the guard proves the card's clocks; no GitHub client in the mode | criteria 1 and 7, tests 1 and 6 |
 
-**Depends:** T1, REH1 (REH1c's hook pattern, and REH1's owner's agreement on `card_label.py`) · **Size:** S ·
+**Depends:** T1, REH1 (REH1c's hook pattern; REH1's owner agreed on `card_label.py` and `guard.py`, 24 Oct) · **Size:** S ·
 **Status:** text, to judge I
