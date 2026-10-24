@@ -75,10 +75,11 @@ def test_the_close_itself_is_outside_the_window(tmp_path, stamp, served):
 
 
 def test_a_late_copy_never_hides_an_earlier_one_inside_the_window(tmp_path):
-    """Judge 616's condition: copies seen at or after the close are dropped before the choice, so a read at 09:10:45
-    still gets the unserved 09:10:30 copy (nearer would be 09:11:01, 16 s ahead) and the next read cannot go back."""
-    part, clock = part_over(tmp_path, "banknifty", INDEX_WINDOW, ["091030", "091101"], "091045")
-    assert part.answer(D23).raw == b"091030" and clock() == at("091045")  # a copy before now: no wait
+    """Judge 616's condition (616.1: read at 09:10:50, where the late copy is the nearer one): copies seen at or after
+    the close are dropped before the choice, so the read gets the unserved 09:10:30 copy (20 s back) and never
+    09:11:01 (11 s ahead), and the next read cannot go back."""
+    part, clock = part_over(tmp_path, "banknifty", INDEX_WINDOW, ["091030", "091101"], "091050")
+    assert part.answer(D23).raw == b"091030" and clock() == at("091050")  # a copy before now: no wait
     with pytest.raises(PartFailed, match="rehearsal:NOT_RECORDED"):
         part.answer(D23)  # 09:11:01 is never served, and 09:10:30 never twice
 
