@@ -40,3 +40,21 @@ commit>` (criterion 12's history half). Today it is provable only through the tr
 
 ## Plants
 12 planted, 12 caught.
+
+## Addendum 1: round 2 (the last), story/g14-v5-v1-candle-2 at 9d9b4cafa
+**PASS**, lane 1. G14's own change is 9d9b4cafa (`method.py`, `test_v5v1_method.py`, the story); e4f75c4b5 merges main.
+- **Gates** on a trial merge with main 6a480457c (9e88ddc3d), `FNO_SLACK_BOT_TOKEN` set, nothing else touching the tree:
+  16,500 passed, 1 skipped, 14 xfailed. ruff, format, check_imports (2,756), check_records (9,250) and check_numbers are
+  clean. No post in any of the three channels during the run.
+- **S1 closed.** The five files join `SHARED` (recorded with SHA-256, not checked). A test reads `candle_history.py`'s
+  AST: only `BACKFILLED` is taken from `global_cues`, and it equals `"backfilled"`. `len(SHARED) == 9` is pinned. My
+  re-plants were all caught: a second name from `global_cues`, the label's value changed, a tenth `SHARED` entry
+  (`rv_table.py`).
+- **m1: the pin is enough, with this said plainly.** A judged change can move G14's calendar without the capture
+  noticing, because the capture hashes no part of `fno/storage/wiring.py`. Such a change must edit the pin test
+  (`test_the_session_calendar_builder_is_pinned`), and the merge gates run that test on every merge. So the change
+  cannot land unreviewed. That is the same protection the `SHARED` files have (judge 596 addendum 2, condition 2),
+  and the rest of the calendar path is byte-checked: `load_session_calendar` and the classes in
+  `research_data/calendar.py`. The CSV's rows are data, unhashed by design (2027 holidays to come). My plants were
+  caught: the builder reading another file, and the calendar module moved to `SHARED`.
+- **m2** is stated in the Claims and checked at the record's commit.
