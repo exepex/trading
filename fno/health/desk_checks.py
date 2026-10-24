@@ -20,11 +20,12 @@ from ..constants import (
     HEALTH_MISSED,
     HEALTH_NOT_EXPECTED,
     HEALTH_OK,
+    NO_DECISION_LATE,
     RUN_LOG_DECISIONS_STEP,
     STEP_FAILED,
     STEP_REFUSED,
 )
-from ..desk.daily_steps import COLLECTION_GRACE
+from ..desk.daily_steps import COLLECTED_LATE, COLLECTION_GRACE
 from ..desk.run_log import RunLog
 from ..intraday.ledger import SlotLedger
 from ..intraday.slots import FIRST_MARK, MARK_STEP, MARKS_PER_SESSION
@@ -48,6 +49,9 @@ class RunLogCheck(SessionCheck):
         due = self.deadline.on(session) + COLLECTION_GRACE
         if not log.done(RUN_LOG_DECISIONS_STEP):
             return absent(now, due, "no decisions step")
+        late = _collected_late(log.steps[RUN_LOG_DECISIONS_STEP])
+        if late:
+            return CheckResult(HEALTH_LATE, f"E3 collected late: {late}")  # E3's own verdict, the one source of truth
         try:
             started = datetime.fromisoformat(log.steps[RUN_LOG_DECISIONS_STEP]["started_at"])
         except (KeyError, TypeError, ValueError):
@@ -57,6 +61,16 @@ class RunLogCheck(SessionCheck):
         if result.status == HEALTH_OK and problems:
             return CheckResult(HEALTH_MISSED, problems)
         return result
+
+
+def _collected_late(step: dict) -> str:
+    """E3's reason when it started collecting after its grace and failed closed (every book `NO_DECISION_LATE` with
+    its `COLLECTED_LATE` text); empty otherwise. It wins over the start time, which the run log takes a few ms
+    before E3's own clock."""
+    prefix = COLLECTED_LATE.split("{", 1)[0]
+    books = (step.get("result") or {}).values()
+    reasons = [b.get("reason", "") for b in books if isinstance(b, dict) and b.get("decision") == NO_DECISION_LATE]
+    return next((r for r in reasons if isinstance(r, str) and r.startswith(prefix)), "")
 
 
 def _problems(log: RunLog) -> str:

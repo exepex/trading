@@ -14,11 +14,13 @@ from fno.constants import (
     HEALTH_NOT_DUE,
     HEALTH_NOT_EXPECTED,
     HEALTH_OK,
+    NO_DECISION_LATE,
+    RUN_LOG_DECISIONS_STEP,
     STEP_FAILED,
     STEP_NOT_LIVE,
     STEP_REFUSED,
 )
-from fno.desk.daily_steps import COLLECTION_GRACE
+from fno.desk.daily_steps import COLLECTED_LATE, COLLECTION_GRACE
 from fno.desk.run_log import RUNS_FOLDER
 from fno.health.data_checks import PanelDayCheck, SessionRowCheck
 from fno.health.desk_checks import MarksCheck, RunLogCheck
@@ -46,9 +48,9 @@ def repo(tmp_path):
     return Repo(tmp_path)
 
 
-def _run_log(repo, steps=DAILY_RUN_STEPS, decided=AT_DEADLINE, results=None):
+def _run_log(repo, steps=DAILY_RUN_STEPS, decided=AT_DEADLINE, results=None, finished=None):
     def body(step):
-        return {"started_at": decided.isoformat(), "finished_at": decided.isoformat(), "inputs": {},
+        return {"started_at": decided.isoformat(), "finished_at": (finished or decided).isoformat(), "inputs": {},
                 "result": (results or {}).get(step, {})}  # fmt: skip
 
     repo.write_json(f"journal/{RUNS_FOLDER}/{DAY.isoformat()}.json",
@@ -61,6 +63,38 @@ def test_the_desk_run_is_on_time_by_its_decisions_start_within_e3s_grace(repo, a
     start one second past the grace is late, whatever the finish."""
     _run_log(repo, decided=AT_DEADLINE + after)
     assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == status
+
+
+@pytest.mark.parametrize(
+    ("start", "finish", "status"),
+    [(29, 31, HEALTH_OK), (31, 31, HEALTH_LATE), (31, 29, HEALTH_LATE)],  # seconds after the deadline
+)
+def test_the_start_decides_never_the_finish(repo, start, finish, status):
+    """Judge 552: started inside the grace and finished after it is on time; started after it is late."""
+    _run_log(repo, decided=AT_DEADLINE + start * SECOND, finished=AT_DEADLINE + finish * SECOND)
+    assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == status
+
+
+def test_e3s_own_collected_late_verdict_wins_over_an_on_time_start(repo):
+    """E3 reads its clock a few ms after the run log's start: when it failed closed, its reason decides."""
+    why = COLLECTED_LATE.format(started="2026-10-15T15:12:30.004+05:30", deadline="2026-10-15T15:12:00+05:30")
+    late = {"book1_rules": {"decision": NO_DECISION_LATE, "reason": why}}
+    _run_log(repo, decided=AT_DEADLINE + COLLECTION_GRACE, results={RUN_LOG_DECISIONS_STEP: late})
+    result = RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING)
+    assert result.status == HEALTH_LATE and "E3 collected late" in result.detail
+
+
+def test_a_book_late_for_its_own_reason_is_not_read_as_a_late_collection(repo):
+    """Only E3's COLLECTED_LATE text is a late collection; a book that committed nothing in time is another matter."""
+    book_late = {"book1_rules": {"decision": NO_DECISION_LATE, "reason": "nothing visible at the deadline 15:12"}}
+    _run_log(repo, results={RUN_LOG_DECISIONS_STEP: book_late})
+    assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, EVENING).status == HEALTH_OK
+
+
+@pytest.mark.parametrize(("now", "status"), [(29, HEALTH_NOT_DUE), (30, HEALTH_MISSED)])
+def test_no_decisions_step_waits_for_the_same_grace(repo, now, status):
+    _run_log(repo, steps=tuple(s for s in DAILY_RUN_STEPS if s != RUN_LOG_DECISIONS_STEP))
+    assert RunLogCheck(repo.root, DESK_DEADLINE).check(DAY, AT_DEADLINE + now * SECOND).status == status
 
 
 @pytest.mark.parametrize("day", ["2026-10-19", "2026-10-21", "2026-10-22", "2026-10-23"])

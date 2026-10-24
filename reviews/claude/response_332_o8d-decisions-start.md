@@ -41,3 +41,38 @@ time is `unknown`.
 - `check_imports` clean;
 - `check_records` clean;
 - `check_numbers` clean.
+
+## Judge 552 (round 1 FAIL, tests only) addressed
+
+**Should-fix, accepted.** `_run_log` wrote `started_at == finished_at`, so a check judging the finish against
+deadline + grace passed every test. The helper now takes a separate finish time, and
+`test_the_start_decides_never_the_finish` pins three cases:
+
+| Started (s after the deadline) | Finished | Status |
+|---|---|---|
+| 29 | 31 | OK |
+| 31 | 31 | LATE |
+| 31 | 29 | LATE |
+
+The judge's plant (judge `finished_at`) now fails 2 tests.
+
+**Minor 1, taken in this round (orchestrator), one source of truth.** E3 reads its own clock a few ms after the run
+log's start is taken. When E3 failed closed, every book carries `NO_DECISION_LATE` with E3's `COLLECTED_LATE` text.
+O8 now reads that verdict first (`_collected_late`), and the start time only when it is absent. Only E3's
+`COLLECTED_LATE` text counts. A book that committed nothing in time (`NO_DECISION_LATE` for its own reason) is not
+read as a late collection.
+
+Tests:
+- `test_e3s_own_collected_late_verdict_wins_over_an_on_time_start`;
+- `test_a_book_late_for_its_own_reason_is_not_read_as_a_late_collection`.
+
+**Minor 2, taken.** `test_no_decisions_step_waits_for_the_same_grace`: at +29 s it is not due; at +30 s it is missed.
+
+**Minor 3 (pre-existing), a follow-up in the register row:** O8 never reads the books' `NO_DECISION_LATE` as its own
+problem.
+
+**Plants (each fails a test):**
+- judge `finished_at` instead of `started_at` (2 fail);
+- E3's verdict ignored;
+- the bare deadline for "no decisions step";
+- any book-late reason taken as a late collection.
