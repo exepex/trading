@@ -1417,8 +1417,9 @@ and the card still never computes a number or tells me to place a real order.
     `card_from_delivery`, which always starts from `getFnoCard_india_none`. The first real `TRADE` day's delivery
     would therefore turn `main`'s suite red. T1g changes `card_from_delivery` to start from the contract's own example
     for the delivery's status (`getFnoCard_india_trade`, `getFnoCard_india_watch`, else `getFnoCard_india_none`),
-    then copy in only the delivery's fields as today. That test file is P1's, so the change is agreed with its owner
-    before code. The check proves the delivery's status, null reason, session, times and footer fit the contract. The
+    then copy in only the delivery's fields as today. That test file is P1's. Its owner (session_013xqaNTCbSB) is out
+    of reach, so the orchestrator agreed to the change in its place (25 Oct 2026): build from the contract's example
+    for the delivery's status, copy only the delivery's fields, label the example's part. The check proves the delivery's status, null reason, session, times and footer fit the contract. The
     trade part it takes from the example is labelled as such, never read as the day's trade.
   - **The trade fields.** The Drive card record's `trade` field (the dashboard's `FnoCardTrade` names) and its
     `evidence` block are validated against the pinned `FnoCardTrade` and `evidence` schemas in a card test, from
@@ -1524,5 +1525,5 @@ Out, with reasons:
 - Notes, accepted: "the status's reason" replaces "T1's reason". A failed would-be `WATCH` gives `data_check_failed`,
   with the reason stated. The rung-0 rule is recorded as the builder's decision.
 
-**Depends:** T1, T1e, T1f, REC1b (and REC1a's contract for the record's fields), P1's agreement on
-`card_from_delivery` · **Size:** M · **Status:** text round 2, to judge I
+**Depends:** T1, T1e, T1f, REC1b (and REC1a's contract for the record's fields); `card_from_delivery`'s change agreed
+by the orchestrator for P1 · **Size:** M · **Status:** text round 2, to judge I
