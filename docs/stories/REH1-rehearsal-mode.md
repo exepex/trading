@@ -809,3 +809,225 @@ G4 the same read again -> None
 
 The 12 Oct, 23 Oct and 16 Oct closes and the 21 Oct SPAN file now date from their own A9 rows, as the judges asked
 (span-bod 21 Oct: 20 Oct 02:23:12 UTC, not 24 Oct 00:34; 23 Oct close: 17:01:15, not 19:36:03).
+
+### REH1h: files a routine archives during its own run (DRY2's gap G2b; story text first, for judges B and E)
+
+Branch `story/reh1h-archive-serving`, from `story/reh1g-record-gaps` (round 2: merged again from REH1g's round-2 head,
+so REH1h's tests will run on the fixed REH1g, judge 573 minor 4). Builder session_01Mt6dcBU5kp2htdPN2KmiZH.
+Lane 1: it serves the record's files into a rehearsal, so a wrong rule is a look-ahead. This section is pushed alone
+(docs/JUDGE.md rule 1). Code starts after a judge has checked it against the design and the owner's dry-run goal.
+
+#### The design it answers (quoted word for word from the repository)
+
+- The handover, `docs/HANDOVER_2026-10-24.md` line 99, row 5: "REH1h (= G2b): files a routine archived during its own
+  run (the evening's F&O bhavcopy, participant OI) served by a recorded NSE-archive source near their row's commit
+  time".
+- REH1g's first text, which named G2b (`git show b5ab43ef6:docs/stories/REH1-rehearsal-mode.md`, lines 625-630):
+  - "A file the real routine itself archived (the evening's 23 Oct F&O bhavcopy, row committed 19:55 IST) is rightly
+    invisible to a rehearsal starting at 19:53."
+  - "Serving it needs a recorded NSE-archive session: the file the day archived, served once the replay clock nears
+    its row's commit."
+  - "Until then, those reads stay NOT_RECORDED, which is honest and never a fetch."
+- The owner, 24 Oct (handover section 1): "I want dry-run to be run successfully and generate all type of data and
+  reports."
+
+#### Why (strong evidence: DRY2 rows e3-e5 and this record's manifests)
+
+The evening routine archives three of its own inputs. On 23 Oct the real routine started at 19:53 IST. The rows
+reached main (first-parent times on main, REH1g's C2a) at:
+- 19:55:20, the F&O bhavcopy;
+- 19:55:29, participant OI;
+- 19:55:39, the FII/DII cash snapshot.
+
+A rehearsal of that evening starts at 19:53 on the replay clock, so it reaches those reads before the rows exist.
+REH1g's G2 rightly hides the files, and the session REH1b gave NSE's archive answers every request
+"rehearsal:NOT_RECORDED". DRY2 e3, e4 and e5 ended so, and `lab close` then lacked inputs the real edition had.
+
+The three reads are of two kinds:
+- **Store-first:** the librarian (`RawFileLibrary`) reads the stores before it asks NSE. Once a row reaches main, G2
+  shows the file and the request is never sent.
+- **Fetch-first:** a session-filed taker (`SessionFiledTaker`: FII/DII by session, NSDL's FPI by session; and the ban
+  list's `CurrentSessionTaker`) always sends the request first, because the session the copy covers decides its path
+  (`session_filed_taker.py:43-49`). No store is read before the request (judge 575).
+
+#### Design (the recorded-source pattern of REH1b and REH1c, one new class)
+
+- **`recorded_archive.RecordedArchiveSession`** is a new class behind the session seam `build_nse_source` already
+  passes through (`nse_wiring.rehearsed_session`, where REH1b's `NotRecordedSession` is chosen today). It extends
+  `NotRecordedSession`, so every request it cannot answer is still the same NOT_RECORDED. No NSE source class, no
+  library, no taker, no step and no composition root outside `fno/rehearsal/` changes.
+- **The candidates.** For `get(url)`: the record's A9 manifest rows with that URL. They come from REH1g's A9 index in
+  `manifest_rows`, reused, not a second reading of the manifests. A row is a candidate only if:
+  - it reached main on the replay day (IST); and
+  - it reached main no later than 10 min after now (`serving.NEAREST`).
+
+  The Drive path is that dataset's own path for the row's day (`path_for(day)`). It is accepted only when its
+  `url_for` gives the same URL back.
+- **The choice (one rule for both kinds of read).**
+  - If a candidate reached main after now, the read is the day's own read in this run: the earliest such row is
+    served.
+  - Else the latest row that reached main at or before now that day is served: the copy the record held then, which
+    a fetch-first taker is served. It is not always NSE's newest copy (judge B, code-round minor): a 22 Oct
+    by-session read at 19:40 gets the 21 Oct session's row that reached main on 22 Oct. For a store-first read of a
+    dated URL it never arises, since G2 already shows the file; a snapshot URL (the same every day) can reach it.
+  - Two candidates at the same commit time with different SHA-256 (two datasets sharing one URL:
+    `FiiDiiCashSource` and `FiiDiiCashBySessionSource`) are refused as ambiguous, never guessed.
+  - A repeat request for the same URL in one run (a retry, a second step) gets the same copy again. That is right for
+    a scheduled read, and differs on purpose from REH1g's paced `ServedOnce` (judge 575 minor 3).
+- **When.** A copy whose row reached main after now is served only once the replay clock reaches that commit time.
+  The A9 rows hold no fetch time, and the commit is the first moment the record proves the file was held, so the copy
+  is never served earlier (no look-ahead).
+  - The wait is a real `time.sleep` of the gap, as `RecordedCueSession` and `RecordedPreopenPart` wait. The replay
+    clock is the wall clock plus the shared offset (`clock.ReplayClock`), so it moves on by the same amount. Nothing
+    is skipped: the evening routine's waits run at real speed (judge 575 minor 2).
+- **How.** The bytes come from the real Drive record, read-only (`record_drive.RecordFiles(RAW_AREA)`, as the cue and
+  candle sources read), and must hash to the row's SHA-256.
+  - The answer is status 200 with those bytes and empty `headers`. So `fetch_published` gets no Last-Modified, and
+    its "last written" time is None (`raw_source.py:139`; judge 573 minor 3).
+  - The library or taker then does what it does on a real day: it archives the file into the rehearsal's Drive
+    (`DryrunDrive`, under `dryrun/<run_id>/`) and commits its manifest row in the rehearsal's own checkout (REH1a).
+- **Wiring.** `nse_wiring.rehearsed_session` returns the new session in the mode; outside it, PacedSession is
+  unchanged. The guard's "NSE's archive session" entry names the new class (judge 575's note).
+
+#### Criteria (each with good, bad, boundary and empty cases, a test and a plant in the Claims)
+
+- **H1. A file the routine archived in its own run is served at its row's commit.**
+  - The 23 Oct F&O bhavcopy read at 19:53:30 on the replay clock is answered at 19:55:20 with the day's bytes.
+  - The same holds for participant OI (19:55:29) and the FII/DII cash snapshot (19:55:39).
+  - FII/DII needs no condition: `FiiDiiCashSource.url_for` returns the one API URL (`snapshot_source.py:80-85`), and
+    `_response` sends one GET with no warm-up page (`raw_source.py:144-147`; judges 573 m1 and 575 m1).
+- **H2. Never before the record held it, and a fetch-first read after the commit still served.**
+  - Good: the answer waits until the row's commit time.
+  - Boundaries, exact to the microsecond:
+    - a row committed exactly 10 min after now is served after the wait; 10 min plus a microsecond, NOT_RECORDED;
+    - a fetch-first read at commit + 61 s is served the day's copy (judge 575's case), and so is one at + 1 h the
+      same day;
+    - a row committed on the day before is never a candidate.
+  - A day's 404 (judge 573 m2): a read the day saw answered "not published" is served if the day's row reaches main
+    within 10 min after it, after the wait. No look-ahead, since the file is served only from its commit, but the
+    routine's line then differs from the day's. This is a stated boundary case with its own test.
+- **H3. A copy that differs from its row, or is missing from Drive, is refused**, with a line naming the path. It is
+  never served.
+- **H4. One copy, or a refusal.**
+  - Good: the same URL with rows on two days (the snapshot datasets: `fo_secban.csv`, `fiidiiTradeReact`) is served
+    only the replay day's row.
+  - Bad: two candidates at one commit time with different SHA-256 are refused as ambiguous.
+  - A repeat request gets the same copy.
+- **H5. Empty.** These are NOT_RECORDED with today's exact message:
+  - a URL with no candidate (a holiday; a file NSE had not published and no row came within 10 min; a warm-up page;
+    a dataset with no A9 manifest);
+  - a morning fetch-first read of the ban list when its list reached main the evening before, so no row reached
+    main that day (22 Oct: the list's row reached main on 21 Oct at 20:00:23). When the list reached main after
+    midnight, the read is served it (23 Oct: 00:04:12, the session's own list, committed before the read; judges 582
+    m1 and 583 m2);
+  - every HEAD request.
+- **H6. Nothing reaches the real record.**
+  - The real Drive is only read. The archived copy is written under `dryrun/<run_id>/`, and the manifest row in the
+    rehearsal's checkout.
+  - Outside the mode, `build_nse_source` is unchanged.
+  - A test with the real `build_librarian` and `build_snapshot_taker` composition under the mode, a recording Drive,
+    and the guard listing the new class shows it.
+
+#### Gap list (rule 2)
+
+| Requirement (as written in the repository) | Covered by | Or out of scope, with reason |
+|---|---|---|
+| Handover row 5: files archived during the routine's own run "served by a recorded NSE-archive source near their row's commit time" | Design, H1, H2 | |
+| b5ab43ef6: "the file the day archived, served once the replay clock nears its row's commit" | H1, H2 | |
+| b5ab43ef6: "Until then, those reads stay NOT_RECORDED, which is honest and never a fetch" | H5 (and the guard) | |
+| Handover row 5: "the evening's F&O bhavcopy, participant OI" (DRY2 e3, e4) | H1 | |
+| DRY2 e5 (fii-dii-cash-by-session), a fetch-first taker | H1, H2 (commit + 61 s) | |
+| The orchestrator's brief: a new class behind the existing interface, wired in the rehearsal's composition root; never a real Drive write, writes only under `dryrun/` | Design, H6 | |
+| A read that saw NSE's 404 on the day | H2 (boundary), H5 | A 404 itself is not replayed: NSE's 404s are not recorded (every row of the 23 top-level manifests has status 200). With no row within 10 min, the read says NOT_RECORDED; with one, it is served after the wait. Either way the routine's line can differ from the day's |
+| `lab release-check`'s Last-Modified (G5) | | Not in A9 rows: HEAD stays NOT_RECORDED and the answer has no headers. Under H2's rule its GET (after `lab close`, the same evening) is now served the day's copy, so it reads "present" with no "last written" time where DRY2 read "unreachable". The DRY2 report will say which it showed |
+| `corporate-actions-by-symbol` | | Its path needs a symbol that the URL alone cannot be mapped back from without a second rule; no routine reads it |
+| The filings librarian (`NseFilingFileSource`) | | Its files have no A9 manifest row of this shape, and no routine runs it |
+| The morning's `data-librarian index-close` | (no change needed) | The 22 Oct close's row reached main at 01:06:53 on 23 Oct, before the 08:38 morning: REH1g's G2 already shows it |
+| The library's line "already in Drive" where the day said "archived" (a store-first read reaching the store after the row's commit) | | An accepted difference: the file is the same; said in the DRY2 report |
+
+#### Plants planned (the Claims will report each run)
+
+- the wait removed;
+- the forward window widened, and the replay-day bound dropped;
+- the latest-at-or-before rule dropped, so the commit + 61 s case is NOT_RECORDED;
+- the SHA-256 check removed;
+- `url_for` not checked back;
+- the earliest future row replaced by the latest;
+- the ambiguity refusal removed;
+- the old `NotRecordedSession` wired back;
+- HEAD answered;
+- headers carrying a Last-Modified.
+
+#### Round 2 of the text (judges 573 B and 575 E: FAIL; every finding answered by number)
+
+| Finding | Outcome |
+|---|---|
+| 575 SF: fetch-first takers get NOT_RECORDED more than 60 s after the commit | **Fixed in the design.** The candidates are the replay day's rows up to 10 min ahead. A future row is waited for, else the latest row at or before now is served. The lower 60 s bound is gone. H2 adds commit + 61 s and + 1 h. "Why" names both kinds of read |
+| 573 SF1: the G2b quotes were not in any file | **Fixed.** The text now quotes handover row 5 (line 99) and REH1g's first text at b5ab43ef6 (lines 625-630) word for word, with where to find them. The round-1 quote "a file the real routine itself archived ... served once the replay clock nears its row's commit" joined two sentences with "..."; each is now quoted whole |
+| 573 m1 = 575 m1: H1 conditional for FII/DII | **Fixed:** H1 is unconditional, with the code lines |
+| 575 m2: the wait's clock | **Fixed:** a real `time.sleep`; the replay clock moves with it; nothing is skipped |
+| 575 m3: a repeat request | **Fixed:** H4 says it gets the same copy, and why that differs from `ServedOnce` |
+| 573 m2: the 10-minute window and a day's 404 | **Fixed:** H2 boundary case and the gap row |
+| 573 m3: the answer's headers | **Fixed:** empty headers, so Last-Modified is None |
+| 573 m4: REH1h's tests on the fixed REH1g | **Done:** this branch is merged from REH1g's round-2 head before any code; its tests run there |
+| 575 note: the guard in a criterion | **Fixed:** H6's test includes the guard listing the new class |
+| 573 plant: a row committed exactly at now + 10 min | **Added** to H2's boundaries |
+
+#### Claims, code round 1 (for judges B and E)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1h-archive-serving`, merged with `origin/main` after REH1g
+reached it. Code: `fno/rehearsal/recorded_archive.py` (new, 99 lines); `manifest_rows.py` (the A9 index carries
+`A9Row`: commit time, dataset, day, URL, SHA-256; `archived(url)`); `nse_wiring.py` (the mode's session);
+`guard.py` (the entry names `RecordedArchiveSession`); `recorded_cues.py` (`RecordedAnswer.headers`, empty). No
+NSE source, library, taker, step or composition root outside `fno/rehearsal/` changed.
+
+| Criterion | Code | Tests (`tests/rehearsal/`) | Plant that breaks it |
+|---|---|---|---|
+| H1 | `RecordedArchiveSession.get` | `test_recorded_archive.py`: bhavcopy, participant OI, FII/DII each served at 19:55:20/29/39 from 19:53:30; the real `NseDailyFoSource.fetch_published` gets the bytes with `last_modified` None | wait removed; headers with Last-Modified |
+| H2 | `_pick`, `_is_candidate` | exactly now + 10 min served after a 600 s wait, 1 µs more NOT_RECORDED; commit + 61 s and + 1 h served with no wait; 22 Oct 23:59:59 IST never a candidate, 23 Oct 00:00:00 is; a 404 read at 19:50 served at 19:55:20; a row ahead preferred to one on main (the judges' minor); of two ahead, the earliest; of two on main, the latest | window + 1 s; replay-day bound dropped; latest-at-or-before dropped; earliest replaced by latest |
+| H3 | `get`'s SHA-256 check | missing and changed copies refused naming the path, never remembered as served; a Drive read error is a refused line (self-review 2) | SHA check removed; read error not caught |
+| H4 | `_pick`'s ambiguity check, `served` | `fo_secban.csv` and `fiidiiTradeReact` rows on two days: only the replay day's; one commit time with two SHA-256 refused, with one SHA-256 served; a repeat gets its first copy after a later row; a run-dated list (`EQUITY_L.csv`) only the replayed day's own row (self-review 1) | ambiguity refusal removed; repeat cache dropped; run-day rule dropped |
+| H5 | `NotRecordedSession` (inherited) | no candidate (holiday, warm-up page, no manifest) and every HEAD: today's exact message, no wait, no read; the morning ban-list read (the judges' minor); a path that does not map back to its URL (`corporate-actions-by-symbol`, an unknown dataset) | HEAD answered; `url_for` not checked back |
+| H6 | `nse_wiring.rehearsed_session` | `test_recorded_archive_wiring.py`: the real `build_librarian("participant-oi")` and `build_snapshot_taker("fii-dii-cash-by-session")` under the mode over a recording Drive: the only writes are under `dryrun/r1/`, the real file unchanged, the manifest row in the rehearsal checkout's folder; the guard lists the new class; outside the mode `PacedSession`; the index carries dataset and SHA-256 | old `NotRecordedSession` wired back; index SHA-256 dropped; index keeps the latest row |
+
+**Plants:** 16 planted, 16 caught (run in a separate worktree, each restored with `git checkout --`): the 10 the
+text planned, plus the repeat cache, the run-day rule, the read-error catch, the index's SHA-256 and earliest row, and
+the day bound split from the window.
+
+**Self-review** (an independent review agent on `e8c2f9de4..ae66af835`): no look-ahead found. Three findings, all
+checked and fixed in `e709b472a`:
+1. should-fix: a list filed by the run's day (`SnapshotTaker`: equity list, Nifty 500, symbol changes, lot sizes) has
+   one URL every day, so another day's row reaching main late on the replay day could be served and filed as the
+   replay day's copy. Fixed: for those datasets only the replay day's own row is a candidate (`is_run_dated`). The
+   design's "never arises for store-first" now says dated URLs only.
+2. minor: a Drive read error (no settings, Drive down) escaped as a traceback. Fixed: a refused line naming the path.
+   `RecordedCueSession` (REH1c) has the same pattern; not changed here, as it is outside REH1h.
+3. minor: the by-session test did not check the served copy (at commit + 61 s REH1g already shows the file, so the
+   taker says "already archived"). Fixed: it checks the session's bytes and the exact "already" line.
+
+**Output sample** (the committed code through the real composition, a recording Drive and a local record; no
+network; run id as printed):
+
+```
+replay clock 2026-10-09T19:53:30+05:30
+nse/derivatives/participant-oi 2026-10-09 to 2026-10-09: 1 sessions, 0 already there and verified, 1 uploaded, 0 with a sourced exception
+result: complete
+NSE archive: nse/derivatives/fo-bhavcopy/2026/10/BhavCopy_NSE_FO_0_0_0_20261009_F_0000.csv.zip: rehearsal:NOT_RECORDED https://nsearchives.nseindia.com/content/fo/BhavCopy_NSE_FO_0_0_0_20261009_F_0000.csv.zip: not in the record, and a rehearsal never fetches (not sent)
+served at 2026-10-09T19:55:29+05:30; Drive writes: ['dryrun/20261024T120000Z-abc123/raw/nse/derivatives/participant-oi/2026/10/fao_participant_oi_09102026.csv']
+replay clock 2026-10-13T19:56:40+05:30
+nse/flows/fii-dii-cash-by-session/2026/10/13/fii-dii-cash.json: already archived for this day
+```
+
+**Stated limits.** The "already archived" line where the day said "archived" is the gap list's accepted difference.
+A rehearsal's record checkout must be a full clone: in a shallow one `git blame` dates every row to one commit
+(`checkout.py` unshallows the record; a sample script in a shallow clone shows false "ambiguous" refusals for
+`fiidiiTradeReact`). The DRY2 rerun itself is the orchestrator's.
+
+#### Claims, code round 2 (judges 582 E: FAIL, 583 B: PASS with minors; every item answered)
+
+| Finding | What changed | Test | Plant result |
+|---|---|---|---|
+| 582 SF1 = 583 m1 (rule 4): dropping `source not in COVERED_SESSION` from `is_run_dated` failed no test | No code change: the rule was right, untested. Two tests from the record's own times | `test_a_by_session_copy_of_the_session_before_committed_on_the_replay_day_is_served` (22 Oct 19:40 read, the 21 Oct session's row committed 22 Oct 01:07:09: served, no wait); `test_an_evening_ban_list_for_the_next_session_is_served` (21 Oct 21:00 read, the 22 Oct list committed 21 Oct 20:00:23: served) | With the exception removed (`return issubclass(source, SnapshotSource)`), exactly these two fail: "2 failed, 137 passed" on `tests/rehearsal`; restored with `git checkout --` |
+| 582 m1 = 583 m2: H5's morning ban-list line was false for 23 Oct | H5 now says NOT_RECORDED only when the list reached main the evening before, naming both record cases (22 Oct: row on 21 Oct 20:00:23; 23 Oct: row at 00:04:12, served) | `test_a_morning_ban_list_read_is_not_recorded_only_when_its_list_reached_main_the_evening_before` replaces the old test, whose premise ("taken on the evening of 22 Oct") described the wrong day: both cases, at 08:40 | Dropping the replay-day bound still fails `test_a_row_committed_on_the_day_before_is_never_a_candidate` and the 22 Oct half of this test |
+
+Gates on the tree merged with `origin/main`: see the push message to the orchestrator (head SHA there).

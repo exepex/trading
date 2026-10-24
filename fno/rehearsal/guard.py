@@ -30,8 +30,8 @@ def builders() -> dict[str, tuple[Callable[[], object], tuple[type, ...]]]:
     from ..intraday.clock_wiring import build_clock_check
     from ..storage.raw_source import NseDailyFoSource
     from ..storage.wiring import build_nse_source, build_owner_drive
-    from .nse_wiring import NotRecordedSession
     from .preopen_wiring import RehearsalClockCheck
+    from .recorded_archive import RecordedArchiveSession
     from .recorded_quotes import RecordedRecorder
 
     return {
@@ -40,7 +40,7 @@ def builders() -> dict[str, tuple[Callable[[], object], tuple[type, ...]]]:
         "the card's poster": (build_card_poster, (LabelledCardPoster,)),
         "the lab's poster": (build_forecast_poster, (LabelledReportPoster,)),
         "the 3 pm recorder": (lambda: build_quote_recorder(load_app_config()), (RecordedRecorder,)),  # REH1b
-        "NSE's archive session": (lambda: build_nse_source(NseDailyFoSource).session, (NotRecordedSession,)),
+        "NSE's archive session": (lambda: build_nse_source(NseDailyFoSource).session, (RecordedArchiveSession,)),
         "A16's clock check": (build_clock_check, (RehearsalClockCheck,)),  # REH1c
     }
 

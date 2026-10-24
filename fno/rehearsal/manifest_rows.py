@@ -9,7 +9,8 @@ Two row shapes, each matched by its own writer's rule:
   whole (the revision logs and the filings lists also have a `path` column, naming a file someone else archived:
   never read);
 - A9's `date,url,...` (`ManifestFolder`): a Drive path is its dataset's (day, URL) as the dataset's source names it
-  (`day_for_path`, `url_for`: `Fingerprint.of`'s rule), so the same URL fetched on two days is two files.
+  (`day_for_path`, `url_for`: `Fingerprint.of`'s rule), so the same URL fetched on two days is two files. Each row
+  keeps its dataset and SHA-256 too (`A9Row`), so REH1h's recorded archive can serve the copy a URL's row names.
 
 The rows are read once per record checkout and process (`git blame` on about 55 files takes a few seconds)."""
 
@@ -18,6 +19,7 @@ from __future__ import annotations
 import csv
 import io
 import subprocess
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from functools import lru_cache
 from pathlib import Path
@@ -27,6 +29,17 @@ from ..storage.source_lists import RAW_SOURCES, dataset_name
 MANIFESTS = Path("research/data/manifests")
 RAW_AREA = "raw/"  # the area the manifests describe (`storage.wiring.RAW_AREA`)
 RECORD_MAIN = "origin/main"  # the record checkout's view of main (`checkout.RECORD_MAIN`)
+
+
+@dataclass(frozen=True, order=True)
+class A9Row:
+    """One A9 manifest row as main first held it; ordered by its commit time first."""
+
+    committed: datetime
+    dataset: str  # the manifest's name (`dataset_name`)
+    day: date
+    url: str
+    sha256: str
 
 
 class ManifestRows:
@@ -40,7 +53,15 @@ class ManifestRows:
         inside = path.removeprefix(RAW_AREA)
         paths, files = _index(self.record)
         found = paths.get(inside)
-        return found if found is not None else files.get(_a9_key(inside))
+        if found is not None:
+            return found
+        row = files.get(_a9_key(inside))
+        return None if row is None else row.committed
+
+    def archived(self, url: str) -> list[A9Row]:
+        """Every A9 row on the record's main for this URL (any dataset, any day), earliest commit first."""
+        _, files = _index(self.record)
+        return sorted(row for row in files.values() if row.url == url)
 
 
 def _a9_key(path: str) -> tuple[str, date, str] | None:
@@ -55,13 +76,13 @@ def _a9_key(path: str) -> tuple[str, date, str] | None:
 
 
 @lru_cache(maxsize=4)
-def _index(record: Path) -> tuple[dict[str, datetime], dict[tuple[str, date, str], datetime]]:
+def _index(record: Path) -> tuple[dict[str, datetime], dict[tuple[str, date, str], A9Row]]:
     """Only the rows a file's own writer committed: its snapshot log's `path` rows (the files directly in each log
     folder) and its A9 dataset's `date,url` rows (one manifest per `RAW_SOURCES` entry). A revision log's or a
     filings list's `path` names a file another writer archived, so it never dates that file (judges 572 and 574)."""
     folder = record / MANIFESTS
     paths: dict[str, datetime] = {}
-    files: dict[tuple[str, date, str], datetime] = {}
+    files: dict[tuple[str, date, str], A9Row] = {}
     for manifest in sorted(m for log in _path_logs() for m in (folder / log).glob("*.csv")):
         for row, committed in _rows(record, manifest):
             if row.get("path"):
@@ -69,7 +90,8 @@ def _index(record: Path) -> tuple[dict[str, datetime], dict[tuple[str, date, str
     for name in sorted({dataset_name(source) for source in RAW_SOURCES}):
         for row, committed in _rows(record, folder / f"{name}.csv"):
             if row.get("url") and row.get("date"):
-                _keep(files, (name, date.fromisoformat(row["date"]), row["url"]), committed)
+                day = date.fromisoformat(row["date"])
+                _keep(files, (name, day, row["url"]), A9Row(committed, name, day, row["url"], row.get("sha256", "")))
     return paths, files
 
 
@@ -108,6 +130,7 @@ def _blamed(porcelain: str) -> list[tuple[datetime, str]]:
     return found
 
 
-def _keep(index: dict, key, committed: datetime) -> None:
-    if key not in index or committed < index[key]:
-        index[key] = committed
+def _keep(index: dict, key, found) -> None:
+    """The earliest commit's entry (a commit time, or an `A9Row`, which orders by its commit time first)."""
+    if key not in index or found < index[key]:
+        index[key] = found
