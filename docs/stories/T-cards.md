@@ -662,3 +662,123 @@ run while the machine's load average was about 20 from other sessions' suites. R
 **Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety-b`) · **Size:** S · **Status:** text PASS (judge 567); code
 merged onto R2's round 2 at `2c80be430`, to judge I (session_01MvZneCLZqBuiGyNxawdVee); merges in one batch with
 R2's -b head
+
+---
+
+## T1f. The card in a rehearsal: its clock checks are not live, and nothing after the post stops its records
+
+**Repository:** trading · **Asked by:** the orchestrator, 24 Oct 2026 (its 23 Oct and 22 Oct rehearsals) · **Lane:** 1
+(judge I: the card's Slack delivery and its records)
+
+**Description:** As the owner, I want a rehearsal's card step to finish as the real one does, and a posted card to
+always leave its Drive record and delivery metadata. Then a rehearsal proves the card, and a posted card is never
+"no card on record".
+
+**What happened (strong evidence: reproduced 24 Oct at `main`, nothing posted to Slack):**
+- The orchestrator's rehearsal of 23 Oct (`daily run --rehearse --day 2026-10-23`, run `20261024T133643Z-76a4f5`)
+  posted its labelled card to #fno-desk. Then the card step failed with exit 1. Its alert was only "step card failed:
+  research/forecasts/scores/2026-10-22.json 6241c90b...; the run goes on", the last line of the card's "Records
+  used" list.
+- **Cause.** A rehearsing process installs REH1's HTTP guard (`fno/rehearsal/http_guard.py`). It refuses every host
+  but Google's Drive API and Slack's posting calls. The card's issuer asks GitHub for the time after the post
+  (`CardIssuer.issue` -> `check_server` -> `HttpDateClock.now`, a HEAD to `api.github.com`). The guard raises
+  `RehearsalCallRefused`, a `RuntimeError`. `HttpDateClock.now` catches only `requests.RequestException`, and
+  `check_server` only `ServerTimeUnknown`, so the error leaves `issue()`.
+  - At that point the card is already posted. The Drive record is never saved and the delivery metadata is never
+    written.
+  - The CLI exits through the traceback (stderr), so the result lines are never printed.
+- **Reproduced:**
+  - `check_server` with the guard installed raises "RehearsalCallRefused - rehearsal: no live call (HEAD
+    api.github.com/repos/exepex/trading)".
+  - `CardIssuer.issue` with a fake poster that reports "sent": 1 post, Drive saved nothing, no delivery file, and
+    `issue` raised `RehearsalCallRefused`.
+  - The card text's last line was a `research/forecasts/scores/<d>.json <sha>` line, as in the alert.
+- **Why the alert shows that line.** O1's `outcome` (`fno/daily/steps.py`) takes a failed command's reason from its
+  last printed line, `lines[-1]`. The traceback went to stderr, which is kept only in the private log. So the reason
+  was the card text's last line. This is O1's code (Out).
+- **Live days.** The guard is installed only in a rehearsal (`fno/rehearsal/process.py`, when `FNO_REHEARSAL` is
+  set), so this exact failure cannot happen on a live day. It is not "fails on its first live day". The class of
+  failure is live, though: any error after the post that is not caught leaves a posted card with no record. T1's own
+  design says each step after the post "is a printed line and a stored fact, never a stop" (`issue.py` docstring),
+  and only the Drive save and an `OSError` on the metadata write keep that promise today.
+- **A second rehearsal effect.** The rehearsal's clock is the replay clock (the replayed day), while Slack's `ts` is
+  real. So the Slack skew check would always store a WARNING in a rehearsal. REH1c says the same for A16's check and
+  replaced it with "rehearsal: replay clock, not checked against GitHub's and Slack's servers"
+  (`fno/rehearsal/preopen_wiring.py`). The card was never given that hook.
+
+**Scope.** In:
+- **A rehearsal hook for the card's clocks (REH1c's pattern).** In a rehearsal, the issuer's clock checks are one
+  unchecked line per server: "<server>: not checked (rehearsal: replay clock, not checked against GitHub's and
+  Slack's servers)". REH1c's `NOT_CHECKED` text is reused, never copied. No GitHub call is made, and no Slack skew
+  is computed. A real run is unchanged.
+  - The hook is one function beside `rehearsed_card_poster` in `fno/rehearsal/card_label.py`, chosen in
+    `fno/cards/wiring.py`. That file is in REH1's package, so this is agreed with REH1's owner before code.
+- **Nothing after the post stops the records.** In `CardIssuer.issue`, each step after the post is guarded: the
+  clock checks, building the facts, the Drive save (already guarded) and the metadata write (today `OSError` only).
+  - A step that raises becomes its own printed and stored line, by error type only (T1's rule: no message reaches
+    a log).
+  - A clock check that raises anything becomes `unchecked(<server>, "<Type>")`.
+  - A metadata write that raises anything prints T1's existing "delivery metadata NOT written (<Type>); commit it by
+    hand" with the metadata.
+  - The exit code stays T1's: 0 only when sent and saved.
+- **The CLI prints its result lines even when the issuer fails.** Today an unexpected raise after `out(text)` loses
+  every result line. With the guard above, `issue()` returns on every path. A test plants a raising clock and a
+  raising metadata store and checks that the last printed line is the delivery line, never a card line.
+
+Out, with reasons:
+- **O1's alert reason for a crashed command** (`fno/daily/steps.py` `outcome`: `lines[-1]` even when the command
+  died with a traceback). That is O1's code, so it goes to O1's owner as a proposal: on a nonzero exit with stderr,
+  the alert carries the last stderr line (the exception's type and message), and the committed log keeps only its
+  code (O1-status-only). T1f makes the card's own failures print a result line, so the card no longer depends on
+  it.
+- **The witness in a rehearsal:** already REH1b's (`rehearsed_receipts`); unchanged.
+- **A16's and A22's clock checks:** already REH1c's; unchanged.
+
+**Acceptance criteria:**
+1. In a rehearsal (`FNO_REHEARSAL` set), `card daily --post` makes no call to GitHub. Its delivery metadata stores one
+   unchecked entry per server ("Slack" and "GitHub"), each with the rehearsal line and `checked: false`, and no
+   WARNING. A real run is unchanged: the same servers are asked, and T1 criterion 7 holds.
+2. In a rehearsal, after a sent post, the Drive record is saved (the dryrun store) and the delivery metadata is
+   written. The step's exit code follows T1: 0 when sent and saved.
+3. A clock check that raises any error (not only `requests`' errors) is stored as `unchecked(<server>, "<Type>")`.
+   The issuer goes on to the Drive save and the metadata write.
+4. A metadata write that raises any error prints "delivery metadata NOT written (<Type>); commit it by hand:" with
+   the metadata, and exits 1. A raise building the facts is printed and stored the same way. The card is never
+   posted twice: `issue` posts once, first.
+5. On every path after the post, the CLI's last printed line is one of the issuer's result lines (the delivery line),
+   never a line of the card's text.
+6. With the guard installed and the hook removed, a test fails (the reproduction above, kept as a test).
+
+**Test plan** (`tests/cards/test_rehearsal_issue.py`, new):
+1. The reproduction: guard installed, the real `HttpDateClock` for GitHub, a fake sent poster.
+   - With the hook: no GitHub call (the guard would raise), metadata written, Drive saved.
+   - Without the hook: `issue` still returns, GitHub is unchecked with "RehearsalCallRefused", and the metadata is
+     written (criterion 3).
+2. A raising clock (`OSError`, `ValueError`) is unchecked by type.
+3. A raising metadata store (`TypeError`, `PermissionError`) prints the NOT written line with the metadata, and the
+   exit code is 1.
+4. CLI: `cmd_card_daily` with a raising clock prints the delivery line last.
+5. A real run (no `FNO_REHEARSAL`): the GitHub clock is asked as before (T1's tests unchanged).
+6. Empty and boundary cases: no clocks at all; a poster that did not send (no Slack time, so Slack is unchecked as
+   today); a rehearsal with no Drive settings (`NoCardRecords`), which still writes the metadata.
+
+**Planned plants:**
+- P1: the hook returns the real clocks in a rehearsal (test 1).
+- P2: the issuer's clock guard narrowed back to `ServerTimeUnknown` (tests 1 and 2).
+- P3: the metadata write guarded for `OSError` only (test 3).
+- P4: the CLI prints the result lines only on success (test 4).
+- P5: the hook active in a real run (test 5).
+- P6: the facts built outside the guard (test 3).
+
+**Gap list:**
+
+| Requirement | Where |
+|---|---|
+| The rehearsal's card step finishes (no refused live call) | criteria 1 and 2 |
+| A posted card always leaves its Drive record and metadata | criteria 2, 3 and 4 |
+| The alert names the real problem, not a card line | criterion 5 (card side); O1's side is Out, proposed to O1's owner |
+| No double post | criterion 4 |
+| A real run unchanged | criterion 1, test 5 |
+
+**Depends:** T1, REH1 (REH1c's hook pattern, and REH1's owner's agreement on `card_label.py`) · **Size:** S ·
+**Status:** text, to judge I
