@@ -17,7 +17,15 @@ PACKAGE = Path(__file__).resolve().parents[2] / "fno"
 # app's root, the command list (`rehearse check`), the daily command's `--rehearse` flag, the variable's name and the
 # run log's registry of the rehearsal's message
 ROOT_FILE = re.compile(r"(^|/|_)wiring\.py$")
-ALSO = {"__main__.py", "cli.py", "composition.py", "daily/cli.py", "constants.py", "daily/reason_codes.py"}
+ALSO = {
+    "__main__.py",
+    "cli.py",
+    "composition.py",
+    "daily/cli.py",
+    "constants.py",
+    "constants_operations.py",
+    "daily/reason_codes.py",
+}
 
 
 def rehearsing(monkeypatch, tmp_path, slack=True):
@@ -43,7 +51,8 @@ def test_without_the_mode_every_builder_gives_what_it_gives_today(monkeypatch):
     built = {name: type(build()).__name__ for name, (build, _) in builders().items()}
     assert built == {"the owner's Drive": "NoneType", "the #fno-desk alerts": "SlackChannelAlerts",
                      "the card's poster": "SlackCardPoster", "the lab's poster": "SlackFilesPoster",
-                     "the 3 pm recorder": "QuoteSnapshotRecorder", "NSE's archive session": "PacedSession"}  # fmt: skip
+                     "the 3 pm recorder": "QuoteSnapshotRecorder", "NSE's archive session": "PacedSession",
+                     "A16's clock check": "ClockCheck"}  # fmt: skip
 
 
 def test_each_planted_break_is_caught(monkeypatch, tmp_path):
@@ -51,7 +60,7 @@ def test_each_planted_break_is_caught(monkeypatch, tmp_path):
     services = builders()
     slack = [name for name in services if name != "the owner's Drive"]
     unlabelled = {name: (lambda: object(), services[name][1]) for name in slack}
-    assert len(problems(unlabelled)) == 5  # the three Slack ports, the 3 pm recorder and NSE's session
+    assert len(problems(unlabelled)) == 6  # the three Slack ports, the 3 pm recorder, NSE's session, the clock check
     assert problems({"drive": (lambda: object(), (DryrunDrive, type(None)))}) == [
         "rehearsal guard: drive is object, not its rehearsal form"]  # fmt: skip
     assert problems({}, probes=("https://api.anthropic.com/v1/messages",), is_allowed=lambda method, url: True) == [

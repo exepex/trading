@@ -16,7 +16,7 @@ def test_the_mode_round_trips_through_the_environment_and_names_its_places(tmp_p
     again = rehearsal({ENV_FNO_REHEARSAL: mode.to_env()})
     assert again == mode and rehearsal({}) is None
     assert mode.branch == f"rehearsal/2026-10-23-{mode.run_id}" and mode.drive_root == f"dryrun/{mode.run_id}"
-    assert mode.label.startswith("*DRY RUN, 2026-10-23 replay, not a real trading day*\nNot yet in rehearsal: ")
+    assert mode.label == "*DRY RUN, 2026-10-23 replay, not a real trading day*"  # every routine is in rehearsal
     assert Rehearsal.new(DAY, tmp_path, tmp_path).run_id != mode.run_id
 
 

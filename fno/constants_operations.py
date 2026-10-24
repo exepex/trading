@@ -5,6 +5,8 @@ Change a value here, not where it is used."""
 from __future__ import annotations
 
 __all__ = [
+    "ENV_FNO_REHEARSAL",
+    "ENV_FNO_REHEARSAL_NOT_LIVE",
     "PUBLISH_BRANCH",
     "RUN_LOG_DECISIONS_STEP",
     "RUN_LOG_EXITS_STEP",
@@ -66,6 +68,9 @@ DAILY_RUN_STEPS = (
     "close_read",  # story A4h: today's closes from NSE's index list, 15:40, after the candles
     "close_recheck",  # A4h's second read, 16:00, last (judge 440 add. 1)
 )  # fmt: skip; the quote parts start first (judge 178)
+# Story REH1: set only by a rehearsal, inherited by its children; and the line a not-yet-live report's posts carry
+ENV_FNO_REHEARSAL = "FNO_REHEARSAL"
+ENV_FNO_REHEARSAL_NOT_LIVE = "FNO_REHEARSAL_NOT_LIVE"
 # Every scheduled run publishes to main, whatever branch its checkout is on (a scheduled session runs on its own
 # unpublished session branch: 22 Oct 2026, "couldn't find remote ref claude/...")
 PUBLISH_BRANCH = "main"

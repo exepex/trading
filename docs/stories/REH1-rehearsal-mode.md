@@ -431,3 +431,99 @@ rehearsal form, chosen in the builder that builds it:
   a push of another ref writes no line, and a push of main writes one. Plant: dropping the condition fails the test.
 - **`main` merged in** (REH1a at 2d86b781, O9's read-only index-close fix 8214a5d5). One conflict, in
   `close_read/wiring.py`: `main`'s `build_stored_index_close_files()` is kept with REH1b's recorded close source.
+
+### REH1c: every report, and the other three routines (for its two judges)
+
+Branch `story/reh1c-routines`, stacked on REH1b's c317d9e7.
+
+**1. Every report runs in a rehearsal** (the orchestrator's ruling for the owner, 24 Oct: "all type of data and reports
+... send to slack for review").
+- A daily-run step that is not live on the replayed day in real runs runs in the rehearsal. Each of its posts carries
+  one more line: "not live in real runs yet (live_from unset)", or "not live in real runs on <day> (live from
+  <date>)".
+- It is chosen in the daily run's composition root (`rehearsed_live`, `rehearsed_not_live`, `fno/rehearsal/
+  live_wiring.py`). `config.yaml` and real runs are untouched.
+- The line reaches the step's own process and its children through `FNO_REHEARSAL_NOT_LIVE`, only while the step
+  runs; the label decorators read it.
+- E8's owner-timing fills keep their real date: they change the desk's fills and are not a report.
+- On 23 Oct this makes the card, `margin_check` and `premium_range_scores` run. `margin_check`'s command does not
+  exist yet (DRY1 row a4), so in a rehearsal it fails and says so: an honest result, not hidden.
+- The rehearsal's two variable names move to `fno/constants_operations.py`: one more line put `constants.py` over the
+  350-line limit, and the size test caught it.
+
+**2. The other three routines: `python -m fno rehearse preopen|morning|evening --day D`.**
+- One runner (`fno/rehearsal/rehearse.py`, formerly `daily.py`) rehearses every routine: the checkout, the clock at the
+  routine's start, the guard, the routine's commands, its receipts, and the publish.
+- The routines are data (`routines.py`): their start time (14:05, 08:36, 08:38 and 19:53 IST), their commands in
+  CLAUDE.md's order (A17e's `global-cues preopen` in the background, as CLAUDE.md's step 3 orders it), and the
+  receipts each routine's session commits by hand.
+- `test_routines.py` holds every command's name and every receipt path to its routine's own CLAUDE.md section. The
+  doc wraps its lines, so the match allows any whitespace.
+- One command's failure never stops the next, as in the routines. The receipts are committed through the rehearsal's
+  git (dated by the replay clock) with the record scan's hook, then pushed to the rehearsal's origin.
+
+**3. Their recorded sources**, each chosen in its own builder. Each serves the answer the day saved at or just after
+now, once the replay clock reaches that time, read from the real record:
+- **A22's four parts** (GIFT Nifty, NSE's F&O pre-open list, Groww's NIFTY and BANKNIFTY candles): `RecordedPreopenPart`
+  serves `preopen/raw/<day>/<part>_<HHMMSS>.json`, read by the live part's own reader. It is chosen in
+  `fno/preopen/wiring.py`.
+- **A17e's Yahoo reads:** `RecordedCueSession` serves the copy the day archived, from the record's snapshot logs,
+  checked against each row's SHA-256. It is chosen in the cue jobs' one session builder.
+- **A16's clock check:** a replay clock is not checked against GitHub's and Slack's servers (it would always read as a
+  skew), and the check says so in its warning line. It is chosen in `build_clock_check`.
+- **The morning's and evening's NSE archive reads** and A4h's close reads were already covered by REH1b. The lab's
+  editions go through FL1's own `build_composer`, with REH1a's labelled poster (agreed with FL1's owner).
+- **Lazy Drive.** The recorded sources sign in to Drive at their first read (`record_drive.RecordFiles`), so they are
+  built, and the guard checks them, without Drive. A read with no Drive settings names the missing ones.
+- **The guard** checks the clock check too.
+
+**Tests:**
+- `test_not_live_reports.py` (3): the live dates and the lines, a real run unchanged, and the line present only while
+  its step runs.
+- `test_routines.py` (3): the commands held to CLAUDE.md; the order, the background command and a failure carried on;
+  the receipts committed through the hooks with the routine's paths only.
+- `test_recorded_preopen.py` (3), `test_recorded_cues.py` (2) and `test_routine_wiring.py` (3).
+- `test_rehearsed_day.py` now pins that O2's fixture day under the mode fails only in the steps not live in real runs
+  (the fixture's child commands do not script them), with every Drive write still under `dryrun/`.
+
+**Gates** (on main, 3c7e87ae): 14958 passed, 1 skipped, 16 xfailed. ruff, format, imports, records and numbers are all clean.
+
+**Not in REH1c (said plainly):**
+- No routine has been rehearsed against the real record yet. That is REH1d, after the judges and O9's read-only fix,
+  on the orchestrator's go.
+- The evening's `data-snapshot fii-dii-cash-by-session` has no recorded form yet. (Corrected in round 2: it is not
+  refused by the HTTP guard. Its session comes from `build_nse_source`, which in a rehearsal is REH1b's
+  `NotRecordedSession`, so it ends `rehearsal:NOT_RECORDED` and the request is never sent.)
+- The paper accounts are read as they are now (the stated limit from REH1a).
+
+### REH1c round 2 (judge 563, and the orchestrator's points)
+
+- **SF1, the pre-open answer is checked against its receipt.** `RecordedPreopenPart` now reads the answer's SHA-256
+  from its receipt and refuses a copy that is missing from Drive or differs from it ("rehearsal: the recorded answer
+  ... is missing from Drive or differs from its receipt"), as the other recorded sources do. Planted break (the check
+  removed): `test_a_copy_that_differs_from_its_receipt_is_refused` fails.
+- **SF2, the routines held to CLAUDE.md both ways.** `test_routines.py` now reads every `python -m fno` command in
+  each routine's own numbered steps and asserts the rehearsed list is exactly that list: a command in the doc and not
+  rehearsed fails, and so does a rehearsed command the doc does not name (`NOT_REHEARSED` is empty). It found two
+  missing commands, now rehearsed: the morning's `records certify closes --since 7 --level certified --commit` and
+  the evening's `records certify closes --level provisional --commit`. Each commits its own `receipts/records/` with
+  `--commit`, as in the routine. Planted break (the evening's `data-snapshot` removed): the test fails.
+- **Notes.** `test_an_answer_more_than_ten_minutes_ahead_is_not_served` pins the upper bound of the serving window.
+  `FNO_REHEARSAL_NOT_LIVE` is set process-wide while a step runs. That is safe only because the daily run's steps run
+  one at a time; a parallel step runner would have to pass it per child. This is said here so it is not lost.
+- **The fii-dii snapshot (the orchestrator).** The claim above is corrected:
+  `test_the_evening_s_fii_dii_snapshot_is_not_recorded_never_a_guard_refusal` builds `FiiDiiCashBySessionSource`
+  through `build_nse_source` under the mode and pins `rehearsal:NOT_RECORDED`, with no request made.
+- **The conflict with main** in `fno/close_read/wiring.py` is resolved by keeping both sides: main's
+  `build_stored_index_close_files` and REH1b's `rehearsed_close_list`.
+
+### REH1c round 2 (judge 564, judge E's part)
+
+- **F1, the not-live wrap pinned at its composition root.** `test_the_daily_run_wraps_every_step_not_live_on_the_
+  replayed_day_with_its_note` builds the real `build_day_runner` with the mode set, then checks that every step not
+  live on the replayed day is a `NotLiveInRealRuns` carrying its note, and only those. The card must be among them,
+  so the test cannot pass on an empty set. Plant (`steps = rehearsed_not_live(...)` replaced by `pass`): it fails.
+- **F2, the receipts commit dated by the replay clock.** `test_a_routine_s_receipts_commit_carries_the_replay_date`
+  rehearses the evening on a real repository and finds its receipts commit on the published rehearsal branch. The
+  commit must be dated within 2 minutes of 19:53 IST on the day. Plant (`commit_receipts`' git with `env=None`, past
+  the shim): it fails.
