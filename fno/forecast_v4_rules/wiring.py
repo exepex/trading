@@ -48,7 +48,7 @@ PACK_METHOD_FILES = (
     "pack_wiring.py", "wiring.py", "pack_capture.py", "pack_adapter.py", "pack_followups.py", "option_history.py",
     "v4_expiry.py", "live_quotes.py", "option_terms.py", "option_probabilities.py", "option_outcomes.py", "implied.py",
     "eod_iv30.py", "implied_backfill.py", "ratio_store.py", "intraday_series.py", "drive_records.py", "constants.py",
-    "series.py", "baselines.py", "records.py", "capture.py", "rules.py", "vix_rule.py",
+    "series.py", "baselines.py", "records.py", "capture.py", "rules.py", "vix_rule.py", "candle_history.py",
 )  # fmt: skip
 LIVE_RECORDS = f"{DATA_AREA}/{LIVE_FOLDER}"  # the pack-derived live rows (part b2)
 LIVE_PATH_PARTS, JSON = 4, ".json"  # <forecaster>/<question>/<YYYY>/<date>.json under LIVE_RECORDS

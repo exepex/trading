@@ -24,6 +24,7 @@ from ..v4_pack.release import ReleasedPacks
 from ..v4_pack.wiring import build_released_packs
 from . import series
 from .baselines import Ewma
+from .candle_history import candle_sessions
 from .implied import ImpliedBaselines, IvPoint, PremiumRatio, horizon_sums
 from .intraday_series import RATIO_CLOSE_PROXY, RATIO_INTRADAY, backfill_window_points, intraday_horizon_rv
 from .option_history import OUTCOMES_FOLDER, OptionHistory, outcome_from_bytes, terms_from_bytes
@@ -72,8 +73,7 @@ def live_rv() -> dict[date, float | None]:
 
 def candle_rv() -> dict[date, float | None]:
     """A16b's back-filled candle-close session `RV_s` (None: a void session); never a forecast input (W8)."""
-    return {date.fromisoformat(r["session"]): float(r["rv_session"]) if r["status"] == series.A16_OK else None
-            for r in CandleRvTable(INTRADAY_FOLDER).rows()}  # fmt: skip
+    return {s.day: s.rv_session for s in candle_sessions(CandleRvTable(INTRADAY_FOLDER).rows())}
 
 
 def intraday_rv() -> tuple[dict[date, float | None], set[date]]:

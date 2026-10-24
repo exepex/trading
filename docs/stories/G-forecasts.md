@@ -641,10 +641,11 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
 - Refit on the first scored session of each month (as HAR); every day of that month uses that refit. **The ratio is
   computed once, on the refit day, from the inputs present then, and stored write-once** (`v4/ratios/<measure>/<question>/<YYYY-MM>.json`, `<measure>` = `close_proxy` or `intraday`, so an
   option-B ratio never collides with an option-A one (judge 578.1 n2):
-  the ratio, the window's first and last day, its count, and the inputs' SHA-256); every later day of the month reads
-  the stored ratio and never recomputes it with files archived after the refit day (judge 578 m3). A refit day with no
-  stored ratio (the capture did not run) is computed at the next run only from inputs whose receipts GitHub received
-  before that refit day; none: the month's premium-adjusted rows are missing, counted.
+  the ratio, the window's first and last day, its count, its `backfill_window` points (W8) and the inputs' SHA-256);
+  every later day of the month reads the stored ratio and never recomputes it with files archived after the refit day
+  (judge 578 m3). A refit day with no stored ratio (the capture did not run, or the day was `system_late`) is never
+  computed later: the month's premium-adjusted rows are `not_eligible`, counted (the stricter rule; the receipt-time
+  filter this text first promised is not built, step 7's review item 3).
 - Value for `d`: raw implied of `d` times the refit's ratio; missing when either is missing.
 - **V2 and V3** use the close proxy (protocol 1.1). **V1 and part f's intraday series: both yardsticks (W3, owner
   24 Oct 2026, DESK_DECISIONS c63eb7e0b: "I want both intraday and daily closes"), each its own labelled row, never
@@ -1304,8 +1305,9 @@ they found and what was fixed or why not.
   missed refit day leaves the month with no ratio; the story's text promises a later computation "only from inputs
   whose receipts GitHub received before that refit day". The code keeps the stricter rule (no late ratio; the month's
   premium-adjusted rows `not_eligible`, counted) and says so in `ratio_store.py`. Building the receipt-time filter
-  needs each input's commit time; I propose it as the next step, before 2 Nov 2026 (the first refit after Monday's
-  go-live), or the text changes to the stricter rule: judge K's call. (4, accepted, fixed) V5's base rate was built
+  needs each input's commit time. The orchestrator favoured the stricter rule, so the text now says it (criterion 3's
+  paragraph, rule b2's "Ratio" bullet): a missed refit day is never computed later; judge K's call. The cost: one
+  missed first-session capture makes that month's B and A rows `not_eligible` (about 21 sessions). (4, accepted, fixed) V5's base rate was built
   before the day's pending outcomes were settled: they are now resolved first and added the same run, so an outcome
   first seen on the evening of `e` counts for `e+1` (`resolved_on < d` unchanged). (5, accepted, fixed) A was scored
   as a forecaster in V2's and V3's close-proxy blocks: removed. (6, rejected, with reason) the refit-day ratio is
@@ -1321,6 +1323,15 @@ they found and what was fixed or why not.
   forecasts on the close-proxy scale, so against V1's intraday target it sits about 2.3 times low; its ratio never
   absorbs that, being fitted on the close proxy. That is the gap yardstick A (W8) exists for, and why B alone would
   make any V1 rule look good.
+- **Follow-up commit (after main's merge, judge 591.2 PASS of the text):** W8's one reader of A16b's candle history
+  is its own module, `fno/forecast_v4_rules/candle_history.py` (`candle_sessions(rows) -> list[CandleSession]`: day,
+  status, `rv_session` (None when void, decided by the status), method, provenance, `first_seen_at`); it reads only
+  A16b's pinned method (`CandleCloseRv15m.method`, `rv-candle-15m-v1`) and `backfilled` provenance (the step-7 reader
+  did not filter the method: fixed). G14 imports it and only splices (the orchestrator's freeze dependency). On the
+  committed table it reads all 1,685 rows (2020-2026), 19 void. Tests: `test_v4rules_candle_history.py` (3); plants
+  (4, all caught; the void-by-value plant first survived, the test now gives a void row a value). The
+  `no_v4_drive_records` fixture (main ac1a81d19) now patches `build_drive_records` and answers `paths()`. Item (3) is
+  now the stricter rule in the text (above). `candle_history.py` joins `PACK_METHOD_FILES`.
 - **Not done here:** the CLAUDE.md routine line for `forecasts_v4_pack` (when it goes live); the W1-W8 wordings into
   `PROTOCOL_v4.md` (a protocol edit, its own change); the real Drive back-fill run (after merge); the orchestrator's
   `no_v4_drive_records` fixture (adopted once on `main`).
@@ -1751,6 +1762,19 @@ forecast-capture.yml's existing slot; the v2 AI steps leave at the freeze (owner
    plainly:** the second needs the owner's 3 pm routine to commit at 14:30, which today starts at 14:33 and records
    at 14:55; moving it earlier is the owner's schedule call. Without it, that proof comes after the freeze and G11
    counts from the first proven day.
+
+#### Test-only note: the v4 no-implied-vol tests and the Drive-stored records (lane 2, 24 Oct 2026)
+
+From Mon 26 Oct (about 14:45 IST) the v4 pack is live and its first day receipt lands under `receipts/data/v4/days/`.
+Then the real `build_scoring()` reads the Drive-stored day records through G10's seam
+(`fno/forecast_scoring/v4/wiring.py`, `_drive_records`), and the two tests that build it
+(`tests/forecast_v4/test_iv_never_used.py`, `tests/forecast_scoring_v4/test_v4_needs_no_implied_vol.py`) would fail
+on main: tests have no Drive settings. Their point is "no implied vol", not the records, so both use one fixture,
+`no_v4_drive_records` in `tests/forecast_scoring_v4/conftest.py`: the seam returns records whose `files()` is `{}`, as
+before the first receipt. One place only; G7b renames the seam to `build_drive_records` and updates this fixture.
+Proof (a scratch worktree, a planted receipt `receipts/data/v4/days/2026/2026-10-26.json.sha256`, removed after):
+main's two tests "2 failed" with "RuntimeError: set FNO_GDRIVE_FOLDER_ID, ... to use the Drive data store"; with the
+fixture, "4 passed". Built by session_01GAACYjcfHWkC3hp33iiMXV for the orchestrator.
 
 ### G10 completion: protocol v4's daily clock really runs (story text, 24 Oct 2026)
 
@@ -2222,6 +2246,20 @@ stronger).
 | m3 a row from another session | stated plainly in `fno/v4_pack/commitments.py` and `fno/forecast_scoring/v4/deadlines.py`: the check reads this run's checkout at 15:12 or later; every G7, M1 and G7b live record is committed from that checkout today; a forecaster committing from another session must be in it by then or its row counts late. G7b and G11 are told; reading `origin/main` instead is a later change | read | |
 | NIFTY-glob plant caught only by literals | a test with git alone: NIFTY's part's own pathspec stages a `quote-snapshots/` sidecar and never a `quote-snapshots-v4/` one | `tests/daily/test_v4_steps.py` | glob widened in code |
 | Round-2 self-review (an independent agent) | (a) the early limit above; (b) `found` is set before the chain calls, so a later chain failing never hands the extras empty expiries (it wrote "no monthly after the day", which the overlap watch read as no failure); (c) the extras' sidecar keys come only from an attempt that asked them (an attempt with no chain carried the previous attempt's `future_quote` and `v4_failures`) | `tests/quotes/test_v4_extras.py`, `tests/daily/test_v4_part.py` | `found` after the loop; an earlier attempt's keys; the window's wait ignored |
+
+**Live date (owner, 24 Oct 2026, DESK_DECISIONS: "v4 pack live Monday - Option A"):** `daily.live_from.v4_pack:
+"2026-10-26"` (branch `story/g10-live-date`). On Monday 26 Oct the daily run (14:05) will: open the `v4` part with the
+3 pm parts and start it at 14:27; record 14:30:00-14:40:00 and commit its sidecars and marker alone; run `v4_release`
+once that part has ended (the wait announced, at most 14:45): `system_late` for 22 and 23 Oct (the catch-up from
+`daily.live_from.forecasts_v4`, decision D2, no record exists for them) and Monday's own record, `A` or `system_late`
+(D3: a failed step and the card's warning); push the receipts (no workflow starts: `v4-fire.yml` is G11's and not on
+`main`); from 15:12, before the candles, run `v4_deadline`: verdicts for 22, 23 and 26 Oct and the 14:30 overlap line
+if either job failed. **Live with it:** nothing else. G7b's `forecasts_v4_pack` and G11's AI books are not on `main`
+(G11's own key stays unset), no `FREEZE_v4.md` exists (nothing counts), G8's three readers already read the labels from
+Drive (`main` since the G10 merge). **The first live day's evidence (criterion 10)** goes to `conversations/2026-10-26.md`
+and the orchestrator that evening: the `v4` sidecar (start, finish, recorded of expected, failures, `v4_expiry`,
+`future_quote`, clock status) beside A16's 14:30 row (status, recorded of expected, failures); the release line and
+label; the deadline line; the overlap line, if any; the run's last line; and any alert posted.
 
 ---
 

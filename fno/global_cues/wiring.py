@@ -31,6 +31,7 @@ from .cue_calendars import CueCalendar, NseSessionCalendar, NyseCalendar, Weekda
 from .europe_sources import CboeVixSource, StoxxSource
 from .index_reader import IndexPair, IndexReader
 from .job import GlobalCueJob
+from .market_closures import load_closures
 from .markets import (
     CBOE_VIX,
     EURO_STOXX,
@@ -47,6 +48,7 @@ from .markets import (
 )
 from .other_sources import EiaBrentSource, FbilUsdInrSource, RbiUsdInrSource
 from .preopen import PreopenReader
+from .preopen_calendar import ClosureCalendar
 from .reading import CueReader, CueReading
 from .snapshot_log import SnapshotLog
 from .source import GlobalCueSource
@@ -67,6 +69,7 @@ PRIVATE_FOLDER = "global-cues"  # in Drive's derived area: <cue>/rows, <cue>/rev
 YAHOO_SUFFIX = "_yahoo"
 PREOPEN_INDEXES = ("nikkei225", "kospi", "asx200", "taiex", "hang_seng", "sse_composite", "sti")  # open by 08:50 IST
 PREOPEN_TABLE = "preopen"
+TWSE_CLOSURES_FILE = storage.CALENDAR_FOLDER / "twse_closures.csv"  # A17f: TWSE's published and unscheduled closures
 PREOPEN_COMMIT = "A17e: {what} (receipts)"
 BEHIND_NAMES = (CboeSp500Source.cue, RbiUsdInrSource.cue, "nasdaq100", "vix_us")  # NYSE or NSE session calendars
 # A17e: (index, Yahoo symbol, market, max age in days, the official cue or None); max age covers each market's longest
@@ -187,9 +190,11 @@ def build_preopen(env=os.environ) -> tuple[PreopenReader, list[tuple[str, YahooC
         return (known.reading.row["value"], known.cue or "") if known.reading.row else ("", "")
 
     rows = _private_log(env, PREOPEN_TABLE, "rows")
-    reader = PreopenReader(
-        _session(), build_raw_area(env), SnapshotLog(SNAPSHOT_LOG_FOLDER), rows, previous_close, now_ist
-    )
+    calendars = {"taiex": ClosureCalendar("TWSE", lambda: load_closures(TWSE_CLOSURES_FILE, TWSE_CLOSURES_FILE.name))}
+    settled = frozenset(i for i in PREOPEN_INDEXES if INDEX_PAIRS[i].official)  # A17f rule 3: an official table
+    session, raw = _session(), build_raw_area(env)
+    log = SnapshotLog(SNAPSHOT_LOG_FOLDER)
+    reader = PreopenReader(session, raw, log, rows, previous_close, now_ist, calendars, settled)
     return reader, [(index, yahoo[index + YAHOO_SUFFIX]) for index in PREOPEN_INDEXES]
 
 

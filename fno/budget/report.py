@@ -9,11 +9,15 @@ from pathlib import Path
 
 from .allocation import ALLOCATED_LABEL, DEVELOPMENT_LABEL, FORMULA, UNMEASURED, Allocation
 from .cap import BASIS_MEASURED, MEASURED_LIMIT, CapReading, shown_pct
-from .constants import ITEM_CLAUDE_PLAN, PURPOSE_DEVELOPMENT, USAGE_PURPOSES
+from .constants import ITEM_CLAUDE_PLAN, NO_SEAL_UPPER_BOUND, PURPOSE_DEVELOPMENT, USAGE_PURPOSES
 from .items import ItemLine
 from .stop_rule_tracker import ZERO_SHADOWS, ReviewDate, stop_test_status
 
 NOT_RECORDED = "not recorded"
+# Story BG1-w (owner 24 Oct 2026, "Waiting minutes - Option A"): the AI books' seal-to-reveal wait, shown apart
+WAIT_LINE = "  AI books' reveal wait (not capped): {minutes:,.2f} minutes over {runs} run(s)"
+NO_WAIT = "  AI books' reveal wait (not capped): none recorded"
+UPPER_BOUNDS = "    {runs} run(s) never sealed, counted start to end (no_seal_upper_bound, an upper bound)"
 
 
 @dataclass(frozen=True)
@@ -42,7 +46,7 @@ def meter_lines(meter: MonthMeter) -> list[str]:
             lines += _allocation_lines(meter.allocation)
             lines += [f"    WARNING: {w}" for w in meter.allocation_warnings if not meter.allocation.flagged]
     lines += [f"  unknown item (not in 8.1): {name}" for name in meter.unknown_items]
-    lines += _usage_lines(meter.usage_rows) + _cap_lines(meter)
+    lines += _usage_lines(meter.usage_rows) + _wait_lines(meter.usage_rows) + _cap_lines(meter)
     lines += [f"  NEEDS OWNER: {line}" for line in meter.needs_owner_yes]
     return lines
 
@@ -73,6 +77,13 @@ def _usage_lines(rows: list[dict]) -> list[str]:
         sessions = len({r["session_id"] for r in mine})
         lines.append(f"  measured {purpose}: {minutes:,.2f} minutes, {sessions} session(s), output tokens {out}")
     return lines
+
+
+def _wait_lines(rows: list[dict]) -> list[str]:
+    waits = [float(r["wait_minutes"]) for r in rows if r["wait_minutes"] != ""]
+    lines = [WAIT_LINE.format(minutes=sum(waits), runs=len(waits)) if waits else NO_WAIT]
+    bounds = sum(1 for r in rows if NO_SEAL_UPPER_BOUND in r["source"])  # the rule's name, whatever the wording
+    return lines + ([UPPER_BOUNDS.format(runs=bounds)] if bounds else [])
 
 
 def _cap_lines(meter: MonthMeter) -> list[str]:

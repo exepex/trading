@@ -23,7 +23,8 @@ def test_the_order_puts_the_release_after_the_forecasts_and_before_the_desk_and_
 def test_the_built_steps_wait_for_their_times_and_commit_only_their_receipts(monkeypatch):
     steps = _built_steps(monkeypatch)
     release, deadline = steps["v4_release"], steps["v4_deadline"]
-    assert isinstance(release, Alerted) and isinstance(release.step, LiveFrom) and release.step.live_from is None
+    assert isinstance(release, Alerted) and isinstance(release.step, LiveFrom)
+    assert release.step.live_from == deadline.step.live_from == date(2026, 10, 26)  # owner, 24 Oct: live Monday
     after = release.step.step
     assert isinstance(after, AfterPart) and (after.name, after.by) == ("v4", time(14, 45))
     assert isinstance(after.step, CommandStep) and after.step.arguments(date(2026, 10, 26)) == RELEASE
