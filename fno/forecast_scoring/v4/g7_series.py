@@ -6,10 +6,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
-from ...constants import V7_VIX_UP_5S
+from ...constants import V4_RV_BELOW_WEEKLY_IV, V7_VIX_UP_5S
 from ...forecast_v4.terms import HORIZON_SESSIONS
 from ...forecast_v4_rules import series
-from .outcomes import OutcomeSeries, VixCloseMissing
+from ...forecast_v4_rules.option_history import OptionHistory
+from .outcomes import OptionOutcomeSource, OutcomeSeries, VixCloseMissing
 
 
 class G7Series(OutcomeSeries):
@@ -40,3 +41,14 @@ class G7Series(OutcomeSeries):
 
     def intraday_rv(self) -> dict[date, float | None]:
         return {s.day: s.value for s in series.live_intraday_rv(self.a16_rows())}
+
+
+class StoredOptionOutcomes(OptionOutcomeSource):
+    """V4's and V5's outcomes from G7b's stored terms and outcome records (`forecast_v4_rules.option_history`)."""
+
+    def __init__(self, history: OptionHistory):
+        self.history = history
+
+    def outcomes(self, question: str) -> dict[date, bool | None]:
+        found = self.history.v4() if question == V4_RV_BELOW_WEEKLY_IV else self.history.v5()
+        return {day: outcome.value for day, outcome in found.items()}

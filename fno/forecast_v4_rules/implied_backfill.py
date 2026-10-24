@@ -13,18 +13,13 @@ from datetime import date, timedelta
 from ..constants import V2_RV_5S, V3_RV_20S, V4_BASELINE_PREMIUM_ADJUSTED, V4_BASELINE_RAW_IMPLIED
 from ..forecast_v4.eligibility import PREMIUM_WINDOW_START
 from ..forecast_v4.terms import HORIZON_SESSIONS
+from .drive_records import backfill_path
 from .implied import ImpliedBaselines, IvPoint, PremiumRatio, first_session_of_month, horizon_sums
 from .records import BACKFILL, BASELINE, SLOT_REPORTED, Record, csv_text, record
 from .series import DayValue
 
-BACKFILL_FOLDER = "v4/records/backfill"
 QUESTIONS = (V2_RV_5S, V3_RV_20S)
 FORECASTERS = tuple((f, q) for q in QUESTIONS for f in (V4_BASELINE_RAW_IMPLIED, V4_BASELINE_PREMIUM_ADJUSTED))
-METHOD_PREFIX = 12  # hex characters of the method hash in the Drive path
-
-
-def backfill_path(method_sha256: str, forecaster: str, question: str, last_day: date) -> str:
-    return f"{BACKFILL_FOLDER}/{method_sha256[:METHOD_PREFIX]}/{forecaster}/{question}_to_{last_day.isoformat()}.csv"
 
 
 class ImpliedBackfill:

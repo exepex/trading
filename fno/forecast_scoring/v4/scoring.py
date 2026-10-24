@@ -11,9 +11,18 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
-from ...constants import V4_BASELINE_BASE_RATE, V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE
+from ...constants import (
+    V1_RV_1S,
+    V2_RV_5S,
+    V3_RV_20S,
+    V4_BASELINE_BASE_RATE,
+    V4_BASELINE_PREMIUM_ADJUSTED,
+    V4_COHORT_CLOSE_PROXY,
+    V4_COHORT_LIVE,
+)
 from ...forecast_v4.terms import HORIZON_SESSIONS, POINT_QUESTIONS
-from ...forecast_v4_rules.intraday_series import INTRADAY_SERIES, RATIO_INTRADAY, SERIES_RATIO_MEASURE, question_of
+from ...forecast_v4_rules.constants import V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY
+from ...forecast_v4_rules.intraday_series import INTRADAY_SERIES, question_of
 from .comparison import Comparison, compare, paired_rows, seed_word
 from .inputs import ForecastValue, Outcome, V4ForecastSource, V4OutcomeSource
 from .primary import primary_names, primary_values
@@ -23,6 +32,11 @@ from .scores import point_scores, probability_scores
 QUESTIONS = (*HORIZON_SESSIONS, *INTRADAY_SERIES)  # the protocol's order, then part f's reported series
 STATUS_NO_DATA, STATUS_SCORED = "not enough data yet", "scored"
 COHORTS = (V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE)
+# W3 (owner, 24 Oct 2026: "both"): V1 and part f compare their forecasters against both premium-adjusted yardsticks,
+# B (close proxy) and A (intraday), each labelled, beside the primary; V2's and V3's close-proxy blocks keep B only
+YARDSTICKS = (V4_BASELINE_PREMIUM_ADJUSTED, V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY)
+BOTH_YARDSTICKS = frozenset({V1_RV_1S, *INTRADAY_SERIES})
+CLOSE_PROXY_ONLY = frozenset({V2_RV_5S, V3_RV_20S})
 
 
 @dataclass
@@ -64,20 +78,19 @@ class V4Scoring:
                 live: bool) -> Cohort:  # fmt: skip
         asked = question_of(question)
         values = {name: rows for name, all_rows in every.items() if (rows := _in_cohort(all_rows, live))}
-        baseline = _in_cohort(self._started(question, self._baseline(question), outcomes), live)
+        baseline = _in_cohort(self._started(question, primary_values(asked, self.forecasts), outcomes), live)
         base_rate = _in_cohort(self._started(question, self.forecasts.values(asked, V4_BASELINE_BASE_RATE), outcomes),
                                live)  # fmt: skip
         slots = {r.forecaster: slot for (q, slot), r in self.registry.registered().items() if q == question}
         cohort = Cohort({name: _scores(asked, rows, outcomes, base_rate) for name, rows in values.items()})
         for name in (n for n in values if n not in primary_names(asked)):
             cohort.comparisons.append(self._compare(question, name, values[name], baseline, outcomes, slots.get(name)))
+        if question in BOTH_YARDSTICKS:
+            for yardstick in (y for y in YARDSTICKS if y not in primary_names(asked)):  # a primary is compared above
+                for name in (n for n in values if n not in primary_names(asked) | set(YARDSTICKS)):
+                    cohort.comparisons.append(self._compare(question, name, values[name], values.get(yardstick, {}),
+                                                            outcomes, None, yardstick=yardstick))  # fmt: skip
         return cohort
-
-    def _baseline(self, question: str) -> dict[date, ForecastValue]:
-        """The primary baseline's values; a part f series under W3's option A has none yet (every pair missing)."""
-        if question in INTRADAY_SERIES and SERIES_RATIO_MEASURE == RATIO_INTRADAY:
-            return {}
-        return primary_values(question_of(question), self.forecasts)
 
     @staticmethod
     def _started(question: str, values: dict[date, ForecastValue], outcomes: dict[date, Outcome]):
@@ -89,7 +102,8 @@ class V4Scoring:
         return {day: v for day, v in values.items() if day >= start}
 
     def forecasters(self, question: str) -> list[str]:
-        return self.forecasts.forecasters(question_of(question))
+        names = self.forecasts.forecasters(question_of(question))
+        return [n for n in names if question not in CLOSE_PROXY_ONLY or n != V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY]
 
     def member_comparisons(self, counted_after: date | None) -> dict[tuple[str, str], Comparison]:
         """Each registered member: its slot's forecaster against the question's primary baseline. After the freeze
@@ -107,11 +121,14 @@ class V4Scoring:
         return found
 
     @staticmethod
-    def _compare(question, forecaster, values, baseline, outcomes, slot, miss_start=None) -> Comparison:
-        """A part f series key seeds its own number (after 15) and is never a member's comparison."""
+    def _compare(question, forecaster, values, baseline, outcomes, slot, miss_start=None,
+                 yardstick: str | None = None) -> Comparison:  # fmt: skip
+        """A part f series key seeds its own number (after 15) and is never a member's comparison; a comparison
+        against a W3 yardstick (`yardstick`) names it and seeds apart from the primary one."""
         rows, asked = paired_rows(values, baseline, outcomes), question_of(question)
-        return compare(asked, forecaster, " / ".join(sorted(primary_names(asked))), rows, outcomes,
-                       seed_word(question, slot, forecaster), miss_start)  # fmt: skip
+        name = yardstick or " / ".join(sorted(primary_names(asked)))
+        key = question if yardstick is None else f"{question}|{yardstick}"
+        return compare(asked, forecaster, name, rows, outcomes, seed_word(key, slot, forecaster), miss_start)
 
 
 def _counted(values: dict[date, ForecastValue], after: date | None) -> dict[date, ForecastValue]:

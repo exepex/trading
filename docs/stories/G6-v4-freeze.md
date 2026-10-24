@@ -456,6 +456,14 @@ not the final-text commit (criterion 2), and the disclosure's robustness and Dri
   only), `alerts/sender.py`, `pipeline/trigger.py`, `budget/constants.py` and `budget/report.py` (the stop's names and
   meter shape) not deciding; `timing.py` dropped (no longer reached). `fno/forecast/wiring.py`'s reason now says it
   leaves the rate refusal, and the walk marks it stale, once G7b's wiring stops importing it.
+- **G7b on `main` (432071d63), merged for judge 606.3:** `cli.py` keeps both sides (the freeze lines first, then
+  `report_lines(..., diagnostics)`; `report_json(..., diagnostics) | freeze`; the look keeps `freeze=`). G7b's two
+  readers of the configured rate are gone, so `PENDING_G7B` is empty and `rate_readers()` finds none; v1's
+  `fno/forecast/wiring.py` and its `golden.py` are no longer reached and leave the classes (blocker 3 closed). New
+  inputs G7b's code reaches: `research_data/release_times.py` (V5's `first_seen_at` fallback, protocol 1.5) and
+  `global_cues/table.py` (the `backfilled` label W8's reader keeps) recorded; `forecast_lab/wiring.py` (A8's log
+  paths), `research_data/availability.py`, `global_cues/collection.py` and `storage/row_log.py` not deciding. The
+  disclosure takes both Drive folders from `drive_records.py`, the one owner of that format since G7b.
 - **Addendum 606.1 (should-fix: `budget_stop.py`):** already recorded at 9be2bccc4; its lock now names G11 C8's tests
   (`tests/ai/test_v4_budget_stop.py`) and BG1-u's change to how the level is read. The walk stops at its two imports
   (not deciding), so BG1-u's own files are not reached. G10's merged change adds `fno/rehearsal/live_wiring.py`, not
@@ -486,8 +494,8 @@ Criteria 5-8 and 10 are the freeze commit's (the record, the slot and ledger row
 commit); they are built when G7b and G11 are on `main`.
 
 - **Code:** `fno/forecast_scoring/v4/freeze_classes.py` (new: the three classes; on the tree merged with `main` of 24 Oct
-  evening, G11 and G10's rehearsed live dates included: 139 byte-checked files, 62 recorded with their lock, 51 not
-  deciding with a reason);
+  evening, G11, G10's rehearsed live dates and G7b (432071d63) included: 149 byte-checked files, 63 recorded with
+  their lock, 54 not deciding with a reason);
   `freeze_check.py` (`FreezeCheck`, `check`, `unmatched`, `recorded` with G11's own "AI registration" table, `drift`,
   `protocol_problems`, `rate_readers`);
   `freeze_disclosure.py` (new); `cli.py` and `wiring.py` (`build_freeze_check`; the report's first lines; the look

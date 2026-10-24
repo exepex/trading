@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta
 import pytest
 
 from fno.models import IST
-from fno.preopen.parts import PartFailed, PreopenPart
+from fno.preopen.parts import INDEX_LAST_READ_MARGIN, GrowwIndexPreopen, PartFailed, PreopenPart
 from fno.rehearsal.preopen_wiring import NOT_CHECKED, RehearsalClockCheck
 from fno.rehearsal.recorded_preopen import RecordedPreopenPart
 from fno.storage.receipts import Receipt, ReceiptFolder
@@ -85,3 +85,10 @@ def test_an_answer_more_than_ten_minutes_ahead_is_not_served(record):
 def test_a_replay_clock_is_not_checked_and_says_so():
     reading = RehearsalClockCheck().check()
     assert reading.status == "clock_unchecked" and reading.warning() == NOT_CHECKED
+
+
+def test_a_replayed_part_keeps_the_live_parts_read_plan(tmp_path):
+    """A22e: an index part's last read is 15 s before its close live, so the replay's is too."""
+    live = GrowwIndexPreopen("banknifty", source=None)
+    replay = RecordedPreopenPart(live, ReceiptFolder(tmp_path), lambda path: None, lambda: None, lambda s: None)
+    assert (replay.window, replay.last_read_margin) == (live.window, INDEX_LAST_READ_MARGIN)

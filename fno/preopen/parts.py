@@ -8,7 +8,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 import requests
 
@@ -20,6 +20,10 @@ FO_PREOPEN_URL = "https://www.nseindia.com/api/market-data-pre-open?key=FO"
 TIMEOUT_SECONDS = 20
 GIFT_WINDOW = (time(8, 40), time(8, 45))  # opens at, closes at (the last read is one second before it)
 FO_WINDOW, INDEX_WINDOW = (time(9, 8, 30), time(9, 11)), (time(9, 10), time(9, 11))
+LAST_READ_MARGIN = timedelta(seconds=1)  # a part's last read starts this long before its window's close
+# A22e: the two index parts share their due times and Groww answers one paced call at a time (about 1-2 s each), so
+# their last read starts 15 s before the close and the second is not received after it only for being read second
+INDEX_LAST_READ_MARGIN = timedelta(seconds=15)
 
 
 class PartFailed(RuntimeError):
@@ -36,6 +40,7 @@ class Answer:
 class PreopenPart(ABC):
     name: str
     window: tuple[time, time]
+    last_read_margin: timedelta = LAST_READ_MARGIN
 
     @abstractmethod
     def answer(self, day: date) -> Answer:
@@ -78,7 +83,7 @@ class NsePreopenList(NseJsonPart):
 
 
 class GrowwIndexPreopen(PreopenPart):
-    window = INDEX_WINDOW
+    window, last_read_margin = INDEX_WINDOW, INDEX_LAST_READ_MARGIN
 
     def __init__(self, name: str, source: IntradayCandleSource):
         """`name`: the index's day-row prefix (`nifty`, `banknifty`); `source`: its read-only candle source."""

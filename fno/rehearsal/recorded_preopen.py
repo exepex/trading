@@ -26,6 +26,7 @@ class RecordedPreopenPart(PreopenPart):
     def __init__(self, live: PreopenPart, receipts: ReceiptFolder, read: Callable[[str], bytes | None],
                  now: Callable[[], datetime], sleep: Callable[[float], None]):  # fmt: skip
         self.live, self.name, self.window = live, live.name, live.window
+        self.last_read_margin = live.last_read_margin  # the live part's read plan, replayed (A22e)
         self.receipts, self.read_file, self.now, self.sleep = receipts, read, now, sleep
         self.served = ServedOnce()
 

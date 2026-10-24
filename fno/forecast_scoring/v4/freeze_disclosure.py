@@ -14,16 +14,15 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from ...forecast_v4_rules.implied_backfill import BACKFILL_FOLDER
+from ...forecast_v4_rules.drive_records import BACKFILL_FOLDER, LIVE_FOLDER
 from ...forecast_v4_rules.records import BACKFILL, LIVE
-from ...forecast_v4_rules.wiring import LIVE_RECORDS
 from ...storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER
 
 V4_RECORDS = "research/forecasts/v4"  # G7's and M1's CSV records, M1's day files under weather/
 WEATHER_DAYS = f"{V4_RECORDS}/weather"
 REPORTS = "research/forecasts/v4_scores"  # G8's reports (and looks, none before the freeze)
 DRIVE_BACKFILLS = f"{RECEIPTS_FOLDER}/{DATA_AREA}/{BACKFILL_FOLDER}"  # G7b's Drive back-fills, one receipt per file
-DRIVE_LIVE = f"{RECEIPTS_FOLDER}/{LIVE_RECORDS}"  # G7b's pack-derived live rows: <forecaster>/<question>/<YYYY>/<day>
+DRIVE_LIVE = f"{RECEIPTS_FOLDER}/{DATA_AREA}/{LIVE_FOLDER}"  # G7b's live rows, <forecaster>/<question>/<YYYY>/<day>
 RECEIPT = ".sha256"
 NONE = "- none"
 TABLE_HEAD = "| Source | First day | Last day | Rows | Method SHA-256 (first 12) | Rows' SHA-256 |"

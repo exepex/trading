@@ -90,8 +90,6 @@ RECORDED = {  # path -> what it decides and its lock
     "fno/forecast/record_files.py": f"the forecast record files the AI books read; {_V1_V3}",
     "fno/forecast/schema.py": f"the record schema under schema_v2; {_V1_V3}",
     "fno/forecast/schema_v2.py": f"the record schema the AI timing reads; {_V1_V3}",
-    "fno/forecast/wiring.py": f"`build_atm_iv30` (reads the config rate); reached only through G7b's back-fill wiring:"
-    f" it leaves the rate refusal, and the walk marks this entry stale, once that wiring stops importing it; {_V1_V3}",
     "fno/research_data/panel_rows.py": f"the EOD panel's row rules; {_V1_V3}",
     "fno/research_data/panel_store.py": f"the EOD panel's file layout; {_V1_V3}",
     "fno/fo_bhavcopy.py": "parses NSE's daily F&O file: V5's `SttlmPric`; S1's protocol names it; E7's and A11's tests",
@@ -102,6 +100,8 @@ RECORDED = {  # path -> what it decides and its lock
     "fno/quotes/monthly_contracts.py": f"which monthly contracts are captured; {_A4}",
     "fno/quotes/slot.py": f"the capture's time slot; {_A4}",
     "fno/quotes/weekly.py": f"which weekly contracts are captured; {_A4}",
+    "fno/research_data/release_times.py": "V5's `first_seen_at` fallback from A8's release log (protocol 1.5); A8 test",
+    "fno/global_cues/table.py": "the provenance label `backfilled` W8's candle reader keeps (A16b rows); A17's tests",
     "fno/server_clock.py": "the checked host clock behind honest times (protocol 1.6); its clock tests",
 }
 
@@ -132,7 +132,6 @@ NOT_DECIDING = {  # path -> why its bytes compute no v4 value
     "fno/weather/records.py": "M1's record writer: writes what its METHOD_FILES computed",
     "fno/weather/drivers.py": "the card's drivers, outside M1's METHOD_FILES",
     "fno/weather/model.py": "M1's plain record types",
-    "fno/forecast/golden.py": "builds v1's golden table; v4 never calls it (reached through v1's frozen wiring)",
     "fno/accounting/ledgers.py": "settlement.py's desk half: `NseFinalSettlement` (V5) does not use it",
     "fno/books/fills.py": "settlement.py's desk half: `NseFinalSettlement` (V5) does not use it",
     "fno/desk/execution.py": "settlement.py's desk half: `NseFinalSettlement` (V5) does not use it",
@@ -141,6 +140,10 @@ NOT_DECIDING = {  # path -> why its bytes compute no v4 value
     "fno/constants_channels.py": "Slack channel IDs",
     "fno/constants_operations.py": "the daily run's step names and order",
     "fno/http_pacing.py": "network pacing",
+    "fno/research_data/availability.py": "A8's availability rule; V5's fallback uses only `first_seen_times`",
+    "fno/global_cues/collection.py": "the cue value shape (`SourcedValue`) beside the provenance label",
+    "fno/storage/row_log.py": "where a cue table's rows are stored (repository or Drive); moves rows only",
+    "fno/forecast_lab/wiring.py": "the paths of A8's release-check log, read by G7b's pack wiring",
     "fno/alerts/sender.py": "sends an alert line; decides nothing",
     "fno/pipeline/trigger.py": "fires a routine; decides nothing",
     "fno/budget/constants.py": "BG1's level names, read by the AI budget stop",
