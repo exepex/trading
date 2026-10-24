@@ -14,8 +14,10 @@ One file per numbered series; each series has its own numbers, so series never c
 `python tools/claim_number.py ledger-trial <experiment-prefix> --session <id> --count <k>`, then merge `main` into
 your branch (`git pull --no-rebase origin main`) and register the trials with an experiment that is the prefix or
 starts with it and `-`. `Ledger.register`, the factory and the evaluation freeze refuse an id outside such a block;
-the check fails on a trial in no block, a trial in another experiment's block, and overlapping blocks. Ids that are
-not whole numbers (`book3:<strategy_id>`) are names, not counted ids, and stay outside. Trials 1-108 were on `main`
+`require_committed` refuses the same before any run (a row typed by hand never passed `register`); the check fails on
+a trial in no block, a trial in another experiment's block, an id that is not a whole number from 1, and overlapping
+blocks. The one exception is Book 3's `book3:<strategy_id>` under its experiment `book3_ai strategies`: a strategy's
+name, not a counted id. Trials 1-108 were on `main`
 when this merged and are seeded history (pinned), one block per run of one experiment.
 
 Columns: `number,name,session,claimed_at_utc`. Rows with session `existing` are the files that were on `main` when
