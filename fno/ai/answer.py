@@ -1,8 +1,9 @@
 """A book's answer (stories F1 and G5): per question a probability (or null for "no forecast") and its reason, plus
 the model the session reports. Protocol v4's point questions (V1, V2: `terms.POINT_QUESTIONS`) take a `value`
 instead, a variance in the protocol's own unit (squared log returns), finite and above 0; one above its question's
-`VARIANCE_CAP` is refused as a unit error (G11 C2; the caps tightened after review: percent squared, an annualised
-figure or volatility points all land above them). The routine writes only those parts;
+`VARIANCE_CAP` is refused as a unit error (G11 C2; the caps tightened after review). Percent squared and volatility
+points always land above them; an annualised figure does for V1 (a 15% volatility is 0.0225 > 0.01) but not for V2
+below a VIX of about 22.4 (0.0225 < 0.05): a known gap, pinned by a test. The routine writes only those parts;
 `seal` adds the book, day, hashes and version from its own pointer and export, so the model cannot mislabel them. The
 same checks run when sealing (the model can fix a refused answer before the deadline) and when collecting (nothing
 unchecked becomes a record)."""
@@ -21,7 +22,8 @@ MAX_REASON_CHARS = 600
 MAX_MODEL_CHARS = 100
 # A forecast is an expected variance, so it sits far below the largest one ever realised (strong evidence, NIFTY's
 # official closes 2017-2026: one session's close-proxy RV_s at most 0.0193, 23 Mar 2020; 5 sessions 0.0287; 20
-# sessions 0.064). Above these it is a unit mistake. A standard deviation given for V1 (about 0.008) still passes.
+# sessions 0.064). Above these it is a unit mistake. A standard deviation given for V1 (about 0.008) still passes, and
+# so does an annualised V2 below a VIX of about 22.4 (judge 586 m2).
 VARIANCE_CAP = {V1_RV_1S: 0.01, V2_RV_5S: 0.05, V3_RV_20S: 0.2}
 ANSWER_FIELDS = ("book", "day", "export_sha256", "forecasts", "model_reported", "pack_sha256", "version")
 

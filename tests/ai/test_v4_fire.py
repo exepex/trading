@@ -82,14 +82,14 @@ class Series:
 
 
 class Ledger(SlotRegistry):
-    def __init__(self, extra=()):
-        self.extra = extra
+    def __init__(self, extra=(), start=DAY):
+        self.extra, self.start = extra, start
 
     def registered(self):
-        slots = {(q, s): Registration(f, DAY) for q in QUESTIONS
+        slots = {(q, s): Registration(f, self.start) for q in QUESTIONS
                  for s, f in ((V4_SLOT_RULES, WEATHER_MODEL_VIX), (V4_SLOT_HYBRID, "book2_hybrid_v2"),
                               (V4_SLOT_AI, "book3_ai_v2"))}  # fmt: skip
-        return slots | {key: Registration("book3_ai_v2", DAY) for key in self.extra}
+        return slots | {key: Registration("book3_ai_v2", self.start) for key in self.extra}
 
 
 def write_rules(v4):
@@ -246,3 +246,23 @@ def test_a_pointer_brief_would_refuse_is_a_logged_not_fired_and_never_sent(tmp_p
     desk.firer.fire(DAY)
     entry = desk.log()["books"][BOOK3_AI]
     assert entry["fired"] is False and "variance above 0" in entry["reason"] and not desk.triggers[BOOK3_AI].fired
+
+
+def test_two_v4_breaches_in_the_firers_own_session_window_stop_the_book(tmp_path):
+    """Judge 586 F2 (P25): the firer passes v4's sessions to the real stop rule (after go-live v2 has no pack days)."""
+    from fno.ai.transcript_audit import TranscriptAudits, new_audit
+    from fno.ai.versions import current_version
+
+    days = [date(2026, 10, 22), date(2026, 10, 23)]
+    version = current_version(BOOK3_AI, "v4").label
+    for day in days:
+        fired = {"fired": True, "version": version, "session": "https://example.invalid/s"}
+        audit = new_audit(
+            day, BOOK3_AI, fired, ["read_other_records"], "opened another book's file", "judge", at(16, 0)
+        )
+        TranscriptAudits(tmp_path, V4_TERMS).record(day, audit)
+    desk = Desk(tmp_path)
+    desk.firer.sessions_before = lambda day: days
+    desk.firer.fire(DAY)
+    assert desk.log()["books"][BOOK3_AI]["stop_rule"] is True and not desk.triggers[BOOK3_AI].fired
+    assert desk.log()["books"][BOOK2_HYBRID]["fired"] is True

@@ -35,6 +35,7 @@ from .budget_stop import BudgetStop
 from .run_terms import V4_TERMS
 from .stop_rule import stop_reason
 from .v4_book_inputs import V4BookInputs
+from .v4_go_live import missed_before_go_live
 from .v4_pointer import V4Pointer, parse_v4_pointer, v4_labels
 from .versions import current_version
 
@@ -56,8 +57,13 @@ class V4BookFirer:
     live_from: date | None
     sessions_before: Callable[[date], list[date]]  # v4's scored sessions before a day: the stop rule's window
     budget: BudgetStop  # BG1's month: the AI forecasters stop last
+    sessions_between: Callable[[date, date], list[date]] = lambda first, last: []  # v4's scored sessions, both ends in
 
     def fire(self, day: date) -> list[str]:
+        missed = missed_before_go_live(self.inputs.registry, self.live_from, day, self.sessions_between)
+        return ([LINE.format(day=day, result=missed)] if missed else []) + self._fire(day)
+
+    def _fire(self, day: date) -> list[str]:
         refused = self._refused(day)
         if refused:
             return [LINE.format(day=day, result=refused)]

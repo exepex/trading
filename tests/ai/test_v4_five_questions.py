@@ -160,3 +160,11 @@ def test_book3_is_shown_no_rule_or_baseline_value(tmp_path):
     built = inputs.build(current_version(BOOK3_AI, FORECAST_PROTOCOL_V4), DAY, [V1_RV_1S], a_pack(), "d" * 64)
     hybrid = inputs.build(current_version(BOOK2_HYBRID, FORECAST_PROTOCOL_V4), DAY, [V1_RV_1S], a_pack(), "d" * 64)
     assert "rules" not in built and hybrid["rules"]["by_question"][V1_RV_1S][PRIMARY] == 1e-04
+
+
+def test_the_caps_known_gaps_are_pinned_so_a_change_is_seen():
+    """Judge 586 m2: an annualised V2 below a VIX of about 22.4 passes the cap, and a standard deviation for V1 too;
+    an annualised V1 is refused. The claim is these, no more."""
+    assert problems(**{V2_RV_5S: {"value": 0.15**2, "reason": "annualised at 15%"}})[V2_RV_5S] == ""
+    assert problems(**{V1_RV_1S: {"value": 0.008, "reason": "a standard deviation"}})[V1_RV_1S] == ""
+    assert "at most 0.01" in problems(**{V1_RV_1S: {"value": 0.15**2, "reason": "annualised"}})[V1_RV_1S]

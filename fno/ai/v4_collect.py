@@ -19,6 +19,9 @@ the fire logged, mark exposures, and write its audit file once. The rows come la
   time cannot be found yet (`ReceiptUnknown`) gets no verdict and no audit (never a guessed time; exposure needs both
   books' times, so the whole day waits), is printed "awaiting GitHub's receipt" and is retried by every later collect;
   a session the collect itself never ran is caught up the same way. G8's look refuses while such a day has no row.
+- **From the AI slots' own start** (judge 586 F1): collect begins at the earlier of the go-live date and the AI slots'
+  earliest `effective_start`, so a session before go-live is a `not_fired` miss ("before the AI books' v4 go-live"),
+  never a gap that would stop G8's looks.
 - **Today waits for its reveals:** before 15:30 IST, today is collected only once every fired book has revealed."""
 
 from __future__ import annotations
@@ -39,6 +42,7 @@ from .record_writer import audit_text
 from .run_terms import V4_TERMS
 from .submissions import read_submission
 from .v4_book_inputs import V4BookInputs
+from .v4_go_live import BEFORE_GO_LIVE, first_collected_day
 from .versions import current_version, version_by_label
 
 LINE = "Omenix F&O AI forecasts v4 (GitHub Actions): {day}: {result}"
@@ -68,9 +72,10 @@ class V4BookCollector:
     sessions: Callable[[date, date], list[date]]  # v4's scored sessions from the first day to the last, both included
 
     def collect(self, day: date) -> list[str]:
-        if self.live_from is None or day < self.live_from:
+        first = first_collected_day(self.inputs.registry, self.live_from)
+        if first is None or day < first:
             return [LINE.format(day=day, result="v4 is not live yet; nothing collected")]
-        days = [d for d in self.sessions(self.live_from, day) if d == day or not self._collected(d)]
+        days = [d for d in self.sessions(first, day) if d == day or not self._collected(d)]
         return [line for d in days for line in self._collect_day(d)]
 
     def _today_too_early(self, day: date, log: dict) -> bool:
@@ -129,8 +134,10 @@ class V4BookCollector:
     def _lost(self, day: date, book: str, sha: str, committed: bool) -> dict:
         """A day without a fire log: not fired, or (a commitment exists, past the wait) one whose input is unknown."""
         version = current_version(book, FORECAST_PROTOCOL_V4)
+        live = self.live_from is not None and day >= self.live_from
+        reason = NO_LOG if live else BEFORE_GO_LIVE.format(live_from=self.live_from or "not set")
         entry = {"version": version.label, "fired": False, "stop_rule": False, "pack_sha256": sha,
-                 "questions": self.inputs.questions(version, day), "reason": NO_LOG}  # fmt: skip
+                 "questions": self.inputs.questions(version, day), "reason": reason}  # fmt: skip
         return entry | ({"fired": True, "log_lost": True} if committed else {})
 
     def _outcome(self, day: date, book: str, entry: dict) -> Outcome:

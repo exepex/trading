@@ -89,7 +89,8 @@ def build_v4_firer(env=os.environ) -> V4BookFirer:
     triggers = {book: build_book_trigger(book, env) for book in ROUTINES}
     inputs = build_v4_book_inputs()
     return V4BookFirer(ROOT, triggers, lambda: build_released_packs(env), inputs, build_alert_sender(), now_ist,
-                       v4_live_from(), v4_sessions_before, MeterBudgetStop(build_month_meter))  # fmt: skip
+                       v4_live_from(), v4_sessions_before, MeterBudgetStop(build_month_meter),
+                       v4_sessions_between)  # fmt: skip
 
 
 def v4_sessions_before(day: date) -> list[date]:

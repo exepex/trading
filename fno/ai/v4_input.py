@@ -1,8 +1,9 @@
 """Story G11, the AI books' v4 input (response 272): what one book is given to answer the day's v4 questions, built on
 the Actions side from the released pack (read through the verified Drive cache at the release record's SHA, story O9)
 and the official closes before the day. A routine session has no Drive credentials (F1t's rule), so this input
-travels in the book's pointer; `input_sha256` (canonical JSON) ties the answer to exactly this input, and the
-collection rebuilds it from the same pack to check.
+travels in the book's pointer; `input_sha256` (canonical JSON) ties the answer to exactly this input. The fire logs
+that hash with the answer labels and Hybrid's envelope, and the collection judges against the log; it never rebuilds
+the input, whose source files can still change after the fire.
 
 - **The pack, summarised:** spot, the near future, India VIX, IV30 (with its single-expiry flag) and, per expiry, the
   ATM call and put mids and their straddle; the chain within +-5% of spot for the nearest expiry. Never a raw broker

@@ -147,3 +147,16 @@ and step 4 with:
 
 Version 2's instructions also run `reveal` again while it prints "waiting until 15:10:10 IST: run reveal again" (one
 call waits at most 9 minutes, inside the 10-minute Bash timeout); nothing in the stored prompt needs to change for it.
+
+## For G11's go-live: v4's first 10 fired days each need a transcript audit (judge 586, change 7)
+
+Every routine session of the first 10 days the v4 fire runs is audited before its rows land (`audit_plan.py`, as v2's
+first days were); until then each such day stays "awaiting audit" and G8's looks refuse. **Who:** the session the
+orchestrator assigns as v4 auditor (never the session that built G11, never a book's own routine), each session day
+after 15:30 IST, starting on the go-live day. **How:**
+1. `python -m fno ai audits-due` lists, under "(v4)", each due day, book and the routine's session link.
+2. Read that session's transcript (its tool calls): any file opened beyond what `brief` printed, any network use beyond
+   the `seal` and `reveal` pushes, any `fno.forecast` code run, any read of `research/forecasts/` is a breach.
+3. Record it: `python -m fno ai audit-record --protocol v4 --day <YYYY-MM-DD> --book <book2_hybrid|book3_ai>
+   --evidence "<what was read and seen, never a secret>" --auditor <session id>` (add `--breach <kind>` per breach).
+   Commit `research/forecasts/ai_v4/` (record scan on). After the first 10 days, 2 sessions a week are drawn.

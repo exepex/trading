@@ -2364,8 +2364,9 @@ stays null.
 - C8 `budget_stop.py`; `test_v4_budget_stop.py`; plant: stop on any `stop`.
 - C9 `v4_rows.py`; `test_v4_rows.py`; plant: rows without the release SHA.
 - C10 `run_terms.V4_TERMS` and `outcome.judge`, the same constant as G10's `commitment.on_time`, pinned equal at
-  15:09:59, 15:10:00, 15:10:01 (`test_v4s_deadline_is_g10s_receipt_rule`). It is not the same function (the book
-  side must stay standard library only, and `commitment.py` is not); the judge decides whether the pin is enough.
+  15:09:59, 15:10:00, 15:10:01 (`test_v4s_deadline_is_g10s_receipt_rule`). It is not the same function because
+  F1/G5's judging chain takes one `RunTerms` for both protocols (v2's deadline is not G10's), so the rule stays in
+  the terms and the pin proves the two agree (judge 586 m3 corrected the earlier reason; ruled the pin enough).
 - C11 `v4_collect.py`, `v4_settle.py`; `test_v4_collect.py`; plants: never-fired day skipped, no catch-up, lost log
   as `not_fired`, no too-early check, no containment.
 - C12 `run_terms.py`, `stop_rule.py`, `audit_plan.py`, `transcript_audit.py`, `scoring_gate.py`, `cli.py`;
@@ -2436,8 +2437,25 @@ release (`ReleasedPacks`, the receipt push that starts `v4-fire.yml`) and G8's m
 the freeze builder's `FREEZE_v4.md` and rules rows (then `register-v4-slots`); G7b's V2 primary baseline. The
 rule-8 end-to-end run needs G10's release on a live day.
 
-*Open for the owner (through the orchestrator):* BG1 "forecasters last" and fail open (C8); whether the reveal wait
-counts in BG1's cap (C17 shows working, waiting and calls apart); steps 3 and 4 of both routines' stored prompt.
+*Owner decided 24 Oct:* BG1 "forecasters last" and fail open, as built (C8; DESK_DECISIONS c63eb7e0b); the reveal
+wait does not count in BG1's cap (owner: "Waiting minutes - Option A"): BG1's reader change is its own story, not
+G11's (C17 already reports working and waiting minutes apart). *Still open:* steps 3 and 4 of both routines' stored
+prompt, at go-live (exact text in `F1-G5-owner-checklist.md`, with who records v4's first 10 transcript audits).
+
+*Round 2 (judge 586, round 1 FAIL at d8aabba4c), each finding:*
+- Merge of `main` (G10 completion at 3ee1b8ae and later): `config.yaml` keeps both adjacent keys; G8's v4 wiring
+  keeps G10's body with G11's `build_slot_registry` name (judge J's resolution). REH1i's receipts test passes.
+- F1 (C13's late go-live): `v4_go_live.py`. Collect starts at the earlier of the go-live date and the AI slots'
+  earliest `effective_start`; a session before go-live is `not_fired` ("before the AI books' v4 go-live"); `ai fire`
+  prints the count every day. Tests: judge J's probe (start one session early, go-live on DAY) writes the early
+  session's audit, and G8's `AiSlotDays` finds no slot-day missing; the count line; the wiring passes the calendar's
+  sessions. Plant: collect from the go-live date only, caught. Note: a registered AI slot is collected from its start
+  even while `ai_books_v4` is null, so registration and the go-live date should land on the same session (C13's order).
+- F2: P18 (`mark_exposures` dropped), P23 (`released_sha256` from the fire log) and P25 (the firer's stop rule without
+  v4's sessions) each now fail a test through the collector or the firer; the three plants caught.
+- m1: both docstrings corrected. m2: the claim now says what holds: an annualised V1 is refused, an annualised V2
+  below a VIX of about 22.4 and a standard deviation for V1 pass (a test pins all three). m3: C10's reason corrected.
+- Change 7: who records v4's first 10 transcript audits and how, in the go-live checklist.
 
 *Gates* on the merged head 562718c5 (a clean copy, `env -u FNO_SLACK_BOT_TOKEN` for pytest only): 15,550 passed,
 1 skipped, 14 xfailed (O11's G11 marker gone); ruff and ruff format clean; `check_imports` clean (2,619 files);

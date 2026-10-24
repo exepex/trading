@@ -94,3 +94,8 @@ def test_a_v4_fire_log_that_is_not_an_object_is_named_unreadable(tmp_path):
     path.write_text("[1, 2]")
     with pytest.raises(FireLogUnreadable):
         fired_sessions(tmp_path, "2026-11", "2026-12-01")
+
+
+def test_the_firer_counts_misses_before_go_live_with_v4s_own_sessions():
+    """Judge 586 F1: the daily count reads the calendar's v4 sessions, never the default empty list."""
+    assert wiring.build_v4_firer({}).sessions_between is wiring.v4_sessions_between
