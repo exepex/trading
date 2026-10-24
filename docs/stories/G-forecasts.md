@@ -548,7 +548,7 @@ builder, and question 4.
 
 **Repository:** trading · **Lane:** 1 (forecast, baseline and outcome records) · **Builder:** session
 `session_017GCFK7JLcsYeFKESyXtCyf` (orchestrator's assignment, 24 Oct; the earlier R2/G7 builder is out of reach) ·
-**Judge:** named by the orchestrator · **Branch:** `story/g7b-completion`
+**Judge:** K (judge 578, round 1 FAIL at 485cf6053; round 2 answers below) · **Branch:** `story/g7b-completion`
 
 **Description:** As the quantitative modeller, I want every protocol v4 baseline and every V4 and V5 rule (terms,
 outcome, base rate, rule forecaster) built, so that every question in `PROTOCOL_v4.md` can be scored and G8 stops
@@ -617,9 +617,13 @@ it gives the yardstick that can show whether one is.
   missing: calendar", as G4).
 - Black-76 IVs use B1's `fno/research_engine/implied_vol.py`, rate 6.5%, time `C_e / 365` (protocol 1.4). A leg whose IV
   does not solve is a void day, never a guessed IV.
-- A **live two-sided quote** (1.4, 1.5) is a pack chain quote with bid > 0 and ask >= bid, both present; its mid is
-  `(bid + ask) / 2`; its spread rule is `(ask - bid) / mid <= 0.05` (5% exactly passes). `last_trade_time` plays no
-  part (W5).
+- A **live two-sided quote** (1.4, 1.5; judge 578 SF2) is a pack quote with bid > 0 and ask >= bid, both present,
+  **and a trade in the contract on `d`**, decided by A4's own rule `traded_today` (`fno/quotes/quote_validity.py:11-19`)
+  on the pack's `last_trade_time` (protocol 1.6 keeps that field for exactly this check). One rule, one place: a small
+  adapter hands the pack quote to `traded_today`; the rule is never copied. Its mid is `(bid + ask) / 2`; its spread
+  rule is `(ask - bid) / mid <= 0.05` (5% exactly passes). A quote without a trade on `d` voids the day
+  (`no_trade_today`). Said plainly: A4's `quote_validity` also asks for bid and ask sizes, which the pack does not
+  carry (G10's `ChainQuote` has none) and protocol 1.4 does not ask for, so size is not checked (W5).
 - **ATM / K:** among the strikes the pack holds for that expiry, the one nearest the pack's spot; a tie goes to the
   lower strike (as G1).
 
@@ -633,19 +637,41 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
   resolution day is `t+h`. The window at a refit is `eligibility.premium_ratio_window(points, refit_day)`: resolved
   before the refit day, the most recent 750, at least 500 (else not eligible).
 - Ratio: the **median** of `RV_h(t) / raw_h(t)`, with `raw_h(t) = IV30_EOD(t)^2 x (calendar days t to t+h) / 365`.
-- Refit on the first scored session of each month (as HAR); every day of that month uses that refit.
+- Refit on the first scored session of each month (as HAR); every day of that month uses that refit. **The ratio is
+  computed once, on the refit day, from the inputs present then, and stored write-once** (`v4/ratios/<question>/<YYYY-MM>.json`:
+  the ratio, the window's first and last day, its count, and the inputs' SHA-256); every later day of the month reads
+  the stored ratio and never recomputes it with files archived after the refit day (judge 578 m3). A refit day with no
+  stored ratio (the capture did not run) is computed at the next run only from inputs whose receipts GitHub received
+  before that refit day; none: the month's premium-adjusted rows are missing, counted.
 - Value for `d`: raw implied of `d` times the refit's ratio; missing when either is missing.
-- **V2 and V3** use the close proxy (protocol 1.1). **V1** uses its own measure, intraday A16 `RV_s` of `d+1` (live,
-  non-void rows of `V1_INTRADAY_METHOD` only; A16b's back-filled rows never count, decision 56). So V1's window holds
-  only live days from 16 Oct 2026 and V1's premium-adjusted rows read `not_eligible` until 500 such points exist (about
-  two years). Never the close-proxy ratio applied to an intraday target: protocol 1.1 never pools the series (W3).
+- **V2 and V3** use the close proxy (protocol 1.1). **V1 and part f's intraday series: the owner's choice (W3,
+  judge 578 SF4), reasoning only for both options:**
+  - **Option A, own measure:** the window uses the intraday A16 `RV_s` (live, non-void rows of `V1_INTRADAY_METHOD`;
+    A16b's back-filled rows never count, decision 56). Same measure on both sides of the ratio. **Cost:** the window
+    holds only live days from 16 Oct 2026, so V1's and part f's premium-adjusted baseline is missing (`not_eligible`)
+    for about two years (longer for V3's 20-session series).
+  - **Option B, the close-proxy ratio (available now):** the V2 / V3 window's ratio, at `h` = 1 for V1, multiplies the
+    pack's raw implied. **Cost:** a measure mismatch: the ratio is fitted on close-to-close `RV_s` and applied to an
+    intraday-with-overnight target. Both estimate the same daily variance, and the window already mixes measures (the
+    EOD IV30 stands in for the 14:30 IV30, protocol 3.1), but the 26-snapshot quote RV can differ in level from the
+    close proxy; that level gap moves the baseline and so every paired difference. Each report then prints the mean
+    ratio of intraday to close-proxy `RV_s` over the live days, so the gap is seen, not assumed away.
+  - **Recommendation (reasoning only): B.** Both uses are "also reported" (protocol 3.2; never a member's test), so a
+    labelled mismatch now costs less than two years with no value. The build implements the option the owner signs;
+    until then it builds B behind one switch in the wiring and labels the rows `premium_ratio_measure=close_proxy`.
   V1's raw implied (`h` = 1, its horizon) is computed only as this input: protocol 3.2 does not report raw implied for V1.
 
 **V5 terms, frozen from the pack of `d` (protocol 1.5).** `e` = the nearest monthly expiry strictly after `d`, read
-from the pack's future (`pack.future.expiry`; on an expiry day itself, the next month's); `K` = ATM of `e`; `P` = mid
-of the `e` K call + mid of the `e` K put, each a live two-sided quote under the 5% rule; `F` = the future's mid under
-the same rule (W2). Any failing part makes the day void, with its reason (`no_quote`, `spread`, `iv_unsolved`,
-`no_future_quote`), counted.
+from the pack's future (`pack.future.expiry`; on an expiry day itself, the next month's). **The pack is not trusted for
+this (judge 578 m5):** `e` must be after `d` and equal the first monthly after `d` in NSE's listed expiries known before
+`d` (`ListedExpiries.listed(NIFTY, d)`, the previous session's NSE file, `fno/quotes/expiry_listing.py:26`, with
+`fno/research_data/expiries.monthly_expiries`); otherwise void (`future_not_monthly`; no list: `expiry_list_unavailable`).
+`K` = ATM of `e`; `P` = mid of the `e` K call + mid of the `e` K put, each a live two-sided quote under the 5% rule; `F`
+= the future's mid under the same rule, including `traded_today` on what the pack's future carries: its
+`last_trade_time`, else its day volume (A4's rule falls back the same way); a future with neither is void
+(`no_trade_today`) (W2, W5); `S_e` = the scored sessions in `(d, e]` and
+`C_e` = calendar days from `d` to `e` (judge 578 m2). Any failing part makes the day void, with its reason
+(`no_quote`, `no_trade_today`, `spread`, `iv_unsolved`, `no_future_quote`), counted.
 
 **V5 option-implied probability (primary, Brier; protocol 3.1).** `s` = the mean of the K call's and K put's Black-76
 IVs on `F`; `tau = C_e / 365`; `z(x) = (ln(x / F) + s^2 tau / 2) / (s sqrt(tau))`; `p = N(z(K + P)) - N(z(K - P))`.
@@ -654,14 +680,16 @@ cannot arise; one that is not finite is missing.
 
 **V5 outcome (protocol 1.5, `settlement.v5_outcome`).** Resolved only from `NseFinalSettlement` on NSE's daily F&O file
 of the expiry day (`NseDailyFoSource.path_for(e)`), every expiring NIFTY row agreeing; inside when `abs(level - K) < P`
-(strict: equal is outside). `first_seen_at`, in this order: A11's first archived version time where one is stored;
-else the first sighting in A8's release-check log (`release_times.first_seen_times`); else unresolved, never "now". A
+(strict: equal is outside). `first_seen_at`, in this order (judge 578 SF3): **A11's first archived version time =
+Drive's `createdTime` of the raw file at `NseDailyFoSource.path_for(e)`**, read through the existing `CreationTimes`
+interface (`fno/storage/creation_times.py:14-28`, `GoogleDriveCreationTimes` on the raw area, as A17b uses it; raw
+files are write-once, so the created time is the first version's); where it answers None, the first sighting in A8's
+release-check log (`release_times.first_seen_times`); else unresolved, never "now". A
 level first seen before 15:30 IST on `e` is refused (`v5_outcome` raises; the day stays unresolved and the refusal is
 printed). The resolved outcome is written once with the source path, the file's SHA-256 and `first_seen_at` (frozen
-with the outcome, 1.5). A missing file keeps it unresolved; never the index-close file. **Where A11's archive time is
-stored is checked in the build:** if no stored field holds it, the A8 log is the only source and the build says so;
-using the receipt's GitHub push time instead (later than the archive, so stricter) is proposed as W4 for the judge,
-never assumed.
+with the outcome, 1.5). A missing file keeps it unresolved; never the index-close file. Later versions (A11's
+`revisions.py`, `available_from` / `found_at`) are never the source: 1.5 names the first version. No wording is needed
+(W4 dropped).
 
 **V4's expiry rule, one pure function (G10's answer, 24 Oct: A4e's `v4` window imports it).**
 `first_v4_expiry(day, listed_expiries, calendar) -> date | None` in `fno/forecast_v4_rules/v4_expiry.py`: the first
@@ -674,11 +702,12 @@ then G10 builds against the same signature. One rule, one place: G7b's terms and
 with `first_v4_expiry`, interface item 3 below); `S_e` = its scored sessions in `(d, e]`; `C_e` = calendar days from `d` to `e`. ATM
 call and put of `e`, each a live two-sided quote under the 5% rule; parity forward `F = K + e^(r C_e / 365) (C_mid -
 P_mid)`; each leg's Black-76 IV on `F`; the ATM IV is their mean; `sigma_IV = units.implied_vol_session_clock(IV, C_e,
-S_e)`. Void with its reason otherwise. If the pack names no `v4_expiry`, or holds no chain rows for it, the day is void
-(`no_v4_expiry`), counted, never another expiry: picking "the first expiry in the pack with 5 sessions" instead would
-silently take a later monthly on a day the weekly's quotes failed, a different question. G7b also checks the
-choice on A7's calendar: a `v4_expiry` with fewer than 5 scored sessions in `(d, e]`, or (when the pack carries the
-listed expiries) not `first_v4_expiry`'s answer on them, is void (`v4_expiry_mismatch`), so the two sides cannot drift.
+S_e)`. Void with its reason otherwise. **`e` comes only from `pack.v4_expiry`** (judge 578 SF1; G10 agreed at
+d4e72f20d: copied from the capture's sidecar, never recomputed at release; `first_v4_expiry` chose it from the expiries
+listed at the cutoff). If `v4_expiry` is None, or the pack lacks that expiry's ATM call or put, the day is void
+(`no_v4_expiry`), counted, never another expiry: a day with the monthly present and the weekly's quotes missing is void,
+never read as "V4's expiry is the monthly". One check that does not trust the pack: a `v4_expiry` with fewer than 5
+scored sessions in `(d, e]` on A7's calendar is void (`v4_expiry_mismatch`).
 
 **V4 outcome (protocol 1.4, `units.v4_outcome`).** `sigma_RV` from A16's live intraday `RV_s` of `d+1..d+5`
 (`V1_INTRADAY_METHOD`, non-void, never A16b's back-fill); outcome `sigma_RV < sigma_IV`. Any void session voids the
@@ -704,6 +733,10 @@ both name its SHA-256.
   fitted on spent data.
 
 **Records and storage.**
+- **Day label on every new row (protocol 1.6; judge 578 m4):** a `day_label` field, copied from today's release
+  record (`ReleasedPacks.release(d).label`) by the post-release capture: always `A`, because that capture writes
+  nothing on a `system_late` day; back-fill rows carry `backfill_exploratory` in `label` and an empty `day_label`
+  (no pack existed).
 - Every new row uses phase 1's record fields (`day,value,status,label`, version, kind, slot, method SHA-256, inputs
   SHA-256, `pack_sha256`, `made_at`; `records.validate` rules: a V1-V3 value is a variance > 0, a V4 or V5 value a
   probability in [0, 1]).
@@ -745,14 +778,16 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
    a monthly (from `first_v4_expiry`, imported); nearer weeklies are skipped (V4 uses only that expiry). Accepted: it
    is all V4 reads, and it saves Groww load.
 2. **Strikes:** A4's 5% band around spot (`fno/quotes/recorder.py` `SPOT_BAND`) for every recorded expiry. Accepted:
-   it covers ATM and the strikes either side.
-3. **Asked back, one field (open):** the pack names the expiry the capture chose, `v4_expiry` (None when
-   `first_v4_expiry` returned None). Without it G7b cannot tell "the weekly was not recorded" from "V4's expiry is the
-   monthly", and would have to guess from what is present. If G10 prefers, the pack may carry the listed expiries it
-   passed to the function instead; either lets G7b check the choice.
+   it covers ATM and the strikes either side. G7b never chooses V4's expiry from what the pack holds (item 3).
+   Each chain quote keeps `last_trade_time` for the traded-today rule (W5).
+3. **`v4_expiry` (agreed, G10 d4e72f20d):** the pack names the expiry the capture chose with `first_v4_expiry` from
+   the expiries listed at the cutoff (None when it returned None), copied from the capture's sidecar, never recomputed.
+   G7b reads V4's `e` only from it.
 4. **The future:** one Groww quote of `e`'s future with bid, ask and `observed_at` (G10's new `FutureQuotes`
    interface). A failed future quote leaves bid and ask empty and V5 voids itself (`no_future_quote`); the pack is not
-   `system_late`. Accepted.
+   `system_late`. Accepted. For the traded-today rule (W5) the future also needs its `last_trade_time` or its day
+   volume in the pack: G10's cherry-picked commit 7cab92b06 brings the future's traded volume; `FutureQuote` on
+   G10's tip (d4e72f20d) does not show it yet, so this is confirmed with G10 through the orchestrator.
 5. `iv30.flagged` as on main; `ReleasedPacks`, `ReleaseRecord.pack_sha256`, `Pack` and `check_pack_binding` keep their
    names (G10's answer to G11).
 6. **Day labels:** the release record in Drive `v4/days/<YYYY>/<date>.json`, read only through
@@ -799,27 +834,33 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 - **Outcome:** the sum of A16's live intraday `RV_s` (method `V1_INTRADAY_METHOD`, never A16b's back-fill) over
   `d+1..d+h`, h = 5 or 20. Any void session voids the day; a missing session leaves it unresolved. The rule sits in
   G7's `series.py` beside the close-proxy one.
-- **First full window:** the series starts at the first forecast day `d` whose `d+1..d+h` are all live A16 sessions
-  (16 Oct 2026 was A16's first live session, so V2's starts at the first such `d` after it).
+- **First full window:** the series starts at the first forecast day `d` whose `d+1..d+h` are all live A16 sessions.
+  16 Oct 2026 was A16's first live session, so by that rule the first `d` is **15 Oct 2026** (`d+1` = 16 Oct; judge 578
+  m1). 16 Oct's A16 row is void (A16f fixed it after its first day), so every window holding it is void and counted.
+- **Cohorts:** the live and the back-fill cohorts stay apart in part f too (G10); the back-fill rows end before the
+  first live day, so part f in practice scores live rows, and any back-fill row it meets is reported apart, never
+  pooled.
 - **Forecasts scored:** the same V2 and V3 forecaster rows (no new forecaster, no new record); each is scored against
   this outcome as its own series, `v2_rv_next_5_sessions/intraday` and `v3_rv_next_20_sessions/intraday` in the
   report, never pooled with the close-proxy series and never in the family, Test A or a look.
-- **Its primary baseline:** premium-adjusted implied on this series' own measure (W3), so it is `not_eligible` until
-  500 window points (about two years for V2, longer for V3); until then the pair is missing and counted, and the
-  report prints each forecaster's QLIKE only.
+- **Its primary baseline:** premium-adjusted implied, its ratio as the owner chooses in W3: under option B available
+  now; under option A `not_eligible` until 500 window points (about two years for V2, longer for V3), the pair missing
+  and counted, and the report printing each forecaster's QLIKE only.
 - Reasoning only, said plainly: QLIKE ranks correctly under either proxy (protocol 1.1, Patton 2011); this series
   exists to show whether the close proxy's noise hides a difference, not to judge anyone.
 
 ### Protocol wordings to add before the freeze (W1-W7; the owner signs them with the freeze)
 
 - **W1 (1.4):** V4's realised side is A16's intraday `RV_s` (method `V1_INTRADAY_METHOD`), live rows only.
-- **W2 (1.5, 3.1):** V5's `F` is the pack's future at mid, under the 5% spread rule; else void. V5's leg IVs use Black-76
-  on that `F` at 6.5%.
-- **W3 (3.1):** the premium ratio uses the question's own outcome measure: close proxy for V2 and V3, live intraday for
-  V1 (so V1's premium-adjusted is not eligible for about two years).
-- **W4 (1.5), only if the build finds no stored A11 archive time:** "the archive time of A11's first version" is read
-  as the GitHub receipt time of that file's first receipt (O8's evidence), else A8's log.
-- **W5 (1.4, 1.5):** "a live two-sided quote" is bid > 0 and ask >= bid, both in the pack; no traded-today condition.
+- **W2 (1.5, 3.1):** V5's `F` is the pack's future at mid, a live two-sided quote under the 5% spread rule; else void.
+  V5's leg IVs use Black-76 on that `F` at 6.5%.
+- **W3 (3.1), a choice:** V1's and part f's premium ratio is either (A) fitted on their own intraday measure (no value
+  for about two years) or (B) the close-proxy ratio (available now, with a measured measure gap printed). Recommended
+  B, reasoning only. V2 and V3 use the close proxy either way.
+- **W4: dropped** (judge 578 SF3). Protocol 1.5's "archive time of A11's first version" exists: Drive's `createdTime`
+  through `CreationTimes`. No wording needed.
+- **W5 (1.4, 1.5):** "a live two-sided quote" is bid > 0 and ask >= bid, both in the pack, and a trade in the contract
+  that day by A4's `traded_today` rule on the pack's `last_trade_time`; sizes are not checked (the pack has none).
 - **W6 (1.3, 3.1):** V4 starts when the pack holds an expiry with at least 5 scored sessions and A16 records `RV_s`
   (1.3 still says "when A16 records weekly ATM quotes", written before the pack); the V4 and V5 rule forecasters read
   the released pack and name its SHA-256.
@@ -833,9 +874,9 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 |---|---|---|
 | W1 | V4 measures realised movement from the 15-minute intraday quotes (A16), not from daily closes | the protocol implies it but never says it |
 | W2 | V5 uses the future's mid price (halfway between bid and ask) as its forward, and drops the day if that quote's spread is over 5% | the protocol says "the future" without saying which price |
-| W3 | The "premium-adjusted" yardstick compares implied with realised movement on the same measure the question uses; so V1's (and part f's) version has no value for about two years | mixing daily and intraday measures would pool two series the protocol keeps apart |
-| W4 | (only if no stored archive time exists) V5's "first seen" time is when GitHub received that file's receipt; else A8's log; else the outcome waits | the protocol names a time no file stores today |
-| W5 | A "live" option quote means a bid and an ask are both present, ask not below bid; whether it traded today does not matter | the protocol does not define "live" |
+| W3 | **Your choice.** For V1 and the intraday V2/V3 series, the "premium-adjusted" yardstick (implied movement scaled by how much realised movement has run below it) is either (A) scaled on the same intraday measure: no value for about two years; or (B) scaled on daily closes: a value now, with a small known mismatch shown on every report. Recommended: B (reasoning only); both are side reports, never the main test | the protocol does not say which, and the two cost different things |
+| W4 | Dropped: the "first seen" time of the expiry-day file is Drive's own creation time, which the protocol already means | nothing to sign |
+| W5 | A "live" option quote needs a bid, an ask (ask not below bid) and a trade in that contract the same day, the rule the 3 pm quotes already use; order sizes are not checked because the pack does not hold them | the protocol does not define "live"; without the trade check a stale quote could pass |
 | W6 | V4 starts when the pack holds a suitable expiry and A16 records movement (old text named A16's weekly quotes); V4's and V5's rule forecasts read the pack and name its fingerprint | the old start line predates the pack |
 | W7 | V2's and V3's intraday versions: how they are summed, voided, started and reported | the protocol names the series but not its rules |
 
@@ -845,19 +886,19 @@ criterion 3a; relayed by the orchestrator, 24 Oct):**
 |---|---|---|---|
 | 1 | EOD IV30 proxy series: one value and flag per regular session from 1 Jan 2024; flagged days kept with their flag, dropped by every window | fixture panel; a single-expiry day; empty panel gives no points; on the real panel the 686/647 counts of G7b are reproduced (claims) | flagged days not dropped |
 | 2 | Raw implied = `IV30^2 x calendar days / 365` over `d..d+h` | hand values at h 5 and 20 across a holiday; flagged gives missing; horizon past the calendar gives missing; 0 IV gives missing | sessions instead of calendar days; `d+h` one session off |
-| 3 | Premium ratio: median over `premium_ratio_window`, refit on the month's first scored session | 499 points not eligible, 500 present; a point resolving on the refit day excluded, the day before included; `t` on 31 Dec 2023 excluded | mean instead of median; `<=` refit day; refit every day |
-| 4 | Premium-adjusted = raw x ratio; V1 on its live intraday measure only | either input missing gives missing; A16b back-filled rows never enter V1's window; V1 with 499 live points `not_eligible` | V1 on the close-proxy ratio; back-filled rows counted |
+| 3 | Premium ratio: median over `premium_ratio_window`, computed once on the month's first scored session and stored write-once; later days read the stored ratio | 499 points not eligible, 500 present; a point resolving on the refit day excluded, the day before included; `t` on 31 Dec 2023 excluded; a file archived after the refit day changes no stored ratio | mean instead of median; `<=` refit day; recomputed each day |
+| 4 | Premium-adjusted = raw x ratio; V1 and part f with the ratio W3 chooses (switch in the wiring, labelled on each row) | either input missing gives missing; option A: A16b back-filled rows never enter the window, 499 live points `not_eligible`; option B: the close-proxy ratio at `h` = 1, the row labelled `close_proxy`, the intraday / close-proxy level line printed | option A counting back-filled rows; option B rows without the label |
 | 5 | Back-fill (b1) for V2, V3: every row `backfill_exploratory`, ends before the first live day, re-run byte-identical, stored per method hash, reader refuses a missing hash file | re-run; changed method file gives a new path, never an overwrite | writing over an existing back-fill file |
-| 6 | V5 terms: `e`, K (tie lower), P, F under the 5% rule, void reasons | spread exactly 5% passes, 5.01% void; a one-sided leg void; `d` an expiry day takes next month; no future quote void | tie to the upper strike; `<` for the spread; `e` on `d` |
+| 6 | V5 terms: `e` checked against NSE's listed monthlies known before `d`, K (tie lower), P, F, `S_e`, `C_e`; a live quote needs a trade on `d` (A4's `traded_today`, imported) | spread exactly 5% passes, 5.01% void; a one-sided leg void; a leg whose last trade is the day before: void `no_trade_today`; `d` an expiry day takes next month; a pack future on a weekly or on `d`: void `future_not_monthly`; no listed-expiry file: void `expiry_list_unavailable`; no future quote void | tie to the upper strike; `<` for the spread; `traded_today` copied or skipped; `e` trusted from the pack |
 | 7 | V5 option-implied probability equals a hand-computed golden value (30-digit decimals, fixture JSON) | IV unsolved gives missing; deep wide P near 1; tiny P near 0 | drift term dropped; `tau` in sessions |
-| 8 | V5 outcome from the expiry-day file only, strict inside, `first_seen_at` order, refusals, written once with path, SHA and time | level equal to `K + P` outside; first seen 15:29:59 refused, 15:30:00 accepted; no archive time and no A8 sighting stays unresolved; a later day's close never used; one real past expiry's file resolves (claims) | `<=` for inside; "now" as fallback time; another expiry's file |
-| 9 | V4 terms: expiry with at least 5 scored sessions (special and muhurat sessions not counted), parity forward, mean IV, session clock; `v4_golden.json` reproduced (13.656% vs 13.567%: no; 9 calendar days: yes) | 4 sessions takes the next expiry; no such expiry in the pack void; spread and quote voids | 4 sessions accepted; raw IV compared without the clock change |
+| 8 | V5 outcome from the expiry-day file only, strict inside, `first_seen_at` = `CreationTimes.created_at(NseDailyFoSource.path_for(e))`, else A8's log, refusals, written once with path, SHA and time | level equal to `K + P` outside; first seen 15:29:59 refused, 15:30:00 accepted; created time None and an A8 sighting: A8's time; neither: unresolved; a later revision's time never used; a later day's close never used; one real past expiry's file resolves (claims) | `<=` for inside; "now" as fallback time; another expiry's file |
+| 9 | V4 terms: `e` only from `pack.v4_expiry`, parity forward, mean IV, session clock; `v4_golden.json` reproduced (13.656% vs 13.567%: no; 9 calendar days: yes) | `v4_expiry` None: void `no_v4_expiry`; **the monthly present and the weekly `v4_expiry` without ATM legs: void `no_v4_expiry`, never the monthly**; a `v4_expiry` with 4 scored sessions: void `v4_expiry_mismatch`; spread, no-trade-today and quote voids | the first expiry in the pack with 5 sessions used instead of `v4_expiry`; raw IV compared without the clock change |
 | 10 | V4 outcome on live A16 `RV_s` of `d+1..d+5` | one void session voids; a missing fifth session unresolved; back-filled rows ignored | back-filled rows used; a void session skipped |
 | 11 | V4 and V5 base rates on live outcomes only, resolved before the cutoff | 499 not eligible, 500 present; an outcome resolved after the cutoff excluded; no back-fill rows exist | an outcome resolved on `d` counted |
 | 12 | `v5_ewma_lognormal` and `v4_ewma_chi2` equal hand values; chi-square(5) closed form equals known table values (e.g. `F(11.0705) = 0.95`) to 1e-6 | EWMA not eligible gives missing; void terms give missing | `v = s2` without `S_e`; chi-square with 4 degrees |
-| 13 | Post-release capture: nothing on `system_late`; every pack-reading row names the released SHA (guard); base rates empty SHA; nothing from 15:10:00; write-once (same bytes no-op, other bytes refused) | 15:09:59 writes, 15:10:00 refuses; another pack's SHA refused; no release record writes nothing | a pack row with an empty SHA; overwrite allowed |
+| 13 | Post-release capture: nothing on `system_late`; every pack-reading row names the released SHA (guard); base rates empty SHA; nothing from 15:10:00; write-once (same bytes no-op, other bytes refused); every row carries `day_label` `A` from the release record (back-fill rows empty) | 15:09:59 writes, 15:10:00 refuses; another pack's SHA refused; no release record writes nothing | a pack row with an empty SHA; overwrite allowed; `day_label` missing or not from the release record |
 | 14 | Proxy drift: one `(day, pack IV30, EOD IV30)` row per live day once `d`'s EOD chain is archived; a flagged side is empty; G8's `proxy_drift` reads the rows | EOD not archived yet: pending, written on a later run; both flagged | EOD of `d+1` used for `d` |
-| 15 | Part e: V4 and V5 leave `NOT_STARTED` (no rows: "not enough data yet"); G8's V4 and V5 outcomes come from these resolvers; G8 reads the Drive records beside the CSVs; the report prints the proxy drift and the V4 and V5 labels; LR1's reader reads the new report | a V4 day with void terms is void, not missing; two rows for one day stop the report and name them; an old report still reads; G8's other tests unedited. Said plainly: the test that expects "not started" for V4 and V5 changes, a lane-1 test edit, shown in the claims | V5 scored on the index close; a duplicate day silently picked |
+| 15 | Part e: V4 and V5 leave `NOT_STARTED` (no rows: "not enough data yet"); G8's V4 and V5 outcomes come from these resolvers; G8 reads the Drive records beside the CSVs; the report prints the proxy drift and the V4 and V5 labels; LR1's reader reads the new report. **Sections 4 and 5 for V4, V5 and part f (judge 578 SF5):** Brier primary (unclipped); log score clipped to [0.01, 0.99], the 10-bin reliability table, calibration slope and intercept and the Brier skill score against the base rate, reported; block L 10 for V4, 20 for V5, 10 and 20 for part f's V2 and V3 series (`terms.BLOCK_LENGTH`); comparisons numbered after 15 (`seed_word`; part f's series key `<question>/intraday` gives a number apart from the close-proxy comparison's); never family members, never in Test A or a look; a `system_late` day out for every forecaster and counted; a live row whose receipt GitHub received after 15:10:00 is a miss (G10's deadline verdict, applied as for every other v4 row) | a V4 day with void terms is void, not missing; two rows for one day stop the report and name them; an old report still reads; V4 with a base rate present on 3 days: Brier skill on those 3 only; a V5 probability of 0.999: Brier unclipped, log score on 0.99; V4's comparison uses blocks of 10 (a fixture where 5 would give a different bootstrap); part f's and V2's close-proxy comparison carry different seed words; a V4 or V5 forecaster in the slot file is refused as a member; a `system_late` day counted apart; a row received at 15:10:00 counts, 15:10:01 is a miss; G8's other tests unedited. Said plainly: the test that expects "not started" for V4 and V5 changes, a lane-1 test edit, shown in the claims | V5 scored on the index close; a duplicate day silently picked; V4 on block 5; part f pooled with the close-proxy series; a late row scored |
 | 16 | W1-W7 in `PROTOCOL_v4.md`, read by a text test | each wording present once | a wording removed |
 | 17 | Part f: the intraday V2 and V3 outcome (sum of live A16 `RV_s`; void and unresolved rules; first full window), scored as separate series, never pooled, never in the family | one void session voids; the 4th of 5 sessions missing is unresolved; A16b's rows ignored; no live window yet prints "not enough data yet"; the close-proxy series' scores unchanged | pooling the two series; a void session skipped |
 | 18 | The O1 step: `forecasts_v4_pack` directly after the release step and before `card`, `not_live` while its key is null, commits only its receipt paths, refused from 15:10:00 | key null: `not_live`; a date: runs; `system_late`: ok with nothing written | step placed before the release; another path committed |
@@ -897,7 +938,18 @@ they found and what was fixed or why not.
 | 1.4 V4 diagnostic, not a VRP estimate | label in the record version; G8's report wording (15) |
 | 1.5 `e`, K, P frozen from the pack, 5% rule | criterion 6 |
 | 1.5 Strict inside on the expiry's final settlement, every row agreeing | criterion 8 |
-| 1.5 Source path, SHA-256, `first_seen_at` order, before-15:30 refusal, missing file unresolved | criterion 8 (W4 if needed) |
+| 1.5 Source path, SHA-256, `first_seen_at` order (Drive `createdTime`, then A8's log), before-15:30 refusal, missing file unresolved | criterion 8 |
+| 1.5 `e` the nearest monthly strictly after `d` (not trusted from the pack) | criterion 6 |
+| 1.6 Day label on every v4 record | `day_label` (Records and storage), criterion 13 |
+| 1.6 `last_trade_time` only for the traded-today check | criteria 6, 9 (W5) |
+| 4 Probability questions (V4, V5): Brier primary, log score, reliability, calibration, skill score vs base rate | criterion 15 |
+| 4 Point series (part f): QLIKE primary, squared error, Mincer-Zarnowitz; scored set and gate set | criterion 15 (G8's existing point scoring, called) |
+| 4 `system_late` out for every member; a commitment after 15:10:00 a miss | criteria 13, 15 (G10's deadline verdict) |
+| 4 Misses for reported forecasters (V4, V5 rules) | criterion 15 (G9's counting, unchanged; not a member, so no "undecided, operations" verdict) |
+| 5 Block L: V4 10, V5 20, part f 10 and 20 | criterion 15 (`terms.BLOCK_LENGTH`) |
+| 5.2 Reported comparisons numbered after 15 | criterion 15 (`seed_word`, part f's own series key) |
+| 5.6 V3, V4, V5 (and part f) never members | criterion 15 |
+| 5.3-5.5 Claim, futility and minimum effect for V4, V5 and part f | not applied: reported only (5.6); G8 prints the same numbers, never a verdict |
 | 1.5 V5 not evidence of money | G8's report wording (15) |
 | 1.3 Starts (V4 from the pack and A16; V5 from the freeze) | W6; criterion 13 writes from `daily.live_from` |
 | 1.1 V2, V3 intraday versions (separate reported series) | part f, criterion 17 (W7) |
@@ -913,10 +965,28 @@ they found and what was fixed or why not.
   step is written here and O1's builder reviews it; W1-W7 go to the owner at the freeze.
 - **Storage:** Drive for every new row (CLAUDE.md, O9, register row G7b). Phase 1's repo CSVs would put Groww-derived
   values in the repository: refused.
-- **G10's answer received (c876ede53):** items 1, 2, 4, 5 and 6 above accepted as written; the step order is G10's.
-- **Open:** item 3 (`v4_expiry` named in the pack), asked back through the orchestrator. Until it is agreed, V4's live
-  terms are not wired. **Merge order:** `first_v4_expiry` merges first (G10's capture imports it); the rest of this
+- **G10's answers received (c876ede53, d4e72f20d):** items 1-6 above agreed; the step order is G10's. G10 also
+  re-points G8's day-label readers (`build_scoring`, `build_ai_slot_days`, `build_day_counts` in
+  `fno/forecast_scoring/v4/wiring.py`) to the Drive release records; part e depends on that change and never
+  re-implements it.
+- **Open (asked of G10 through the orchestrator):** that its `v4_deadline` verdict also covers this story's receipt
+  path `receipts/data/v4/records/live/` (section 4's 15:10 rule, part e below). **Merge order:** `first_v4_expiry` merges first (G10's capture imports it); the rest of this
   story after G10's pack and release are on `main`.
+
+### Round 2: answers to judge 578, by number
+
+| Finding | Accepted? | What changed (section) |
+|---|---|---|
+| SF1 V4's expiry could be a farther one | yes: my "among the expiries the pack holds" could take the monthly when the weekly failed | `e` only from `pack.v4_expiry` (G10 d4e72f20d); void `no_v4_expiry` when its ATM legs are missing; criterion 9 gains "monthly present, weekly missing: void"; interface items 2-3 fixed |
+| SF2 W5 dropped the traded-today rule | yes: `quote_validity.py:11-38` checked; Groww gives no quote time, so the trade today is the only freshness evidence | live quote needs A4's `traded_today` on `last_trade_time` (imported, never copied); sizes not checked, said plainly (the pack has none); criteria 6 and 9; W5 and the owner row rewritten |
+| SF3 A11's archive time exists | yes: `creation_times.py:14-28` read; raw files are write-once, so `createdTime` is the first version's | `CreationTimes` at `NseDailyFoSource.path_for(e)`, then A8's log; criterion 8 tests it; W4 dropped, owner row says so |
+| SF4 W3 presented as forced | yes: 1.1 forbids pooling scored series, not mixing inputs; the window already mixes measures | W3 is a choice, A (own measure, about two years missing) or B (close-proxy ratio now, gap printed); recommended B, reasoning only; criterion 4 covers both |
+| SF5 sections 4 and 5 missing | yes | gap list rows for sections 4 and 5; criterion 15 cases (Brier, log score, reliability, skill, blocks 10/20, numbering, never members, `system_late`, 15:10 miss) |
+| m1 15 Oct, cohorts | yes | part f: first `d` is 15 Oct, windows holding void 16 Oct are void; cohorts apart |
+| m2 `S_e` for V5 | yes | defined in V5 terms |
+| m3 ratio computed once | yes | stored write-once on the refit day; criterion 3 |
+| m4 day label | yes | `day_label` copied from the release record; criterion 13 |
+| m5 future's expiry trusted | yes | checked against NSE's listed monthlies known before `d`; criterion 6 |
 
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
