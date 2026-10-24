@@ -10,11 +10,12 @@ from pathlib import Path
 
 from ..alerts.sender import AlertSender
 from .cap import CapReading, shown_pct
-from .constants import AI_ROLE_STOP_ORDER, BUDGET_ALERT, BUDGET_STOP, BUDGET_UNKNOWN
+from .constants import AI_ROLE_STOP_ORDER, BUDGET_ALERT, BUDGET_NO_CAP, BUDGET_STOP, BUDGET_UNKNOWN
 
 SIGNAL_FOLDER = "accounting/budget"
 CODE_JOBS = "keep running"
 NO_MEASURE = "no alert: the level is unknown (no measured minutes to compare with)"
+NO_CAP_ALERT = "no alert: no AI cap (owner, 24 Oct 2026)"  # BG1-u
 ALERT_TEXT = (
     "Omenix F&O SYSTEM: AI budget {month}: books and roles used {pct:.1f}% of their cap ({used:,.2f} of {cap:,.2f} "
     "minutes); at 100% AI roles stop ({order}); code jobs keep running"
@@ -67,4 +68,5 @@ def write_signal(root: Path, data: dict) -> Path:
 def send_alert(sender: AlertSender, data: dict) -> str:
     if data["alert_text"]:
         return sender.send(data["alert_text"])
-    return NO_MEASURE if data["level"] == BUDGET_UNKNOWN else "no alert: below the alert level"
+    quiet = {BUDGET_UNKNOWN: NO_MEASURE, BUDGET_NO_CAP: NO_CAP_ALERT}
+    return quiet.get(data["level"], "no alert: below the alert level")

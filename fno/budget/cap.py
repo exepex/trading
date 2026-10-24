@@ -4,7 +4,10 @@ The plan publishes no minutes allowance, so until `basis_until` the basis is all
 after it, only the owner's own monthly figure. Compared in decimals, so an exact 80% or 100% is never read as just below
 it. A level is given only when it is known: on the measured basis it needs every development session captured and every
 expected data-routine run captured (missing ones would lower the books' share); missing book sessions can only raise it,
-so then `ok` is unknown and `alert` or `stop` is "at least"."""
+so then `ok` is unknown and `alert` or `stop` is "at least".
+
+Story BG1-u (owner, 24 Oct 2026: "No monthly budget cap for AI. Keep it unlimited."): all of the above holds only under
+`budget.cap: share`. Under `none`, the configured value, the reading has the level `no_cap` and no cap at all."""
 
 from __future__ import annotations
 
@@ -12,7 +15,16 @@ import math
 from dataclasses import dataclass
 from decimal import Decimal
 
-from .constants import BUDGET_ALERT, BUDGET_OK, BUDGET_STOP, BUDGET_UNKNOWN, PURPOSE_BOOKS_AND_ROLES
+from .constants import (
+    BUDGET_ALERT,
+    BUDGET_NO_CAP,
+    BUDGET_OK,
+    BUDGET_STOP,
+    BUDGET_UNKNOWN,
+    CAP_MODES,
+    CAP_SHARE,
+    PURPOSE_BOOKS_AND_ROLES,
+)
 
 BASIS_MEASURED = "measured: all recorded session minutes of the month (books, roles, development, data routines)"
 BASIS_OWNER = "owner's figure: {minutes:,.0f} plan minutes a month (config.yaml budget.plan_minutes_per_month)"
@@ -28,6 +40,8 @@ MEASURED_LIMIT = (
     "limit: the plan's real capacity is not measurable (its rate-limit data gives no minutes), so this basis moves "
     "with development"
 )
+NO_CAP = "no AI cap (owner, 24 Oct 2026: unlimited)"
+BAD_CAP = "budget.cap must be one of {modes}, not {value!r} (owner, 24 Oct 2026: none)"
 BAD_SETTINGS = "budget settings must have 0 < books_and_roles_share_pct <= 100 and 0 < alert_pct <= stop_pct"
 
 
@@ -38,9 +52,15 @@ class CapSettings:
     stop_pct: Decimal
     plan_minutes: Decimal | None  # the owner's own monthly figure, if set
     basis_until: str | None = None  # last month (YYYY-MM) of the measured basis; None: no end set
+    capped: bool = True  # BG1-u: False under `budget.cap: none`, the owner's 24 Oct decision
 
     @classmethod
     def from_config(cls, budget: dict) -> CapSettings:
+        mode = budget.get("cap")
+        if mode not in CAP_MODES:  # required, never guessed: G11's fire and role_value refuse on a ValueError
+            raise ValueError(BAD_CAP.format(modes=", ".join(CAP_MODES), value=mode))
+        if mode != CAP_SHARE:  # BG1-u: the share settings are kept in config but neither read nor checked
+            return cls(Decimal(0), Decimal(0), Decimal(0), None, capped=False)
         plan, until = budget.get("plan_minutes_per_month"), budget.get("measured_basis_until")
         settings = cls(_dec(budget["books_and_roles_share_pct"]), _dec(budget["alert_pct"]),
                        _dec(budget["stop_pct"]), _dec(plan) if plan is not None else None, until)  # fmt: skip
@@ -62,8 +82,8 @@ class Coverage:
 class CapReading:
     books_and_roles_minutes: float
     basis_minutes: float
-    cap_minutes: float
-    pct_of_cap: float | None  # None: nothing to measure against
+    cap_minutes: float | None  # None: no cap (BG1-u)
+    pct_of_cap: float | None  # None: nothing to measure against, or no cap
     level: str
     basis: str
     note: str = ""  # why the level is unknown, or why it is a lower bound
@@ -76,6 +96,8 @@ def cap_reading(usage_rows: list[dict], settings: CapSettings, month: str, cover
         basis_minutes, basis = _dec(settings.plan_minutes), BASIS_OWNER.format(minutes=_dec(settings.plan_minutes))
     else:
         basis_minutes, basis = sum((_dec(r["minutes"]) for r in usage_rows), Decimal(0)), BASIS_MEASURED
+    if not settings.capped:  # BG1-u: minutes still measured and shown; no level, so no gap can make it unknown
+        return CapReading(float(used), float(basis_minutes), None, None, BUDGET_NO_CAP, basis, NO_CAP)
     cap = basis_minutes * _dec(settings.share_pct) / 100
     level, note = _gaps(_level(used, cap, settings), owner, settings, month, coverage)
     pct = float(100 * used / cap) if cap > 0 else None

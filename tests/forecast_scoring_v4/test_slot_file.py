@@ -67,4 +67,4 @@ def test_a_start_on_the_first_eligible_session_or_before_any_eligible_value_is_a
 def test_before_the_freeze_the_repository_registers_no_slot():
     assert not wiring.FREEZE_FILE.exists() and wiring._first_eligible(V6_BIG_MOVE_1S) is None
     assert wiring._frozen_on() is None
-    assert wiring._registry().registered() == {}
+    assert wiring.build_slot_registry().registered() == {}

@@ -82,9 +82,20 @@ def test_protocol_v4_is_frozen_so_the_days_v4_rows_are_scored():
     assert (ROOT / "research" / "forecasts" / "FREEZE_v4.md").is_file()
 
 
-@missing("G11")
-def test_the_ai_books_answer_the_v4_questions_on_the_recorded_day():
-    not_built("G11")
+def test_the_ai_books_answer_the_v4_questions_on_the_recorded_day(tmp_path):
+    """G11 C14 (the marker deleted with the story): a real live v4 day, fire to G8's report (`ai_v4_day.py`)."""
+    from fno.forecast_v4.terms import FAMILY_QUESTIONS
+    from fno.forecast_v4_rules import records
+
+    from .ai_v4_day import DAY, replay
+
+    done = replay(tmp_path)
+    rows = {(f, q): records.read(records.path(done["folder"], f, q)).get(DAY.isoformat())
+            for f in ("book2_hybrid_v2", "book3_ai_v2") for q in FAMILY_QUESTIONS}  # fmt: skip
+    assert len(rows) == 10 and all(r is not None and r.pack_sha256 == "d" * 64 for r in rows.values())
+    assert rows[("book3_ai_v2", "v6_abs_move_2pct_next_session")].status == "ok"
+    live = done["report"].cohorts["live"].scores
+    assert live["book3_ai_v2"] is not None and live["book2_hybrid_v2"] is not None  # G8 scores both books' V6a
 
 
 @missing("O10")

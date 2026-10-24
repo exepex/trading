@@ -75,3 +75,52 @@ The run's last line changes. After this, `preopen record`'s lines end with "open
 check problem. CLAUDE.md's pre-open section says the command "ends on 'pre-open recorded' or 'pre-open recorded with
 problems: ...'". No code parses that line (my grep outside `fno/preopen/`). The section should still be updated with
 the code: it is a rule document, lane 2, unless the orchestrator folds it into this change.
+
+## Addendum 2
+
+**A22d code, round 1 of 2 (story/a22d-flat-candle @ 3555eda2f): PASS. Lane 1.** Judge E. Judged against the text
+passed in 589.1.
+
+| Criterion | Result | My evidence |
+|---|---|---|
+| D1 flat candle accepted | MET | **Real 23 Oct answers**, from Drive and checked against their receipts, through the branch's `read_index_preopen`: NIFTY at 09:10:59 and BANKNIFTY at 09:11:01 are complete, basis `flat_0915`, `source_time` None |
+| D2 refusals | MET | The same real answers at 09:15:00 and at 09:09:59 give "no pre-open value: candles only from 09:15". Plants A2 (no upper bound), A3 (no lower bound), A4 (any volume), A5 (any stamp), A6 (other candles allowed) and A15 (another day's read) each caught |
+| D3 precedence | MET | A7 (flat wins over the 09:09 candle) caught |
+| D4 day row | MET | `day_row` writes `flat_0915_<label>`, with `unverified` as the default (A14 caught) |
+| D5 open check | MET | Uses `beyond` (A9: 0.10 tolerance caught). A missing official file is never a match (A21 caught). One index's missing row never hides the other's (A19 caught). No value in any line (A12 caught). The last morning in the look-back is named (A17 caught) |
+| D6 label | MET | A10 (4 matches) and A11 (one mismatch ignored) caught. A16 (any basis counted) caught: old-header rows never count |
+| D7 timing | MET | `record.py:56-69`: the check runs after `_finish` has committed the capture. A13 (check before the capture) caught |
+| D8 sample | MET | My real-answer run above |
+| Gates | MET | Trial merge 29cca45c0 with origin/main afaf3061b: ruff clean, format clean (2,528 files), imports clean (2,657 files), record scan clean (9,115 files). Full suite with the token kept: **15,763 passed, 1 skipped (`growwapi`), 15 xfailed, 0 failed**, the builder's 15,764 with the skip counted. Largest file in `fno/preopen/`: 136 lines |
+
+**Plants:** 19 planted, 19 caught (`tests/preopen`, `tests/rehearsal`, `tests/intraday`: 551 tests), each restored
+after its run.
+
+**The six choices beyond the text, ruled (all accepted):**
+1. **Labels read in a background thread from the run's start, with a 10-minute join before the check.** It reads only
+   check files that earlier runs wrote. No window waits on it, and a late or failed read labels every value
+   `unverified` (A20 caught). Minor 1 below.
+2. **One index's missing official row is its own problem**, and it is written `no official value`, which never counts
+   as a match.
+3. **A waiting session is named once,** on its 10th and last morning in the look-back, never dropped silently.
+4. **`PreopenPart.read` made abstract, with REH1c's `RecordedPreopenPart` calling the live part's reader.** This
+   removes the `isinstance` branch, so the rehearsal and the live run share one reader. 23 Oct replays as complete.
+5. **`parse_candles` refuses a dict row** (KeyError becomes `CandleParse`). Its other callers: `backfill.py:183`
+   already catches `CandleParse`; in `session_deriver` the error that propagates is now named, never a bare KeyError.
+6. **`read_nse_day(index_row=NIFTY_ROW)`**: the default keeps every existing caller unchanged.
+
+**CLAUDE.md.** Only the end-line sentence of step 3 changes. It matches the code: the capture's line, then after its
+commit the check's "open check: <n> checked, <m> waiting for NSE's file" or "open check with problems: ...", each
+exit 1 with its own alert (`record.py:66-70`, `max` of the two codes). As before, the alert's send result follows a
+problem line. The same step still says "NIFTY's and BANKNIFTY's 09:09 one-minute candle"; left as the orchestrator
+asked, though it is now one of two sources.
+
+## Findings
+
+None blocking, none should-fix.
+
+## Minor
+
+1. If the label read hangs past `FINISH_WITHIN_SECONDS` (600 s), the open check starts while that thread still uses
+   the same Drive cache: the overlap `finish()` exists to prevent. This needs one Drive call stuck for over 10
+   minutes. It cannot change a recorded value, because the labels were already taken.

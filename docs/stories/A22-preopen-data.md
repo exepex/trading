@@ -149,3 +149,213 @@ before the pre-open window; a GIFT never fresh is written with its status, its r
    does Groww give BANKNIFTY's pre-open candle? The design keeps whichever answers; criterion 3 needs one.
 2. The owner confirms the personal-research rule covers NSE's GIFT Nifty and pre-open pages (same as the US closes, 15
    Oct).
+
+## Amendment 2 (A22d): the flat 09:15 candle is the live pre-open value (DR1 item 7, 24 Oct 2026)
+
+**Lane:** 1 (Groww, the A22 routine's record). **Branch:** `story/a22d-flat-candle`. **Builder:**
+session_012pfddFKS3kqy6dJQCJ3Z5i (A22's owner session 013u1Ac2 no longer exists). **Orchestrator:**
+session_01Mt6dcBU5kp2htdPN2KmiZH. **Deadline:** on `main` before Mon 26 Oct 08:30 IST, the next live pre-open.
+
+### The failure
+
+23 Oct, the first live morning: "nifty incomplete / banknifty incomplete: no pre-open value: candles only from 09:15"
+(O10 rows 12-13); the orchestrator's 24 Oct rehearsal (REH1c, the recorded answers replayed) gives the same. It will
+fail every trading day: step 0b tested candles read from history (after the session), where 09:00-09:14 exist; read
+live at 09:10, Groww serves none of them.
+
+### Evidence (24 Oct, 19:40 IST; the archived raw answers through the verified Drive cache, A16's `ReadOnlyGroww` for history; differences only, no value) [strong, one session; rows marked * are the builder's
+read of Groww's history, not replayable from the repository (no 23 Oct 1-minute archive); judge 589 reproduced the
+others from Drive]
+
+| Check, 23 Oct | NIFTY | BANKNIFTY |
+|---|---|---|
+| Live answer (`nifty_091059.json`, `banknifty_091101.json`): candles of the day | one, stamped 09:15 | one, stamped 09:15 |
+| That candle: open = high = low = close; volume field | yes; `null` | yes; `null` |
+| Its close minus NSE's official open (`ind_close_all`, Open Index Value) | 0.00 | 0.00 |
+| Its close minus the 09:09 close Groww serves from history now * | 0.00 | 0.00 |
+| The real 09:15 candle in history now: flat? its open minus the live candle's close * | no; 0.95 points | no; 14.65 points |
+
+So before 09:15 Groww's one candle is a placeholder for the minute to come, holding the index's last value, which
+from 09:08-09:09 to 09:15 is the pre-open result (step 0b: the close is final from the 09:08 or 09:09 candle on 21 of
+21 sessions, and the 09:09 close is NSE's open on all of them). The real 09:15 candle replaces it later and differs.
+Limits: one live session (22 Oct has no live answer: A22's first live morning was 23 Oct); only the last read of each
+index (09:10:59) was archived, so the 09:10:00 and 09:10:30 answers are unseen; index candles carry `null` volume live
+and in history, so "no volume" alone does not mark the placeholder. Hence the next-morning check below.
+
+### The rule
+
+`read_index_preopen` gets the read's `seen_at` (Groww's `received_at`, as today in `Answer`):
+1. The day's 09:09 candle present: its close, as now (basis `candle_0909`). It always wins over rule 2.
+2. Else, the value is the close of the day's 09:15 candle (basis `flat_0915`) only when all hold: it is the day's
+   **only** candle; open = high = low = close; its volume is `null`, absent or 0; `seen_at` is from 09:10:00 (after the
+   pre-open result is final, step 0b) and **before 09:15:00** (from 09:15 the candle may be a traded minute).
+3. Anything else is not a value: a 09:15 candle read from 09:15:00, not flat, with a volume, or beside other candles
+   of the day, or a candle stamped 09:14 (or any other minute), keeps today's outcomes ("no pre-open value: candles only
+   from 09:15" or "no 09:09 candle yet", incomplete, retried to 09:10:59). No candle stays "no 09:09 candle yet".
+   `source_time` of a `flat_0915` value is blank: the candle's 09:15 stamp is later than the read and is not the
+   value's time; `seen_at` is.
+
+The day row gains one column per index, `nifty_preopen_basis` and `banknifty_preopen_basis`: `candle_0909`,
+`flat_0915_unverified` or `flat_0915_verified`, blank when there is no value. Nothing else in the row changes; the
+receipt O8 reads and the GIFT file are untouched.
+
+### How a wrong value is caught: the open check
+
+- **When:** after `preopen record`'s own commits (about 09:11-09:12), as its last step on a trading day, so no Drive
+  wait in it can move GIFT's 08:40 read (the 08:50 edition needs GIFT's receipt at about 08:41) or the 09:12 commit
+  (judge 589 finding 1). Chosen over a hard stop before 08:40 because a stop between calls cannot bound one slow Drive
+  call, and after the commit nothing waits on the check (no reader of the label until the next morning's row). It
+  checks each of the last 10 sessions before today that has a day row with at least one index value and no check file
+  yet; a row with no value (23 Oct's) is skipped. A day row written before A22d has no basis columns: its values are
+  checked and its basis reads blank, so it never counts toward the label.
+- **What:** each index's value against NSE's Open Index Value in that session's `ind_close_all`, read from the stores
+  only (`build_stored_index_close_files`, never NSE, never a Drive write; A9's librarian archives it at 08:38 and
+  through `index-closes.yml`). Match: at most one tick (0.05 points) apart, A16b's `beyond` (one rule, not a second).
+  Its result goes write-once to Drive, `data/preopen/check/YYYY/MM/<date>.csv` (per index: basis, `match`, `mismatch`
+  or `no value`, and the difference, in Drive only), with its receipt, committed by a second run of the run's own committers after the check. Its lines follow the
+  capture's: "open check: <n> checked, <m> waiting for NSE's file", or "open check with problems: ..." with its own
+  #fno-desk line (sent only then); either problem line makes the command exit 1.
+- **No official file yet:** no check file is written; that session is checked again the next morning (a 10-session
+  look-back covers a long weekend and a late archive). Never counted as a match.
+- **Mismatch:** one problem line in the check's #fno-desk alert and one O10 row ("nifty open check mismatch:
+  flat 09:15 candle differs from NSE's official open on <day>"; no value or difference in the alert or the repository).
+  The day's row is not changed (write-once); its check file says `mismatch`.
+- **Label, before 5 sessions are checked:** a `flat_0915` value is kept and labelled `flat_0915_unverified`, not
+  blocked. Reason: blocking loses the only live pre-open value every day while the check can only run the next
+  morning anyway; the evidence above is exact on the one live day and the mechanism matches 21 history sessions; the
+  label lets FL1 (the only reader to come; it reads no pre-open value yet) show or skip it. A value is labelled
+  `flat_0915_verified` when that index's 5 most recent checked `flat_0915` sessions are all `match`; any `mismatch`
+  among them makes it `unverified` again (5 fresh matches needed). `candle_0909` values are checked too but are not
+  part of the count. Today's label is set when the day row is written (09:11) from the check files already there, so
+  it counts sessions up to the day before yesterday. Earliest `verified`: Tue 3 Nov's row (values of 26-30 Oct,
+  the fifth checked on 2 Nov after that morning's row).
+
+### Acceptance criteria (each with good, bad, boundary and empty cases; injected clock)
+
+D1. Flat candle accepted: the 23 Oct shape (one flat 09:15 candle, `null` volume) read at 09:10:00, 09:10:59 and
+    09:14:59 gives the value, basis `flat_0915`, blank `source_time`, status `ok`.
+D2. Not accepted: read at 09:15:00 (boundary) and 09:16; read at 09:09:59 (boundary); a non-flat 09:15 candle read
+    before 09:15; one with volume 1 (volume 0 is accepted); a flat 09:15 candle beside a 09:05 candle; a flat candle
+    stamped 09:14; another day's flat 09:15 candle; no candle; an empty list. Each gives today's incomplete outcome,
+    never a value.
+D3. Precedence: an answer with the 09:09 candle and a flat 09:15 candle gives the 09:09 close, basis `candle_0909`.
+D4. Day row: the two basis columns, filled as the rule says; blank for an index with no value; other columns
+    unchanged (header test); a day row in the old header (23 Oct's, no basis columns) still reads.
+D5. Open check: match at 0.00 and at 0.05 (boundary), mismatch at 0.06 and at -0.06; mismatch gives one alert line
+    and one O10 row without a value; no official file writes no check file and is retried next morning; a session
+    already checked is not checked again (write-once file taken); no day rows to check does nothing; an old-header row with a value is checked with a blank basis and does not
+    count; a row with no value is skipped; the check reads
+    only stored index-close files (a fake NSE that fails the test if called).
+D6. Label: 4 matches then today gives `unverified`, 5 gives `verified`; 5 matches with a mismatch in the last 5
+    gives `unverified`; no check file at all gives `unverified`.
+D7. Timing: with a slow fake store (each check read takes 10 minutes on the injected clock) GIFT's first read is
+    still at 08:40:00 and the capture's commit precedes the check; the check runs only after the capture's commits; a
+    check failure (Drive down, unreadable file) is one problem line and exit 1, never a change to the capture's day
+    row, files or commit.
+D8. Real output sample in the Claims: the run's lines on the 23 Oct recorded answers through REH1c's rehearsal, and
+    the first live morning's (26 Oct) lines.
+
+### Gap list
+
+| Requirement | Where |
+|---|---|
+| Accept the flat 09:15 candle read before 09:15 (DR1 item 7) | D1, D2 |
+| Checked against `ind_close_all`'s open (DR1 item 7) | D5 |
+| 5+ sessions before trusting; unverified rather than blocked (orchestrator) | D6 |
+| Mismatch: what happens | D5 (alert, O10 row, check file, label reset in D6) |
+| Cases: volume, non-flat after 09:15, no candle, 09:14 stamp (orchestrator) | D2 |
+| No value in chat, alert or repository | D5, the record scan |
+| Never delays the 09:12 commit | D7 |
+| NSE's pre-open `key=NIFTY` as a second source (DR1 item 7: "possible") | Out: its layout is unverified (step 0: "No Data Found" in the evening; no morning read archived) and adding an unread source two days before the live morning adds a second unknown; the next-morning check already catches a wrong value. A later story may archive its raw answer for a layout probe |
+| FL1 showing the label | Out: FL1 reads no pre-open value yet; its builder is told the column |
+
+### Plants (builder's, each must fail a test)
+
+1. Drop the flat test. 2. Drop `seen_at < 09:15`. 3. Drop the 09:10 lower bound. 4. Accept any volume. 5. Accept any
+lone candle from 09:14. 6. Allow other candles beside it. 7. Prefer `flat_0915` over the 09:09 candle. 8. Count a
+missing official file as a match. 9. Tolerance 0.10. 10. Label verified at 4 matches. 11. Ignore a mismatch in the
+count. 12. Send the difference in the alert. 13. Check against NSE live instead of the stores. 14. Run the check before
+the capture (at the start of `preopen record`).
+
+### Claims (A22d)
+
+Text PASS: judge 589.1. Code on `story/a22d-flat-candle` (head named in the orchestrator message).
+
+**Code per criterion:**
+
+| Criterion | Code | Tests |
+|---|---|---|
+| D1-D3 | `answers.py` `read_index_preopen(..., seen_at)`, `_is_placeholder`; `parts.py` `GrowwIndexPreopen.read` | `test_flat_candle.py` (24 cases, a UTC `seen_at` too) |
+| D4 | `day_row.py` basis columns, `flat_labels` | `test_open_check.py::test_d4_*` (the pre-A22d header written out) |
+| D5 | `open_check.py` `OpenCheck.run`; `check_files.py` (verified Drive cache); `nse_range.read_nse_day(data, index_row)` | `test_open_check.py::test_d5_*`, `test_check_files.py`, `test_wiring.py` |
+| D6 | `OpenCheck.labels`, `_label` | `test_open_check.py::test_d6_*`, `test_open_check_record.py::test_d6_*` |
+| D7 | `record.py` (check after `_finish`, own alert, exit `max`); `label_read.py` (background read) | `test_open_check_record.py::test_d7_*` |
+| D8 | samples below | |
+
+**Choices beyond the text, for the judge:**
+1. The labels are read in a background thread started with the run and taken, without waiting, when the day row is
+   written: reading them at 09:11 in line would let a slow Drive delay the 09:12 commit. Not ready by then: every flat
+   value is `unverified` and one problem line "open check labels late" (only on a day that has a flat value). Before
+   the open check, the run waits for that thread (at most 10 minutes) so the two never write the same cached file.
+2. One index's row missing from NSE's file (`no official value`) is that index's own problem and result, written in the
+   check file; it never counts as a match and never hides the other index's result (self-review finding).
+3. A session still waiting for NSE's file on its last morning in the 10-session look-back is named once ("open check
+   not checked: ... leaves the look-back"), never dropped silently (self-review finding).
+4. The mismatch line follows the text: "nifty open check mismatch: flat 09:15 candle differs from NSE's official open
+   on <day>" ("pre-open value" for a 09:09 or old-row value).
+5. `PreopenPart.read` is now abstract on the port; REH1c's `RecordedPreopenPart` calls the live part's reader through
+   it (one reader, no type test). `parse_candles` also refuses a candle row that is a JSON object (`KeyError`, was a
+   crash path; self-review, pre-existing).
+6. CLAUDE.md's A22 section: only the last-line sentence changes (orchestrator). Its "NIFTY's and BANKNIFTY's 09:09
+   one-minute candle" wording is left as is, as asked; it now under-describes the flat-candle source.
+
+**Self-review (two independent review agents, read-only):** correctness: no blocking; should-fix 1 (one index's row
+missing failed the whole session, and a waiting session left the look-back silently): fixed (choices 2, 3). Minors
+fixed: `has()` outside the try (now inside: one failed line, never a traceback); the late label thread and the check
+sharing the Drive cache (choice 1's wait); late labels alerted on a day with no flat value (now only with one); the
+mismatch wording (choice 4); a dict candle row crashing the capture (choice 5). Tests: plant 11's survivor ("drop
+mismatches, then take 5") now caught by a 6-session case; the race of the real label thread in A22's older tests
+(they now read the labels at once; D7 uses the real thread); D4's circular header test now compares with the
+pre-A22d header written out; added: a UTC `seen_at`, a BANKNIFTY and a 09:09 mismatch, a missing NIFTY BANK row, the
+`taken` path, the 10-session boundary, old-header checks not counted, a recorder-level Drive-down check, no
+difference in the O10 row or committed files. Not done: a fake NSE that fails when called (the check has no NSE
+dependency at all; `test_wiring.py` shows the stores' reader is the one wired and the writer's library is not
+imported); holidays in the look-back (`previous_session` is the calendar's own, tested by A7).
+
+**Plants (builder's, 19, each restored with `git checkout`):** the 14 named in the text plus: every flat value
+`verified`; the per-index row not isolated; a waiting session dropped silently; late labels alerted with no flat
+value; check problems folded into exit 0. **19 of 19 caught.**
+
+**Real output samples:**
+- The committed reader on the real 23 Oct raw answers from Drive (verified against their receipts; values not printed):
+
+```
+nifty_091059.json read at 09:10:59: complete=True basis='flat_0915' source_time=None detail='' value_present=True
+nifty_091059.json read at 09:15:00: complete=False basis='' source_time=None detail='no pre-open value: candles only from 09:15' value_present=False
+banknifty_091101.json read at 09:11:01: complete=True basis='flat_0915' source_time=None detail='' value_present=True
+banknifty_091101.json read at 09:15:00: complete=False basis='' source_time=None detail='no pre-open value: candles only from 09:15' value_present=False
+```
+
+- The committed recorder on a fixture of that shape (invented numbers; the desk of `tests/preopen/desk.py`, fake
+  committers and a fake Slack sender), with one earlier session planted to mismatch:
+
+```
+receipts committed and pushed (2 file(s))
+gift ok (1 read(s))
+fo_list ok (1 read(s))
+nifty ok (1 read(s))
+banknifty ok (1 read(s))
+committed
+committed
+pre-open recorded
+committed
+committed
+open check with problems: nifty open check mismatch: flat 09:15 candle differs from NSE's official open on 2026-10-21
+alert sent to #fno-desk
+exit 1
+day row nifty: ok flat_0915_unverified | banknifty: ok candle_0909
+```
+
+- Open: the first live morning's lines (Mon 26 Oct) are added after it runs. Note: the real 23 Oct BANKNIFTY answer
+  was received at 09:11:01, after the window's close, so on that answer alone the run would mark it `late`; live, the
+  first read at 09:10:00 gets the flat candle (the 09:10:00 and 09:10:30 answers of 23 Oct were not archived).

@@ -18,6 +18,11 @@ BUDGET_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_GITHUB_DRIVE, ITEM_AZURE_POSTGRES, ITEM_G
                 ITEM_PAID_DATA)  # fmt: skip
 EXISTING_COST_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_AZURE_POSTGRES)  # running before 15 Oct 2026; others need a written yes
 BUDGET_OK, BUDGET_ALERT, BUDGET_STOP, BUDGET_UNKNOWN = "ok", "alert", "stop", "unknown"
+# Story BG1-u (owner, 24 Oct 2026: "No monthly budget cap for AI. Keep it unlimited."): `budget.cap` is `none` (no
+# level, nothing alerts or stops) or `share` (the 15 Oct cap, kept for a later decision)
+CAP_NONE, CAP_SHARE = "none", "share"
+CAP_MODES = (CAP_NONE, CAP_SHARE)
+BUDGET_NO_CAP = "no_cap"
 AI_ROLE_STOP_ORDER = ("analysts", "idea generator", "post-mortem writer", "devil's advocate objections",
                       "AI forecasters")  # fmt: skip
 # Story BG1-w (owner 24 Oct 2026, "Waiting minutes - Option A": a book run counts its working minutes, brief to seal):
