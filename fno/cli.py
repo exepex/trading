@@ -175,7 +175,8 @@ def cmd_chain(args) -> int:
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """Every command fno has (`main` parses with it; REH1j's rehearsal walks it to tell a command not built yet)."""
     p = argparse.ArgumentParser(prog="fno", description="Omenix F&O: Indian F&O options research (paper trading).")
     p.add_argument("--config", default=str(ROOT / "config.yaml"))
     p.add_argument("--provider", choices=["nse", "groww", "sample"], help="override the root provider (chain only)")
@@ -268,8 +269,11 @@ def main(argv: list[str] | None = None) -> int:
     add_flows_parser(sub)
     add_preopen_parser(sub)
     add_school_parser(sub)
+    return p
 
-    args = p.parse_args(argv)
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
     try:
         return args.func(args)
     except PrivateFilesUnavailable as unavailable:  # story E2c: a command that needs the paper records stops, named

@@ -56,10 +56,14 @@ class FinishQuoteParts(DayStep):
 
     def run(self, day: date) -> StepOutcome:
         """The parts are always open here: started by this run's `quotes`, or resumed by a rerun (F1)."""
-        results = self.parts.finish(self.waiter.until)
-        bad = [name for name, result in results.items() if result["status"] != STEP_OK or result.get("commit_error")]
-        reason = f"not ok: {', '.join(bad)}" if bad else "every part ok"
-        return StepOutcome({}, {"status": STEP_FAILED if bad else STEP_OK, "reason": reason, "parts": results})
+        return StepOutcome({}, parts_result(self.parts.finish(self.waiter.until)))
+
+
+def parts_result(results: dict[str, dict]) -> dict:
+    """`quotes_done`'s result for the parts' own results: failed unless every part is ok and committed."""
+    bad = [name for name, result in results.items() if result["status"] != STEP_OK or result.get("commit_error")]
+    reason = f"not ok: {', '.join(bad)}" if bad else "every part ok"
+    return {"status": STEP_FAILED if bad else STEP_OK, "reason": reason, "parts": results}
 
 
 WAITING_FOR_PART = "waiting for the {name} quote part to end, at most until {by:%H:%M} IST (never a hang)"

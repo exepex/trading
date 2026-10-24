@@ -82,6 +82,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     from ..premium_ranges.folders import receipt_pathspecs as premium_receipts
     from ..price_distribution.folders import receipt_pathspecs
     from ..price_ranges.folders import receipt_pathspecs as range_receipts
+    from ..rehearsal.exercised_parts import rehearsed_quotes_done
     from ..rehearsal.live_wiring import rehearsed_live, rehearsed_not_live
     from ..rehearsal.v4_pack import rehearsed_part_processes
     from ..rehearsal.waits import rehearsed_waiter
@@ -138,6 +139,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         step = CommandStep(processes, lambda day: arguments, pathspecs, git.changed, waiting, locks)
         return Alerted(name, LiveFrom(step, live[name]), alerts)
 
+    finish_parts = rehearsed_quotes_done(FinishQuoteParts(parts, waiter), quote_parts, not_live)  # REH1j: live parts
     steps = {
         "margin_check": Alerted(
             "margin_check", LiveFrom(command(lambda day: MARGIN_CHECK, MARGIN_CHECKS), live["margin_check"]), alerts
@@ -180,7 +182,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             ),
             alerts,
         ),  # E6's pauses  # fmt: skip
-        "quotes_done": Alerted("quotes_done", FinishQuoteParts(parts, waiter), alerts, status_alerts=False),
+        "quotes_done": Alerted("quotes_done", finish_parts, alerts, status_alerts=False),
         "card": Alerted("card", LiveFrom(card, live["card"]), alerts),
         "price_distribution": Alerted(
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
