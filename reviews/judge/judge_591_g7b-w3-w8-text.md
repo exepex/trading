@@ -32,6 +32,12 @@ code at 915f276d9 is left for the next code slice. Doc-reading tests on 5caa04e0
 
 None: text round.
 
+## For round 2
+
+The should-fix is a wording fix only: no new data is needed, and the numbers above stand.
+
 ## Notes
 
+- Scope: only 915f276d9..5caa04e0c in `docs/stories/G-forecasts.md` (73 lines changed); no code was read for this verdict.
+- Pilot-mode rule (69d75ac1c): the doc tests ran with the token set; no test posted to Slack (none of these tests posts).
 - W8 is a protocol wording for the owner. My "enough to propose" covers only that the evidence is honestly labelled and adequate for the owner to decide; it is not a ruling that W8 is right.
