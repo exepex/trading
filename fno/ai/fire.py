@@ -3,7 +3,8 @@ the day's v2 pack: one pointer per book to its own routine (O6's `/fire` trigger
 the AI team's without. The fire log (`<d>_fired.json`, committed with the records after 15:15) keeps each routine's
 session link for the audit. Fired once per day; every failure posts one #fno-desk line and is recorded, never retried
 with more time. A book stopped by two transcript breaches (`stop_rule.py`) is not fired, nor is any book on a run
-that starts after 15:13 IST (its answer could only be late)."""
+that starts after 15:13 IST (its answer could only be late). From the v4 go-live date the v2 AI fire stops (owner's
+choice A, G11: the books fire for v4 only, `v4_fire.py`)."""
 
 from __future__ import annotations
 
@@ -26,6 +27,7 @@ from .versions import current_version
 
 LINE = "Omenix F&O AI forecasts (GitHub Actions): {day}: {result}"
 LATE_START = "late start: the run began after {latest:%H:%M} IST, so no AI book was fired (no forecast today)"
+V4_LIVE = "v2 AI fire stopped: the books fire for protocol v4 from {live_from} (owner's choice A)"
 
 
 @dataclass
@@ -34,8 +36,11 @@ class AiBookFirer:
     triggers: dict[str, RoutineTrigger]  # book -> its routine's trigger
     alerts: AlertSender
     clock: Callable[[], datetime]
+    v4_live_from: date | None = None
 
     def fire(self, day: date) -> list[str]:
+        if self.v4_live_from is not None and day >= self.v4_live_from:
+            return [LINE.format(day=day, result=V4_LIVE.format(live_from=self.v4_live_from))]
         pack_file, log_file = self.root / pack_path(day), self.root / fired_path(day)
         if not pack_file.is_file():
             return [LINE.format(day=day, result="no v2 pack for the day; nothing fired")]

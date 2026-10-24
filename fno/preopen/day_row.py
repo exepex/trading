@@ -7,13 +7,14 @@ from __future__ import annotations
 
 import csv
 import io
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date, time
 from pathlib import Path
 
 from ..models import IST
 from ..storage.data_wiring import DATA_AREA, RECEIPTS_FOLDER
 from ..storage.receipts import ReceiptFolder
+from .answers import BASIS_FLAT
 from .run import LATE, OK, PartResult
 
 PREOPEN_RECEIPT_BY = time(9, 15)  # the consumer's need: FL1's 09:15 report reads the row (O8 judges it at 17:51)
@@ -23,9 +24,10 @@ RAW_FILE = "preopen/raw/{day:%Y}/{day:%m}/{day:%d}/{part}_{seen:%H%M%S}.json"
 VALUE_COLUMNS = {
     "gift": ("gift_level", "gift_contracts", "gift_expiry"),
     "fo_list": ("fo_stocks", "fo_with_iep"),
-    "nifty": ("nifty_preopen",),
-    "banknifty": ("banknifty_preopen",),
+    "nifty": ("nifty_preopen", "nifty_preopen_basis"),
+    "banknifty": ("banknifty_preopen", "banknifty_preopen_basis"),
 }
+VERIFIED, UNVERIFIED = "verified", "unverified"  # a flat 09:15 value's label (amendment 2: 5 matched checks)
 PART_COLUMNS = ("status", "reads", "seen_at", "source_time", "detail")
 TIME_FORMAT = "%H:%M:%S"
 
@@ -59,10 +61,16 @@ def columns() -> tuple[str, ...]:
     return ("date", "clock", *per_part, *(name for names in VALUE_COLUMNS.values() for name in names))
 
 
-def day_row(day: date, clock: str, results: Sequence[PartResult]) -> bytes:
+def day_row(day: date, clock: str, results: Sequence[PartResult],
+            flat_labels: Mapping[str, str] | None = None) -> bytes:  # fmt: skip
+    """`flat_labels`: the open check's label per index; an index not named is `unverified`."""
+    flat_labels = flat_labels or {}
     row = {"date": day.isoformat(), "clock": clock}
     for result in results:
         row.update(_part_cells(result))
+        basis = f"{result.part}_preopen_basis"
+        if row.get(basis) == BASIS_FLAT:
+            row[basis] = f"{BASIS_FLAT}_{flat_labels.get(result.part, UNVERIFIED)}"
     return _csv(columns(), row)
 
 

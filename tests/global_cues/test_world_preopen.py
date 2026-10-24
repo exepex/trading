@@ -11,7 +11,18 @@ import pytest
 from fno.global_cues import preopen_cli
 from fno.global_cues import wiring as global_cues_wiring
 from fno.global_cues.markets import SEOUL, TOKYO
-from fno.global_cues.preopen import CLOSED, LIVE, LUNCH, ROW_FIELDS, STALE, PreopenReader, level_status, newest_level
+from fno.global_cues.preopen import (
+    CLOSED,
+    LIVE,
+    LUNCH,
+    ROW_FIELDS,
+    STALE,
+    EmptyAnswer,
+    PreopenReader,
+    level_status,
+    newest_level,
+)
+from fno.global_cues.preopen_outcome import ReadOutcome
 from fno.global_cues.snapshot_log import SnapshotLog
 from fno.global_cues.yahoo_source import YahooBlocked, YahooChartSource
 from fno.models import IST
@@ -90,7 +101,7 @@ def test_the_newest_level_is_the_last_point_with_a_value():
     level = newest_level("nikkei225", data, SEEN, TOKYO)
     assert (level.level, level.status) == (LEVEL, LIVE)
     assert f"{level.level_time:%H:%M}" == "12:25"  # the 03:20 UTC bar (12:20 Tokyo) ends at 12:25
-    with pytest.raises(ValueError, match="no 5-minute level"):
+    with pytest.raises(EmptyAnswer):
         newest_level("nikkei225", answer((utc(date(2026, 10, 22), time(3, 20)), None)), SEEN, TOKYO)
     with pytest.raises(ValueError, match="not Yahoo's chart answer"):
         newest_level("nikkei225", b"{}", SEEN, TOKYO)
@@ -121,8 +132,8 @@ def source():
 def test_a_read_archives_the_raw_answer_and_appends_one_private_row(tmp_path):
     data = answer((utc(date(2026, 10, 22), time(3, 20)), LEVEL))
     found, log = reader(tmp_path, CountingSession(CannedResponse(200, data)))
-    line, status = found.read(source(), "nikkei225")
-    assert line == "nikkei225: live, level of 12:25 JST (5 min old)" and str(LEVEL) not in line and status == LIVE
+    found = found.read(source(), "nikkei225")
+    assert found == ReadOutcome(("nikkei225: live, level of 12:25 JST (5 min old)",), LIVE)
     (row,) = log.rows()
     assert tuple(row) == ROW_FIELDS and (row["level"], row["status"], row["previous_close_cue"]) == (
         repr(LEVEL),
@@ -150,7 +161,7 @@ def test_the_command_alerts_once_and_records_one_o10_row_when_an_index_failed(mo
                 raise YahooBlocked(
                     "kospi_yahoo: Yahoo answered HTTP 403; stopped for this run, never retried another way"
                 )
-            return f"{index}: live", LIVE
+            return ReadOutcome((f"{index}: live",), LIVE)
 
     sent, errors = [], CaptureErrorLog(tmp_path / "capture_errors.csv")
     monkeypatch.setattr(
@@ -164,15 +175,20 @@ def test_the_command_alerts_once_and_records_one_o10_row_when_an_index_failed(mo
     out = []
     assert preopen_cli.cmd_preopen(out.append, now=at_0855, sleep=no_sleep, is_session=always) == 1
     assert out[:2] == ["nikkei225: live", out[1]] and out[1].startswith("kospi: FAILED (YahooBlocked)")
-    assert sent == ["Omenix F&O pre-open Asian levels: kospi failed (the routine's output names why)"]
+    assert sent == ["Omenix F&O pre-open Asian levels: kospi: failed (YahooBlocked)"]
     (row,) = errors.rows()
-    assert (row.job, row.step, row.kind, row.message) == ("global-cues-preopen", "preopen", "failure", "kospi failed")
+    assert (row.job, row.step, row.kind, row.message) == (
+        "global-cues-preopen",
+        "preopen",
+        "failure",
+        "kospi: failed (YahooBlocked)",
+    )
 
 
 def test_the_command_exits_0_and_records_nothing_when_every_index_read(monkeypatch):
     class Reader:
         def read(self, source, index):
-            return f"{index}: {CLOSED}", CLOSED  # an Asian holiday is a good run
+            return ReadOutcome((f"{index}: {CLOSED}",), CLOSED)  # an Asian holiday is a good run
 
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None)]))
     monkeypatch.setattr("fno.health.wiring.build_capture_error_log", lambda: pytest.fail("no row when nothing failed"))
@@ -212,7 +228,7 @@ def test_a_failed_archive_write_alerts_and_the_next_indexes_still_read(monkeypat
         def read(self, source, index):
             if index == "nikkei225":
                 raise RuntimeError("Drive refused the write")
-            return f"{index}: live", LIVE
+            return ReadOutcome((f"{index}: live",), LIVE)
 
     monkeypatch.setattr(
         "fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None), ("kospi", None)])
@@ -231,14 +247,12 @@ def test_every_open_market_stale_alerts_but_stale_beside_a_live_one_does_not(mon
 
     class Reader:
         def read(self, source, index):
-            return f"{index}: {statuses[index]}", statuses[index]
+            return ReadOutcome((f"{index}: {statuses[index]}",), statuses[index])
 
     pairs = [(index, None) for index in statuses]
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), pairs))
     assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep, is_session=always) == 1
-    assert sent == [
-        "Omenix F&O pre-open Asian levels: no live level: every open market stale (the routine's output names why)"
-    ]
+    assert sent == ["Omenix F&O pre-open Asian levels: no live level: every open market stale"]
     statuses["kospi"] = LIVE
     assert (
         preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep, is_session=always) == 0
@@ -254,7 +268,7 @@ def test_it_waits_for_0850_reads_until_0905_and_then_reports_the_rest_unread(mon
 
     class Reader:
         def read(self, source, index):
-            return f"{index}: live", LIVE
+            return ReadOutcome((f"{index}: live",), LIVE)
 
     pairs = [("nikkei225", None), ("kospi", None), ("asx200", None)]
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), pairs))
@@ -262,7 +276,7 @@ def test_it_waits_for_0850_reads_until_0905_and_then_reports_the_rest_unread(mon
     assert preopen_cli.cmd_preopen(out.append, now=lambda: next(clock), sleep=slept.append, is_session=always) == 1
     assert slept == [600.0]  # 08:40 to 08:50
     assert out[:3] == ["nikkei225: live", "kospi: live", "asx200: FAILED, not read: the window closed at 09:05 IST"]
-    assert sent == [preopen_cli.ALERT.format(what="asx200 failed")]
+    assert sent == [preopen_cli.ALERT.format(what="asx200: failed (not read: the window closed at 09:05 IST)")]
 
 
 def test_receipts_that_could_not_be_pushed_alert_and_record(monkeypatch, tmp_path):
@@ -270,7 +284,7 @@ def test_receipts_that_could_not_be_pushed_alert_and_record(monkeypatch, tmp_pat
 
     class Reader:
         def read(self, source, index):
-            return f"{index}: live", LIVE
+            return ReadOutcome((f"{index}: live",), LIVE)
 
     refused = Committed("pre-open logs NOT committed: push failed: rejected. Commit research/... by hand")
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen", lambda: (Reader(), [("nikkei225", None)]))
@@ -308,7 +322,7 @@ def test_a_read_failure_and_a_failed_push_give_one_alert_and_the_row_is_written_
     monkeypatch.setattr("fno.global_cues.wiring.build_preopen_committers", lambda: [Refused()])
     assert preopen_cli.cmd_preopen(lambda line: None, now=at_0855, sleep=no_sleep, is_session=always) == 1
     assert rows_at_commit == [1]  # the O10 row existed when the commit ran
-    assert sent == [preopen_cli.ALERT.format(what="kospi failed; receipts not committed")]
+    assert sent == [preopen_cli.ALERT.format(what="kospi: failed (YahooBlocked); receipts not committed")]
 
 
 def test_a_day_nse_does_not_trade_reads_nothing(monkeypatch):

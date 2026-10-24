@@ -37,6 +37,9 @@ class ScriptedPart(PreopenPart):
             raise outcome
         return Answer(f"raw {self.name} {len(self.read_at)}".encode(), outcome, self.clock.now())
 
+    def read(self, data: bytes, day: date, seen_at: datetime) -> Reading:
+        raise AssertionError("a scripted part is read only through answer()")
+
 
 def complete(values: dict | None = None) -> Callable:
     return lambda n, now: Reading(True, now, values or {})
