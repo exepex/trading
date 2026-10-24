@@ -54,3 +54,25 @@ None (a text round). Plants W1-W12 are planned for the code.
   refusal already fails the same test. Finding 1's fix should cover both codes.
 - Not checked: the dashboard repository itself (outside this session's scope). I checked only the pinned contract
   here.
+
+## Addendum 1: round 2 at b673e0ddd (diff 2fa8f6f6a..b673e0ddd)
+
+**PASS, lane 1** (Judge I, own session). The diff changes only the T1e section of `docs/stories/T-cards.md`.
+
+| Round-1 finding | Verdict | My evidence |
+|---|---|---|
+| 1 Blocking: the dashboard contract rejects `step_problems` | FIXED | Criterion 10, test 11 and plant W13 are new: every card code from `fno/constants.py` must be in the pinned `fno-card.yaml` enum, with neither list hard-coded. The merge waits for the contract change and re-pin, now an Out item owned by a dashboard builder, with the re-pin steps from `contracts/omenix-dashboard/README.md:8-9`. The "no other module" claim is corrected. The builder's extra code `trade_fields_not_built` is real (`constants.py:332`) and missing from the enum (`fno-card.yaml:39`) |
+| 2 Should-fix: the line-2 reason was wrong | FIXED | T1 criterion 1 is restated correctly, with the right citations. The owner gets options (a) line-1 prefix and (b) line 2, each with its phone-preview effect. The placement is one renderer function on a `CardWarning` value (criterion 11, plant W14), so the owner's choice is a one-place change |
+| 3 Minor: where `Status:` goes | FIXED | Criteria 1 and 5: line 3 on a warning day, line 2 otherwise; tests 1 and 7 |
+
+Checked again: the TEST banner stays the post's first line under both options (test 8). The gap list now names all
+three findings. Doc-reading tests at b673e0ddd: 829 passed, 15 xfailed; record scan clean.
+
+Minor wording (none blocks; fix in the code round):
+- "judge I's recommendation" (twice, Placement (a)): round 1 said (a) fits the owner's word "headline" and that
+  either option is fine once the owner picks. Better wording: "fits 'headline' (judge 577)". The owner decides.
+- "and the dashboard itself through the read models": no module in `fno/market_read_models/` reads the card's code
+  (my grep). It reaches the dashboard through the delivery file and the contract. Drop the clause.
+
+For the code judge: test 11 is red by design until the re-pin. A code PASS needs the re-pin merged first and that
+test green on the merged tree.
