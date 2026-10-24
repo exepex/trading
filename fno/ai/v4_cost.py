@@ -40,7 +40,7 @@ class V4CostReport:
             return "no v4 runs yet"
         working = [_minutes(t["started_at"], t["sealed_at"]) for t in runs if t.get("sealed_at")]
         waiting = [_minutes(t["sealed_at"], t["ended_at"]) for t in runs if t.get("sealed_at")]
-        calls = [float(t["reveal_calls"]) for t in runs if t.get("reveal_calls")]
+        calls = [float(t["reveal_calls"]) for t in runs if t.get("reveal_calls") is not None]
         unknown = len(runs) - len(working)
         parts = [f"{len(minutes)} run(s) in BG1's ledger, minutes {_spread(minutes)}", f"working {_spread(working)}",
                  f"waiting {_spread(waiting)}", f"reveal calls {_spread(calls)}"]  # fmt: skip

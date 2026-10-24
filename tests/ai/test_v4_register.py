@@ -54,10 +54,10 @@ def test_ten_rows_land_after_the_rules_rows_and_g8_reads_all_fifteen(tmp_path):
     assert found[(FAMILY_QUESTIONS[-1], V4_SLOT_AI)].forecaster == "book3_ai_v2"
     assert DECISION in slots.read_text() and f",{FIRST},{FROZEN}," in slots.read_text()
     again = registrar(at(FROZEN, 18, 5)).register(write=True)
-    assert again == ["Omenix F&O AI v4 slots: already registered (10 rows)"]
+    assert again == ["Omenix F&O AI v4 slots: already registered (nothing to add)"]
 
 
-REFUSALS = [(False, True, "FREEZE_v4.md does not exist"), (True, False, "no rules row for v1_rv_next_session")]
+REFUSALS = [(False, True, "FREEZE_v4.md does not exist"), (True, False, "no rules row yet")]
 
 
 @pytest.mark.parametrize(("frozen", "rules", "why"), REFUSALS)
@@ -80,7 +80,7 @@ def test_a_result_slotfile_refuses_is_rolled_back(tmp_path):
     """G8's SlotFile reads the file once more after the append; a refusal there restores the file as it was."""
     slots, registrar = desk(tmp_path)
     looks = LookRecords(tmp_path / "v4_scores", tmp_path / "FREEZE_v4.md")
-    readings = iter([lambda q: None, lambda q: None, lambda q: FROZEN])  # rows(), the append's check, then the result
+    readings = iter([lambda q: None, lambda q: FROZEN])  # rows() reads it, then the result after the append
 
     def g8():
         return SlotFile(slots, next(readings), looks.frozen_on)
@@ -97,3 +97,42 @@ def test_print_gives_the_rows_and_writes_nothing(tmp_path):
     [text] = registrar(at(FROZEN, 18, 0)).register(write=False)
     assert len(text.splitlines()) == 10 and text.splitlines()[0].startswith("v1_rv_next_session,hybrid,book2_hybrid_v2")
     assert slots.read_text() == before
+
+
+def test_a_question_without_its_rules_row_waits_and_a_second_run_adds_it(tmp_path):
+    slots, registrar = desk(tmp_path)
+    rows = slots.read_text().splitlines()
+    slots.write_text("\n".join(r for r in rows if not r.startswith("v1_rv_next_session")) + "\n")
+    first = registrar(at(FROZEN, 18, 0)).register(write=True)
+    assert first == ["Omenix F&O AI v4 slots: 8 rows registered, effective 2026-10-26: v4_slots.csv",
+                     "Omenix F&O AI v4 slots: waiting for their rules row: v1_rv_next_session"]  # fmt: skip
+    later = date(2026, 11, 2)  # V1's rules row lands later, starting on its own session
+    with slots.open("a") as file:
+        file.write(f"v1_rv_next_session,{V4_SLOT_RULES},rule_v1,{later},{FROZEN},freeze\n")
+    assert registrar(at(FROZEN, 19, 0)).register(write=True) == [
+        "Omenix F&O AI v4 slots: 2 rows registered, effective 2026-11-02: v4_slots.csv"
+    ]
+    found = SlotFile(slots, lambda q: None).registered()
+    assert found[("v1_rv_next_session", V4_SLOT_AI)].effective_start == later and len(found) == 15
+
+
+def test_a_slot_registered_to_another_forecaster_is_refused(tmp_path):
+    slots, registrar = desk(tmp_path)
+    with slots.open("a") as file:
+        file.write(f"v1_rv_next_session,{V4_SLOT_AI},book3_ai_v9,{FIRST},{FROZEN},someone\n")
+    before = slots.read_text()
+    [line] = registrar(at(FROZEN, 18, 0)).register(write=True)
+    assert "refused, nothing written" in line and "registered to book3_ai_v9 (the member)" in line
+    assert slots.read_text() == before
+
+
+def test_the_command_exits_1_when_refused(tmp_path, monkeypatch, capsys):
+    from fno import cli
+
+    slots, registrar = desk(tmp_path, frozen=False)
+    monkeypatch.setattr("fno.ai.wiring.build_slot_registrar", lambda: registrar(at(FROZEN, 18, 0)))
+    assert cli.main(["ai", "register-v4-slots"]) == 1 and "refused" in capsys.readouterr().out
+    (tmp_path / "ok").mkdir()
+    _, ok = desk(tmp_path / "ok")
+    monkeypatch.setattr("fno.ai.wiring.build_slot_registrar", lambda: ok(at(FROZEN, 18, 0)))
+    assert cli.main(["ai", "register-v4-slots", "--print"]) == 0

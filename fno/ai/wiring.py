@@ -94,22 +94,26 @@ def build_v4_firer(env=os.environ) -> V4BookFirer:
 
 def v4_sessions_before(day: date) -> list[date]:
     """v4's last scored sessions before `day` (A7's regular sessions): the stop rule's 20-session window."""
-    found, step = [], day
+    is_session, found = _scored_session(), []
     while len(found) < WINDOW_SESSION_DAYS:
-        step -= timedelta(days=1)
-        found += v4_sessions_between(step, step)
+        day -= timedelta(days=1)
+        found += [day] if is_session(day) else []
     return sorted(found)
 
 
 def v4_sessions_between(first: date, last: date) -> list[date]:
     """v4's scored sessions (A7's regular sessions) from `first` to `last`, both included."""
+    is_session = _scored_session()
+    return [d for d in (first + timedelta(days=n) for n in range((last - first).days + 1)) if is_session(d)]
+
+
+def _scored_session():
+    """One calendar for the whole question (it is read once, not once a day)."""
     from ..forecast_v4.sessions import is_scored_session
     from ..storage.wiring import build_session_calendar
 
     calendar = build_session_calendar()
-    return [
-        d for d in (first + timedelta(days=n) for n in range((last - first).days + 1)) if is_scored_session(calendar, d)
-    ]
+    return lambda day: is_scored_session(calendar, day)
 
 
 def build_v4_collector(env=os.environ) -> V4BookCollector:
@@ -144,7 +148,7 @@ def build_ai_firer(env=os.environ) -> AiBookFirer:
 
 def build_ai_collector(env=os.environ) -> AiForecastCollector:
     history = RepoHistory(ROOT)
-    return AiForecastCollector(ROOT, history, _receipts(history, env), AiRecordWriter(ROOT), now_ist)
+    return AiForecastCollector(ROOT, history, _receipts(history, env), AiRecordWriter(ROOT), now_ist, v4_live_from())
 
 
 def _receipts(history: RepoHistory, env) -> PushReceipts:

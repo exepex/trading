@@ -7,9 +7,10 @@ appended to `research/forecasts/v4_slots.csv` in the protocol's order:
    `registered_on` = the day written, before that session opens (09:15 IST);
 3. `daily.live_from.ai_books_v4` set by the owner to that same session; a later go-live leaves `not_fired` misses.
 
-Refused, writing nothing: before the freeze, without every rules row, once the first session has begun, a file that
-already holds a different AI row, or a result `SlotFile` itself refuses. `--print` gives the rows for the freeze commit
-instead of writing them, the safe way to land them on the freeze's own day."""
+Refused, writing nothing: before the freeze, with no rules row at all, once a new row's first session has begun, a
+file that already holds another AI forecaster for a slot, or a result `SlotFile` itself refuses. A question whose rules
+row is not there yet waits and is named; the command adds its rows when run again after that row lands. `--print`
+gives the rows for the freeze commit instead of writing them, the safe way to land them on the freeze's own day."""
 
 from __future__ import annotations
 
@@ -46,38 +47,50 @@ class SlotRegistrar:
     sessions: Callable[[date, date], list[date]]  # v4's scored sessions from the first day to the last
     clock: Callable[[], datetime]
 
-    def rows(self) -> list[dict]:
-        """The 10 rows, once every check before writing passes."""
+    def rows(self) -> tuple[list[dict], list[str]]:
+        """The AI rows still to write, and the questions that wait for their rules row. Each question's rows start on
+        the later of the first session after the freeze and its rules row's own start; a question already registered
+        with the same forecasters adds nothing; with another it is refused (the first registration is the member)."""
         if not self.looks.frozen():
             raise RegisterRefused("FREEZE_v4.md does not exist: the AI slots are registered after the freeze")
         registered = self.slots().registered()
-        missing = [q for q in FAMILY_QUESTIONS if (q, V4_SLOT_RULES) not in registered]
-        if missing:
-            raise RegisterRefused(f"no rules row for {', '.join(missing)}: the freeze's rules rows come first")
-        start = self._first_session_after(self.looks.frozen_on())
-        now = self.clock().astimezone(IST)
-        if now >= datetime.combine(start, SESSION_OPENS, IST):
-            raise RegisterRefused(f"the slots' first session {start} has begun: a row must be written before it")
+        first, now = self._first_session_after(self.looks.frozen_on()), self.clock().astimezone(IST)
         forecaster = {book: current_version(book, FORECAST_PROTOCOL_V4).forecaster for book in AI_BOOKS}
-        return [{"question": q, "slot": SLOTS[book], "forecaster": forecaster[book], "effective_start": f"{start}",
-                 "registered_on": now.date().isoformat(), "decision": DECISION}
-                for q in FAMILY_QUESTIONS for book in AI_BOOKS]  # fmt: skip
+        rows, waiting = [], []
+        for question in FAMILY_QUESTIONS:
+            rule = registered.get((question, V4_SLOT_RULES))
+            if rule is None:
+                waiting.append(question)
+                continue
+            new = [b for b in AI_BOOKS if self._new(registered, question, b, forecaster[b])]
+            start = max(first, rule.effective_start)
+            if new and now >= datetime.combine(start, SESSION_OPENS, IST):
+                raise RegisterRefused(f"{question}'s first session {start} has begun: a row must be written before it")
+            rows += [{"question": question, "slot": SLOTS[b], "forecaster": forecaster[b],
+                      "effective_start": f"{start}", "registered_on": now.date().isoformat(), "decision": DECISION}
+                     for b in new]  # fmt: skip
+        if len(waiting) == len(FAMILY_QUESTIONS):
+            raise RegisterRefused("no rules row yet: the freeze's rules rows come first")
+        return rows, waiting
+
+    @staticmethod
+    def _new(registered: dict, question: str, book: str, forecaster: str) -> bool:
+        found = registered.get((question, SLOTS[book]))
+        if found is not None and found.forecaster != forecaster:
+            raise RegisterRefused(f"{question}/{SLOTS[book]} is registered to {found.forecaster} (the member)")
+        return found is None
 
     def register(self, write: bool) -> list[str]:
         try:
-            rows = self.rows()
-            return self._append(rows) if write else [_text(rows, header=False).rstrip("\n")]
+            rows, waiting = self.rows()
+            lines = self._append(rows) if write else [_text(rows, header=False).rstrip("\n")]
         except (RegisterRefused, RegistrationRefused) as refused:
             return [LINE.format(result=f"refused, nothing written: {refused}")]
+        return lines + ([LINE.format(result=f"waiting for their rules row: {', '.join(waiting)}")] if waiting else [])
 
     def _append(self, rows: list[dict]) -> list[str]:
-        existing = self.slots().registered()
-        wanted = {(r["question"], r["slot"]): r["forecaster"] for r in rows}
-        present = {k: v.forecaster for k, v in existing.items() if k in wanted}
-        if present == wanted:
-            return [LINE.format(result=f"already registered ({len(wanted)} rows)")]
-        if present:
-            raise RegisterRefused("the slot file already holds another AI registration (the first one is the member)")
+        if not rows:
+            return [LINE.format(result="already registered (nothing to add)")]
         before = self.slots_file.read_text(encoding="utf-8") if self.slots_file.is_file() else ""
         self.slots_file.write_text(before + _text(rows, header=not before), encoding="utf-8")
         try:
@@ -85,8 +98,8 @@ class SlotRegistrar:
         except RegistrationRefused:
             self._restore(before)
             raise
-        start = rows[0]["effective_start"]
-        return [LINE.format(result=f"{len(rows)} rows registered, effective {start}: {self.slots_file.name}")]
+        starts = ", ".join(sorted({r["effective_start"] for r in rows}))
+        return [LINE.format(result=f"{len(rows)} rows registered, effective {starts}: {self.slots_file.name}")]
 
     def _restore(self, before: str) -> None:
         if before:

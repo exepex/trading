@@ -49,7 +49,7 @@ def test_the_fire_log_is_committed_and_pushed_after_the_fire():
     commit = steps[next(i for i, name in enumerate(names) if name.startswith("Commit the fire log"))]
     assert names.index(commit["name"]) > fire and "!cancelled()" in commit["if"]
     script = commit["run"]
-    assert f"git add {FIRE_LOG_FOLDER} " in script and "git pull --no-rebase" in script
+    assert f"git add {FIRE_LOG_FOLDER} ;" in script and "git pull --no-rebase" in script
     assert "git push origin HEAD:main" in script and "--no-verify" not in script
     assert any("git config core.hooksPath .githooks" in step.get("run", "") for step in steps[:fire])
 
@@ -95,3 +95,70 @@ def test_forecast_capture_waits_for_v4s_reveals_before_its_v4_collect():
     text = (ROOT / ".github" / "workflows" / "forecast-capture.yml").read_text()
     wait, collect = text.index("python -m fno ai reveals-ready --protocol v4"), text.index("ai collect --protocol v4")
     assert wait < collect and "date -d 'today 15:30'" in text[text.rindex("limit=", 0, wait) : wait]
+
+
+def _step(name: str) -> dict:
+    return next(s for s in _workflow()["jobs"]["fire"]["steps"] if s.get("name", "").startswith(name))
+
+
+def _git(cwd, *args):
+    import subprocess
+
+    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True).stdout
+
+
+def _checkout(tmp_path):
+    """A clone of a bare `origin` with one commit on main: the job's checkout, offline."""
+    origin, work = tmp_path / "origin.git", tmp_path / "work"
+    _git(tmp_path, "init", "-q", "--bare", "-b", "main", str(origin))
+    _git(tmp_path, "clone", "-q", str(origin), str(work))
+    for args in (["config", "user.email", "fire@example.invalid"], ["config", "user.name", "fire"],
+                 ["commit", "-q", "--allow-empty", "-m", "main"], ["push", "-q", "origin", "HEAD:main"]):  # fmt: skip
+        _git(work, *args)
+    return origin, work
+
+
+def _run_commit_step(work):
+    import os
+    import subprocess
+
+    script = _step("Commit the fire log")["run"].replace("${{ steps.day.outputs.day }}", "2026-10-26")
+    return subprocess.run(["bash", "-e", "-c", script], cwd=work, env=os.environ, capture_output=True, text=True)
+
+
+def test_before_go_live_no_folder_means_nothing_to_commit_and_no_failure(tmp_path):
+    """G11 C16 E (review of dfb26381): `git add` of a missing folder exits 128; the step must not fail the job."""
+    origin, work = _checkout(tmp_path)
+    done = _run_commit_step(work)
+    assert done.returncode == 0, done.stderr
+    assert _git(origin, "log", "--oneline", "main").count("\n") == 1  # nothing pushed
+
+
+def test_a_fire_log_is_committed_and_pushed(tmp_path):
+    origin, work = _checkout(tmp_path)
+    log = work / FIRE_LOG_FOLDER / "2026" / "2026-10-26_fired.json"
+    log.parent.mkdir(parents=True)
+    log.write_text("{}\n")
+    done = _run_commit_step(work)
+    assert done.returncode == 0, done.stderr
+    assert "v4 AI fire log 2026-10-26" in _git(origin, "log", "-1", "--format=%s", "main")
+
+
+def test_a_failed_fire_fails_the_job_and_the_job_alerts():
+    fire = _step("Fire the AI books")["run"]
+    assert fire.index("set -o pipefail") < fire.index("| tee fire.log")
+    alert = _step("Alert #fno-desk when the fire itself failed")
+    assert alert["if"] == "${{ failure() }}" and "build_alert_sender().send" in alert["run"]
+
+
+def test_a_refused_push_is_pulled_and_pushed_once_more():
+    script = _step("Commit the fire log")["run"]
+    assert "for attempt in 1 2" in script and "--no-verify" not in script
+
+
+def test_forecast_captures_v4_collect_fails_loudly():
+    """A failed v4 collect is never hidden behind tee (the step sets pipefail first)."""
+    capture = yaml.safe_load((ROOT / ".github" / "workflows" / "forecast-capture.yml").read_text())
+    steps = [s for job in capture["jobs"].values() for s in job["steps"]]
+    collect = next(s["run"] for s in steps if "ai collect --protocol v4" in s.get("run", ""))
+    assert collect.index("set -o pipefail") < collect.index("python -m fno ai collect --protocol v4 | tee -a ai.log")
