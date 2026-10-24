@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta
 
 from ..school.contracts.codec import CanonicalRecord
 from .constants import RECORD_KIND, RECORD_SCHEMA_VERSION, EvidenceRung, NoTradeReason, PaperAnswer, RealMoneyAnswer
+from .refs import RecordRef
 from .rungs import VersionEvidence
 
 SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -22,14 +23,6 @@ UNPROVEN_REASONS = frozenset({NoTradeReason.DATA_CHECK_FAILED, NoTradeReason.STE
 
 class RecordRefused(ValueError):
     """A recommendation that breaks the story's rules, or bytes that do not read as one."""
-
-
-@dataclass(frozen=True)
-class RecordRef:
-    """A sealed record the recommendation read, by path and SHA-256."""
-
-    path: str
-    sha256: str
 
 
 @dataclass(frozen=True)
@@ -106,7 +99,7 @@ def _paper_consistent(rec: Recommendation, rungs: dict[str, EvidenceRung]) -> bo
 
 
 def _hashes(rec: Recommendation) -> list[str]:
-    refs = [*rec.inputs, *(c.decision for c in rec.candidates)]
+    refs = [*rec.inputs, *(c.decision for c in rec.candidates), *(r for v in rec.versions for r in v.reports.refs())]
     return [rec.config_sha256, rec.rung_rule_sha256, *(ref.sha256 for ref in refs)]
 
 

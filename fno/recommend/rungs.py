@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from .constants import EvidenceRung, OutcomeSource
+from .refs import RecordRef
 
 RUNG_RULE_PATH = "research/recommend/RUNG_RULE.md"
 # The card's SHA-256, pinned to its bytes by tests/recommend/test_rung_rule_card.py; a record carries it
@@ -37,30 +38,41 @@ class ForwardOutcome:
 
 
 @dataclass(frozen=True)
-class EstablishedTest:
-    """Rung 3's three conditions, each read from its own frozen report; all False until such a report exists."""
+class EvidenceReports:
+    """The frozen reports a rung above 1 rests on, by path and SHA-256 (judge 629 S1). A report is named only when it
+    passed: the P2 review for rung 2; the sample plan, the lower bound and the second window as well for rung 3."""
 
-    sample_plan_met: bool = False
-    lower_bound_above_zero: bool = False
-    second_window_agrees: bool = False
+    review: RecordRef | None = None
+    sample_plan: RecordRef | None = None
+    lower_bound: RecordRef | None = None
+    second_window: RecordRef | None = None
 
-    def passed(self) -> bool:
-        return self.sample_plan_met and self.lower_bound_above_zero and self.second_window_agrees
+    def refs(self) -> list[RecordRef]:
+        return [r for r in (self.review, self.sample_plan, self.lower_bound, self.second_window) if r is not None]
+
+    def established(self) -> bool:
+        return None not in (self.sample_plan, self.lower_bound, self.second_window)
 
 
 @dataclass(frozen=True)
 class VersionEvidence:
-    """What a record shows per version, so a reader can recount it."""
+    """What a record shows per version, so a reader can recount it. Its rung is exactly what the rule gives from its
+    own count and reports: a label can never claim more than the evidence it carries (judge 629 S1)."""
 
     version: str
     rung: EvidenceRung
     counted_sessions: int
     first_session: date | None
     last_session: date | None
+    reports: EvidenceReports
 
     def __post_init__(self):
         if type(self.counted_sessions) is not int or not isinstance(self.rung, EvidenceRung):
             raise ValueError("a version's evidence needs a whole session count and a rung")
+        if not _span_fits(self.counted_sessions, self.first_session, self.last_session):
+            raise ValueError("a version's first and last sessions do not fit its count")
+        if self.rung is not rung_for(self.counted_sessions, self.reports):
+            raise ValueError("a version's rung is not what its own count and reports give")
 
 
 def counted_sessions(outcomes: Iterable[ForwardOutcome], version: str, day: date, made_at: datetime) -> list[date]:
@@ -69,19 +81,18 @@ def counted_sessions(outcomes: Iterable[ForwardOutcome], version: str, day: date
 
 
 def evidence(outcomes: Iterable[ForwardOutcome], version: str, day: date, made_at: datetime,
-             review_done: bool, established: EstablishedTest) -> VersionEvidence:  # fmt: skip
+             reports: EvidenceReports) -> VersionEvidence:  # fmt: skip
     sessions = counted_sessions(outcomes, version, day, made_at)
-    rung = rung_for(len(sessions), review_done, established)
-    return VersionEvidence(version, rung, len(sessions), sessions[0] if sessions else None,
-                           sessions[-1] if sessions else None)  # fmt: skip
+    first, last = (sessions[0], sessions[-1]) if sessions else (None, None)
+    return VersionEvidence(version, rung_for(len(sessions), reports), len(sessions), first, last, reports)
 
 
-def rung_for(sessions: int, review_done: bool, established: EstablishedTest) -> EvidenceRung:
+def rung_for(sessions: int, reports: EvidenceReports) -> EvidenceRung:
     if sessions == 0:
         return EvidenceRung.UNPROVEN
-    if sessions < WATCHING_SESSIONS or not review_done:
+    if sessions < WATCHING_SESSIONS or reports.review is None:
         return EvidenceRung.EXPLORATORY
-    return EvidenceRung.ESTABLISHED if established.passed() else EvidenceRung.WATCHING
+    return EvidenceRung.ESTABLISHED if reports.established() else EvidenceRung.WATCHING
 
 
 def lowered(rung: EvidenceRung, conditions: int) -> EvidenceRung:
@@ -96,3 +107,9 @@ def calibration_shown(outcomes: int, sessions: int) -> bool:
 def _counts(outcome: ForwardOutcome, day: date, made_at: datetime) -> bool:
     return (outcome.source is OutcomeSource.FORWARD and outcome.counted and outcome.session < day
             and outcome.receipt_at is not None and outcome.receipt_at < made_at)  # fmt: skip
+
+
+def _span_fits(count: int, first: date | None, last: date | None) -> bool:
+    if count == 0:
+        return first is None and last is None
+    return first is not None and last is not None and count <= (last - first).days + 1

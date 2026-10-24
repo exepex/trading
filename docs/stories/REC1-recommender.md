@@ -358,3 +358,38 @@ VersionEvidence(version='school:CS1@1', rung=<EvidenceRung.UNPROVEN: 0>, counted
 
 **Gates (at 54451406, code unchanged since):** full suite `pytest -q -n auto`: 16666 passed, 1 skipped, 14 xfailed;
 ruff check and format, `check_imports` and `check_records` clean.
+
+### REC1a Claims, round 2 (judge 629 FAIL round 1: one should-fix, S1)
+
+**S1 accepted, fixed at the root.** A version's rung was a free label. Judge J built `VersionEvidence(rung=ESTABLISHED,
+counted_sessions=0)` and it went through the codec to `PAPER_TRADE`. The fix:
+- `VersionEvidence.__post_init__` (`rungs.py`) refuses any rung other than `rung_for(counted_sessions, reports)`. That
+  is the rule applied to the version's own count and its own reports, not a ceiling only. A label can then never claim
+  more than its evidence, and a lower label is refused too, so each count has one truth.
+- `first_session` and `last_session` are None exactly when the count is 0; otherwise first <= last, and the count fits
+  in the span.
+- The reports are references, not flags. The old `EstablishedTest` booleans are replaced by `EvidenceReports`: one
+  `RecordRef` (path, SHA-256) per frozen report, named only when it passed:
+  - `review` (P2) for rung 2;
+  - `sample_plan`, `lower_bound` and `second_window` as well for rung 3.
+  - A rung-3 version without all four references is refused. Their SHA-256 values are checked with the record's other
+    hashes.
+  - Beyond the orchestrator's (b), rung 2 also needs its review reference: it is the same flaw one rung down. A
+    "Watching" label with no review behind it was just as possible.
+- Thresholds: `rung_for` uses `WATCHING_SESSIONS`. That is the card's own value, pinned equal to `RUNG_RULE.md` by
+  `test_the_code_s_numbers_are_the_card_s_values`, whose hash is pinned too, so no number is free in the code.
+  `RUNG_RULE.md` is unchanged; its hash is the same.
+- `lowered()` is unchanged. It works on the day's shown rung, never on a stored `VersionEvidence`.
+- `RecordRef` moved to `fno/recommend/refs.py`: the rungs and the record both use it, and the old place would have
+  made an import cycle.
+
+New tests for J's round-2 plants:
+- `test_a_rung_that_its_own_count_and_reports_do_not_give_is_refused`: rung 3 with 0 sessions, rung 2 with 29, rung 2
+  without a review, rung 1 with 0, rung 0 with 5.
+- `test_a_rung_3_label_with_one_report_missing_is_refused`: each of the four references.
+- `test_first_and_last_must_fit_the_count`: first after last, and the None cases.
+- `test_a_proven_label_without_evidence_cannot_reach_a_record`: J's exact case, through the codec.
+- `test_a_malformed_report_hash_is_refused`.
+
+Plants: 29, all caught. The 5 new ones: the rung tie removed; the span check removed; first after last allowed; one
+rung-3 report made optional; the report hashes left unchecked. Tests: 122 in `tests/recommend`.

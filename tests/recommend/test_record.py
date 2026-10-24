@@ -10,7 +10,7 @@ import pytest
 from fno.recommend.codec import decode, encode
 from fno.recommend.constants import EvidenceRung, NoTradeReason, OutcomeSource, PaperAnswer, RealMoneyAnswer
 from fno.recommend.contracts import Recommendation, RecordRefused
-from fno.recommend.rungs import ForwardOutcome, VersionEvidence
+from fno.recommend.rungs import EvidenceReports, ForwardOutcome, VersionEvidence
 from tests.recommend.builders import MADE_AT, candidate, established_day, evidence_of, no_trade, paper_trade
 
 
@@ -227,4 +227,20 @@ def test_a_receipt_time_without_a_zone_is_refused_when_made():
 def test_a_version_s_evidence_needs_a_whole_count_and_a_rung():
     for bad in (("v", EvidenceRung.UNPROVEN, "0", None, None), ("v", 0, 0, None, None)):
         with pytest.raises(ValueError, match="whole session count"):
-            VersionEvidence(*bad)
+            VersionEvidence(*bad, EvidenceReports())
+
+
+def test_a_proven_label_without_evidence_cannot_reach_a_record():
+    """Judge 629's case: rung 3 with 0 sessions and no dates, through the codec, must never give PAPER_TRADE."""
+    data = plain(paper_trade())
+    data["versions"][0].update(counted_sessions=0, first_session=None, last_session=None)
+    with pytest.raises(RecordRefused, match="does not read"):
+        decode(json.dumps(data, sort_keys=True, separators=(",", ":")).encode())
+
+
+def test_a_malformed_report_hash_is_refused():
+    record = paper_trade()
+    version = record.versions[0]
+    broken = replace(version.reports, lower_bound=replace(version.reports.lower_bound, sha256="ab"))
+    with pytest.raises(RecordRefused, match="SHA-256"):
+        replace(record, versions=(replace(version, reports=broken),))

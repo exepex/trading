@@ -11,8 +11,9 @@ from fno.recommend.constants import (
     PaperAnswer,
     RealMoneyAnswer,
 )
-from fno.recommend.contracts import Candidate, Recommendation, RecordRef
-from fno.recommend.rungs import RUNG_RULE_SHA256, VersionEvidence
+from fno.recommend.contracts import Candidate, Recommendation
+from fno.recommend.refs import RecordRef
+from fno.recommend.rungs import RUNG_RULE_SHA256, EvidenceReports, VersionEvidence
 
 DAY = date(2026, 11, 2)
 MADE_AT = datetime(2026, 11, 2, 9, 50, tzinfo=UTC)  # 15:20 IST
@@ -40,12 +41,23 @@ def no_trade(**changes) -> Recommendation:
     return replace(record, **changes) if changes else record
 
 
+def report(name: str, n: int) -> RecordRef:
+    return RecordRef(f"research/recommend/reports/{name}.md", sha(n))
+
+
+REVIEWED = EvidenceReports(review=report("p2_review", 20))
+ESTABLISHED = EvidenceReports(report("p2_review", 20), report("sample_plan", 21), report("lower_bound", 22),
+                              report("second_window", 23))  # fmt: skip
+REPORTS = {EvidenceRung.UNPROVEN: EvidenceReports(), EvidenceRung.EXPLORATORY: EvidenceReports(),
+           EvidenceRung.WATCHING: REVIEWED, EvidenceRung.ESTABLISHED: ESTABLISHED}  # fmt: skip
+
+
 def evidence_of(version: str, rung: EvidenceRung = EvidenceRung.UNPROVEN) -> VersionEvidence:
-    """The record's evidence line for a version at `rung` (counts consistent with the rung rule)."""
+    """The record's evidence line for a version at `rung`, with the count and reports the rung rule needs for it."""
     if rung is EvidenceRung.UNPROVEN:
-        return VersionEvidence(version, rung, 0, None, None)
+        return VersionEvidence(version, rung, 0, None, None, REPORTS[rung])
     counted = 3 if rung is EvidenceRung.EXPLORATORY else 30
-    return VersionEvidence(version, rung, counted, date(2026, 9, 1), date(2026, 11, 1))
+    return VersionEvidence(version, rung, counted, date(2026, 9, 1), date(2026, 11, 1), REPORTS[rung])
 
 
 def paper_trade(rung: EvidenceRung = EvidenceRung.ESTABLISHED) -> Recommendation:
