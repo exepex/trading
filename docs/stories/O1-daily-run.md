@@ -60,7 +60,8 @@ day's run records only `skipped`, so it is an O1 step, `margin_check`, run every
 start (they wait for 14:55 themselves) and done long before the 14:55 capture on the same Groww key. Agreed with the A14c builder (15 Oct; A14c text at
 `story/a14c-stress-recompute` f2192b2f; replaced on 16 Oct by A14c part 2's text, judges 291 and 356): the command
 checks every A14 row of the day, prints "nothing to check" when all are done (exit 0), exits 1 on a Groww, deadline or
-record failure (one O1 alert; a same-day rerun retries), and writes one O9 record in Drive per run; the step commits
+record failure (one O1 alert; O1 never retries the step, so that day's figure is lost unless `margins
+stress-broker-check` is run by hand before 14:50 IST, judge 634), and writes one O9 record in Drive per run; the step commits
 only its receipts, `receipt_pathspecs()` in `fno/nse_margins/broker_record.py`. It stays `not_live`
 (`daily.live_from.margin_check`) until the owner sets the date.
 

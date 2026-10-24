@@ -2081,8 +2081,8 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     `error`, with no Groww request for it, in either case:
     - the lots differ: "lot <n> differs from NSE's dated lot <m> for <expiry>": the row's figures are then for the
       wrong quantity;
-    - the day's file is not archived yet: "no dated NSE lot for <expiry> on <day>". A20a archives it from 07:45 IST,
-      and a same-day rerun retries.
+    - the day's file is not archived yet: "no dated NSE lot for <expiry> on <day>". A20a archives it from 07:45 IST;
+      a by-hand run before 14:50 asks again (above).
     Tests: the dated lot equal, different, missing; the wiring gives the check the row builder's lot.
   - **Read-only by construction:** the Groww client is reached only through an allow-list per caller (A16's
     `ReadOnlyGroww`, agreed with A16's owner). This caller's list is `get_order_margin_details`, `get_quote` and the
@@ -2108,9 +2108,11 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     `receipts/` tree, and replacing the `stress_broker_check.csv` path O1 names today (agreed with O1's owner, 16 Oct).
     Nothing is appended in GitHub.
   - **Idempotent:** a run whose day already has an `ok` or `mismatch` result for every row prints "nothing to check"
-    and exits 0. An `error` row is retried only by a rerun of the same day's step: O1 reruns a failed step when the
-    routine is run again that day. Otherwise the next run is the next session, so that day's broker figure for the
-    basket is lost. The `error` row and O1's line say so.
+    and exits 0. O1 never runs a failed `margin_check` again: its step sets no `retry` key, so `RunLog.done` holds the
+    failed entry and a same-day `daily run` skips it (only the exits and marks steps are retried, owner 24 Oct; judge
+    634). An `error` basket is therefore lost for the day unless someone runs `python -m fno margins
+    stress-broker-check` by hand before 14:50 IST: that run asks only the baskets not `ok` or `mismatch`. The failure
+    line says exactly this, never "a rerun today retries". Adding a retry is the owner's call, not this story's.
   - **Exit and lines (O1's rules, agreed 16 Oct):** a failure never alerts twice, and a finding is not a failure.
     O1's `daily run` records every step in `journal/runs/<date>.json` and sends the one #fno-desk line for a failed
     step, so the check writes no O10 `capture_errors.csv` row (O10 covers jobs outside the daily run) and sends no
