@@ -101,7 +101,11 @@ so a reader can recount it.
     T1e), asked of the owner through the orchestrator (the 16 Oct UI pause allows contract reason lists, exception
     a). They cannot occur while no version is at rung 3; until the re-pin lands, one of them reaching the
     card gives `data_check_failed` and an alert "reason not in the dashboard contract", never a wrong code.
-    `card_codes()` in `tests/cards/test_card_contract.py` reads `RecommendationStatus`'s own table too.
+    `card_codes()` in `tests/cards/test_card_contract.py` reads the codes the card can actually emit after the
+    mapping and guard, never the full paper-reason table (else the contract test is red until the re-pin and blocks
+    every merge); after the re-pin, the three codes' mapping, the guard's removal and their entry into the emitted
+    set land in one change. The guard's alert goes to #fno-desk through the card's existing alert path: no second
+    Slack sender in `fno/cards/`.
   - **Line 1 of the section is a placeholder status line**, which `RuledStatus` replaces with "Status: <status>
     (<code>)" after T2's severity order (data_check_failed > hard_rule_breach > step_problems > this code); then
     "Real money: DO NOT TRADE (no proven edge)", "Paper: NO TRADE (<plain reason>)" or the trade's name, the rung
@@ -162,7 +166,7 @@ first (327 item 9 named it a separate owner decision).
 
 | Part | What | Main files (new unless said) | Target |
 |---|---|---|---|
-| REC1a | contracts (`Recommendation`, two answer enums, reason codes, `EvidenceRung`), the rung rule, its R1 card and D6 row, the record codec, dashboard contract fields | `fno/recommend/contracts.py`, `rungs.py`, `codec.py`, `research/recommend/CARD_REC1.md`, `fno/constants.py` names | 27-28 Oct |
+| REC1a | contracts (`Recommendation`, two answer enums, reason codes, `EvidenceRung`), the rung rule, its R1 card and D6 row, the record codec **with the candidate set and `evidence_cutoff` from the first live day** (judge 620.1: release 2's evening check reads release 1's records), dashboard contract fields | `fno/recommend/contracts.py`, `rungs.py`, `codec.py`, `research/recommend/CARD_REC1.md`, `fno/constants.py` names | 27-28 Oct |
 | REC1b | `recommend decide`, the daily step, Drive store + receipt, card `RecommendationStatus` | `fno/recommend/decide.py`, `inputs.py`, `store.py`, `wiring.py`, `cli.py`; `fno/constants_operations.py` (one row), `fno/daily/wiring.py`, `fno/cards/wiring.py` (one line each) | 28-30 Oct |
 | REC1c | `recommend check` and the evening routine step | `fno/recommend/check.py`, CLAUDE.md evening step | 2-5 Nov |
 | REC1d | morning and evening sections read the record | `fno/school/reports/` adapter (MS-P1g owner agreed) | 5-9 Nov |
@@ -210,25 +214,28 @@ two-judge rule; REC1a, REC1c, REC1d and REC1e one judge each. No merge 14:00-16:
    section replaced by `RuledStatus` (golden files); a missing or hash-mismatched record gives `data_check_failed`;
    every card code is in the pinned contract (`card_codes()`); a `PAPER_TRADE` record keeps the card's status NO
    TRADE. Plant: a `brake` code before the re-pin must give `data_check_failed` and the alert.
-11. **Evening check (S3).** Trade, no-trade, a candidate not closed ("not known yet") and missing-record cases; each
+11. **Candidate set from day one (S3, judge 620.1; REC1a).** The codec round-trips the candidate set (version, path,
+   SHA-256; empty written as empty) and `evidence_cutoff`; a record without either is refused by the codec. Plant:
+   the candidate field made optional; a test fails. The release-1 record of a recorded day carries both.
+12. **Evening check (S3).** Trade, no-trade, a candidate not closed ("not known yet") and missing-record cases; each
    listed candidate reported and the total equals their sum; the check never edits the recommendation (hash
    unchanged) and never reads a price not already recorded. Plant: a losing candidate removed from the check's
    input after the decision; the check must give `data_check_failed`, never a smaller total.
-12. **Calibration line.** 99 outcomes or 59 sessions print "not enough outcomes to calibrate"; 100 over 60 print 5
+13. **Calibration line.** 99 outcomes or 59 sessions print "not enough outcomes to calibrate"; 100 over 60 print 5
    bins. Plant: the threshold changed to 99; a test fails.
-13. **Clock and day.** A holiday or muhurat-only day writes nothing; a rehearsal writes under Drive `dryrun/` only
+14. **Clock and day.** A holiday or muhurat-only day writes nothing; a rehearsal writes under Drive `dryrun/` only
    (REH1). Plant: a holiday in the calendar fake with the step run; a test proves no write.
-14. **Real output sample** in Claims from a dry run on a recorded day (status and reason only, no strikes).
+15. **Real output sample** in Claims from a dry run on a recorded day (status and reason only, no strikes).
 
 ## Gap list (each requirement of the design: a criterion, or out with its reason)
 
 | Requirement | Where |
 |---|---|
 | daily decision paper/no trade with reason | 1, 2, 4 |
-| confidence from a stated rule | 3, 5, 6, 12 |
+| confidence from a stated rule | 3, 5, 6, 13 |
 | "do not trade" alert when not sure | 4, 7, 10 |
 | every decision recorded write-once | 9 |
-| checked every evening, no-trade included, no hindsight | 11 |
+| checked every evening, no-trade included, no hindsight | 11, 12 |
 | learning through scheduled reviews | REC1e (LR1 section); rule changes stay new versions (R3), never daily |
 | never invents an edge | 3, 4, 5 (plants), 8 |
 | books 2 and 3 as recommenders | out: their trading job (F5, F6, F1t) is not built (DESK_DECISIONS 25 Oct (1)); they plug in as more versions with rungs, no change here |
@@ -265,8 +272,8 @@ Text round 2 (answers to judge 620, judge J; the orchestrator agreed all three s
   never day d; `evidence_cutoff` in the record. Section 2, criterion 5 with the day-d plant.
 - **S3 accepted.** The candidate set (version, path, SHA-256) is fixed in the record; the check reads only it, reports
   each and the total, "not known yet" until all closed, a missing or changed one gives `data_check_failed`. Section 5,
-  criterion 11 with the dropped-loser plant.
-- **m1 accepted.** Every criterion 1-13 names its plant.
+  criteria 11 (the codec carries it from the first live day, judge 620.1) and 12 with the dropped-loser plant.
+- **m1 accepted.** Every criterion 1-14 names its plant.
 - **Judges:** the orchestrator's ruling written in (REC1b and RM1x two judges; the rest one).
 - Also in this round: the card owner's seven conditions (section 3, criterion 10), and release 1 (REC1a+b) dated the
   week of 26 Oct.
