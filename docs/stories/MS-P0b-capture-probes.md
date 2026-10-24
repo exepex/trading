@@ -68,7 +68,9 @@ not `config.yaml`):
 - **429 detection is A16's, not a second copy (judge 626):** `_rate_limited` (`fno/intraday/feed_probe.py:173`)
   moves to one shared public function in `fno/intraday/` that `feed_probe.py` and this story both import; it also
   recognises the SDK's own `GrowwAPIRateLimitException` (P0-1), which a 429 can arrive as, with a test for each form
-  (the only change to A16h's file: the import, told to the orchestrator; A16h's owner is out of reach).
+  (the only change to A16h's file: the import, told to the orchestrator; A16h's owner is out of reach). Orchestrator's ruling (24 Oct): one 429 detector for the whole project; the Groww rate-safety
+  builder (session_01GsPm29fZzfH3DiErKAdBVk, adding `GrowwRateLimited` at the adapter) is asked to own it, and P0b
+  imports it rather than writing a copy.
 - A stop is one plain line, posted to #fno-desk (`FNO_SLACK_BOT_TOKEN`, through the existing `AlertSender`), and one
   O10 row in `research/ops/capture_errors.csv` (job `school-p0b`, kind `blocked`, `rate_limited` or `cap_reached`).
   The line names the source, the status and the slot; never a value, a header, a cookie or a token.
