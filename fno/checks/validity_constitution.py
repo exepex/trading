@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from ..book3.constitution import COMPONENT, Constitution, ConstitutionError
 from ..book3.registry import NotRegistered, StrategyRegistry
 from ..book3.spec_rules import constitution_problems
+from ..research_engine.ledger import GitFailed
 from .validity_envelope import RegisteredComponents
 from .validity_evidence import Evidence
 from .validity_modes import PlaybookMode, ValidityMode
@@ -41,6 +42,8 @@ class ConstitutionMode(ValidityMode):
             spec = self.registry.require_registered(proposal.strategy_id, proposal.day, self.head())
         except NotRegistered as missing:
             return [CheckResult("constitution", False, str(missing))]
+        except GitFailed as failed:  # fails closed by name, never an exception out of C4 (judges 260/263, D5 builder)
+            return [CheckResult("constitution", False, f"git failed: {failed}")]
         problems = constitution_problems(spec, constitution) + _holding_problem(proposal, spec, constitution)
         own = replace(proposal, strategy=spec, approved=frozenset({spec.key}))
         within = CheckResult("constitution", not problems, "; ".join(problems) or f"{proposal.strategy_id} registered")

@@ -1,0 +1,70 @@
+{
+ "complete": true,
+ "csv_sha256": "bf14b913e5d8f4061a21191a07e772634690322fe4dffed5e9528bf7b886272a",
+ "expected_contracts": 180,
+ "expiries": [
+  "2026-11-03",
+  "2026-11-09"
+ ],
+ "expiry_source": {
+  "source": "groww"
+ },
+ "failures": [],
+ "finished_at": "2026-10-23T15:06:54.524226+05:30",
+ "in_window": true,
+ "monthly_check": {
+  "files": [
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/09/BhavCopy_NSE_FO_0_0_0_20260904_F_0000.csv.zip",
+    "file_date": "2026-09-04",
+    "sha256": "9e92b9e9f91b5951213b854e123edbdbb461a111adcf442d7fee1b341f2f3312",
+    "source": "Google Drive"
+   },
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/09/BhavCopy_NSE_FO_0_0_0_20260911_F_0000.csv.zip",
+    "file_date": "2026-09-11",
+    "sha256": "532f111f183057b70433da2f7497a73a85da7a93c0a6230dbd898e9fef3463a2",
+    "source": "Google Drive"
+   },
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/09/BhavCopy_NSE_FO_0_0_0_20260918_F_0000.csv.zip",
+    "file_date": "2026-09-18",
+    "sha256": "ad7456e47a74b5ff3e127b09e844d94c9892fdee369307ea09c73a450d82d281",
+    "source": "Google Drive"
+   },
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/09/BhavCopy_NSE_FO_0_0_0_20260925_F_0000.csv.zip",
+    "file_date": "2026-09-25",
+    "sha256": "d7fda7c5881bf6b1aff715af0c90ae5bdc8fccbb7d537c83e3b1e44470dfa4af",
+    "source": "Google Drive"
+   },
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/10/BhavCopy_NSE_FO_0_0_0_20261001_F_0000.csv.zip",
+    "file_date": "2026-10-01",
+    "sha256": "d44a052b79a3961910f74783960ebbd5043696dbed39e7fb86ec84929fd60338",
+    "source": "Google Drive"
+   },
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/10/BhavCopy_NSE_FO_0_0_0_20261009_F_0000.csv.zip",
+    "file_date": "2026-10-09",
+    "sha256": "3db31a70f80a3d3c3ee2f58c1ce0ec16d9f826b3b02f8553ab86f1288e422276",
+    "source": "Google Drive"
+   }
+  ],
+  "rule": "listed more than 50 days ahead by that day (A5 monthly_as_of)",
+  "status": "verified"
+ },
+ "note": "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today",
+ "provider": "groww",
+ "recorded_contracts": 180,
+ "snapshot_id": "niftyweekly_20261023_150521",
+ "spot": 22479.7,
+ "started_at": "2026-10-23T15:05:21.728052+05:30",
+ "underlying": "NIFTY",
+ "universe": {
+  "file": "nse/derivatives/fo-bhavcopy/2026/10/BhavCopy_NSE_FO_0_0_0_20261022_F_0000.csv.zip",
+  "file_date": "2026-10-22",
+  "sha256": "bb7a9b9293a1a88d6baf41ab9372bef41b6896a19ec1138c85ab2caac9369d42",
+  "source": "Google Drive"
+ }
+}

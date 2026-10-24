@@ -17,11 +17,13 @@ class Slot:
     workers: int = 1
     per_second: float | None = None  # request starts a second, shared Groww key (A16's measured limit)
     check_listed: bool = False  # the previous session's NSE file must list the underlying as an index option
+    weeklies: int = 0  # A4f: record this many nearest weekly expiries instead of the two monthlies
+    stem_suffix: str = ""  # A4f: `weekly` gives the stem `niftyweekly`
 
     @property
     def stem(self) -> str:
         """File-name prefix: `nifty` for NIFTY, so A4's names stay byte for byte."""
-        return self.underlying.lower()
+        return self.underlying.lower() + self.stem_suffix
 
 
 NIFTY_SLOT = Slot()

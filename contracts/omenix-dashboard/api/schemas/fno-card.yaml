@@ -36,9 +36,15 @@ FnoCard:
     status: {type: string, enum: [TRADE, NO TRADE, WATCH], x-unit: enum, description: 'TRADE = a paper trade of a strategy approved to paper; NO TRADE = nothing today, with a reason; WATCH = a candidate''s shadow decision, for learning, never to be traded'}
     reason:
       type: ['string', 'null']
-      enum: [no_approved_strategy, weather_red, data_check_failed, risk_bucket_full, budget_stop, cost_wall, advocate_hard_rule, null]
+      enum: [no_approved_strategy, weather_red, data_check_failed, risk_bucket_full, budget_stop, cost_wall, advocate_hard_rule, trade_fields_not_built, hard_rule_breach, step_problems, null]
       x-unit: enum
-      description: Why there is no trade (NO TRADE only; null otherwise)
+      description: >-
+        Why there is no trade (NO TRADE only; null otherwise). 2.14.0 adds three codes the backend's card already gives
+        (W3i; exepex/trading fno/constants.py): trade_fields_not_built = a strategy version is at paper but the card
+        cannot show a trade yet (T1); hard_rule_breach = the desk's own rule checks (C4) refused a book's trade that day
+        (T2), not the devil's advocate's verdict, which is advocate_hard_rule; step_problems = a desk step failed or was
+        refused that day (T1e). The backend picks one code: data_check_failed, then hard_rule_breach, then
+        step_problems, then T1's reason
     reason_text: {type: string, minLength: 1, x-unit: text, description: 'The status in one plain sentence, e.g. "No trade today: no strategy has passed its test yet"'}
     timing:
       type: object

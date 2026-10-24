@@ -11,13 +11,13 @@ from fno.global_cues.collection import SourcedValue
 from fno.global_cues.collector import CueCollector
 from fno.global_cues.job import GlobalCueJob
 from fno.global_cues.other_sources import FbilUsdInrSource
-from fno.global_cues.row_log import DrivePartsRowLog, DriveSnapshots
 from fno.global_cues.snapshot_log import SnapshotLog
 from fno.global_cues.table import CueTable
 from fno.global_cues.us_index_sources import CboeSp500Source, NasdaqNdxSource
 from fno.global_cues.verify import CueTableVerifier
 from fno.models import IST
 from fno.storage.raw_store import LocalFolderStore
+from fno.storage.row_log import DrivePartsRowLog, DriveSnapshots
 from tests.global_cues.fakes import FakeCreationTimes, cboe, fbil, nasdaq
 
 FAKE = [("2026-10-13", 1000.5), ("2026-10-14", 1001.25)]  # fake levels

@@ -92,7 +92,7 @@ Out, each with its reason:
      sessions had one). SEBI: the newest circular on its page older than 45 days is stale (twice the longest gap in
      its latest 25). SEBI's page shows only 25: if none of the previously seen SEBI circulars is on it, the run alerts
      a possible gap.
-   - Hourly 08:00-22:00 IST, every day (NSE and SEBI also publish on holidays).
+   - Hourly 08:00-22:00 IST, every day (NSE issued circulars on 13 non-session days of 2026, though not every holiday).
 3. **A20c extends A6** (`fno/research_data/events.py`). New `MACRO_TYPES` = india_cpi, india_iip, india_gdp, us_fomc,
    us_cpi, us_payrolls, kept apart from A6's hand-kept `TYPES` so `events.csv` and its consumers do not change. Port
    `ReleaseCalendar.dates() -> list[(type, date, source_url)]`; adapters `MospiArcCalendar` (PDF through `pypdf`,

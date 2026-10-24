@@ -9,9 +9,13 @@ name: capture-watch
 
 on:
   workflow_run:
-    # every scheduled job except CI (checks); tests/health/test_capture_watch_workflow.py keeps this list complete
+    # every scheduled job except CI (checks, number-alert); tests/health/test_capture_watch_workflow.py keeps this
+    # list complete
     workflows:
+      - circulars
+      - data-checks
       - filings-archive
+      - flow-history
       - flows-download
       - fo-masters
       - forecast-capture
@@ -27,8 +31,10 @@ on:
       - participant-oi-watch
       - postmortem-weekly
       - quote-recorder-nse
+      - recorder-watch
       - stress-factor
       - vix-history
+      - v4-fire
     types: [completed]
 
 permissions:

@@ -83,13 +83,13 @@ def derived_facts(pack: dict, closes: list[tuple[str, float, float]]) -> dict:
     last = closes[-1] if closes else None
     path = [c[1] for c in closes[-RV_RETURNS:]] + ([spot] if spot else [])
     return {
-        "trailing_rv20_points_with_1500_spot": _realised_vol_points(path),
+        "trailing_rv20_points_with_1500_spot": realised_vol_points(path),
         "nifty_1500_change_pct_vs_previous_close": (spot / last[1] - 1) * 100 if spot and last else None,
         "vix_1500_change_vs_previous_close": vix - last[2] if vix is not None and last else None,
     }
 
 
-def _realised_vol_points(path: list[float]) -> float | None:
+def realised_vol_points(path: list[float]) -> float | None:
     """B1's RV: root mean square of the daily log returns, not demeaned, times sqrt(252), in points; 20 returns only."""
     returns = [math.log(b / a) for a, b in zip(path, path[1:])]
     if len(returns) != RV_RETURNS:

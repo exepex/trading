@@ -15,4 +15,6 @@ from .clock import ClockCheck
 def build_clock_check() -> ClockCheck:
     repository = os.environ.get(GITHUB_REPOSITORY_VARIABLE) or DEFAULT_REPOSITORY
     github = HttpDateClock("github", GITHUB_TIME_URL.format(repository=repository))
-    return ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist)
+    from ..rehearsal.preopen_wiring import rehearsed_clock_check
+
+    return rehearsed_clock_check(ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist))  # REH1c

@@ -15,6 +15,7 @@ from .receipts import ReceiptFolder
 
 MISSING = "{path}: in the receipts, not returned by Drive"
 DAMAGED = "{path}: Drive's bytes do not match the receipt's SHA-256"
+NO_RECEIPTS = "{prefix}: no receipts under it (neither a receipted file nor a folder holding one)"
 
 
 @dataclass
@@ -38,10 +39,13 @@ class DriveCache:
         return (into or self.root).joinpath(*path_parts(path))
 
     def sync(self, prefix: str, into: Path | None = None, strip: str = "") -> SyncReport:
-        """Brings every receipted file under `prefix` to disk, verified. `strip` drops a leading part of the Drive
+        """Brings every receipted file under `prefix` (a folder, or one receipted file) to disk, verified; a prefix
+        with no receipt at all is a problem, never an empty success. `strip` drops a leading part of the Drive
         path when writing under `into` (e.g. the area, to restore `data/research/x` as `research/x`)."""
-        report = SyncReport()
-        for receipt in self.receipts.under(prefix):
+        report, receipts = SyncReport(), self.receipts.under(prefix)
+        if not receipts:  # a wrong path must never read as "nothing to sync, all verified"
+            report.problems.append(NO_RECEIPTS.format(prefix=prefix))
+        for receipt in receipts:
             target = self.local(receipt.path.removeprefix(strip), into)
             if target.is_file() and _sha256(target.read_bytes()) == receipt.sha256:
                 report.present += 1

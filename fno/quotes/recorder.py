@@ -11,29 +11,34 @@ to report (calendar says session, quotes say closed), not a quiet "not a trading
 
 from __future__ import annotations
 
-import csv
 import hashlib
-import io
 import json
 import time as clock
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from ..constants import SESSION_MUHURAT, SESSION_REGULAR, SESSION_SPECIAL
 from ..intraday.pacing import RatePacer
-from ..models import IST, OptionChain, QuoteBook, now_ist
+from ..models import IST, OptionChain, now_ist
 from ..providers.base import Provider
 from ..research_data.calendar import SessionCalendar
 from ..research_data.expiries import MONTHLY_LISTING_DAYS
 from ..research_data.expiries import monthly_expiries as last_expiry_of_each_month
 from ..storage.raw_store import RawFileStore
 from .book_fetch import BookFetcher
+from .capture_extras import CaptureExtras
 from .capture_log import CaptureLog
 from .expiry_listing import ExpiryHistory, ListedExpiries
 from .market_levels import LevelSource
 from .monthly_contracts import PointInTimeMonthlies
-from .quote_validity import quote_validity, traded_today
+from .quote_validity import quote_validity, traded_today  # noqa: F401 - quote_validity imported from here by E8
 from .slot import NIFTY_SLOT, Slot
+from .snapshot_rows import (
+    COLUMNS,  # noqa: F401 - imported from here by the frozen tools/forecast_live_golden.py
+    snapshot_csv,
+    snapshot_row,
+)
+from .weekly import NO_WEEKLY, nearest_weeklies
 from .window import QuoteWindow
 
 DATASET = "groww/derivatives/quote-snapshots"
@@ -41,6 +46,22 @@ NSE_DATASET = "nse/derivatives/quote-snapshots"  # story O6: NSE's public chain,
 WINDOW_START, WINDOW_END = time(14, 55), time(15, 10)
 MAX_EARLY_WAIT_SECONDS = 20 * 60  # a run started up to 20 minutes early waits for the window
 DEFAULT_WINDOW = QuoteWindow("", WINDOW_START, WINDOW_END, MAX_EARLY_WAIT_SECONDS)  # A4's, never changed
+
+
+def earliest_waiting_moment(day: date, window_start: time, max_early_wait: int = MAX_EARLY_WAIT_SECONDS) -> datetime:
+    """A4's early limit, its one rule (A4c-2): a run started before this moment of `day` says "too early" and records
+    nothing; from it on, the run waits for the window opening at `window_start`. On the real day, so a named window's
+    longer wait (A4e's config) never crosses `date.min`."""
+    return datetime.combine(day, window_start, IST) - timedelta(seconds=max_early_wait)
+
+
+def earliest_waiting_start(window_start: time) -> time:
+    """That moment as a time of day, with A4's 20 minutes: 14:41 for 15:01, 14:35 for 14:55 (for texts and O1's start
+    times); O1's `fno/daily/quote_parts.py` `earliest_start` builds on it. A window opening before 00:20 has no such
+    time of day (OverflowError); no window does."""
+    return earliest_waiting_moment(date.min, window_start).time()
+
+
 RETRY_GAP_SECONDS = 60
 SPOT_BAND = 0.05  # strikes within 5% of spot
 MONTHLY_EXPIRIES = 2
@@ -57,12 +78,6 @@ NONE_MARKER = "none"
 RAW_FILE_NOT_SAVED = "raw quote file not saved"
 MESSAGE_WITHHELD = "provider message withheld"
 RAW_FILE_SAVED = "raw_file_saved"  # sidecar key, written (false) only when the save failed: absent means saved (A4b)
-COLUMNS = (
-    "snapshot_id", "request_sent_at", "response_received_at", "quote_time", "age_basis", "freshness_proxy",
-    "last_trade_time",
-    "provider", "contract_id", "expiry", "strike", "type", "bid", "ask", "last", "bid_qty", "ask_qty", "spot",
-    "book_source", "valid", "invalid_reason", "raw_sha256",
-)  # fmt: skip
 
 
 def monthly_expiries(expiries: list[date], today: date, count: int = MONTHLY_EXPIRIES) -> list[date]:
@@ -71,10 +86,6 @@ def monthly_expiries(expiries: list[date], today: date, count: int = MONTHLY_EXP
     return sorted(last_expiry_of_each_month({e for e in expiries if e >= today}))[:count]
 
 
-NO_QUOTE_TIME = "unknown: provider gives no quote timestamp"
-PAGE_TIME = "provider's snapshot timestamp (NSE page time, one for the whole chain)"
-FRESHNESS_PROXY = "same-day trade (market active; quote age unknown)"
-VOLUME_PROXY = "day volume above zero (NSE gives no last trade time)"
 GROWW_NOTE = "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today"
 NSE_NOTE = "quotes, not fills; NSE public option chain: quote_time is its page timestamp, traded today = day volume > 0"
 PROVIDER_NOTES = {"nse": NSE_NOTE}
@@ -101,7 +112,7 @@ class QuoteSnapshotRecorder:
                  fallback: ListedExpiries | None = None, calendar: SessionCalendar | None = None,
                  history: ExpiryHistory | None = None, levels: LevelSource | None = None,
                  dataset: str = DATASET, slot: Slot = NIFTY_SLOT, window: QuoteWindow = DEFAULT_WINDOW,
-                 log: CaptureLog | None = None):  # fmt: skip
+                 log: CaptureLog | None = None, extras: CaptureExtras | None = None):  # fmt: skip
         """The app always passes `calendar` and `history` (fno/composition.py). Without them (the A4 tests and
         byte-identical baseline), A4's rules stay: weekends are closed, a day with no same-day trade is a holiday, and
         the monthly is the last listed expiry of each month."""
@@ -109,6 +120,7 @@ class QuoteSnapshotRecorder:
         self.fallback, self.calendar, self.levels, self.dataset = fallback, calendar, levels, dataset
         self.monthly_check = PointInTimeMonthlies(history) if history else None
         self.slot, self.underlying, self.window, self.log = slot, slot.underlying, window, log  # log: A4e only
+        self.extras = extras  # G10: the `v4` window's V4 expiry and future quote, never counted for completeness
         self.pacer = RatePacer(slot.per_second) if slot.per_second else None  # one per recorder, across attempts
 
     @staticmethod
@@ -139,9 +151,9 @@ class QuoteSnapshotRecorder:
         if outside_window:
             return self._attempt(day, canonical_allowed=False)
         start, end = (datetime.combine(day, t, IST) for t in (self.window.start, self.window.end))
+        if now < earliest_waiting_moment(day, self.window.start, self.window.max_early_wait_seconds):
+            return RecordResult("too early")
         if now < start:
-            if (start - now).total_seconds() > self.window.max_early_wait_seconds:
-                return RecordResult("too early")
             self.sleep((start - now).total_seconds())
         result = RecordResult("window closed")
         while self.now() <= end:
@@ -206,21 +218,21 @@ class QuoteSnapshotRecorder:
         if self.log:
             self.log.begin()
         snapshot_id = f"{self.slot.stem}_{started:%Y%m%d_%H%M%S}"
-        failures, rows, chains, expiry_source, check = [], [], [], {"source": self.provider.name}, {}
+        failures, rows, chains, expiry_source, check, found = [], [], [], {"source": self.provider.name}, {}, ([], [])
         universe = self._universe(day, failures) if self.slot.check_listed else None
         try:
             if failures:
                 raise _NotRecorded
-            months = self._nearest_monthlies(self.provider.expiries(self.underlying), day, check)
+            listed = self.provider.expiries(self.underlying)
+            months = self._nearest_monthlies(listed, day, check)
             if len(months) < MONTHLY_EXPIRIES and self.fallback:  # late December: Groww lists no next-year dates
                 try:
                     listed, expiry_source = self.fallback.listed(self.underlying, day)
                     months = self._nearest_monthlies(listed, day, check)
                 except Exception as exc:
                     failures.append(withheld("expiry fallback", exc))
-            if len(months) < MONTHLY_EXPIRIES:
-                failures.append(f"only {len(months)} monthly expiries found")
-            for expiry in months:
+            found = (listed, months)  # for the extras, asked only after every required field (judge 584 SF2)
+            for expiry in self._targets(listed, months, day, failures):
                 chains.append(self.provider.chain(self.underlying, expiry))
         except _NotRecorded:
             pass
@@ -233,13 +245,15 @@ class QuoteSnapshotRecorder:
                 if got.error is not None:
                     failures.append(withheld(f"{chain.expiry} {got.strike:g} {got.kind}", got.error))
                     continue
-                rows.append(self._row(snapshot_id, got.sent, got.received, chain, got.strike, got.kind, got.book, day))
+                rows.append(snapshot_row(snapshot_id, self.provider.name, got, chain, day))
                 traded = traded or traded_today(got.book, day)
+        asked = bool(self.extras and chains)  # G10's optional extras: last, and only on an attempt that got a chain
+        extra = self.extras.capture(snapshot_id, day, *found) if asked else []
         if rows and not traded and self.slot.cross_check:
             if self.calendar is None:
                 return RecordResult("not a trading day", snapshot_id)  # A4 inference: no contract traded, closed
             failures.append(NO_SAME_DAY_TRADES)  # kept and retried; the day ends "none" if it persists to 15:10
-        csv_bytes = self._csv(rows)
+        csv_bytes = snapshot_csv([*rows, *extra])
         raw_file_error, raw_file_detail = self._save_quote_file(self._path(day, f"{snapshot_id}.csv"), csv_bytes)
         if raw_file_error:
             failures.append(raw_file_error)
@@ -257,6 +271,7 @@ class QuoteSnapshotRecorder:
             meta[RAW_FILE_SAVED] = False
         if self.log:
             meta.update(self.log.finish())  # A4e: each field's own times and the clock check
+        meta.update(self.extras.meta() if asked else {})  # never an earlier attempt's
         if universe is not None:
             meta["universe"] = universe  # the NSE file that listed (or did not list) the underlying
         if self.monthly_check is not None:
@@ -266,12 +281,25 @@ class QuoteSnapshotRecorder:
         self.store.put(self._path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
         if complete and canonical_allowed and self.canonical(day) is None:
             self.store.put(self._marker(day), snapshot_id.encode())
-        reason = next(
-            (f for f in failures if f in (NO_SAME_DAY_TRADES, NOT_LISTED) or f.startswith(f"{UNIVERSE}:")), ""
-        )
+        final = (NO_SAME_DAY_TRADES, NOT_LISTED, NO_WEEKLY)
+        reason = next((f for f in failures if f in final or f.startswith(f"{UNIVERSE}:")), "")
         unverified = check["reason"] if check.get("status") == UNVERIFIED else ""
         return RecordResult("recorded", snapshot_id, complete, len(rows), reason, unverified, raw_file_error,
                             raw_file_detail)  # fmt: skip
+
+    def _targets(self, listed: list[date], months: list[date], day: date, failures: list[str]) -> list[date]:
+        """The expiries this slot records: A4's two monthlies, or the nearest weeklies around them (A4f). A weekly slot
+        short of two monthlies records nothing: a weekly beside an unknown monthly is never taken."""
+        if len(months) < MONTHLY_EXPIRIES:
+            failures.append(f"only {len(months)} monthly expiries found")
+            if self.slot.weeklies:
+                return []
+        if not self.slot.weeklies:
+            return months
+        weeklies = nearest_weeklies(listed, months, day, self.slot.weeklies)
+        if not weeklies:
+            failures.append(NO_WEEKLY)
+        return weeklies
 
     def _universe(self, day: date, failures: list[str]) -> dict:
         """The previous session's NSE file (name, date, SHA-256) and whether it lists the underlying as an index
@@ -306,43 +334,8 @@ class QuoteSnapshotRecorder:
         low, high = chain.spot * (1 - SPOT_BAND), chain.spot * (1 + SPOT_BAND)
         return sorted((k, t) for k, t in chain.quotes if low <= k <= high)
 
-    def _row(self, snapshot_id, sent, received, chain, strike, kind, book: QuoteBook | None, day) -> dict:
-        reason = quote_validity(book, day)
-        leg = chain.get(strike, kind)
-        return {
-            "snapshot_id": snapshot_id, "request_sent_at": sent.isoformat(),
-            "response_received_at": received.isoformat(),
-            "quote_time": book.quote_time.isoformat() if book and book.quote_time else "",
-            "age_basis": PAGE_TIME if book and book.quote_time else NO_QUOTE_TIME,
-            "freshness_proxy": _freshness_proxy(book),
-            "provider": self.provider.name,
-            "last_trade_time": book.last_trade_time.isoformat() if book and book.last_trade_time else "",
-            "contract_id": book.symbol if book else (leg.symbol if leg else ""), "expiry": chain.expiry.isoformat(),
-            "strike": f"{strike:g}", "type": kind, "bid": _num(book and book.bid), "ask": _num(book and book.ask),
-            "last": _num(book and book.last), "bid_qty": _num(book and book.bid_qty),
-            "ask_qty": _num(book and book.ask_qty), "spot": f"{chain.spot:.2f}",
-            "book_source": book.book_source if book else "", "valid": "false" if reason else "true",
-            "invalid_reason": reason, "raw_sha256": book.raw_sha256 if book else "",
-        }  # fmt: skip
-
-    @staticmethod
-    def _csv(rows: list[dict]) -> bytes:
-        out = io.StringIO()
-        writer = csv.DictWriter(out, fieldnames=COLUMNS, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(rows)
-        return out.getvalue().encode()
-
 
 def withheld(where: str, exc: Exception) -> str:
     """A public sidecar's failure entry (A4b): the exception's type only. Its message can carry a request URL, a private
     Drive folder ID or a quoted value, and the sidecar is committed to the public repository."""
     return f"{where}: {type(exc).__name__} ({MESSAGE_WITHHELD})"
-
-
-def _freshness_proxy(book: QuoteBook | None) -> str:
-    return VOLUME_PROXY if book and book.last_trade_time is None and book.traded_today else FRESHNESS_PROXY
-
-
-def _num(value) -> str:
-    return "" if value is None or value is False else f"{float(value):g}"

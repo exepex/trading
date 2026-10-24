@@ -22,9 +22,11 @@ NOT_FAILED = ("success", "skipped", "neutral")
 FAILURE = "failure"  # the only conclusion after which a job's own alert step can have run
 ALERT_STEP_PREFIXES = ("Alert", "One line to")  # every workflow's alert step (YAML drops the text after " #")
 RAN = ("success", "failure")
-# Workflows where a newer run takes over from a cancelled pending one (A19's poller: its kick dispatches the next run);
-# such a run cancelled before any step ran was replaced, not lost. Any other workflow's cancelled slot is lost.
-REPLACEABLE = ("news-capture",)
+# Workflows where a newer run takes over from a cancelled pending one (A19's poller: its kick dispatches the next run;
+# O9b's data-checks: each run checks the current committed state); such a run cancelled before any step ran was
+# replaced, not lost. Any other workflow's cancelled slot is lost. data-checks stays here only while it records
+# nothing per push or per day that a cancelled run would have had to write (O10 builder's condition, 23 Oct 2026).
+REPLACEABLE = ("news-capture", "data-checks")
 BEFORE_ANY_STEP = "before any step"
 ALERT = "Omenix F&O {job}: the GitHub Actions run was {kind} at '{step}' and posted nothing itself; see {url}"
 

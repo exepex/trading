@@ -80,7 +80,7 @@ def _pack(body: dict) -> Pack:
                 _text(body["captured_from"]), _time(body["released_at"]),
                 Level(_number(spot["value"]), seen(spot["observed_at"])), _future(body["future"], seen),
                 VixLevel(_number(vix["value"]), seen(vix["observed_at"]), _time_or_none(vix["nse_time"])), chain,
-                _iv30(body["iv30"], seen))  # fmt: skip
+                _iv30(body["iv30"], seen), _date_or_none(body["v4_expiry"]))  # fmt: skip
     if pack.future.expiry <= day:
         raise PackFormatError("the future's expiry is not after the day")
     return pack
@@ -89,7 +89,12 @@ def _pack(body: dict) -> Pack:
 def _future(body: dict, seen: _Window) -> FutureQuote:
     _keys(body, FutureQuote)
     sides = (_number_or_none(body[name]) for name in ("last", "bid", "ask"))
-    return FutureQuote(date.fromisoformat(body["expiry"]), *sides, seen(body["observed_at"]))
+    volume = body["volume"]
+    if volume is not None and (isinstance(volume, bool) or not isinstance(volume, int) or volume < 0):
+        raise PackFormatError("the future's volume is a whole count or absent")
+    quoted = seen(body["quoted_at"]) if body["quoted_at"] is not None else None
+    return FutureQuote(date.fromisoformat(body["expiry"]), *sides, seen(body["observed_at"]),
+                       _time_or_none(body["last_trade_time"]), volume, quoted)  # fmt: skip
 
 
 def _chain_quote(body: dict, seen: _Window) -> ChainQuote:
@@ -109,12 +114,16 @@ def _iv30(body: dict, seen: _Window) -> Iv30:
     return Iv30(_number(body["value"]), body["flagged"], expiries, _text(body["method"]), seen(body["observed_by"]))
 
 
+def capture_window(day: date) -> tuple[datetime, datetime]:
+    """The day's capture window, 14:30:00-14:40:00 IST, both ends inside."""
+    return datetime.combine(day, V4_CAPTURE_START, IST), datetime.combine(day, V4_PACK_WINDOW_END, IST)
+
+
 class _Window:
     """Every observed time of a pack lies in its day's capture window, 14:30:00-14:40:00 IST."""
 
     def __init__(self, day: date):
-        self.start = datetime.combine(day, V4_CAPTURE_START, IST)
-        self.end = datetime.combine(day, V4_PACK_WINDOW_END, IST)
+        self.start, self.end = capture_window(day)
 
     def __call__(self, text: str) -> datetime:
         observed = _time(text)
@@ -155,3 +164,7 @@ def _text(value) -> str:
     if not isinstance(value, str) or not value:
         raise PackFormatError(f"{value!r} is not a non-empty text")
     return value
+
+
+def _date_or_none(text) -> date | None:
+    return None if text is None else date.fromisoformat(text)

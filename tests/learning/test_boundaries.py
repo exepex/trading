@@ -4,6 +4,7 @@ runs on the owner's Saturday schedule with G4's Monday post retired."""
 import yaml
 
 from fno.config import ROOT
+from fno.storage.wiring import OWNER_UPLOAD_SETTINGS
 from tests.import_graph import full_imports
 
 PACKAGES = ("fno/learning", "fno/advocate")
@@ -51,5 +52,6 @@ def test_the_workflow_never_skips_the_record_scan_and_uses_only_the_fno_slack_to
     job = _workflow("postmortem-weekly.yml")["jobs"]["postmortem"]
     runs = "\n".join(step.get("run", "") for step in job["steps"])
     assert "--no-verify" not in runs and "core.hooksPath .githooks" in runs
-    assert sorted(job["env"]) == ["FNO_ROUTINE_POSTMORTEM_TOKEN", "FNO_ROUTINE_POSTMORTEM_TRIGGER_ID",
-                                  "FNO_SLACK_BOT_TOKEN", "STEP"]  # fmt: skip
+    drive = [*OWNER_UPLOAD_SETTINGS]  # G10 completion: G8's report reads the day labels from Drive
+    assert sorted(job["env"]) == sorted([*drive, "FNO_ROUTINE_POSTMORTEM_TOKEN", "FNO_ROUTINE_POSTMORTEM_TRIGGER_ID",
+                                         "FNO_SLACK_BOT_TOKEN", "STEP"])  # fmt: skip

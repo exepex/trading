@@ -14,7 +14,7 @@ from __future__ import annotations
 import time
 from datetime import date, datetime, timedelta
 
-from ..models import IST, now_ist
+from ..models import IST, now_ist, today_local
 from .runs_cli import add_archive_parsers
 
 PROBE_SYMBOL = "TCS"
@@ -59,7 +59,7 @@ def cmd_filings_table(args) -> int:
 def cmd_filings_probe(args, sleep=time.sleep) -> int:
     from .wiring import build_filing_indexes
 
-    since = date.today() - timedelta(days=3 * 366)
+    since = today_local() - timedelta(days=3 * 366)
     indexes = build_filing_indexes()
     answered = sum(_probe(index, since, sleep) for index in indexes)
     return 0 if answered == len(indexes) else 1

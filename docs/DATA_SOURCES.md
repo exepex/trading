@@ -37,6 +37,13 @@ Groww credentials (`GROWW_API_KEY` and `GROWW_TOTP_SECRET`, or `GROWW_ACCESS_TOK
 `~/.trading.env`. Data calls work from a changing IP; Groww's static-IP rule covers order placement, which this tool
 never does.
 
+## Rules and notices (story A20)
+
+| Data | Source (code) | Coverage | Notes |
+|---|---|---|---|
+| NSE circulars | `www.nseindia.com/api/circulars?fromDate=…&toDate=…` (JSON; `fno/circulars/feeds.py`) | every circular NSE lists for yesterday and today, hourly 08:00-22:00 IST, from the first run (A20b, `circulars.yml`) | listed with our first-seen time in Drive `data/circulars/list/`; NSE lists a circular once per department, merged into one row; the file of each F&O one (department "Futures & Options" or F&O words in the subject) in `data/circulars/files/nse/` |
+| SEBI circulars | `www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=7&smid=0` (HTML) | its latest 25 circulars, hourly (A20b) | same table; the page of each F&O one (derivative, margin, lot size, position limit... in the title) in `data/circulars/files/sebi/`; a page with nothing seen before alerts as a possible gap |
+
 ## Politeness
 
 `fno/http_pacing.py`: at most one request a second to each site; two refusals in a row ("too many requests" or

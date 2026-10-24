@@ -1,0 +1,2885 @@
+{
+ "source": "py_vollib 1.0.12",
+ "rows": [
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1000.0,
+   "black_scholes": 1000.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 2.036214661239323e-85,
+   "black_scholes": 2.036214661239323e-85
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1000.0000000000005,
+   "black_scholes": 1000.0000000000005
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 4.058477212428576e-13,
+   "black_scholes": 4.058477212428576e-13
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 1000.9542759120878,
+   "black_scholes": 1000.9542759120878
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 0.9542759120878812,
+   "black_scholes": 0.9542759120878812
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 999.8219336639115,
+   "black_scholes": 1003.3832603856829
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 2.0358520799551064e-85,
+   "black_scholes": 5.3162554413510245e-86
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 999.821933663912,
+   "black_scholes": 1003.3832603856832
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 4.05775453426126e-13,
+   "black_scholes": 3.3084807443294103e-13
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 1000.776039651584,
+   "black_scholes": 1004.3129421209645
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 0.9541059876725981,
+   "black_scholes": 0.9296817352816148
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1000.0000000000011,
+   "black_scholes": 1000.0000000000011
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 1.1308793850535315e-12,
+   "black_scholes": 1.1308793850535315e-12
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1000.226226963512,
+   "black_scholes": 1000.226226963512
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 0.22622696351202654,
+   "black_scholes": 0.22622696351202654
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 1103.35783224701,
+   "black_scholes": 1103.35783224701
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 103.35783224701014,
+   "black_scholes": 103.35783224701014
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 998.7542013098255,
+   "black_scholes": 1023.6701751133354
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 1.1294705369968853e-12,
+   "black_scholes": 2.7993633792664e-13
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 998.9801464400815,
+   "black_scholes": 1023.84846137325
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 0.22594513025720084,
+   "black_scholes": 0.17828625991472755
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 1101.9832705048018,
+   "black_scholes": 1122.7308854451987
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 103.22906919497743,
+   "black_scholes": 99.06071033186367
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1000.011934837426,
+   "black_scholes": 1000.011934837426
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 0.0119348374259656,
+   "black_scholes": 0.0119348374259656
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1028.0601784232854,
+   "black_scholes": 1028.0601784232854
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 28.060178423285357,
+   "black_scholes": 28.060178423285357
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 1479.2360539270649,
+   "black_scholes": 1479.2360539270649
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 479.23605392706475,
+   "black_scholes": 479.23605392706475
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 994.683651082574,
+   "black_scholes": 1101.238654712903
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 0.011871245984545543,
+   "black_scholes": 0.0024716081027876314
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1022.5824474514109,
+   "black_scholes": 1121.5373096474107
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 27.91066761482151,
+   "black_scholes": 20.301126542610152
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 1471.3543585580867,
+   "black_scholes": 1546.0786878477572
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 476.68257872149724,
+   "black_scholes": 444.8425047429567
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1022.5721926006868,
+   "black_scholes": 1022.5721926006868
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 22.572192600686737,
+   "black_scholes": 22.572192600686737
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1323.2420872295108,
+   "black_scholes": 1323.2420872295108
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 323.2420872295108,
+   "black_scholes": 323.2420872295108
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 2728.7410684654087,
+   "black_scholes": 2728.7410684654087
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 1728.7410684654087,
+   "black_scholes": 1728.7410684654087
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 989.8728390106869,
+   "black_scholes": 1609.5914755809183
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 21.850389179380855,
+   "black_scholes": 2.018022375732954
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1280.9280469998018,
+   "black_scholes": 1780.808017662539
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 312.9055971684958,
+   "black_scholes": 173.2345644573534
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 2641.4826140511805,
+   "black_scholes": 3056.0062583179315
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 1673.4601642198745,
+   "black_scholes": 1448.4328051127463
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 5000.0,
+   "black_scholes": 5000.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1.689189585365261e-235,
+   "black_scholes": 1.689189585365261e-235
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 5000.0,
+   "black_scholes": 5000.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 3.459154087556759e-25,
+   "black_scholes": 3.459154087556759e-25
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 5000.0,
+   "black_scholes": 5000.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 4999.109668319557,
+   "black_scholes": 4995.548341597786
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1.688888797564836e-235,
+   "black_scholes": 3.989453005938126e-235
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 4999.109668319557,
+   "black_scholes": 4995.548341597786
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 3.458538128662422e-25,
+   "black_scholes": 3.792812710025179e-25
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 4999.109668319557,
+   "black_scholes": 4995.548341597786
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1.806575621916325e-227,
+   "black_scholes": 1.806575621916325e-227
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 5000.0,
+   "black_scholes": 5000.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 4.472617754232376e-34,
+   "black_scholes": 4.472617754232376e-34
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 5000.0,
+   "black_scholes": 5000.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 0.007801488605485169,
+   "black_scholes": 0.007801488605485169
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 5000.007801488606,
+   "black_scholes": 5000.007801488606
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1.8043249923728383e-227,
+   "black_scholes": 5.943738810991087e-225
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 4993.771006549122,
+   "black_scholes": 4968.855032745611
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 4.4670457728924975e-34,
+   "black_scholes": 1.0635435424864133e-33
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 4993.771006549122,
+   "black_scholes": 4968.855032745611
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 0.007791769521199035,
+   "black_scholes": 0.008617467119285314
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 4993.778798318644,
+   "black_scholes": 4968.863650212731
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1.2491428950142317e-53,
+   "black_scholes": 1.2491428950142317e-53
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 5000.0,
+   "black_scholes": 5000.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1.4119394122142305e-07,
+   "black_scholes": 1.4119394122142305e-07
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 5000.000000141194,
+   "black_scholes": 5000.000000141194
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 25.109154205860808,
+   "black_scholes": 25.109154205860808
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 5025.109154205861,
+   "black_scholes": 5025.109154205861
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1.2424871866540357e-53,
+   "black_scholes": 4.034028022588915e-51
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 4973.3588991829465,
+   "black_scholes": 4866.794495914736
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1.4044162881685566e-07,
+   "black_scholes": 3.4391696027348233e-07
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 4973.358899323388,
+   "black_scholes": 4866.7944962586525
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 24.975367104134953,
+   "black_scholes": 28.288287951149215
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 4998.334266287082,
+   "black_scholes": 4895.082783865885
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1.6533559702187666e-08,
+   "black_scholes": 1.6533559702187666e-08
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 5000.000000016534,
+   "black_scholes": 5000.000000016534
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 5.1412713496134215,
+   "black_scholes": 5.1412713496134215
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 5005.141271349614,
+   "black_scholes": 5005.141271349614
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 770.6630754296514,
+   "black_scholes": 770.6630754296514
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 5770.663075429651,
+   "black_scholes": 5770.663075429651
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1.6004856967343863e-08,
+   "black_scholes": 4.721416765020609e-06
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 4840.1122491725355,
+   "black_scholes": 4200.561250504067
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 4.976866087100289,
+   "black_scholes": 14.042108313343837
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 4845.089115243631,
+   "black_scholes": 4214.603354095994
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 746.0191582719397,
+   "black_scholes": 923.6793938429323
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 5586.13140742847,
+   "black_scholes": 5124.240639625583
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 6500.0,
+   "black_scholes": 6500.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 6500.0,
+   "black_scholes": 6500.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 6.171703452786298e-40,
+   "black_scholes": 6.171703452786298e-40
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 6500.0,
+   "black_scholes": 6500.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 6498.842568815425,
+   "black_scholes": 6495.281242093653
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 6498.842568815425,
+   "black_scholes": 6495.281242093653
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 6.170604480165035e-40,
+   "black_scholes": 6.9269475923601665e-40
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 6498.842568815425,
+   "black_scholes": 6495.281242093653
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 6500.0,
+   "black_scholes": 6500.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 5.852525804983827e-54,
+   "black_scholes": 5.852525804983827e-54
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 6500.0,
+   "black_scholes": 6500.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 4.419983703336965e-05,
+   "black_scholes": 4.419983703336965e-05
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 6500.000044199837,
+   "black_scholes": 6500.000044199837
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 6491.902308513859,
+   "black_scholes": 6466.986334710347
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 5.845234736001759e-54,
+   "black_scholes": 1.737410749876494e-53
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 6491.902308513859,
+   "black_scholes": 6466.986334710347
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 4.41447729342875e-05,
+   "black_scholes": 4.990986625500562e-05
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 6491.902352658632,
+   "black_scholes": 6466.986384620214
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 6.923834381913757e-85,
+   "black_scholes": 6.923834381913757e-85
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 6500.0,
+   "black_scholes": 6500.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 2.380250191338165e-12,
+   "black_scholes": 2.380250191338165e-12
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 6500.000000000003,
+   "black_scholes": 6500.000000000003
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 6.088295721296039,
+   "black_scholes": 6.088295721296039
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 6506.088295721296,
+   "black_scholes": 6506.088295721296
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 6.886942667951928e-85,
+   "black_scholes": 1.007291743087666e-81
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 6465.366568937831,
+   "black_scholes": 6358.80216566962
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 2.367567694274715e-12,
+   "black_scholes": 7.193039690542547e-12
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 6465.366568937834,
+   "black_scholes": 6358.802165669627
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 6.055855941273023,
+   "black_scholes": 6.99572115972113
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 6471.422424879104,
+   "black_scholes": 6365.797886829341
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 8.568402303036934e-14,
+   "black_scholes": 8.568402303036934e-14
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 6500.0,
+   "black_scholes": 6500.0
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 0.6494545928991486,
+   "black_scholes": 0.6494545928991486
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 6500.649454592899,
+   "black_scholes": 6500.649454592899
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 544.2964876858998,
+   "black_scholes": 544.2964876858998
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 7044.2964876859,
+   "black_scholes": 7044.2964876859
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 8.294405788526017e-14,
+   "black_scholes": 1.0506387938295232e-10
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 6292.145923903489,
+   "black_scholes": 5652.594920529715
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 0.6286866260724274,
+   "black_scholes": 2.1496338021507926
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 6292.774610529562,
+   "black_scholes": 5654.744554331761
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 526.8912194442801,
+   "black_scholes": 663.2521028904075
+  },
+  {
+   "underlying": 20000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 6819.037143347769,
+   "black_scholes": 6315.847023420017
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 6000.0,
+   "black_scholes": 6000.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 6000.0,
+   "black_scholes": 6000.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 6000.0,
+   "black_scholes": 6000.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 5.11434562987365e-38,
+   "black_scholes": 5.11434562987365e-38
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 5998.931601983469,
+   "black_scholes": 6003.383260385682
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 5998.931601983469,
+   "black_scholes": 6003.383260385682
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 5998.931601983469,
+   "black_scholes": 6003.383260385682
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 5.113434937085848e-38,
+   "black_scholes": 4.5683800281984123e-38
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 6000.0,
+   "black_scholes": 6000.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 6000.0,
+   "black_scholes": 6000.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 2.3060281779327695e-51,
+   "black_scholes": 2.3060281779327695e-51
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 6000.000082366763,
+   "black_scholes": 6000.000082366763
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 8.23667636477619e-05,
+   "black_scholes": 8.23667636477619e-05
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 5992.5252078589465,
+   "black_scholes": 6023.670175113338
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 0.0,
+   "black_scholes": 0.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 5992.5252078589465,
+   "black_scholes": 6023.670175113338
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 2.3031553310491927e-51,
+   "black_scholes": 7.929690082107663e-52
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 5992.525290123097,
+   "black_scholes": 6023.670248125519
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 8.226415124149552e-05,
+   "black_scholes": 7.301218171055482e-05
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 6000.0,
+   "black_scholes": 6000.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 8.624765333358255e-81,
+   "black_scholes": 8.624765333358255e-81
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 6000.000000000009,
+   "black_scholes": 6000.000000000009
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 9.544022557256016e-12,
+   "black_scholes": 9.544022557256016e-12
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 6006.931716884044,
+   "black_scholes": 6006.931716884044
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 6.931716884044305,
+   "black_scholes": 6.931716884044305
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 5968.030679019536,
+   "black_scholes": 6101.2361831048
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 8.57881068480437e-81,
+   "black_scholes": 6.15125290844066e-84
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 5968.0306790195455,
+   "black_scholes": 6101.236183104803
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 9.493169903826399e-12,
+   "black_scholes": 3.160562854485339e-12
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 5974.925462189912,
+   "black_scholes": 6107.240016391381
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 6.894783170375686,
+   "black_scholes": 6.003833286580132
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 6000.0,
+   "black_scholes": 6000.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 4.013538713008274e-13,
+   "black_scholes": 4.013538713008274e-13
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 6000.805105423453,
+   "black_scholes": 6000.805105423453
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 0.8051054234531575,
+   "black_scholes": 0.8051054234531575
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 6539.919588933247,
+   "black_scholes": 6539.919588933247
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 539.9195889332467,
+   "black_scholes": 539.9195889332467
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 5808.134698987837,
+   "black_scholes": 6607.5734532051865
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 3.8851955774590564e-13,
+   "black_scholes": 1.662879937744971e-16
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 5808.91405911222,
+   "black_scholes": 6607.7894018936595
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 0.7793601243835966,
+   "black_scholes": 0.21594868847345436
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 6330.7889821789095,
+   "black_scholes": 7033.305770072798
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 19000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 522.6542831910732,
+   "black_scholes": 425.73231686761085
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 26.101984212653747,
+   "black_scholes": 26.101984212653747
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 26.101984212653747,
+   "black_scholes": 26.101984212653747
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 67.86504739392484,
+   "black_scholes": 67.86504739392484
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 67.86504739392484,
+   "black_scholes": 67.86504739392484
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 208.8121193678486,
+   "black_scholes": 208.8121193678486
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 208.8121193678486,
+   "black_scholes": 208.8121193678486
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 26.09733632796036,
+   "black_scholes": 28.38588863499928
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 26.09733632796036,
+   "black_scholes": 23.934230232786796
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 67.85296291358694,
+   "black_scholes": 70.10807232409215
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 67.85296291358694,
+   "black_scholes": 65.65641392187968
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 208.77493695882188,
+   "black_scholes": 211.02690971984634
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 208.77493695882188,
+   "black_scholes": 206.57525131763384
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 69.05924069989814,
+   "black_scholes": 69.05924069989814
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 69.05924069989814,
+   "black_scholes": 69.05924069989814
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 179.55195974331477,
+   "black_scholes": 179.55195974331477
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 179.55195974331477,
+   "black_scholes": 179.55195974331477
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 552.4044013363417,
+   "black_scholes": 552.4044013363417
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 552.4044013363417,
+   "black_scholes": 552.4044013363417
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 68.97320678828969,
+   "black_scholes": 85.70413268030319
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 68.97320678828969,
+   "black_scholes": 54.55916542591197
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 179.3282741470481,
+   "black_scholes": 195.44258176600516
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 179.3282741470481,
+   "black_scholes": 164.29761451161394
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 551.7162166567097,
+   "black_scholes": 567.7725384936786
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 551.7162166567097,
+   "black_scholes": 536.6275712392874
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 142.965272271282,
+   "black_scholes": 142.965272271282
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 142.965272271282,
+   "black_scholes": 142.965272271282
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 371.6913779547356,
+   "black_scholes": 371.6913779547356
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 371.6913779547356,
+   "black_scholes": 371.6913779547356
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 1143.1055768089038,
+   "black_scholes": 1143.1055768089038
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 1143.1055768089038,
+   "black_scholes": 1143.1055768089038
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 142.20352182489867,
+   "black_scholes": 218.97667638369526
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 142.20352182489867,
+   "black_scholes": 85.77117229843142
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 369.71092446015126,
+   "black_scholes": 441.105517185292
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 369.71092446015126,
+   "black_scholes": 307.90001310002816
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 1137.0148586256435,
+   "black_scholes": 1207.8985674718351
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 1137.0148586256435,
+   "black_scholes": 1074.6930633865713
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 352.60012503186124,
+   "black_scholes": 352.60012503186124
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 352.60012503186124,
+   "black_scholes": 352.60012503186124
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 916.485382681906,
+   "black_scholes": 916.485382681906
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 916.485382681906,
+   "black_scholes": 916.485382681906
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 2811.572900457123,
+   "black_scholes": 2811.572900457123
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 2811.572900457123,
+   "black_scholes": 2811.572900457123
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 341.3248368441671,
+   "black_scholes": 883.732306368149
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 341.3248368441671,
+   "black_scholes": 84.29355215079882
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 887.1784253783206,
+   "black_scholes": 1357.290507231901
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 887.1784253783206,
+   "black_scholes": 557.8517530145508
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 2721.665686979815,
+   "black_scholes": 3184.459316607114
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 25000.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 2721.665686979815,
+   "black_scholes": 2385.0205623897637
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1.2294036622068817e-109,
+   "black_scholes": 1.2294036622068817e-109
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 1500.0,
+   "black_scholes": 1500.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1.0931704767439673e-16,
+   "black_scholes": 1.0931704767439673e-16
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 1500.0,
+   "black_scholes": 1500.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 0.43406817380918683,
+   "black_scholes": 0.43406817380918683
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 1500.4340681738092,
+   "black_scholes": 1500.4340681738092
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 1.2291847468011786e-109,
+   "black_scholes": 5.613654116978201e-109
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 1499.7329004958672,
+   "black_scholes": 1495.2812420936548
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 1.0929758198824533e-16,
+   "black_scholes": 1.375274959592579e-16
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 1499.7329004958672,
+   "black_scholes": 1495.2812420936548
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 0.433990880879864,
+   "black_scholes": 0.4465319814797274
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0027397260273972603,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 1500.1668913767471,
+   "black_scholes": 1495.7277740751344
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 4.0437219714230005e-16,
+   "black_scholes": 4.0437219714230005e-16
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 1500.0,
+   "black_scholes": 1500.0
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 0.07489141797491974,
+   "black_scholes": 0.07489141797491974
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 1500.0748914179749,
+   "black_scholes": 1500.0748914179749
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 107.48018193388592,
+   "black_scholes": 107.48018193388592
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 1607.480181933886,
+   "black_scholes": 1607.480181933886
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 4.0386843078875676e-16,
+   "black_scholes": 1.885679688493562e-15
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 1498.1313019647366,
+   "black_scholes": 1466.9863347103453
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 0.0747981183445012,
+   "black_scholes": 0.09677428542867698
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 1498.206100083081,
+   "black_scholes": 1467.083108995774
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 107.34628326401284,
+   "black_scholes": 112.19080536968094
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.019178082191780823,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 1605.4775852287494,
+   "black_scholes": 1579.1771400800264
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 0.001973156583822422,
+   "black_scholes": 0.001973156583822422
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 1500.0019731565837,
+   "black_scholes": 1500.0019731565837
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 24.287527577789657,
+   "black_scholes": 24.287527577789657
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 1524.2875275777897,
+   "black_scholes": 1524.2875275777897
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 575.9871103655098,
+   "black_scholes": 575.9871103655098
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 2075.9871103655096,
+   "black_scholes": 2075.9871103655096
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 0.001962643171126933,
+   "black_scholes": 0.009851184067260661
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 1492.0096323980551,
+   "black_scholes": 1358.8120168536875
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 24.158118283630287,
+   "black_scholes": 33.554058814813835
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 1516.1657880385144,
+   "black_scholes": 1392.356224484434
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 572.9181242301956,
+   "black_scholes": 617.4800371487312
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.0821917808219178,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 2064.9257939850795,
+   "black_scholes": 1976.2822028183514
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 18.863757150754974,
+   "black_scholes": 18.863757150754974
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 1518.863757150755,
+   "black_scholes": 1518.863757150755
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 377.3309273737227,
+   "black_scholes": 377.3309273737227
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 1877.3309273737227,
+   "black_scholes": 1877.3309273737227
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 2206.7276266065305,
+   "black_scholes": 2206.7276266065305
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.0,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 3706.7276266065305,
+   "black_scholes": 3706.7276266065305
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "CE",
+   "black76": 18.26054041009665,
+   "black_scholes": 121.77998275893438
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.05,
+   "kind": "PE",
+   "black76": 1470.2942151570558,
+   "black_scholes": 774.3749032885432
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "CE",
+   "black76": 365.26480871342966,
+   "black_scholes": 638.3653930148956
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.13,
+   "kind": "PE",
+   "black76": 1817.2984834603888,
+   "black_scholes": 1290.9603135445045
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "CE",
+   "black76": 2136.161883218077,
+   "black_scholes": 2533.7052499386723
+  },
+  {
+   "underlying": 25000.0,
+   "strike": 26500.0,
+   "years": 0.5,
+   "rate": 0.065,
+   "sigma": 0.4,
+   "kind": "PE",
+   "black76": 3588.195557965036,
+   "black_scholes": 3186.300170468281
+  }
+ ]
+}

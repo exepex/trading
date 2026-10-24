@@ -29,7 +29,7 @@ class AiRecordWriter:
     def write(self, day: date, pack_sha: str, pack: dict, outcome: Outcome, fired: dict, now: datetime) -> str:
         records = self._records(day, pack_sha, pack, outcome, now)
         texts = {records_path(day, outcome.book): records_csv_v2(records),
-                 audit_path(day, outcome.book): self._audit(day, outcome, fired)}  # fmt: skip
+                 audit_path(day, outcome.book): audit_text(day, outcome, fired)}  # fmt: skip
         existing = {p: (self.root / p).read_text(encoding="utf-8") for p in texts if (self.root / p).is_file()}
         if existing:
             return ALREADY if existing == texts else f"{ALREADY}; this collection differs, the first stands"
@@ -52,15 +52,17 @@ class AiRecordWriter:
                                                 pack_sha), LIVE_MODE, iv30, generated)
                 for q in FORECAST_QUESTIONS]  # fmt: skip
 
-    @staticmethod
-    def _audit(day: date, outcome: Outcome, fired: dict) -> str:
-        audit = {
-            "book": outcome.book, "day": day.isoformat(), "version": outcome.version, "status": outcome.status,
-            "isolation": version_by_label(outcome.version).isolation, "notes": outcome.notes,
-            "commitment_received_at": outcome.committed_at.isoformat() if outcome.committed_at else None,
-            "reveal_received_at": outcome.revealed_at.isoformat() if outcome.revealed_at else None,
-            "model_reported": outcome.model_reported, "model_check": outcome.model_check,
-            "counted": outcome.probabilities, "problems": outcome.problems, "attempted": outcome.attempted,
-            "fire": fired,
-        }  # fmt: skip
-        return json.dumps(audit, sort_keys=True, indent=1, ensure_ascii=False) + "\n"
+
+def audit_text(day: date, outcome: Outcome, fired: dict, v4: dict | None = None) -> str:
+    """The audit file of one book-day: the full reasoning for the judge and the owner (both protocols; v4 adds the
+    collection time its rows carry as `made_at` and the release record's pack SHA)."""
+    audit = {
+        "book": outcome.book, "day": day.isoformat(), "version": outcome.version, "status": outcome.status,
+        "isolation": version_by_label(outcome.version).isolation, "notes": outcome.notes,
+        "commitment_received_at": outcome.committed_at.isoformat() if outcome.committed_at else None,
+        "reveal_received_at": outcome.revealed_at.isoformat() if outcome.revealed_at else None,
+        "model_reported": outcome.model_reported, "model_check": outcome.model_check,
+        "counted": outcome.probabilities, "problems": outcome.problems, "attempted": outcome.attempted,
+        "fire": fired,
+    } | (v4 or {})  # fmt: skip
+    return json.dumps(audit, sort_keys=True, indent=1, ensure_ascii=False) + "\n"

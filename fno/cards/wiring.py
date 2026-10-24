@@ -4,7 +4,7 @@ stores and clocks. Swapping Slack, Drive, the weather model or the forecasters c
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 
 from ..ai.history import RepoHistory
@@ -18,23 +18,26 @@ from ..constants import (
     FNO_DESK_CHANNEL_ID,
     GITHUB_REPOSITORY_VARIABLE,
 )
+from ..models import now_utc
 from ..server_clock import GITHUB_TIME_URL, HttpDateClock
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore
 from .card import CardBuilder
+from .card_clocks import GITHUB, CardClocks, ServerCardClocks
 from .committed import DownloadedRecords, GitHeadRecords
 from .daily import DailyCard
 from .deliveries import RepoDeliveryFiles
 from .forecasts import LiveCaptureForecasts
 from .issue import CardIssuer
 from .posting import CardPoster, NoCardPoster, SlackCardPoster
+from .problem_steps import ProblemSteps
 from .record_store import CardRecordStore, DriveCardRecords, NoCardRecords
+from .recorded_weather import RecordedWeather
 from .render import SlackTextRenderer
 from .rule_checks import DecisionOutcome, ExecutionOutcome, RunLogReader
 from .ruled_status import RuleChecks, RuledStatus
 from .session import SessionCheck
 from .status import RegistryStatus
-from .weather import PendingWeather
 from .witness import IssuanceWitness
 
 # Its `Date` header is GitHub's server time (no sign-in needed). A repository path, not the API root: the cloud
@@ -46,13 +49,23 @@ def _repository(env) -> str:
 
 
 def _host_now() -> datetime:
-    return datetime.now(UTC)
+    return now_utc()
 
 
 def build_daily_card(root: Path = ROOT) -> DailyCard:
     records = GitHeadRecords(root)
-    builder = CardBuilder(build_status(records, root), PendingWeather(), LiveCaptureForecasts(records))
+    status = build_status(records, root)
+    builder = CardBuilder(status, _weather(records), LiveCaptureForecasts(records), status.problems)  # T1e: one reader
     return DailyCard(SessionCheck(records), builder, SlackTextRenderer(), RepoDeliveryFiles(root, records))
+
+
+def _weather(records) -> RecordedWeather:
+    """M1's record path for a day, relative to the repository: the card reads the committed record (story T1c)."""
+    from ..weather.records import WeatherRecords
+    from ..weather.wiring import WEATHER_FOLDER
+
+    folder = WEATHER_FOLDER.relative_to(ROOT)
+    return RecordedWeather(records, lambda day: WeatherRecords(folder).path(day).as_posix())
 
 
 def build_status(records: GitHeadRecords, root: Path = ROOT) -> RuledStatus:
@@ -67,13 +80,15 @@ def build_status(records: GitHeadRecords, root: Path = ROOT) -> RuledStatus:
         DecisionOutcome(records, runs, timetable),
         ExecutionOutcome(runs, timetable, lambda d: previous.answer(d).previous),
     )
-    return RuledStatus(RegistryStatus(records, DownloadedRecords(root)), RuleChecks(rules))
+    return RuledStatus(RegistryStatus(records, DownloadedRecords(root)), RuleChecks(rules), ProblemSteps(runs))
 
 
 def build_card_poster(env=os.environ) -> CardPoster:
     """#fno-desk with `FNO_SLACK_BOT_TOKEN` only; without it nothing is sent and the outcome says so."""
     token = env.get(ENV_FNO_SLACK_BOT_TOKEN)
-    return SlackCardPoster(token, FNO_DESK_CHANNEL_ID) if token else NoCardPoster()
+    from ..rehearsal.card_label import rehearsed_card_poster
+
+    return rehearsed_card_poster(SlackCardPoster(token, FNO_DESK_CHANNEL_ID) if token else NoCardPoster())
 
 
 def build_card_records(env=os.environ) -> CardRecordStore:
@@ -85,16 +100,30 @@ def build_card_records(env=os.environ) -> CardRecordStore:
     return NoCardRecords() if drive is None else DriveCardRecords(AreaStore(drive, CARDS_AREA))
 
 
+def build_card_clocks(env=os.environ) -> CardClocks:
+    """Slack's and GitHub's server times; a rehearsal's form instead (T1f), which never builds the GitHub client."""
+    from ..rehearsal.card_label import rehearsed_card_clocks
+
+    def real() -> CardClocks:
+        return ServerCardClocks([HttpDateClock(GITHUB, GITHUB_TIME_URL.format(repository=_repository(env)))], _host_now)
+
+    return rehearsed_card_clocks(real, env)
+
+
 def build_card_issuer(env=os.environ, root: Path = ROOT) -> CardIssuer:
     records = GitHeadRecords(root)
-    github = HttpDateClock("GitHub", GITHUB_TIME_URL.format(repository=_repository(env)))
     deliveries = RepoDeliveryFiles(root, records)
     return CardIssuer(
-        build_card_poster(env), build_card_records(env), deliveries, [github], _host_now, records.code_commit()
-    )
+        build_card_poster(env), build_card_records(env), deliveries, build_card_clocks(env), _host_now,
+        records.code_commit(),
+    )  # fmt: skip
 
 
 def build_issuance_witness(env=os.environ, root: Path = ROOT) -> IssuanceWitness:
     history = RepoHistory(root)
-    receipts = GitHubActivityReceipts(_repository(env), env.get(ENV_GITHUB_TOKEN, ""), history)
+    from ..rehearsal.receipts_wiring import rehearsed_receipts
+
+    receipts = rehearsed_receipts(
+        GitHubActivityReceipts(_repository(env), env.get(ENV_GITHUB_TOKEN, ""), history), history
+    )  # REH1b: the rehearsal's push log
     return IssuanceWitness(RepoDeliveryFiles(root, GitHeadRecords(root)), history, receipts)

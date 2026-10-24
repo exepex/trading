@@ -4,7 +4,7 @@ reveal's, each book its own file; `ai collect` records every file in BG1's ledge
 is one alert. The recorder and its tests were written by the G11 builder (013xqaNT, fa758dcc) and moved here."""
 
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -54,9 +54,13 @@ def test_the_reveal_publishes_the_run_from_brief_to_reveal_in_bg1s_shape(desk):
     routine = full_run(desk)
     path = desk / timing_path(DAY, BOOK3_AI)
     assert json.loads(path.read_text(encoding="utf-8")) == {"session_id": SESSION, "model": "",
-        "started_at": at(15, 11).isoformat(), "ended_at": at(15, 15, 10).isoformat()}  # fmt: skip
+        "started_at": at(15, 11).isoformat(), "ended_at": at(15, 15, 10).isoformat(),
+        "sealed_at": at(15, 13).isoformat(), "reveal_calls": 1}  # fmt: skip  # G11 C17: work and wait apart
+    published = {k: datetime.fromisoformat(v) for k, v in json.loads(path.read_text()).items() if k.endswith("_at")}
+    assert published["ended_at"] - published["started_at"] == timedelta(minutes=4, seconds=10)  # start to end
+    assert published["sealed_at"] - published["started_at"] == timedelta(minutes=2)  # working minutes (BG1-w)
     [usage] = SelfTimedUsageReader(path).days()
-    assert (usage.day, usage.minutes, usage.turns) == (DAY, 4.17, 1)
+    assert (usage.day, usage.turns) == (DAY, 1)  # which minutes BG1 counts is BG1's reader's test (story BG1-w)
     assert routine.printed[-1].startswith(f"timed: {BOOK3_AI} {DAY} from ")
     revealed = next(i for i, line in enumerate(routine.printed) if line.startswith("revealed:"))
     assert revealed == len(routine.printed) - 2 and len(routine.transport.commits) == 3  # its own publish, after
@@ -135,10 +139,10 @@ def test_the_ledger_gets_each_books_minutes_once(desk):
     full_run(desk, BOOK3_AI)
     recorder = BookUsageRecorder(desk, UsageLedger(desk))
     [line] = recorder.record(DAY + timedelta(days=1))
-    assert "recorded 4.17 minutes" in line
+    assert "recorded 2.0 minutes (and a wait of 2.17 minutes apart, not capped)" in line
     [row] = UsageLedger(desk).rows()
     assert (row["purpose"], row["book"], row["session_id"], row["minutes"]) == (
-        "books_and_roles", BOOK3_AI, SESSION, "4.17")  # fmt: skip
+        "books_and_roles", BOOK3_AI, SESSION, "2.00")  # fmt: skip
     assert recorder.record(DAY + timedelta(days=2)) == []  # already recorded: nothing printed, nothing added
     assert len(UsageLedger(desk).rows()) == 1
 

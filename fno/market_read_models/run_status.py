@@ -8,9 +8,10 @@ import json
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from pathlib import Path
 
+from ..models import now_utc
 from .db_errors import AUTHENTICATION, FIREWALL, NETWORK, PRIVILEGE, TLS
 
 RUNNING, PUBLISHED, FAILED, SKIPPED = "running", "published", "failed", "skipped"
@@ -83,7 +84,7 @@ class PostgresRunStatus(RunStatusRecorder):
 class LocalRunStatus(RunStatusRecorder):
     """JSON lines in a folder (local runs and tests): the same rows the table holds."""
 
-    def __init__(self, folder: Path, product: str, clock: Callable[[], datetime] = lambda: datetime.now(UTC)):
+    def __init__(self, folder: Path, product: str, clock: Callable[[], datetime] = lambda: now_utc()):
         self.file, self.product, self.clock = Path(folder) / LOCAL_FILE, product, clock
 
     def start(self, run_id: str, session: date) -> str | None:

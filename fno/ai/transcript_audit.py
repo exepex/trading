@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 
-from .paths import transcript_audit_path
+from .run_terms import V2_TERMS, RunTerms
 
 CLEAN, BREACH = "clean", "breach"
 BREACH_KINDS = (
@@ -50,15 +50,15 @@ class TranscriptAudit:
 
 
 class TranscriptAudits:
-    def __init__(self, root: Path):
-        self.root = Path(root)
+    def __init__(self, root: Path, terms: RunTerms = V2_TERMS):
+        self.root, self.terms = Path(root), terms
 
     def get(self, day: date, book: str) -> TranscriptAudit | None:
-        path = self.root / transcript_audit_path(day, book)
+        path = self.root / self.terms.transcript_audit_path(day, book)
         return TranscriptAudit(**json.loads(path.read_text(encoding="utf-8"))) if path.is_file() else None
 
     def record(self, day: date, audit: TranscriptAudit) -> str:
-        path = self.root / transcript_audit_path(day, audit.book)
+        path = self.root / self.terms.transcript_audit_path(day, audit.book)
         if path.is_file():
             raise AuditRefused(f"{path.relative_to(self.root)} already exists (written once)")
         path.parent.mkdir(parents=True, exist_ok=True)

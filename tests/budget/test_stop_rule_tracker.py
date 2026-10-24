@@ -1,5 +1,6 @@
 """Story BG1 criterion 6: the review date, projected while v4 is not frozen, and the tests' missing inputs."""
 
+import subprocess
 from datetime import date
 
 import pytest
@@ -31,6 +32,7 @@ def test_six_full_months_after_the_freeze_month(freeze, review):
 
 
 def test_both_tests_are_not_computable_while_inputs_are_missing(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)  # the root is a repository, as in production
     for test, stories in (("A", ["G6", "G8", "A16"]), ("B", ["R1", "R3"])):
         status, missing = stop_test_status(tmp_path, test)
         assert status == "not computable yet" and [i.story for i in missing] == stories

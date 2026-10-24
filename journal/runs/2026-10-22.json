@@ -1,0 +1,364 @@
+{
+ "day": "2026-10-22",
+ "kind": "daily_run",
+ "steps": {
+  "quotes": {
+   "started_at": "2026-10-22T14:10:30.917410+05:30",
+   "finished_at": "2026-10-22T14:10:30.917486+05:30",
+   "inputs": {
+    "parts": [
+     "nifty",
+     "nse",
+     "indices"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "unlisted"
+   }
+  },
+  "owner_timing_fills": {
+   "started_at": "2026-10-22T14:10:35.342819+05:30",
+   "finished_at": "2026-10-22T14:10:36.608913+05:30",
+   "inputs": {
+    "sealed": false
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "owner_timing:SEALED_ONLY"
+   }
+  },
+  "margin_check": {
+   "started_at": "2026-10-22T14:10:40.918805+05:30",
+   "finished_at": "2026-10-22T14:10:40.918846+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NO_DATE"
+   }
+  },
+  "weather": {
+   "started_at": "2026-10-22T14:10:44.987576+05:30",
+   "finished_at": "2026-10-22T14:11:20.018300+05:30",
+   "inputs": {
+    "command": [
+     "weather",
+     "capture"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "forecasts_v4": {
+   "started_at": "2026-10-22T14:11:25.089045+05:30",
+   "finished_at": "2026-10-22T14:11:27.102829+05:30",
+   "inputs": {
+    "command": [
+     "forecast-v4",
+     "capture"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "versions": {
+   "started_at": "2026-10-22T14:58:00.000421+05:30",
+   "finished_at": "2026-10-22T14:58:00.016957+05:30",
+   "inputs": {},
+   "result": {
+    "line": "versions:NONE_YET"
+   }
+  },
+  "pack": {
+   "started_at": "2026-10-22T14:58:05.012792+05:30",
+   "finished_at": "2026-10-22T15:01:50.259961+05:30",
+   "inputs": {},
+   "result": {
+    "built": true,
+    "sha256": "e8594862d20feac7fd8998c1bc867ba6830f1581657502866279b1edee8ec7e1"
+   }
+  },
+  "book1": {
+   "started_at": "2026-10-22T15:01:54.877697+05:30",
+   "finished_at": "2026-10-22T15:02:27.900869+05:30",
+   "inputs": {
+    "command": [
+     "desk",
+     "book1",
+     "unlisted",
+     "2026-10-22"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "decisions": {
+   "started_at": "2026-10-22T15:12:00.000319+05:30",
+   "finished_at": "2026-10-22T15:12:01.601318+05:30",
+   "inputs": {
+    "deadline": "2026-10-22T15:12:00+05:30",
+    "origin": "32c477a2212f566da2ee93e58e47bb3d5d666dbe"
+   },
+   "result": {
+    "book1_rules": {
+     "run_id": "2026-10-22-r1",
+     "commit": "4b7106646b9eae93de736f870f8f25e610519420",
+     "committed_at": "2026-10-22T15:02:23+05:30"
+    }
+   }
+  },
+  "snapshot": {
+   "started_at": "2026-10-22T15:15:00.000501+05:30",
+   "finished_at": "2026-10-22T15:21:23.957156+05:30",
+   "inputs": {},
+   "result": {
+    "valid": false,
+    "attempts": [
+     null,
+     "nifty_20261022_151824"
+    ],
+    "reason": "unlisted"
+   }
+  },
+  "fills": {
+   "started_at": "2026-10-22T15:21:29.187557+05:30",
+   "finished_at": "2026-10-22T15:21:29.345854+05:30",
+   "inputs": {
+    "snapshot_valid": false,
+    "decisions": {
+     "book1_rules": {
+      "run_id": "2026-10-22-r1",
+      "commit": "4b7106646b9eae93de736f870f8f25e610519420",
+      "committed_at": "2026-10-22T15:02:23+05:30"
+     }
+    }
+   },
+   "result": {}
+  },
+  "exits": {
+   "started_at": "2026-10-22T15:21:33.113087+05:30",
+   "finished_at": "2026-10-22T15:21:41.064905+05:30",
+   "inputs": {},
+   "result": {
+    "book1_rules": {
+     "reviewed": true,
+     "results": []
+    }
+   }
+  },
+  "trade_marks": {
+   "started_at": "2026-10-22T15:21:44.807669+05:30",
+   "finished_at": "2026-10-22T15:21:55.798074+05:30",
+   "inputs": {},
+   "result": {
+    "book1_rules": {
+     "marked": true,
+     "equity_row": true,
+     "trades": []
+    },
+    "shadow:b0-monthly-sc-v1": {
+     "marked": true,
+     "equity_row": true,
+     "trades": []
+    }
+   }
+  },
+  "reviews": {
+   "started_at": "2026-10-22T15:22:00.448473+05:30",
+   "finished_at": "2026-10-22T15:22:00.480285+05:30",
+   "inputs": {
+    "snapshot_id": null
+   },
+   "result": {
+    "status": "ok",
+    "reason": "unlisted",
+    "marked_contracts": 0,
+    "open_positions": 0
+   }
+  },
+  "quotes_done": {
+   "started_at": "2026-10-22T15:22:05.239059+05:30",
+   "finished_at": "2026-10-22T15:22:05.239161+05:30",
+   "inputs": {},
+   "result": {
+    "status": "ok",
+    "reason": "unlisted",
+    "parts": {
+     "nifty": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "cae12a8b57e30f84b884a9eec03ec721228b46a7",
+      "how": "started",
+      "started_at": "2026-10-22T14:38:04.468937+05:30"
+     },
+     "nse": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "5535bc58489c7689706ce9bb8ac256456ed94b0b",
+      "how": "started",
+      "started_at": "2026-10-22T14:38:04.472318+05:30"
+     },
+     "indices": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "04c7b42eb8dab08c1b40d326e48e8bb74fc67221",
+      "how": "started",
+      "started_at": "2026-10-22T15:01:44.301195+05:30"
+     }
+    }
+   }
+  },
+  "card": {
+   "started_at": "2026-10-22T15:22:09.789605+05:30",
+   "finished_at": "2026-10-22T15:22:09.789637+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NO_DATE"
+   }
+  },
+  "price_distribution": {
+   "started_at": "2026-10-22T15:22:13.920504+05:30",
+   "finished_at": "2026-10-22T15:22:23.053181+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "record",
+     "unlisted",
+     "2026-10-22",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "command:exit_1",
+    "exit_code": 1
+   }
+  },
+  "premium_ranges": {
+   "started_at": "2026-10-22T15:22:27.304554+05:30",
+   "finished_at": "2026-10-22T15:22:27.304584+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NO_DATE"
+   }
+  },
+  "price_distribution_scores": {
+   "started_at": "2026-10-22T15:22:31.041106+05:30",
+   "finished_at": "2026-10-22T15:23:33.079627+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "price_ranges": {
+   "started_at": "2026-10-22T15:23:37.710987+05:30",
+   "finished_at": "2026-10-22T15:23:51.727418+05:30",
+   "inputs": {
+    "command": [
+     "pricerange",
+     "issue",
+     "unlisted",
+     "unlisted",
+     "unlisted",
+     "2026-10-22",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "issued",
+    "exit_code": 0
+   }
+  },
+  "price_range_scores": {
+   "started_at": "2026-10-22T15:23:56.111060+05:30",
+   "finished_at": "2026-10-22T15:32:02.291483+05:30",
+   "inputs": {
+    "command": [
+     "pricerange",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "premium_range_scores": {
+   "started_at": "2026-10-22T15:32:09.891004+05:30",
+   "finished_at": "2026-10-22T15:32:09.891043+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NO_DATE"
+   }
+  },
+  "candles": {
+   "started_at": "2026-10-22T15:32:13.675243+05:30",
+   "finished_at": "2026-10-22T15:33:17.017805+05:30",
+   "inputs": {
+    "command": [
+     "intraday",
+     "backfill"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "close_read": {
+   "started_at": "2026-10-22T15:33:21.263163+05:30",
+   "finished_at": "2026-10-22T15:33:21.263227+05:30",
+   "inputs": {
+    "live_from": "2026-10-23"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NOT_LIVE"
+   }
+  },
+  "close_recheck": {
+   "started_at": "2026-10-22T15:33:25.114472+05:30",
+   "finished_at": "2026-10-22T15:33:25.114519+05:30",
+   "inputs": {
+    "live_from": "2026-10-23"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NOT_LIVE"
+   }
+  }
+ }
+}

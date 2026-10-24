@@ -707,6 +707,216 @@ first live day (rule 8); no Groww quote file in the repository.
 
 **Depends:** A4, A4b, A5 · **Size:** M · **Status:** story text for the judge's check, revision 3 (15 Oct 2026: three indices, owner; judge 151's should-fix and minor)
 
+### A4c-2. The alert says what happened to each index (DRY2 R1, 24 Oct 2026)
+
+**Why.** DRY2 (`docs/dryruns/DRY2_2026-10-23.md`, row d8 and R1): the nifty part died at 14:38, so the indices part
+started at once, more than 20 minutes before 15:01. `IndexRecording` returned "too early" for every index and wrote no
+none marker (`close_day` is skipped for it). But the alert said "not recorded today (canonical none)", because
+`INDEX_ALERT` hard-codes that phrase for every index not recorded. A false alert misleads whoever reads it: a reader
+of "canonical none" thinks the day is closed and a rerun is pointless, when in fact a rerun before 15:13 would record.
+
+**What changes (A4c's own code only):**
+- The alert names each index's own outcome:
+  - an index whose day was closed none (incomplete at the window's end, the window closed, not listed, no weekly)
+    keeps "canonical none" with its reason;
+  - an index not started because the run came too early says `not started: too early (before 14:41); a rerun from
+    14:41 to 15:13 records it` (judge 568 minor 1).
+    - 14:41 is 15:01 minus `MAX_EARLY_WAIT_SECONDS` (20 minutes), from one function in A4's recorder,
+      `earliest_waiting_start(window_start)`, never typed.
+    - O1 builds its start time on the same function: 14:44 = 14:41 + its `START_MARGIN` (agreed with the O1
+      builder, 24 Oct). Whichever branch merges second switches O1's `earliest_start` to it, leaving O1's pinned
+      14:38 and 14:44 unchanged.
+    - 15:13 is `INDEX_WINDOW_END`.
+- Its result line says the same, for every index of the run, A4f's NIFTY weekly slot included (one `IndexRecording`).
+- The exit code is unchanged: too early stays exit 1, so O1 records the part's problem and the day's last line names
+  it, as now.
+- The fixed wording moves into one place, so the line and the alert cannot disagree.
+
+**Out of scope, with the reason:**
+- **The root cause:** the indices part starting before 14:41 lies in O1's `fno/daily/quote_parts.py`, which has
+  `starts_after="nifty"` and no `not_before`. It is proposed to the O1 builder (a `not_before` of 14:41).
+- **Never waiting longer than 20 minutes** stays: a hand run started an hour early still stops, now with a true line.
+
+**Acceptance criteria:**
+1. A run at 14:38 (23 minutes early) on a session: every index's line and the one alert say `not started: too early
+   (before 14:41)`. The alert does not hold "canonical none", and no none marker is written.
+2. **Boundaries:**
+   - a run at 14:41:00 waits and records;
+   - a run at 14:40:59 is "too early".
+3. An index incomplete at 15:13 keeps "canonical none" in the alert, beside a "too early" one if both occur.
+4. A quiet day (not a trading day, already recorded) still sends no alert, as now.
+5. The unsent-alert test prints the new text.
+6. Too early stays exit 1 with exactly one alert (judge 568 minor 2).
+7. The NIFTY weekly slot (`WEEKLY_NAME`), run too early with the others, gets the same line and alert wording.
+8. `earliest_waiting_start` gives 14:41 for 15:01 and 14:35 for 14:55.
+9. Gates: full suite, ruff, `check_imports`; no file over 350 lines.
+
+**Gap list (quality rule 2):**
+
+| Rule or requirement (source) | Where |
+|---|---|
+| A4c's alert contract: one alert for every index not recorded, exit 1 | criteria 1, 3, 6 |
+| O1's part contract: a non-zero exit is the part's problem, named in the day's last line | unchanged (criterion 6 keeps exit 1); O1's own tests |
+| O2's unsent-alert text (an alert Slack did not take is printed with its text) | criterion 5 |
+| Named constants, no second literal (CLAUDE.md "Code") | criteria 1, 8; `TOO_EARLY_REASON`, `CLOSED_NONE`, `earliest_waiting_start` |
+| The public record: `journal/runs` lines hold no level | the new text holds times only; criterion 1 checks the full lines |
+| A4f's weekly slot gets the same wording | criterion 7 |
+| No file over 350 lines | criterion 9 |
+| Broken-code proof (quality rule 4) | claims at code time: planted bugs per criterion |
+| Good, bad, boundary and empty cases (quality rule 5) | criteria 1-4 (empty: a quiet day, criterion 4) |
+| A real output sample (quality rule 6) | claims: DRY2's 14:38 case, replayed in a test, its exact lines |
+| An end-to-end run after merge (quality rule 8) | the next 3 pm run's indices lines; a too-early case only if one happens, else said so |
+| The root cause (the part's start time) | Out: O1's R1 (story/o1-r1r2-step-safety), with judges B and E |
+
+**Lane:** 1 (an alert to #fno-desk), judge F · **Size:** S · **Status:** text PASS (judge 568 add. 1, a2e3061e); code round 1 FAIL (judge 571); code round 2 for judge F (24 Oct 2026)
+
+**Claims (code at cf90bfac, branch `story/a4c-alert-outcome`):**
+- **Code:**
+  - `fno/quotes/recorder.py` `earliest_waiting_start`;
+  - `fno/quotes/indices.py` `EARLIEST_START`, `TOO_EARLY_REASON`, `CLOSED_NONE`, and the too-early result carrying its reason;
+  - `fno/quotes/indices_cli.py` `_why` and `INDEX_ALERT` without the hard-coded "(canonical none)".
+- **Tests:**
+  - `tests/quotes/test_index_recording.py`: 14:38 (criteria 1 and 6); the 14:40:59 and 14:41:00 edges (the fake clock moves 1 s per read: criterion 2); a closed-none index (3); `earliest_waiting_start` (8).
+  - `tests/quotes/test_weekly.py`: the weekly slot (7).
+  - `tests/quotes/test_unsent_alert_text.py`: criterion 5.
+  - The quiet-day tests are unchanged (4).
+- **Gates:** full suite 15114 passed, 15 xfailed; ruff, format and `check_imports` clean; recorder.py 327 lines.
+- **Planted bugs: 5 of 5 caught:**
+
+  | Planted bug | Tests failing |
+  |---|---|
+  | "canonical none" for every index | 2 |
+  | no too-early reason | 2 |
+  | closed-none silent | 3 |
+  | the wait limit off by a minute | 2 |
+  | no rerun hint | 1 |
+
+- **DRY2's 14:38 case, replayed (test fakes, the run started at 14:38; exit 1), refreshed in round 2 from the committed code (2100b22f), word for word:**
+  ```
+  BANKNIFTY too early: - (0 contracts, complete=False) - not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it
+  FINNIFTY too early: - (0 contracts, complete=False) - not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it
+  MIDCPNIFTY too early: - (0 contracts, complete=False) - not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it
+  alert: 3 pm index recorder: not recorded today: BANKNIFTY (not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it); FINNIFTY (not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it); MIDCPNIFTY (not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it). Data only; NIFTY is separate.
+  ```
+  The same fakes at 15:00:30 with FINNIFTY refused (an attempted index closed none):
+  ```
+  BANKNIFTY recorded: banknifty_20261013_150104 (12 contracts, complete=True)
+  FINNIFTY recorded: finnifty_20261013_151250 (0 contracts, complete=False) - incomplete, canonical none
+  MIDCPNIFTY recorded: midcpnifty_20261013_150136 (12 contracts, complete=True)
+  alert: 3 pm index recorder: not recorded today: FINNIFTY (incomplete, canonical none). Data only; NIFTY is separate; the sidecars in research/data/quotes/groww/ say why for FINNIFTY.
+  ```
+- **O1's pinned times:**
+  - O1's branch is untouched by this change. Its 14:38 and 14:44 stay as pinned.
+  - Whichever branch merges second switches O1's `earliest_start` to `earliest_waiting_start(w) + START_MARGIN`, the same values (agreed with the O1 builder, 24 Oct).
+- **After merge (quality rule 8):** the next 3 pm run's indices lines. A too-early case is checked only if one happens; otherwise that is said.
+
+**Round 2 (judge 571's FAIL; builder session 01Mt6dcBU5kp2htdPN2KmiZH, replacing 01MKtUHByHsR9cNwaP5KhFYH; code at 2100b22f):**
+- **Should-fix 1 (rule 3, no self-review): fixed.** Two independent review sessions, given only the branch's diff
+  against `main` and this story (not this builder's conclusions), reviewed the code at 0b8eaaef. Their findings and
+  what was done are in "Builder self-review" below.
+- **Should-fix 2 (the pointer to sidecars that do not exist): fixed.**
+  - `INDEX_ALERT` no longer ends with a fixed pointer. `index_alert` (`fno/quotes/indices_cli.py`) adds
+    `SIDECAR_POINTER` ("; the sidecars in research/data/quotes/groww/ say why for <names>") naming only the
+    indices whose result is an attempt (`ATTEMPTED`, status "recorded").
+  - Why that status: every `_attempt` writes its `.meta.json` before it returns, and only `_attempt` returns
+    "recorded"; "too early" and "window closed" (an index never asked) write none.
+  - Tests (`tests/quotes/test_index_alert_outcome.py` unless named):
+    - the 14:38 alert, word for word, with no pointer and no file at all (`test_index_recording.py`, criterion 1);
+    - an attempted, failed FINNIFTY keeps "say why for FINNIFTY" and its sidecar exists;
+    - boundary: from 15:12:40, BANKNIFTY (attempted) is named, while FINNIFTY and MIDCPNIFTY ("window closed,
+      canonical none", never asked) are not;
+    - a run at 15:13: no pointer at all;
+    - the unsent-alert text, word for word with the pointer (`test_unsent_alert_text.py`).
+- **Minor 1 (the line and the alert built apart): fixed.**
+  - One function, `outcome(result)`, gives the text both print: empty for a complete recording, else the reason
+    and the raw-file error, else "incomplete" or the status, plus "canonical none" exactly when `closes_none`.
+  - `closes_none` (`fno/quotes/indices.py`) is also the test `IndexRecording.run` uses to call `close_day`, so the
+    words "canonical none" and the none marker come from one rule.
+  - A closed-none index's line now says so: `FINNIFTY recorded: ... (0 contracts, complete=False) - incomplete,
+    canonical none`.
+  - Tests:
+    - for six cases (too early, refused, not listed, no NSE file, turn after the window, after the window), the
+      alert holds every failed index, in order, with exactly its line's tail;
+    - the closed-none line and the too-early line, word for word;
+    - the empty cases: a complete day and a quiet day have no tail on any line.
+  - One change of form: the line joined a reason and a raw-file error with " - "; it now uses ", ", as the alert
+    always did. Nothing parses these lines: `grep -rln "contracts, complete" fno tools --include=*.py` finds only the two writers (`fno/quotes/indices_cli.py`, and `fno/quotes/cli.py` for NIFTY, unchanged).
+- **Minor 2 (the too-early decision repeated the rule): fixed, with one deviation stated.**
+  - Both decisions (`QuoteSnapshotRecorder.record`, `IndexRecording.run`) now call
+    `earliest_waiting_moment(day, window_start, max_early_wait)`, the one subtraction. `earliest_waiting_start` is
+    that function's time of day, for the texts and O1.
+  - Why not `earliest_waiting_start` itself, as asked: the recorder's wait is per window. A4e's
+    `max_early_wait_minutes` in `config.yaml` has no upper bound (`fno/quotes/window.py`), and a `time` built from
+    `date.min` raises `OverflowError` once the wait passes the time of day. Reproduce:
+    `python -c "from datetime import *; datetime.combine(date.min, time(14,30)) - timedelta(minutes=900)"`.
+    The old `start - now > wait` test handled such a wait; the new rule computes on the real day and keeps it
+    (`test_a_wait_longer_than_the_time_of_day_lands_on_the_day_before_and_never_fails`).
+  - Today's behaviour is kept to the second. `now < start - wait` equals the old `now < start and start - now > wait`
+    for any wait of 0 or more. Tests (`tests/quotes/test_early_limit.py` and the existing ones):
+    - the indices: 14:41:00 waits, 14:40:59 is too early;
+    - A4's window: 14:35:00 waits, 14:34:59 is too early;
+    - A4e's v4 window with its own 30 minutes: 14:00:00 waits, 13:59:59 is too early and asks nothing.
+- **Minor 3 (the docstring's "one place" claim): fixed.** `earliest_waiting_start`'s docstring now says it is not
+  yet the only place: on `main`, O1's `quote_parts.py` `EARLIEST_START` still subtracts on its own. It names O1's
+  switch as what completes it, with judge 571's exact change (also in the handover below); the switch removes the
+  note. `fno/daily/` is untouched.
+- **Criterion 3, read again (self-review B4):** "beside a too early one if both occur" cannot happen in one run.
+  `IndexRecording.run` returns "too early" for every index or for none (one clock read before any attempt). So
+  criterion 3 is tested as "a closed-none index keeps canonical none"; the two outcomes never share an alert.
+- **Planted bugs, round 2: 14 of 14 caught.** Each was run alone on `tests/quotes` and `tests/daily` (286 tests),
+  then restored:
+
+  | Planted bug | Tests failing |
+  |---|---|
+  | the pointer for every index not recorded | 4 |
+  | the pointer never | 3 |
+  | a never-asked ("window closed") index counted as attempted | 2 |
+  | the line builds its own text again (round 1's `_line`) | 6 |
+  | "canonical none" in the alert only | 13 |
+  | "canonical none" never | 6 |
+  | too early closed none (`closes_none` ignores the statuses) | 4 |
+  | the index runner's `<` made `<=` (14:41:00 too early) | 1 |
+  | the recorder's `<` made `<=` (14:35:00 too early) | 2 |
+  | the recorder ignores a named window's own wait | 2 |
+  | the rule off by one second | 9 |
+  | the rule built from `date.min` (overflow on a long wait) | 1 |
+  | an outcome tail on every line, quiet days included | 2 |
+  | "too early" dropped from `DONE_WITHOUT_ATTEMPT` | 3 |
+
+- **Gates (round 2), on a trial merge of the branch with `main` (fca1bd3f):** full suite (`env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -p no:cacheprovider -n auto`) 15135 passed, 15 xfailed; `ruff check`, `ruff format --check`, `check_imports` and `check_records` clean; `fno/daily/` untouched. Largest files: recorder.py 338, test_index_recording.py 215 lines (limit 350).
+
+**Builder self-review (quality rule 3; round 2).** Two independent review sessions (session_015TXt4cs8LT9DUh1DiHgd54:
+correctness; session_01WoVjvtpvG4LVHTvGAS5TEu: design and tests) read the diff at 0b8eaaef against `main` and this
+story only. Neither found a bug. Each finding, with what was done:
+
+| # | Finding (reviewer) | Done |
+|---|---|---|
+| A1 | "a rerun from 14:41 to 15:13 records it" promises more than a late rerun can do: from 15:12:40 only BANKNIFTY gets an attempt (correctness, minor) | Not changed: it is the story's own wording, passed in judge 568, so a change is the judge's call. Put to judge F: "a rerun from 14:41, well before 15:13, can record it" |
+| A2 | "canonical none" is printed when `closes_none` is true, but `close_day` writes "none" only if no marker exists: a second hand run beside the first could record the index in between (correctness, minor) | Not changed: it needs two runs at once, which O1's day lock prevents for the routine; the reviewer also judged no change was needed |
+| A3, B3 | The docstring carries a merge instruction for another branch that goes stale (both) | Kept on the orchestrator's instruction (minor 3: "give the instruction"); it now says the switch removes the note, and the handover holds the same instruction |
+| A4, B8 | `earliest_waiting_start` raises `OverflowError` for a window before 00:20 (both, nit) | One docstring line says so; a test pins 00:20 to 00:00 |
+| A5, B1 | `QUIET_STATUSES`, `DONE_WITHOUT_ATTEMPT` and "recorded" typed in two modules (both; should-fix in B) | Fixed: `ATTEMPTED`, `QUIET_STATUSES` and `DONE_WITHOUT_ATTEMPT = (*QUIET_STATUSES, "too early")` live once in `indices.py`, and `IndexRecording.run` uses `ATTEMPTED`. Naming every status beside `RecordResult` across the recorder is wider than A4c-2: not done |
+| B2 | Test helpers and cases repeated: `_alerted` copied, `at` rewritten, the too-early text twice, criteria 1 and 8 tested twice (design, should-fix) | Fixed: `alerted` and `TOO_EARLY` live in `tests/quotes/index_fakes.py`, `at` comes from `window_fakes`, the word-for-word 14:38 alert is merged into criterion 1's test, and criterion 8 is tested once. Criterion 3's three tests check different things (the alert's text, the pointer, the line), so they stay |
+| B4 | Criterion 3's "beside a too early one" cannot happen in one run (design, minor) | True; said in Round 2 above |
+| B5 | The quiet-day tests did not check the lines (design, minor) | Fixed: `test_a_quiet_day_has_no_outcome_on_any_line` (its planted bug caught) |
+| B6 | The agreement test builds its expected text from the printed lines (design, minor) | Its docstring now says it checks only that the two agree; the word-for-word tests check the texts |
+| B7 | The v4 window test's docstring named times one second off its parameters (design, minor) | Fixed: it explains the 1-second fake clock |
+| B9 | `CLOSED_NONE` is defined in `indices.py` but used in `indices_cli.py` (design, nit) | Kept: it belongs to the recording's rule (`closes_none`), and `ATTEMPTED` now sits beside it |
+
+**Handover (24 Oct, owner's usage limit; builder session 01MKtUHByHsR9cNwaP5KhFYH stops here):**
+- The code is complete and sent to judge F for the code round.
+- **Next:** judge F's answer. After a PASS, merge with the full procedure, never 14:00-16:15.
+- **If O1's story/o1-r1r2-step-safety merged first:** in the merge, set O1's `earliest_start(w)` to
+  `return (datetime.combine(date.min, earliest_waiting_start(window_start)) + START_MARGIN).time()` (judge 571),
+  import `earliest_waiting_start` from `..quotes.recorder`, drop the then-unused `MAX_EARLY_WAIT_SECONDS` import,
+  and keep O1's tests (14:38 and 14:44) passing. Round 2 (session 01Mt6dcBU5kp2htdPN2KmiZH) takes over from here.
+- **Other open items of this builder:**
+  - A4h-2: being merged by the orchestrator inside DR1's branch. Its first session's lines are owed from Mon 26 Oct 15:40 (no levels).
+  - A9c (story/oss1-second-host): code PASS (judge 472); merge on or after 26 Oct; expect a WORK_REGISTER conflict.
+  - RECHECK1 (story/recheck1-text, e5e11f03): text with judge E. Agreed design: a shared side-neutral `fno/research_engine/price_validity.py`, agreed with the EDGE1 builder.
+  - A4h: the first 5 live sessions' lines are owed.
+  - O9's read-only index-close change (story/o9-readonly-index-close): its close_read line is reviewed and approved.
+
 ---
 
 ## A4e. A named quote window for protocol v4's 14:30-14:40 pack (A4 behind config)
@@ -807,6 +1017,437 @@ the index windows at go-live (a later item); any change to the default run or it
 
 **Depends:** A4, A4b, A4c (`Slot.stop_requests_at`), A16 (`ClockCheck`) · **Size:** S · **Status:** story text for
 judge B (16 Oct 2026)
+
+## A4f. NIFTY weekly expiries and open interest in the 3 pm capture
+
+**Repository:** trading · **Lane:** 1 (the 3 pm recorder, Groww, a v2-recorded file) · **Branch:**
+`story/a4f-nifty-weekly-oi` · **Judge:** F · **Claims:** response 302
+
+**Description:** As the options strategist and the statistician, I want the 3 pm capture to record the NIFTY weekly
+contracts (the nearest weekly, and the next) and every contract's open interest, so that contract-level forecasts can
+be built and scored on the weeklies, where most NIFTY option trading is, and the report can show today's put-call
+ratio and the strikes with the most call and put open interest.
+
+**Context and why:**
+- Owner, 21 Oct 2026 (`docs/DESK_DECISIONS.md`, row "Contract-level forecasts", piece 3): "Weekly contracts", the 3 pm
+  capture extended to NIFTY weekly expiries, history from its start (no back-fill: quotes cannot be rebuilt), joining
+  the go-live when judged (f2293cea). BANKNIFTY lists no weeklies since Nov 2024, so NIFTY only.
+- A4 records the two nearest **monthlies** only (`fno/quotes/recorder.py`, A5's point-in-time rule). Groww's chain
+  already returns each leg's open interest (`fno/providers/groww.py:63`, `OptionQuote.oi`; NSE's at
+  `fno/providers/public.py:106`), but no snapshot column keeps it.
+- Every reader of the snapshot CSV uses `csv.DictReader` (`research_data/quote_snapshots.py`, `desk/snapshot_inputs.py`,
+  `checks/validity_evidence.py`, `forecast/live_pack.py`, `quotes/report.py`, `quotes/compare.py`), so a new last
+  column changes no reader. `recorder.py` and `config.yaml` are in `FREEZE_v2.md`'s "recorded, not byte-checked" table:
+  the v2 golden cases (which read committed fixtures) must stay "unchanged"; A4's own byte-for-byte baseline test changes
+  by exactly the new column, on purpose.
+- Readers find the monthly capture by `nifty_*.canonical` in `groww/derivatives/quote-snapshots` (`report.py:22`,
+  `compare.py:29`), so the weeklies cannot share that folder or stem (the A4e reason).
+- `recorder.py` is at 348 of 350 lines (A4e's known limit): it is split first, with no behaviour change.
+
+**Scope.** In: an `open_interest` column (last) in every Groww and NSE 3 pm snapshot CSV, from the chain leg; a NIFTY
+weekly slot recording the two nearest NIFTY expiries that are not one of the monthly capture's two monthlies, strikes
+within 5% of spot, A4's columns, validity and Drive-only rules, in its own dataset `groww/derivatives/quote-snapshots-weekly`
+(stem `niftyweekly`); run by `record-indices` after MIDCPNIFTY, inside A4c's 15:01-15:13 window and pace; the indices
+part in O1's `QUOTE_PARTS` gains the pathspec `groww/**/niftyweekly_*` and the canonical `(<weekly dataset>,
+"niftyweekly")` for F1's restart rule, and `CLAUDE.md`'s step 3b its `git add` glob (O1/O2's owner agreed, 21 Oct). Out:
+any reader of the weeklies or of the new column (pieces 1 and 2 are G13's); BANKNIFTY weeklies (none listed); a back-fill; the monthly capture's contracts,
+window or timing; A4e's v4 window (it gains the column, nothing else).
+
+**Expected design (the simplest that covers the real cases):**
+- Split first: the row and CSV writing (`COLUMNS`, `_row`, `_csv`, the freshness helpers) move unchanged to
+  `fno/quotes/snapshot_rows.py`; A4's byte-for-byte baseline passes untouched by this step.
+- `open_interest`: the leg's `oi` from the chain call, written as A4 writes numbers (`_num`); a leg the chain does not
+  list gives an empty cell. The value is as of the chain answer (seconds before that row's quote), stated in the
+  sidecar `note`.
+- Weekly slot: `Slot("NIFTY", cross_check=False, stop_requests_at=15:13, workers=3, per_second=2.5)` (A4c's pace),
+  stem `niftyweekly` (so NIFTY's commit glob `groww/**/nifty_*` can never take a weekly file), dataset
+  `quote-snapshots-weekly`, and an expiry rule `nearest_weeklies(listed, monthlies, day, count=2)`: the two
+  nearest listed expiries from `day` on that are not among the monthlies A5's rule picks that day. A day whose nearest
+  expiry is the monthly (its last week) records the two weeklies after it.
+- `record-indices` runs BANKNIFTY, FINNIFTY, MIDCPNIFTY, then NIFTY weekly, round-robin retries as A4c does; one result
+  line each; the one alert names any not recorded.
+- **The weekly slot always leaves a canonical marker on a session day it runs** (F1's restart rule reads it: a missing
+  marker means "restart"): the complete attempt's id, or `none` at the window's end; a day whose listed expiries hold no
+  non-monthly one is one attempt with the reason and `none` at once, like A4c's unlisted index (the provider is not
+  asked for a chain).
+
+**Size (reasoning only, from A4c's measured pace):** about 2 x 46 strikes x 2 types = about 184 weekly quotes plus 2
+chain calls: about 75 s at 2.5 a second, so the window ends about 15:07 on a normal day (A4c's indices end about
+15:05:30, 19 and 21 Oct). Build about 1 day: split, column, slot and rule, tests, the first live day.
+
+**Acceptance criteria:**
+1. **Split changes nothing.** After the split alone, A4's byte-for-byte baseline, every quotes test and
+   `tools/forecast_live_golden.py` ("unchanged") pass with no test edited.
+2. **Open interest.** Every Groww and NSE snapshot row has `open_interest` as its last column, equal to the chain
+   leg's `oi` (fake chain: a value, zero, and a leg the chain lacks gives an empty cell); A4's baseline differs from
+   before by exactly that column; the v2 golden cases stay "unchanged"; every reader listed above still reads a new
+   file (one test per reader on a file with the column).
+3. **Weekly contracts.** On a session day, the weekly slot records the two nearest non-monthly NIFTY expiries within 5%
+   of spot, in `quote-snapshots-weekly`, quotes in Drive only, sidecar and `niftyweekly_<day>.canonical` in the repository
+   (fake provider: a normal week; a monthly-expiry week, where the weeklies after it are taken; only one weekly listed,
+   which records one and is complete; none listed, which records nothing and ends "none" with the reason).
+4. **Window and pace.** The weekly slot starts no request after 15:13:00 and keeps A4c's pace (fake clock); the monthly
+   capture's contracts, window and bytes (apart from the column) are unchanged.
+5. **Readers unaffected.** No reader of the monthly capture sees a weekly file (`report`, `compare`, the v2 capture, the
+   desk's snapshot inputs).
+6. **Routine.** `git add --dry-run` in a temp repository with every part's files: the indices part's pathspecs stage the
+   weekly sidecar and marker; NIFTY's `groww/**/nifty_*` stages no weekly file; `.gitignore`, the record scan and
+   E2b's guard refuse the weekly CSVs (A4c's path test, extended). F1's restart: the indices part's `canonicals` list
+   the weekly marker (its dataset name imported from A4f's module, never typed); `tests/daily/test_part_resume.py` gains
+   "three index markers present, the weekly one missing, inside the window: the part restarts"; the e2e kill-rerun set
+   (`tests/e2e/test_kill_rerun.py`) passes with its `record-indices` child writing the weekly marker too; a no-weekly
+   day writes `none` (criterion 3), so its rerun reads as recorded. `CLAUDE.md` step 3b lists the `niftyweekly` glob.
+7. Code size, lint, imports and the full suite pass.
+
+**Known limits (one line each, nothing built for them):**
+- Groww's parser turns a missing `open_interest` into 0 (`or 0`), so a 0 cannot be told from "not given"; the cell
+  says 0 in both cases (a reader treats 0 with care).
+- The weeklies share A4c's window: a slow index day can leave the weekly slot "none".
+- No history before the first live day.
+
+**Gap list:**
+
+| Requirement | Where |
+|---|---|
+| NIFTY weekly contracts, the nearest and the next (owner, 21 Oct) | criterion 3 |
+| No change to the monthly capture or its 14:55-15:10 timing (orchestrator) | criteria 2 (bytes, only the column), 4 |
+| Paced within Groww's limits | criterion 4 (A4c's 2.5 a second) |
+| Write-once Drive and receipts as today | criterion 3 (A4b's store) |
+| open_interest in the snapshot (PCR, max call/put OI) | criterion 2 |
+| v2 frozen behaviour | criteria 1, 2 (golden "unchanged") |
+| `recorder.py` at the size limit | design (split), criterion 1 |
+
+**Depends:** A4, A4b, A4c, A5 · **Size:** M (about 1 day) · **Status:** story text for judge F (21 Oct 2026)
+
+## A4h. Today's index close, read after 15:30 for the evening check
+
+**Repository:** trading · **Lane:** 1 (NSE, Drive, O1's steps, a forecast check's input) · **Branch:**
+`story/a4h-close-read` · **Judge:** F
+
+**Description:** As the statistician and the F&O trader, I want today's NIFTY 50 and NIFTY BANK closes read from NSE
+soon after 15:30, kept write-once and later confirmed against NSE's official index-close file, so that the evening
+report can check today's forecast against today's close the same day, marked "provisional" until confirmed.
+
+**Context and why:**
+- Owner, 21 Oct 2026 (`docs/DESK_DECISIONS.md`): forecast before the open and check after the close (c3231785). The
+  evening edition runs at about 19:00 IST, from a scheduled task the owner will create (bcbbc454).
+- The official close reaches us only through NSE's index-close file (`ind_close_all_DDMMYYYY.csv`), archived by O6's
+  `index-closes.yml`. That job is scheduled for 21:11 IST, and GitHub has started this repository's scheduled runs
+  4.5-5.5 hours late (`participant-oi-watch.yml`'s note, 14 Oct). G13b scores against that file.
+- When the file is first published is **not measured**:
+  - NSE's server gives `Last-Modified: 17:50:10 GMT` (23:20 IST) for every file from 9 to 21 Oct (checked 22 Oct about
+    04:00 IST). That is NSE's late rewrite (A11 found the 12 Oct one), not the first release.
+  - The first version comes out before 23:20: on 21 Oct we archived it (manifest, 15,901 bytes, SHA-256 `0c3d63..`)
+    by 23:04 IST, and NSE's file now is a later one (17,833 bytes, `ccaff4..`). So "the file comes out at 23:20"
+    (response 304, point 2) is the rewrite's time, not the first release.
+  - Our manifest commits for these files came between 22:58 and 02:12 IST, after the 21:11 job.
+  - So nothing shows the official file is out by 19:00. (Some evidence.)
+- NSE's public `/api/allIndices` carries the closes earlier. A4 already reads it at 3 pm (`fno/quotes/market_levels.py`,
+  `ALL_INDICES_PATH`) through `PublicData.nse_json`.
+- **Evidence for 21 Oct** (read 22 Oct, 03:57 IST, 12.5 hours after the close, compared with NSE's
+  `ind_close_all_21102026.csv`):
+  - the answer's `timestamp` was still `21-Oct-2026 15:30`;
+  - NIFTY 50 matched exactly at 22811.35, NIFTY BANK at 54976.9, NIFTY FINANCIAL SERVICES at 24691.45 and NIFTY
+    MIDCAP SELECT at 13367.85;
+  - **INDIA VIX did not match: 15.7 in allIndices against 15.68 official.** So VIX's value is recorded as "the
+    list's value", never called the official close, and its confirm records the difference without an alert.
+  - The answer also carries each index's `open` (NIFTY 23016, equal to the official file), which FL1's "opening
+    gap" reason needs (response 304, point 5).
+  - The FL1 builder saw the same stamp and closes on 21 Oct hours after the close.
+  - These are two reads of one day. (Some evidence.)
+- **No past archive can test more days.** No read of allIndices after 15:30 was ever kept: A4's 3 pm read keeps the
+  parsed levels only, before the close. So the 5 record-only sessions below are the test.
+
+**Where the read runs (decided, with the reason):**
+- It is an O1 step, `close_read`, `NotBefore(15:40)`, placed last in `DAILY_RUN_STEPS`: after `lab_close` for as
+  long as that step exists, else after `candles` (judge 440 add. 1 SF2). Steps run in order and `NotBefore` waits, so
+  placed before `lab_close` the two A4h steps would hold FL1-1's 15:45 report to about 16:01; last, no consumer's time
+  moves, and close_read starts at about 15:46 instead of 15:40 while `lab_close` runs. When FL1-1d removes
+  `lab_close`, whichever merges second resolves one line (O1/O2's owner agreed, 22 Oct).
+  - The daily routine is the only runner alive every session today: the 19:00 task does not exist yet, and GitHub's
+    schedule starts hours late.
+  - 15:40 is 10 minutes after NSE fixes the close.
+- The same command may be rerun later the same evening, for example by the 19:00 task when the step failed. The stamp
+  rule decides whether a read counts, not the clock time.
+- I considered the FL1 builder's proposal (one read at about 19:55 only) and did not adopt it as the only read:
+  - it needs a runner that does not exist yet;
+  - it rests on one day.
+  It stays possible as the rerun.
+
+**Scope.**
+- In:
+  - a command `python -m fno closes read` and its O1 step;
+  - NIFTY 50 and NIFTY BANK, the indices G13b and FL1 check, and INDIA VIX as the list's value; for each, `last` and
+    `open`;
+  - the raw answer and a parsed record, both write-once in Drive (O9's data store) with SHA-256 receipts;
+  - the confirm step against the archived official file;
+  - one #fno-desk alert per failure or difference.
+- Out:
+  - other indices: no reader, but the raw answer keeps them all;
+  - any reader or display (FL1's `ProvisionalCloses` port reads the record);
+  - O6's job and files, which stay unchanged: A4h only reads the archived file, and O6's owner is told;
+  - measuring the official file's first release minute (the owner's open question in bcbbc454; one line in the claims).
+
+**Expected design (the simplest that covers the real cases):**
+- **One read.** `nse_json("/api/allIndices")`, through the existing client, with up to 3 tries 60 seconds apart on an
+  error or a refused stamp.
+- **One gate time.** `CLOSE_READ_FROM = 15:40`, one constant: O1's `NotBefore` and the command's own "too early"
+  check both use it, so a hand run and the routine start at the same time.
+- **When a read counts.** Its `timestamp` parses to today's session date at 15:30 or later. Any other stamp (the
+  previous session, today before 15:30, missing) is refused with its text.
+- **Regular sessions only (known limit).** A7's calendar has no close time per session (columns: date, kind,
+  description, source), and its special sessions do not all close at 15:30 (the DR-site Saturdays end F&O at 12:30).
+  So on a `special` or `muhurat` day the command prints `nothing written: close not read: <kind> session (no close
+  time in the calendar)` and exits 0. O1's `outcome` (`fno/daily/steps.py`) records that `refused`, never `ok` (O10's
+  "no ok without data"), so the day reads "done with problems: close_read" and the owner sees it; such days are rare.
+  FL1-1 likewise covers regular sessions only. A close time per session in A7 would lift it.
+- No "unchanged for 60 s" rule: 10 minutes after the close, two reads a minute apart can only catch a change in that
+  minute, while the confirm step catches any difference at all. (Reasoning only; the 5 sessions test the read itself.)
+- **No 15:44 end.** The step starts at the later of 15:40 and the end of `candles` (as late as about 15:43), and any
+  read stamped today 15:30 or later counts, so a 19:00 rerun works. The stamp, not the clock, guards against a later
+  list: a list for another session carries another stamp and is refused. The tries end within about 4 minutes (3 tries,
+  60 s apart, the client's timeout each), well inside O1's 600 s limit. (Some evidence: one day's stamp held 12.5
+  hours.)
+- **Records.** The raw answer and `closes/<yyyy>/<mm>/<day>.json` go to O9's data store, write-once. The record holds:
+  day, the read and NSE's stamp, each index's `last` and `open`, `provisional`, and the raw answer's SHA-256.
+- **Commits.** In the daily run the step's one pathspec is its own receipts folder, from `receipt_pathspecs()` in its
+  module (as G13 and G13b), never the shared `receipts/` root; the command commits nothing itself.
+  - A rerun on a day already recorded writes nothing and prints "already recorded".
+- **Confirm.**
+  - Each run first confirms every earlier recorded day that has no confirmation yet and whose official file is in
+    Drive. It reads the file through the verified Drive cache, using the first archived version (what G13b scores), and
+    `read_index_closes` ("Nifty 50", "Nifty Bank").
+  - It writes `closes/<yyyy>/<mm>/<day>.confirm.json` write-once, per index: `confirmed` when within 0.01 point, else
+    `differs by X`.
+  - A NIFTY 50 or NIFTY BANK difference sends one alert; VIX's difference is recorded only.
+- **Lines, exit codes and alerts. No printed line holds an index level** (judge 440 SF1): O1 stores every line in
+  `journal/runs/<date>.json`, which is committed and public, and the levels belong in Drive only (O9). Lines name the
+  indices, statuses, NSE's stamp, the record's Drive path and its SHA-256; a derived difference ("differs by 0.02") is
+  allowed.
+  - Exit 0: `close read <day>: NIFTY 50, NIFTY BANK, INDIA VIX (list) recorded, NSE stamp 21-Oct-2026 15:30,
+    closes/2026/10/2026-10-21.json sha256 <first 12>`; `not a trading day`; `close already read <day>`.
+  - Exit 1: `too early: before 15:40`; `close not read: <reason of the last try>` (for example `NSE stamp
+    20-Oct-2026 15:30 is not today's session`).
+  - A failed read alerts once, through O1's `Alerted` wrapper; the command does not also alert it. A confirm
+    difference is the command's own alert (its read may still succeed, exit 0).
+  - Each confirm prints one line per day: `close confirm <day>: NIFTY 50 confirmed, NIFTY BANK confirmed, INDIA VIX
+    differs by 0.02 (list value)`.
+  - **A day never confirmed** (judge 440 minor 2): O6's index-closes job already posts one line when the official file
+    is missing. A4h's confirm part sends its own one alert when a recorded day is still unconfirmed at the second
+    session after it, and writes `<day>.overdue.json` write-once in Drive so the alert is sent once.
+- **The second read** (judge 440 minor 1): a separate O1 step, `close_recheck`, `NotBefore(16:00)`, after
+  `close_read`, runs `closes read --recheck`. It reads the list again with the same rules and writes the raw answer
+  and `<day>.recheck.json` write-once: per index `same` or `differs by X` against the 15:40 read. So when the official
+  file differs the next day, the record shows whether the list moved after 15:40 (a timing cause) or never matched (a
+  rule cause); by then that day's list is gone, so this is the only way to tell. It runs every session, not only the
+  record-only days: it costs the routine about 15 minutes of waiting, and keeps the evidence for every later day
+  (reasoning only). Its own live key `daily.live_from.close_recheck: null`, its gate `CLOSE_RECHECK_FROM = 16:00`.
+  - **No first read** (close_read failed or did not run): the recheck's read, under the same rules, becomes the day's
+    record `<day>.json` (marked `read at recheck`), so the evening still gets a close. It prints `close read <day> at
+    recheck (no first read to compare)` and exits 0. A failed recheck then exits 1 as any read does; close_read's own
+    failure was alerted once by its step and is never alerted again here.
+  - **Special and muhurat days:** the same `nothing written:` line and exit 0 as close_read, so O1 records `refused`.
+  - **Cost (reasoning only):** the routine's day ends after about 16:00 instead of about 15:45; on a closed day
+    nothing waits (A7 skips the whole run). No limit on the routine session's length is known to me or to O1/O2's
+    owner.
+  - O1/O2's owner agreed to the step (22 Oct), wired as close_read with `CLOSE_RECHECK_FROM`.
+- **Placement.** `fno/close_read/` (source, record, confirm, command) and its composition root
+  `fno/close_read/wiring.py`. O1's step is `Alerted("close_read", LiveFrom(NotBefore(CommandStep(...), CLOSE_READ_FROM,
+  waiter), live["close_read"]), alerts)`: `LiveFrom` outside, so a not-live day never waits until 15:40;
+  `CLOSE_READ_FROM` a named constant in A4h's module. `config.yaml` gets `daily.live_from.close_read: null` and
+  `LIVE_STEPS` the key; the date is set at go-live.
+
+**Record-only first.** For the first 5 sessions the record is written but FL1 does not show it. Each confirm line is
+reported. A difference over 0.01 on any of those days stops FL1's use until it is explained.
+
+**Size:** about 270 lines of code and 340 of tests (the second read and the overdue alert add about 40 each). M,
+about 1 day.
+
+**Gap list (every rule to a criterion or to Out):**
+
+| Rule or requirement (source) | Where |
+|---|---|
+| Check today's forecast after the close (owner, c3231785) | criteria 1, 7 |
+| Evening edition at about 19:00; a later rerun valid (owner, bcbbc454) | design (stamp rule), criterion 1 |
+| Provisional until confirmed against the official file within 0.01 | criterion 4 |
+| A day never confirmed is not silent | criterion 4 |
+| The cause of a difference visible (judge 440 minor 1) | design (second read), criterion 9 |
+| Data write-once in Drive, one SHA-256 receipt in GitHub (owner, 16 Oct; O9) | criterion 2 |
+| Public repository: no level in any printed or committed line (rule 50a79a43; judge 440 SF1) | criterion 8 |
+| Alerts only to #fno-desk with `FNO_SLACK_BOT_TOKEN`, once each | criteria 4, 5 |
+| Research only: no order, no Groww call | criterion 6 |
+| No `ok` without data (O10; O1's `outcome`) | criterion 1 |
+| A7's calendar decides; regular sessions only (known limit) | criteria 1, 3 |
+| O1's step terms (last: after `lab_close` while it exists, `LiveFrom` outside, own receipts pathspec, exit contract, `null` live date) | criterion 5 |
+| One gate constant for hand and routine runs | criterion 3 |
+| INDIA VIX as the list's value, never the official close; `open` kept (FL1, response 304) | criteria 2, 4 |
+| Record-only for 5 sessions | criterion 7, "Record-only first" |
+| O6's job and files unchanged (read only) | Out; criterion 6 |
+| A source behind an interface (`CloseListSource`, one NSE adapter, wired in `fno/close_read/wiring.py`) | design, criterion 6 |
+| No file or class over 350 lines; ruff, imports, full suite | criterion 10 |
+| Readers and display (FL1); other indices; the official file's release minute | Out |
+
+**Acceptance criteria:**
+1. **The stamp decides.** Using NSE answers built from the 21 Oct read (stamp 15:30 today, the previous session's
+   stamp, today at 15:29, missing, an error page, one index missing), only the first is recorded. A special session
+   day prints its `nothing written:` line, writes nothing and exits 0, and O1 records the step `refused`, never `ok`
+   (test). Each refusal prints its reason. Stamp today at 15:31 is recorded. The tries stop at 3: a 4th try is never
+   sent (the fake source counts calls).
+2. **Write-once and receipts.** The raw answer and the record each go to the data store once, with a receipt. A rerun
+   on a recorded day writes nothing.
+3. **The calendar and the gate.** A closed day (A7) prints "not a trading day" and reads nothing. Before 15:40 the
+   step does not start (O1's `NotBefore`), and a hand run prints `too early: before 15:40` and reads nothing; both use
+   `CLOSE_READ_FROM`.
+4. **Confirm.** Using the real `ind_close_all_21102026.csv` values:
+   - 22811.35 confirms;
+   - 22811.34 confirms (0.01 is inside the tolerance);
+   - 22811.33 records "differs by 0.02" and alerts once;
+   - a day whose official file is not yet in Drive stays unconfirmed with no alert;
+   - the same day still unconfirmed at the second session after it alerts once, and never again on later runs;
+   - a confirmation is never rewritten.
+5. **O1.** In the real `DAILY_RUN_STEPS` tuple, `close_read` and then `close_recheck` are the last two steps: after
+   `lab_close` while it exists (a test asserts `lab_close`'s index is below `close_read`'s), else after `candles`. Its
+   failure makes the day "done with problems" and stops no later step. A rerun the same day skips it once recorded.
+   `test_day_run`'s call lists and its rerun test's new calls, `test_steps`' live dates and health's step string are
+   extended, never loosened. Not live (`null`), it neither waits nor reads.
+6. **No Groww, no orders.** The source imports only the public client (`check_imports`).
+7. **The first 5 live sessions** (claims after merge): each day's read time, NSE stamp, the values and the confirm
+   line, against the official file. Go-live items: the two `live_from` dates, and the e2e fixture's `("closes",
+   "read")` child once that date is on or before the fixture day (14 Oct).
+8. **No level in a printed line.** A test plants distinct values (for example NIFTY 50 at 22811.37) in the fake
+   answer and asserts that no line the command prints, for a read, a rerun, a recheck, a confirm or a refusal, holds
+   any planted value in any format (`22811.37`, `22,811.37`, `22811.4`).
+9. **The second read.** With a fake answer changed by 0.05 between the 15:40 and 16:00 reads, the recheck record
+   says `differs by 0.05` for that index and `same` for the others; a rerun of the recheck writes nothing; not live,
+   the step neither waits nor reads. With no first read, the recheck writes the day's record marked `read at
+   recheck` and exits 0; a special day prints `nothing written:` and O1 records `refused`. The same three O1 test
+   lists are extended for it.
+10. **Gates.** No file or class over 350 lines; `ruff`, `check_imports` and the full suite pass.
+
+**Depends:** A4 (market_levels' endpoint), A7, A10 (`read_index_closes`), O1, O6 (archived file, read only), O9 ·
+**Size:** M · **Status:** story text for judge F (22 Oct 2026)
+
+### A4h-2. The day's high, low and previous close in the same record (FL1-1f's request, 23 Oct 2026)
+
+**Why.** FL1-1f's evening "why" block needs each index's day range (the owner's 30-second rule; orchestrator: one
+source, A4h's 15:40 read). NSE's answer already carries `high`, `low` and `previousClose` for every index. One
+parser of that answer, A4h's `read_answer`, keeps a second one out of FL1.
+
+**What changes:**
+- **The record.** Each index in `closes/<yyyy>/<mm>/<day>.json` (and `.recheck.json`) gets `high`, `low` and
+  `previous_close` beside `open` and `last`, from the same answer.
+- **The read.** NIFTY 50 and NIFTY BANK, the checked indices, are refused like `last` when a field is missing or
+  unreadable. INDIA VIX keeps its new fields optional (`null` when NSE leaves them out), as it is recorded but never
+  checked.
+- **The range check (DR1 sanity check 5, judge 541 SF1).** For NIFTY 50 and NIFTY BANK, a read with `low > high`, or
+  with `last` or `open` outside `[low, high]` (edges included), is refused with a named reason and no level, for
+  example `NIFTY 50: last outside the day's high-low`. INDIA VIX is never refused for it: the same finding goes into
+  the record's `problems` list.
+- **The confirm.**
+  - `high` and `low` of the checked indices are checked against the official file's "High Index Value" and "Low Index
+    Value" within `TOLERANCE`.
+  - The reader of those columns is one function beside `read_index_closes` in `fno/fo_bhavcopy.py`: index name to
+    open, high, low and close.
+  - `previous_close` is checked against the previous session's official close, read from that session's file.
+    While that file is not in Drive, the field stays unconfirmed under the same overdue rule as `last`: one alert at
+    the second session after the day, never silent and never twice.
+  - Each difference is recorded in `.confirm.json` and alerted once, as `last`'s is.
+- **The recheck.** Its line names each field's difference (`same`, or `differs by X`), never a level.
+- **Nothing is rewritten.** Records before the first read after the merge lack the fields; readers say "day range
+  not recorded". The record stays `provisional: True` until confirmed.
+
+**Acceptance criteria:**
+1. A fake answer with distinct planted `high`, `low` and `previousClose` values: the record holds them for all three
+   indices.
+2. A missing or unreadable field refuses the read for NIFTY 50 or NIFTY BANK, and leaves `null` for INDIA VIX.
+2b. The range check, for NIFTY 50 and for NIFTY BANK each:
+    - `last` 0.01 above `high` is refused, and so is `open` 0.01 below `low`;
+    - `last == high` and `open == low` are accepted;
+    - `low > high` is refused.
+    For INDIA VIX the same cases are recorded in `problems` and the read is kept. No refusal line holds a level.
+3. Confirm, using the real 21 Oct official file (and a missing previous-session file: `previous_close` stays
+   unconfirmed, then alerts once at the second session after the day):
+   - `high` and `low` at the official value and at 0.01 off confirm;
+   - at 0.02 off they record the difference and alert once;
+   - a `previous_close` that differs from the previous session's official close records its difference.
+4. The recheck names a 0.05 change in `high` as `differs by 0.05`.
+5. Criterion 8's no-level test is extended to the planted new values in every format.
+6. An old record without the fields still reads (a reader test with 22 Oct's record shape).
+7. Gates as A4h's criterion 10.
+8. Each criterion has good, bad, boundary and empty cases (quality rule 5). Empty means an answer with no rows, or a
+   field present but blank.
+
+**Gap list (quality rule 2):**
+
+| Rule or requirement (source) | Where |
+|---|---|
+| The evening day range, one source: A4h's 15:40 read (FL1-1f; orchestrator, 23 Oct) | criterion 1 |
+| The owner's 30-second rule for the evening "why" block (FL1-1f) | Out: FL1-1f's display; this story only supplies the fields |
+| DR1 checks 1-4 at the provisional level (integrity, layout, stamp, completeness) | A4h's criteria 1-2, unchanged; criterion 2 here |
+| DR1 check 5, sanity: a close outside the day's high-low (judge 541 SF1) | criterion 2b |
+| DR1 check 6, agreement with the official file at confirm | criterion 3 |
+| O9 write-once: no old record rewritten; older records read "day range not recorded" | criterion 6 |
+| No level in any printed or committed line (judge 440 SF1) | criteria 2b, 5 |
+| Merge no earlier than Mon 26 Oct, never 14:00-16:15 IST | "Lane and dates" |
+| Good, bad, boundary and empty cases (quality rule 5) | criterion 8 |
+| A real output sample in the Claims section, no level (quality rule 6) | Claims at code time: one dry-run record shape with values replaced by `<level>` |
+| An end-to-end run after merge (quality rule 8) | after merge: the first session's read, recheck and confirm lines (no level), with the merge message naming the command |
+| DR1's own certifier and records | Out: DR1's story; it is told the new fields |
+
+**Lane and dates.** Lane 1 (a record feeding the forecast lab), judge F. It touches a live reader, so it merges no
+earlier than Mon 26 Oct and never 14:00-16:15 IST. The fields start with the first session read after the merge;
+the claims name that date. DR1's certifier (story/dr1-design) is told the new fields, so its checks can cover them.
+
+**Size:** S · **Status:** text PASS (judge 541 add. 1, 7fb7d3de, on main 930cb6eb); code for judge F (23 Oct 2026)
+
+**Claims (code, branch `story/a4h2-day-range`):**
+
+| # | Criterion | Code | Tests |
+|---|---|---|---|
+| 1 | New fields in the record | `answer.py` `_values`, `records.py` | `test_day_range.py` planted values for all three indices; `test_reader.py`'s record test extended |
+| 2 | Missing, empty or unreadable field | `answer.py` `_number` | 18 cases (2 checked indices x 3 fields x missing / "" / "-"); VIX kept with `null` |
+| 2b | Range check, edges | `answer.py` `range_problems` | `last` at the high and `open` at the low accepted, 0.01 beyond refused, `low > high` refused, for NIFTY 50 and NIFTY BANK each; VIX in `problems`, named in the read line; the refusal line holds no level |
+| 3 | Confirm | `confirm.py` `_compare`, `_results`, `_previous`; `fno/fo_bhavcopy.py` `read_index_values` | high and low at 0.00 and 0.01 off confirm, 0.02 off alert once; `previous_close` 0.10 off recorded and alerted; VIX differences never alerted; the previous file missing: waits, then one overdue alert naming the previous session's file, never again |
+| 4 | Recheck | `comparison.py`, `reader.py` `_recheck` | a 0.05 change in `high` named in `fields_against_first` and the line |
+| 5 | No level | the same lines | `test_no_levels.py`: planted highs, lows and previous closes (list, moved and official) in 7 forms appear in no line or alert, and the new fields reach the lines |
+| 6 | Older records | `confirm._previous` returns `{}`, `compared` skips absent fields | 22 Oct's shape rechecked and confirmed on `last` alone, with no previous file needed |
+| 7 | Gates | | full suite 14623 passed, 16 xfailed; ruff, format, `check_imports` clean; largest file 175 lines |
+| 8 | Good, bad, boundary, empty | | as above; empty = a missing or blank field |
+
+**Planted bugs: 10 of 10 caught** (each made, the tests run, then reverted):
+
+| Planted bug | Tests failing |
+|---|---|
+| range edges excluded (`<` for `<=`) | 4 |
+| VIX refused instead of recorded | 1 |
+| no `low > high` check | 2 |
+| new fields not required for checked indices | 18 |
+| a level in the refusal text | 7 |
+| high confirmed against itself | 2 |
+| no wait for the previous session's file | 1 |
+| VIX field differences alerted | 12 |
+| recheck silent on fields | 6 |
+| an official "-" read as 0.0 | 1 |
+
+**Self-review (quality rule 3).** An independent review agent found no crash or level leak. Its four points:
+1. **One odd official cell ("NA") would fail the whole day's confirm: accepted.** The fix: `read_index_values` reads the extra columns leniently (None), so the reader that needs one says "not in the official file" and alerts. A test plants "NA" in another index's row.
+2. **The previous session may be a muhurat session: checked, no change.** Real files show NSE's previous close after muhurat is the muhurat close (4 Nov 2024: 23995.35 + 309.0 = 24304.35, 1 Nov's muhurat close; 23 Oct 2025: 25891.4 - 22.8 = 25868.6, 21 Oct 2025's), and the calendar's `previous_session` counts muhurat sessions. The calendar-start edge (2019) cannot arise for records from 2026.
+3. **The overdue alert said "no official index-close file" while the previous session's file was the one missing: accepted.** The reason is now named (`NO_FILE`, `NO_PREVIOUS_FILE`, `FAILED_RUNS`), with a test.
+4. **VIX problems were only in the record: accepted.** The read line now names them, with no level.
+
+**Output sample (quality rule 6; test fakes, the record's values replaced by `<level>`):**
+```
+close read 2026-10-21: NIFTY 50, NIFTY BANK, INDIA VIX (list) recorded, NSE stamp 21-Oct-2026 15:30, closes/2026/10/2026-10-21.json sha256 970a82653bde
+close recheck 2026-10-21: NIFTY 50 same (high differs by 0.05), NIFTY BANK same, INDIA VIX same, NSE stamp 21-Oct-2026 15:30, closes/2026/10/2026-10-21.recheck.json sha256 52c05ee0b992
+close confirm 2026-10-21: NIFTY 50 confirmed, NIFTY BANK confirmed, INDIA VIX differs by 0.02 (list value)
+record indices["NIFTY 50"]: {"high": <level>, "last": <level>, "low": <level>, "official_close": true, "open": <level>, "previous_close": <level>}
+```
+
+**Deviations and facts to know:**
+- **An interface change:** `OfficialCloses.closes(day)` is now `values(day)`, returning open, high, low and close per index. DR1-1 (story/dr1-1-closes-records) imports it; its builder has been told. Whichever merges second updates the call.
+- **One refusal text changed:** a missing `last` for VIX now reads "INDIA VIX has no readable last" instead of "...last or open", so it names the field.
+- **Record readers:** FL1's `A4hTodayCloses` reads only `nse_stamp`, `last` and `official_close`, so it is unaffected. FL1-1f reads `open`, `high` and `low` when present.
+- **After merge (quality rule 8):** the first session's read, recheck and confirm lines.
 
 ## A5. Monthly-expiry identity in the package
 
@@ -1563,6 +2204,16 @@ Jun 2020-Dec 2023, May-Jun 2024 and Sep-Oct 2026 (entries). Jan 2024-Aug 2026 ou
 measured; the first full run reads every session since 2 Jan 2020 and may set k higher. Response 77's three figures
 (1.265, 1.407, 1.127) were a different measure, scan plus exposure read to the window's end; the evidence table shows
 them beside this run's needed factor for reference only.
+
+**Open items for when A14c resumes (after the phase-1 freeze):**
+- **k per underlying.** The factor is measured on NIFTY monthly history only. The market school (MS-P1m) applies it to
+  BANKNIFTY, FINNIFTY, MIDCPNIFTY and NIFTY's weeklies, labelled "measured on NIFTY monthly only [reasoning only]"
+  (orchestrator, 22 Oct 2026).
+- **k times the expiry-day ELM.** MS-P1m prices a school trade on its own expiry day with SEBI's extra 2% ELM
+  (2024/132 para 5.6). C2's k also multiplies the exposure, so k 2.1 on the doubled ELM roughly doubles an expiring
+  fly's stressed margin: NIFTY weekly SF 100 on 13 Oct 2026 needed Rs 2,48,443 a lot. That overstates the margin
+  [reasoning only], which is conservative and accepted for P1 (orchestrator, 22 Oct 2026). The follow-up decides
+  whether k should stress an expiry-day ELM at all, measured like the rest of k.
 
 **Judge verifies:** recomputes one held position's needed factor by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.

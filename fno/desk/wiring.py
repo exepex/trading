@@ -18,6 +18,7 @@ from ..playbook.schema import Strategy
 from ..risk.inputs import Market, TradeTerms
 from ..storage.wiring import build_nse_fo_library, build_quote_store
 from .entries import EntryDesk
+from .exit_timing import ExitTiming
 from .exits import ExitDesk
 from .private_files import PrivateFiles, PrivateFilesUnavailable
 from .records import DeskJournal
@@ -37,10 +38,12 @@ def build_entry_desk(cfg: dict) -> EntryDesk:
     return EntryDesk(cfg["charges"])
 
 
-def build_exit_desk(cfg: dict, alerts: AlertSender | None = None) -> ExitDesk:
+def build_exit_desk(cfg: dict, alerts: AlertSender | None = None, timing: ExitTiming | None = None) -> ExitDesk:
     """Exits at the execution snapshot's quotes; expired legs settled from NSE's daily F&O files (A2's library).
-    `alerts`: the daily run's one sender (story O1), so an unsent exit alert is printed for the routine."""
-    return ExitDesk(cfg["charges"], alerts or build_alert_sender(), NseFinalSettlement(build_nse_fo_library()))
+    `alerts`: the daily run's one sender (story O1), so an unsent exit alert is printed for the routine. `timing`:
+    story E8's owner-timing exits (E4's close at the snapshot when none is given)."""
+    return ExitDesk(cfg["charges"], alerts or build_alert_sender(), NseFinalSettlement(build_nse_fo_library()),
+                    timing=timing)  # fmt: skip
 
 
 def build_shadow_books(market: Market, terms: Callable[[str], Mapping[str, TradeTerms]], root: Path = ROOT
@@ -66,9 +69,10 @@ def open_desk_journal(
         yield DeskJournal(writer)
 
 
-def build_private_files(root: Path = ROOT) -> PrivateFiles:
+def build_private_files(root: Path = ROOT, wrap=None) -> PrivateFiles:
     """Story E2c: the private paper records in Drive's `paper` area, written as the owner. Drive is signed in to only at
-    the first pull or push, so building needs no Drive; missing settings then stop that step, named."""
+    the first pull or push, so building needs no Drive; missing settings then stop that step, named. `wrap` decorates
+    the store (story E8: its step's pulls are time-capped)."""
     from ..constants import PAPER_AREA
     from ..storage.index_store import DriveIndexStore
     from ..storage.wiring import OWNER_UPLOAD_SETTINGS, build_owner_drive
@@ -77,7 +81,8 @@ def build_private_files(root: Path = ROOT) -> PrivateFiles:
         drive = build_owner_drive()
         if drive is None:
             raise PrivateFilesUnavailable(SETTINGS_MISSING.format(settings=", ".join(OWNER_UPLOAD_SETTINGS)))
-        return DriveIndexStore(drive, PAPER_AREA)
+        opened = DriveIndexStore(drive, PAPER_AREA)
+        return wrap(opened) if wrap else opened
 
     return PrivateFiles(store, root)
 

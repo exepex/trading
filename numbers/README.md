@@ -12,7 +12,8 @@ One file per numbered series; each series has its own numbers, so series never c
 Columns: `number,name,session,claimed_at_utc`. Rows with session `existing` are the files that were on `main` when
 O12 merged (history, kept as it is, duplicates included); their SHA-256 is pinned in `fno/numbering/seed_pins.json`,
 so none can be added later. Every later row is a claim. An addendum heading must carry its number (`## Addendum 3`);
-the 14 old unnumbered `## Addendum` headings are outside the series.
+the 14 old unnumbered `## Addendum` headings are outside the series. Write only the addendum's own number in the heading (`## Addendum 5` for claim 307.5, never
+`## Addendum 307.5`): the tool prints the exact heading.
 
 **Claim before you write.** `python tools/claim_number.py <category> <slug> --session <id>` pushes your row to `main`
 from a temporary worktree (your branch is untouched) and prints the number; a refused push is retried on the new
@@ -32,7 +33,7 @@ In GitHub's web editor (or its contents API) the same holds: edit the file on `m
 refused save (the file changed meanwhile) means someone claimed first, so reload and take the next number.
 Claims are lane 3 (status rows).
 
-`python tools/check_numbers.py` (CI, every push) fails when a numbered file or heading has no row, a number is used
+`python tools/check_numbers.py` (CI, every push; `number-alert.yml` posts new problems to #fno-desk on each push, story O12b) fails when a numbered file or heading has no row, a number is used
 twice outside the history, or a row is malformed. Never edit or delete someone else's row: the check protects the
 seeded history (pinned) and catches a reused number, but it cannot see a claimed row edited or deleted before its file
 exists (git history and the judge's lane-3 audit can).

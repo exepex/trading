@@ -11,7 +11,7 @@ from fno.storage.raw_store import LocalFolderStore
 from tests.quotes.test_quote_recorder import FakeProvider
 from tests.timetable.fakes import Clock
 
-from .fakes import FakeProcesses, RecordingCommitter
+from .fakes import FakeProcesses, RecordingCommitter, tracking
 
 DAY = date(2026, 10, 14)
 
@@ -40,12 +40,13 @@ def test_a4_s_recorder_records_nothing_when_started_at_the_routine_s_14_33_but_w
     assert waited.status != "too early" and clock.now >= datetime.combine(DAY, WINDOW_START, IST)
 
 
-def test_a_part_is_never_started_before_its_time_and_starts_from_any_wait_without_git():
+def test_a_part_is_never_started_before_its_time_and_starts_from_any_wait_without_git(tmp_path):
     clock = Clock()
     clock.now = _at(14, 33)
     processes = FakeProcesses(clock, {p.arguments: (_at(15, 0), 0, []) for p in QUOTE_PARTS})
     commits, changed = [], []
-    parts = QuoteParts(QUOTE_PARTS, processes, RecordingCommitter(clock, commits), changed.append, None, clock)
+    parts = QuoteParts(QUOTE_PARTS, processes, RecordingCommitter(clock, commits), changed.append, None, clock,
+                       *tracking(tmp_path))  # fmt: skip
     assert parts.start(DAY) == ["nifty", "nse"] and processes.started == []  # the day is open, nothing started
     clock.now = _at(14, 37)
     parts.start_due()
@@ -74,14 +75,25 @@ def test_every_command_of_the_built_run_starts_due_parts_while_it_waits(monkeypa
 
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg, root: None)
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
-    runner = wiring.build_day_runner(load_app_config())
+    runner = wiring.build_day_runner(load_app_config(), sleep=lambda seconds: None)
     commands = [c for step in seen["day_steps"].values() for c in _command_steps(step)]
     assert len(commands) >= 5  # margin check, weather, v4 forecasts, Book 1, card, candles
     due = []
     monkeypatch.setattr(runner.parts, "start_due", lambda: due.append(1))
-    monkeypatch.setattr("time.sleep", lambda seconds: None)
     for command in commands:
         command.sleep(1.0)
     assert len(due) == len(commands)
+
+
+def test_a_wait_before_the_day_is_opened_starts_nothing_and_never_fails(tmp_path):
+    """A wait may service the parts before `start` or `resume` opened the day (a rerun whose log holds the whole
+    day opens neither; found by O2's kill-and-rerun day: it raised on the first wait)."""
+    clock = Clock()
+    processes = FakeProcesses(clock, {})
+    parts = QuoteParts(QUOTE_PARTS, processes, RecordingCommitter(clock, []), lambda specs: [], None, clock,
+                       *tracking(tmp_path))  # fmt: skip
+    parts.start_due()
+    parts.service()
+    assert processes.started == [] and not parts.busy()

@@ -8,6 +8,7 @@ import math
 from datetime import date, timedelta
 from pathlib import Path
 
+from fno.forecast_scoring.v4.freeze_check import FreezeCheck
 from fno.forecast_scoring.v4.inputs import ForecastValue, Outcome
 from fno.forecast_scoring.v4.reconcile import AiSlotDays
 from fno.forecast_scoring.v4.records import NoRegistrations
@@ -48,3 +49,8 @@ def synthetic_window(n: int, big_days: int, start: date = date(2025, 1, 1)):
 def settled_slot_days():
     """A look's reconciliation with nothing to settle: no registered AI slot."""
     return AiSlotDays(None, NoRegistrations(), lambda first, last: [])
+
+
+def intact() -> FreezeCheck:
+    """The freeze check of a look that holds (story G6 freeze, criterion 4: the check is a required argument)."""
+    return FreezeCheck()

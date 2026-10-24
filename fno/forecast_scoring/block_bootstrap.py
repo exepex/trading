@@ -31,13 +31,15 @@ class BootstrapResult:
     tested: bool  # False: fewer than 40 paired dates
 
 
-def resampled_means(differences: Sequence[float], k: int, resamples: int = RESAMPLES) -> np.ndarray:
+def resampled_means(differences: Sequence[float], k: int, resamples: int = RESAMPLES,
+                    block: int = BLOCK_LENGTH) -> np.ndarray:  # fmt: skip
+    """`block`: the block length; G4's 20 sessions by default (EDGE1 passes 2 trades, its protocol section 11)."""
     values = np.asarray(differences, dtype=float)
     n = len(values)
-    blocks = math.ceil(n / BLOCK_LENGTH)
+    blocks = math.ceil(n / block)
     rng = np.random.default_rng(np.random.SeedSequence([BOOTSTRAP_SEED, k]))
-    starts = rng.integers(0, n - BLOCK_LENGTH + 1, size=(resamples, blocks))
-    index = (starts[:, :, None] + np.arange(BLOCK_LENGTH)).reshape(resamples, blocks * BLOCK_LENGTH)[:, :n]
+    starts = rng.integers(0, n - block + 1, size=(resamples, blocks))
+    index = (starts[:, :, None] + np.arange(block)).reshape(resamples, blocks * block)[:, :n]
     return values[index].mean(axis=1)
 
 

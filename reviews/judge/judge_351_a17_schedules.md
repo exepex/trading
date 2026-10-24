@@ -116,3 +116,26 @@ orchestrator should hold them to that measurement, with the first-seen versus va
 implicit-`success()` alert after a commit step. When the librarian fails and the commit then fails, neither alert
 step runs. O10's watcher at 0db3f682 now covers this: the run is a `failure` whose failed job ran no "Alert" or "One
 line to" step, so the watcher posts. No change is needed in those frozen or other-owner files once O10 merges.
+
+## Addendum 2: the lag condition measured (response 298 and A17e amendment 1, story/a17e-global-markets @ a6a8c641)
+
+**The condition is met: it was measured, and it found a real defect. The fix is accepted, with one minor.**
+
+The measurement, read back from every archived copy in Drive [strong as reported]:
+- Cboe's S&P 500 copy held the previous US close on every weekday morning (lag 0);
+- Nasdaq's Nasdaq-100 copy lacked it on 17, 20 and 21 Oct (lag 1 US trading day every time);
+- nothing alerted, which is exactly the silent systematic lag this condition was set to catch;
+- the cause: Nasdaq's API still lacked the 21 Oct close at 17:17 New York.
+
+The fix (A17e amendment 1): a twelfth Yahoo cue, `nasdaq100_yahoo`. The `nasdaq100` reading takes Yahoo's previous
+close until Nasdaq's copy has the date, and the overlap check guards the pair: equal on 15, 16 and 20 Oct, 0.01 apart
+on 19 Oct. A test uses the 20-21 Oct copies.
+- Rejected, rightly: a second Nasdaq download breaks the owner's once-a-day rule and would still miss 09:15.
+- Until A17e merges, the S&P 500 is the on-time US cue and the Nasdaq-100 is one day late, never wrong. That is
+  stated, not hidden.
+
+**Minor: the class of defect can still be silent.** The fix repairs Nasdaq, but nothing yet alerts when any cue's
+newest value is behind its market's expected date at 09:15. That covers Yahoo lagging too, or another publisher
+slipping. A17b's reader already computes `behind` against each cue's calendar. Name every cue that is `behind` at
+the 09:15 as-of in the run's line (once per episode). Then a lag like this one is seen the first morning, not found
+by a judge's measurement a week later. This belongs in A17e's code round.

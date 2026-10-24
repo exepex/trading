@@ -8,6 +8,7 @@ import csv
 import io
 import math
 import re
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, fields
 from datetime import date
 from pathlib import Path
@@ -51,7 +52,8 @@ class Record:
 COLUMNS = tuple(f.name for f in fields(Record))
 
 
-def record(day: date, question: str, status: str, value: float | None, pack_sha256: str = "", **audit: str) -> Record:
+def record(day: date, question: str, status: str, value: float | None, pack_sha256: str = "", version: str = VERSION,
+           **audit: str) -> Record:  # fmt: skip
     """A validated row: a variance finite and > 0, a probability in [0, 1]; a value only when status is ok. A pack hash
     is empty or 64 lowercase hex characters (its form only: whether it is the released pack is G10's `fno/v4_pack`
     guard)."""
@@ -64,7 +66,7 @@ def record(day: date, question: str, status: str, value: float | None, pack_sha2
         text = repr(float(value))
     else:
         text = ""
-    return Record(day.isoformat(), text, status, forecaster_version=VERSION, pack_sha256=pack_sha256, **audit)
+    return Record(day.isoformat(), text, status, forecaster_version=version, pack_sha256=pack_sha256, **audit)
 
 
 def path(folder: Path, forecaster: str, question: str) -> Path:
@@ -93,12 +95,17 @@ def write(folder: Path, forecaster: str, question: str, rows: list[Record]) -> i
         added += 1
     if added:
         file.parent.mkdir(parents=True, exist_ok=True)
-        out = io.StringIO()
-        writer = csv.DictWriter(out, COLUMNS, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(asdict(kept[day]) for day in sorted(kept))
-        file.write_text(out.getvalue())
+        file.write_text(csv_text(kept.values()))
     return added
+
+
+def csv_text(rows: Iterable[Record]) -> str:
+    """The record file's text: the header, then one row per day in date order (the same rows give the same text)."""
+    out = io.StringIO()
+    writer = csv.DictWriter(out, COLUMNS, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(asdict(row) for row in sorted(rows, key=lambda row: row.day))
+    return out.getvalue()
 
 
 def first_live_day(folder: Path) -> date | None:

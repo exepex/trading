@@ -2,7 +2,8 @@
 
 Owner decision (row a927390 on main, 15 Oct 2026) after their terms were read and reported: use them for personal
 research only, with raw files and values in the owner's Drive only (never in this public repository), at most one
-download a day, and nothing shown on the card or dashboard until the owner approves a display. Their terms, quoted in
+download a day. Display (owner decision bcbbc454, 21 Oct 2026): the closes may be shown in the owner's Slack reports
+and private dashboard, never in this public repository. Their terms, quoted in
 `research/data/global-cues/README.md`, restrict automated capture (Nasdaq) and storing index values (Cboe); S&P Dow
 Jones Indices owns the S&P 500, Nasdaq the Nasdaq 100.
 

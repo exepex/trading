@@ -10,7 +10,7 @@ from fno.constants import V4_DAY_SYSTEM_LATE
 from fno.forecast_scoring.v4.days import DayFileError, parse_day
 from fno.storage.data_store import DataStore
 from fno.storage.drive_cache import DriveCache
-from fno.storage.raw_store import RawFileStore
+from fno.storage.raw_store import RawFileConflict, RawFileStore
 from fno.storage.receipts import ReceiptFolder
 from fno.v4_pack.codec import pack_sha256
 from fno.v4_pack.release import NotReleased, ReleasedPacks, parse_release, publish
@@ -24,7 +24,10 @@ class FakeDrive(RawFileStore):
         self.files = {}
 
     def put(self, path, data):
-        self.files.setdefault(path, data)
+        """Write-once, as every real store: the same bytes again change nothing, different bytes are refused."""
+        if self.files.get(path, data) != data:
+            raise RawFileConflict(path)
+        self.files[path] = data
 
     def get(self, path):
         return self.files.get(path)
