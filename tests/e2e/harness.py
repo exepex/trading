@@ -66,6 +66,7 @@ OUTSIDE_SEAMS = (
 )
 
 
+SCHOOL_OFF_SETTINGS = "school_off.yaml"  # outside the checkout, so the run's commits never see it
 FIXTURE_DATE = "2026-10-13T18:00:00+05:30"  # the fixture checkout's own commit: fixed, so twin checkouts are identical
 
 
@@ -239,12 +240,20 @@ def quote_parts_script(day_: Day) -> dict:
 
 
 def school_runs(day_: Day) -> Foreground:
-    """MS-P1j's `school run --session D` as the child runs it: the repository's switch is off, so "school off"."""
+    """MS-P1j's `school run --session D` as the child runs it, on a settings file of its own with the switch off:
+    never the repository's switch, which would build the real fleet on the real checkout and Drive once it is on."""
     from argparse import Namespace
+
+    import yaml
 
     from fno.school.cli import cmd_run
 
-    return Foreground(0, lambda: printed(lambda: cmd_run(Namespace(session=day_.day, replay=None))))
+    def run():
+        settings = day_.root.parent / SCHOOL_OFF_SETTINGS
+        settings.write_text(yaml.safe_dump(load_app_config(overrides={"school": {"enabled": False}})))
+        return printed(lambda: cmd_run(Namespace(session=day_.day, replay=None, config=str(settings))))
+
+    return Foreground(0, run)
 
 
 def fixture_day(tmp_path: Path, monkeypatch) -> Day:

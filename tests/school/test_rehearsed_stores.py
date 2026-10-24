@@ -2,7 +2,11 @@
 the day, so every Drive write of the school (the dashcam's sealed files, the paper accounts) must go to the
 rehearsal's `dryrun/<run_id>/` folder, never the real record."""
 
+import shutil
+import subprocess
+import sys
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -13,6 +17,8 @@ from fno.school.accounts.wiring import build_account_sync
 from fno.school.dashcam.wiring import build_dashcam
 from fno.storage.wiring import OWNER_UPLOAD_SETTINGS
 from tests.rehearsal.fakes import RecordingDrive
+
+PACKAGE = Path(__file__).resolve().parents[2] / "fno"
 
 
 @pytest.fixture
@@ -55,3 +61,22 @@ def test_a_rehearsal_s_school_write_to_the_real_root_is_refused_before_drive(mon
 def test_outside_a_rehearsal_the_school_writes_the_real_drive(monkeypatch, real_drive):
     monkeypatch.delenv(ENV_FNO_REHEARSAL, raising=False)
     assert all(drive is real_drive for drive in school_drives())
+
+
+def test_a_school_child_in_the_rehearsal_s_clone_commits_and_pushes_only_to_that_clone_s_origin(tmp_path):
+    """REH1 starts each step's child as `python -m fno` in its clone, whose `origin` is a local bare repository. The
+    school's three git writers (the dashcam's receipts, the session counts, the paper accounts' checkout) take their
+    checkout from the package's own folder, so in the clone they are the clone's and push there, never to GitHub."""
+    clone, origin = tmp_path / "clone", tmp_path / "origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", str(clone)], check=True)
+    subprocess.run(["git", "-C", str(clone), "remote", "add", "origin", str(origin)], check=True)
+    shutil.copytree(PACKAGE, clone / "fno", ignore=shutil.ignore_patterns("__pycache__"))
+    probe = (
+        "import fno.config, fno.storage.wiring, fno.school.dashcam.wiring as d; "
+        "print(fno.config.ROOT); print(fno.storage.wiring.REPOSITORY); print(d.build_receipt_publisher().repository)"
+    )
+    found = subprocess.run([sys.executable, "-c", probe], cwd=clone, capture_output=True, text=True, check=True)
+    assert found.stdout.splitlines() == [str(clone)] * 3
+    remote = subprocess.run(["git", "-C", str(clone), "remote", "get-url", "origin"], capture_output=True, text=True)
+    assert remote.stdout.strip() == str(origin)

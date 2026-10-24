@@ -101,6 +101,7 @@ STEP_TEMPLATES = {
         ("school:OFF", SCHOOL_OFF_LINE),
         ("school:NOT_A_SESSION", school_cli.NOT_A_SESSION),
         ("school:STOPPED", school_fleet.DASHCAM_STOP),
+        ("school:TOO_LATE", steps.STARTS_TOO_LATE),
     ),
     "v4_deadline": (
         ("v4_deadline:CHECKED", deadline.CHECKED),
