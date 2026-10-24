@@ -96,3 +96,21 @@ expectations:
 
 With exactly that change, the full suite on main + G11 + BG1-w: 15,911 passed, 1 skipped, 14 xfailed; no Slack post.
 No G11 code changes.
+
+## Addendum 3: pre-merge diff check, story/g11-ai-books-v4 at eb49d77f0 (the 586.2 condition)
+**PASS stands; the condition is met.** eb49d77f0 = gated 66db618e5 + one `G-forecasts.md` commit (checked). G11's
+own commits since 8fc143ffc:
+- 714f7c867 makes exactly my two test changes (`test_run_timing.py:142,145`: "recorded 2.0 minutes (and a wait of
+  2.17 minutes apart, not capped)" and "2.00").
+- 50a7b1e6c moves `FORECAST_PROTOCOL_V2/V4` into `fno/ai/run_terms.py`, imports only. Ruled acceptable: on the merged
+  tree `fno/constants.py` would reach 351 lines, past the hard size limit. `constants.py` is byte-identical to main
+  (350 lines), so the freeze's recorded file is unchanged. `run_terms.py` is standard library only (the book side
+  reads it), and nothing outside `fno/ai` and its tests used the names.
+The merges hold no other change (`git show --cc`). The only conflict, `config.yaml`, keeps main's
+`v4_pack: "2026-10-26"` beside `ai_books_v4: null`; only the comment is reworded.
+- **Claim confirmed** on the trial merge, with `v4_pack` live: `ai fire --protocol v4 --day 2026-10-24` prints "not
+  fired: no v4 go-live date is set", exits 0, and writes no `research/forecasts/ai_v4/`. `v4-fire.yml`'s commit step
+  skips a missing folder.
+- **Gates on a trial merge with main 35058cba5** (0709ce4ee), token set: 15,986 passed, 1 skipped, 14 xfailed. ruff,
+  format, check_imports (2,681), check_records (9,149), check_numbers clean. No post in any of the three channels
+  during the run.
