@@ -39,6 +39,16 @@ def test_no_line_when_every_step_is_ok_or_not_live_or_the_desk_has_not_run():
     assert not any(line.startswith("Steps with problems") for line in status_lines({}))
 
 
+def test_boundaries_one_failed_one_refused_and_an_empty_log():
+    """Rule 5: a single failed step, a single refused step, and a run log with no steps at all."""
+    one_failed = status_lines({run_log_path(DAY): _log(decisions=ON_TIME, snapshot=FAILED_SNAPSHOT)})
+    one_refused = status_lines({run_log_path(DAY): _log(decisions=ON_TIME, fills=REFUSED_FILLS)})
+    empty = status_lines({run_log_path(DAY): _log()})
+    assert one_failed[-1] == "Steps with problems today: snapshot (failed)"
+    assert one_refused[-1] == "Steps with problems today: fills (refused)"
+    assert not any(line.startswith("Steps with problems") for line in empty)
+
+
 def test_the_run_s_last_line_and_the_card_share_o1_s_one_rule():
     """Criterion 4: one rule, moved not copied: the runner calls `run_log.problem_steps`, and has no rule of its own."""
     assert runner.problem_steps is run_log.problem_steps and not hasattr(runner, "PROBLEMS")
