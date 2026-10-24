@@ -7,7 +7,7 @@ from datetime import timedelta
 import pytest
 
 from fno.constants import BOOK1_RULES, DAILY_RUN_STEPS, DESK_RUN_STEPS, STEP_FAILED, STEP_OK, STEP_REFUSED
-from fno.daily.quote_parts import GROWW_QUOTES, PART_NOT_OK, QUOTE_PARTS
+from fno.daily.quote_parts import GROWW_QUOTES, NIFTY_QUOTES, PART_NOT_OK, QUOTE_PARTS
 from fno.daily.quote_steps import FinishQuoteParts, StartQuoteParts
 from fno.daily.runner import DAY_DONE, NO_CARD, DayRunner
 from fno.daily.steps import Alerted
@@ -20,7 +20,7 @@ from tests.timetable.test_daily_run import HOLIDAY, NORMAL, decided
 from .fakes import RecordedStep, RecordingCommitter, quote_parts
 
 NIFTY, NSE, INDICES = (part.arguments for part in QUOTE_PARTS)
-NIFTY_SPEC, NSE_SPEC, BANKNIFTY_SPEC = GROWW_QUOTES.format(name="nifty"), "research/data/quotes/nse/", (
+NIFTY_SPEC, NSE_SPEC, BANKNIFTY_SPEC = NIFTY_QUOTES, "research/data/quotes/nse/", (
     GROWW_QUOTES.format(name="banknifty"))  # fmt: skip
 FILES = {NIFTY_SPEC: ["nifty.canonical"], NSE_SPEC: ["nse.canonical"], BANKNIFTY_SPEC: ["banknifty.canonical"]}
 
@@ -62,6 +62,7 @@ def day(root, tmp_path, alerts):
                 "margin_check": RecordedStep("margin_check", calls),
                 "weather": RecordedStep("weather", calls),
                 "forecasts_v4": RecordedStep("forecasts_v4", calls),
+                "v4_release": RecordedStep("v4_release", calls),
                 "quotes": StartQuoteParts(parts),
                 "owner_timing_fills": RecordedStep("owner_timing_fills", calls),
                 "book1": RecordedStep("book1", calls),
@@ -77,6 +78,7 @@ def day(root, tmp_path, alerts):
                 "candles": RecordedStep("candles", calls),
                 "close_read": RecordedStep("close_read", calls),
                 "close_recheck": RecordedStep("close_recheck", calls),
+                "v4_deadline": RecordedStep("v4_deadline", calls),
             }
             | (steps or {}),
         )
@@ -92,9 +94,9 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
     log = run.run(NORMAL)  # a rerun the same day repeats nothing (criterion 3)
     assert (code, line) == (0, DAY_DONE)
     assert tuple(log.steps) == DAILY_RUN_STEPS and calls == [
-        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews", "card",
+        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "v4_release", "book1", "reviews", "card",
         "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges", "price_range_scores",
-        "premium_range_scores", "candles", "close_read", "close_recheck",
+        "premium_range_scores", "v4_deadline", "candles", "close_read", "close_recheck",
     ]  # fmt: skip
 
 
@@ -191,9 +193,9 @@ def test_a_rerun_skips_every_recorded_step_and_takes_the_parts_the_killed_run_re
     again, rerun, _, new_parts, _, new_calls = day(recorded=recorded, files={})
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
-    assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "reviews"]
+    assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "v4_release", "book1", "reviews"]
     assert new_calls == ["card", "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges",
-                         "price_range_scores", "premium_range_scores", "candles", "close_read",
+                         "price_range_scores", "premium_range_scores", "v4_deadline", "candles", "close_read",
                          "close_recheck"]  # fmt: skip
     assert new_parts.processes.started == [] and alerts.sent == []
     done = steps["quotes_done"]["result"]

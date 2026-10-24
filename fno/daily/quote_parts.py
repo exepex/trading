@@ -9,7 +9,7 @@ One git at a time: commits happen only in the run's one thread, between the desk
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
@@ -26,6 +26,8 @@ from .processes import Process, Processes
 from .steps import outcome
 
 GROWW_QUOTES = ":(glob)research/data/quotes/groww/**/{name}_*"  # A4c's per-part paths, as CLAUDE.md gives them
+# NIFTY's own dataset only: `groww/**/nifty_*` would also take a named window's files (G10: `quote-snapshots-v4`)
+NIFTY_QUOTES = f":(glob)research/data/quotes/{DATASET}/**/nifty_*"
 INDICES = ("banknifty", "finnifty", "midcpnifty")
 # G4: the run's one committer remembers the commit, so the desk's next push takes it to origin
 NOT_PUSHED = "F&O daily run {day}: quote part {name} committed, NOT pushed (the next push carries it): {reason}"
@@ -43,6 +45,7 @@ STILL_HELD = (
     "still running after {minutes} minutes, held by an earlier run's recorder: a 3 pm recorder of an earlier run "
     "still holds {lock}: stop it, then rerun"
 )
+HUNG = "still running at {at:%H:%M}, after its window: stopped, nothing of it committed"
 NOT_IN_THIS_RUN = "not in this run: an earlier run started it and ended, its window has closed and a marker is missing"
 STARTED, RESTARTED, ADOPTED, EARLIER = "started", "restarted", "adopted", "earlier run"  # each part's `how` (F1)
 FINISH_LIMIT = timedelta(minutes=20)
@@ -69,10 +72,12 @@ class QuotePart:
     not_before: time | None = None  # never starts earlier than this (A4's early limit), even once `starts_after` ended
     canonicals: tuple[tuple[str, str], ...] = ()  # (dataset, stem) of each canonical marker it records (A4)
     window_end: time = WINDOW_END  # a rerun restarts it only before this (A4's window; the indices' own)
+    live_key: str | None = None  # its `daily.live_from` key; None: always live (A4's parts)
+    apart: bool = False  # its own dataset and window: commits as soon as it ends, never after NIFTY (G10's `v4`)
 
 
 QUOTE_PARTS = (
-    QuotePart("nifty", ("quotes", "record"), (GROWW_QUOTES.format(name="nifty"),), not_before=EARLIEST_START,
+    QuotePart("nifty", ("quotes", "record"), (NIFTY_QUOTES,), not_before=EARLIEST_START,
               canonicals=((DATASET, "nifty"),)),
     QuotePart("nse", ("quotes", "record", "--source", "nse"), ("research/data/quotes/nse/",),
               not_before=EARLIEST_START, canonicals=((NSE_DATASET, "nifty"),)),
@@ -95,7 +100,10 @@ class QuoteParts:
         clock: Callable[[], datetime],
         locks: PartLocks,
         markers: PartMarkers,
+        live: Mapping[str, date | None] | None = None,
     ):
+        """`live`: each `live_key`'s first live date (`daily.live_from`); a part whose key is not live on the day is
+        not a part of that day (its steps, sharing the key, record `not_live`)."""
         self.parts, self.processes, self.committer, self.changed, self.alerts, self.clock = (
             parts,
             processes,
@@ -104,7 +112,8 @@ class QuoteParts:
             alerts,
             clock,
         )
-        self.locks, self.markers = locks, markers
+        self.locks, self.markers, self.live = locks, markers, live or {}
+        self.every_part = tuple(parts)
         self.day: date | None = None
         self.running: dict[str, Process] = {}
         self.results: dict[str, dict] = {}
@@ -115,7 +124,7 @@ class QuoteParts:
         """Opens the day, once: every part that waits for no other starts now, or at its `not_before` if that is
         later (`start_due`); the names of those parts."""
         if self.day != day:
-            self.day = day
+            self._open(day)
             self.start_due()
         return [part.name for part in self.parts if part.starts_after is None]
 
@@ -124,7 +133,7 @@ class QuoteParts:
         adopted while an earlier run's recorder still holds its lock (never a second recorder), taken from the earlier
         run when every canonical marker exists, restarted while its window is open, and otherwise failed with one
         alert. NIFTY still commits first and the indices still start after it, whatever each part's `how`."""
-        self.day = day
+        self._open(day)
         for part in self.parts:
             if self.locks.held(day, part.name):
                 self._earlier(part, ADOPTED)
@@ -171,7 +180,7 @@ class QuoteParts:
         self.start_due()
         for name, process in list(self.running.items()):
             code = process.poll()
-            if code is not None and (name == LEAD or LEAD in self.results):
+            if code is not None and (name == LEAD or LEAD in self.results or self._part(name).apart):
                 self._finish(self._part(name), code, process.lines(), process.alerted(), process.errors())
         self.start_due()
 
@@ -195,6 +204,35 @@ class QuoteParts:
             if part.name not in self.results:
                 self._failed(part.name, NEVER_STARTED)
         return self.results
+
+    def _open(self, day: date) -> None:
+        """The day's parts: every part whose live key (if any) is live on `day` (`daily.live_from`)."""
+        self.day = day
+        self.parts = tuple(part for part in self.every_part if self._live(part, day))
+
+    def _live(self, part: QuotePart, day: date) -> bool:
+        live_from = self.live.get(part.live_key) if part.live_key else day
+        return live_from is not None and live_from <= day
+
+    def await_part(self, name: str, limit: datetime, wait: Callable[[datetime], None]) -> None:
+        """Waits (servicing every part) until the part `name` has ended and its commit was made or tried, at most until
+        `limit`; one still running then is stopped and failed, its files not committed (G10's release reads only an
+        ended capture)."""
+        if not self.waits_for(name):
+            return
+        self.service()
+        while self.started and name not in self.results and self.clock() < limit:
+            wait(min(limit, self.clock() + timedelta(seconds=5)))
+            self.service()
+        if name in self.running:
+            adopted = self.how.get(name) == ADOPTED  # an earlier run's recorder: never stopped from here (F1)
+            reason = self._still_running(name) if adopted else HUNG.format(at=limit)
+            self.running.pop(name).stop()
+            self._failed(name, reason)
+
+    def waits_for(self, name: str) -> bool:
+        """Whether the part `name` is a part of the day (live) that has not ended yet."""
+        return self.started and name in {part.name for part in self.parts} and name not in self.results
 
     def _waited_for(self, part: QuotePart) -> bool:
         return part.starts_after is None or part.starts_after in self.results
