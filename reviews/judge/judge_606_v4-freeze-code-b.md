@@ -43,3 +43,23 @@ fails on the merge.
    once G7b's `forecast_v4_rules/wiring.py` no longer imports it (its only v4 importer: `forecast_scoring/wiring.py`
    is v3's). Then the walk flags it as stale and it leaves `RECORDED`. That is the intended path (blocker 3); say it
    in the reason string.
+
+## Addendum 1: head 8c30d0b17 (main with G11 merged, G11's files classed), still round 1
+
+**FAIL (1 should-fix; B1 fixed). Lane 1.** Trial merge into origin/main ddb0c0510 (clean, 18103c85d): ruff, format
+(2,572), imports (2,701), record scan (9,179) and check_numbers all clean; **16,148 passed, 1 skipped, 14 xfailed**
+(token kept). The walk passes.
+
+- **B1: FIXED.** `freeze_classes.py` adds `run_terms.py` and `record_writer.py` to recorded; `budget_stop.py`,
+  `alerts/sender.py`, `pipeline/trigger.py`, `budget/usage_ledger.py` and `research_engine/statistics.py` to not
+  deciding; and drops `timing.py`, which is no longer reached. `usage_ledger.py` and `statistics.py` serve
+  `v4_cost.py`'s cost line only; the sender and the trigger decide nothing (read).
+- **Should-fix SF1: `fno/ai/budget_stop.py` is classed "not deciding", but it decides v4 rows.** Its own reason reads
+  "whether an AI book fires ... a stop is a counted miss", and `v4_fire.py:10-11, 98-111` turns its answer into a
+  logged `not_fired` row (a miss under protocol 4) for that book and day. That is the definition of a file whose bytes
+  decide a v4 value. As "not deciding", a change after the freeze (its threshold, its fail-open choice, which the
+  docstring says awaits the owner's ruling) prints no drift line. The walk also stops there, so its imports
+  `fno/budget/report.py` and `fno/budget/constants.py` (BG1's meter and cap) are never classed. Fix: record it in the
+  AI registration table (lock: G11 C8's tests) and class what the walk then reaches.
+
+Plants: none new (12 of 12 in round 1, on code unchanged here except the class tables).
