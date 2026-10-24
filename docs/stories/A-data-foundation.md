@@ -2037,8 +2037,9 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
   a broker's margins cannot be fetched later: each unrecorded day is lost, gap audit part A2).**
   `python -m fno margins stress-broker-check` (the name O1's daily run already calls, step `margin_check`) runs in the
   daily Claude routine, which holds Groww's key (never GitHub Actions, which holds none). The routine's prompt is story
-  O1's: O1's `daily run` starts the 3 pm quote parts first and runs this step soon after (about 14:35 IST, after the
-  weather and the v4 forecasts), so the command needs no new prompt line (judge 173 addendum 3, note 1, met by O1's
+  O1's: O1's `daily run` starts the 3 pm quote parts first and runs this step third (`DAILY_RUN_STEPS`), right after
+  the routine's 14:05 IST start and before the weather, so it ends long before the 14:30-14:40 v4 capture and the
+  14:55 capture (judge 630 finding 4); the command needs no new prompt line (judge 173 addendum 3, note 1, met by O1's
   step).
   - **When:** on a session day of A7's calendar, from 09:30 IST, before which Groww may still be on the previous day's
     file (16 Oct: +Rs 155 at 00:12 IST; within Rs 0.25 at 10:42 IST). Before 09:30, or on a closed day, it prints
@@ -2047,21 +2048,42 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     rerun at 14:45 included). Baskets not yet asked at 14:50 are written as `error` with the detail "deadline", and the
     run exits 1. Tests run at 14:49:59, 14:50:00 and 14:50:01.
   - **Size and pacing:** today's A14 rows are 15 baskets a day (SF, SC and BF at five widths; the STR1 codes get rows
-    only after their broker approvals, STR1b). With one request every 2 seconds plus one NIFTY quote, a run takes
-    about 35 seconds, and a full STR1 set of about 40 baskets takes about 90 seconds, well inside the window.
+    only after their broker approvals, STR1b). One request every 2 seconds, plus two NIFTY quotes (below). Measured:
+    44.7 s for 16 requests (21 Oct) and 60.7 s (25 Oct), so about a minute a run; a full STR1 set of about 40 baskets
+    takes about 2.5 minutes, well inside the window.
   - **What it checks:** each of the day's A14 rows (every structure and width in `margins.csv` for today), one
     read-only Groww margin request per basket (`get_order_margin_details`, the row's legs at the file's prices: Groww
     ignores the limit prices sent).
     - SPAN: Groww's `span_required` against the row's `max(0, scan - NOV)`, within Rs 1 a lot.
     - Exposure: Groww's `exposure_required` against A14's own exposure rule recomputed on an independent index level,
       within 0.1% (orchestrator, 16 Oct, some evidence: one basket on one day). Groww charges exposure on the live
-      index, while the row uses the last close, and Groww's answer carries no index (response 77's fields). So the
-      level is one NIFTY `get_quote` (last price) taken by this caller at the run's start, and the row's legs' exposure
-      is recomputed at it with A14's `NseIndexOptionExposure`. The rate step at 10% out of the money is therefore
-      applied at the live level. The level is never implied from Groww's own exposure figure, which would compare
-      Groww with itself and could never mismatch (judges 291 and 356).
+      index at the moment each basket is asked, while the row uses the last close, and Groww's answer carries no index
+      (response 77's fields). So this caller reads NIFTY's last price with `get_quote` twice: before the first basket
+      and after the last. The row's legs' exposure is recomputed with A14's `NseIndexOptionExposure` over that range.
+      The expected figure is the one nearest Groww's at any level between the two readings (exposure is linear in the
+      level), and a basket's exposure is a `mismatch` only when it is outside 0.1% at every level in the range (judge
+      630 finding 2: a 0.12% move during a run flagged correct rows when one level was read). The level is never
+      implied from Groww's own exposure figure, which would compare Groww with itself and could never mismatch
+      (judges 291 and 356).
+    - If a leg's rate step at 10% out of the money lies between the two readings, the range holds two rates. The basket
+      is then `error` ("exposure rate step inside the NIFTY range"), never a guess. If the second reading fails or
+      would start at 14:50, a basket whose exposure is within 0.1% at the first reading is `ok`. Otherwise it is
+      `error` (named after the second reading's failure), never a `mismatch`. SPAN does not depend on the level and
+      is judged as before.
+    - The record keeps both readings (`nifty_before`, `nifty_after`).
     - Tests: at each tolerance and just under it (Rs 1.00 and Rs 0.99; 0.10% and 0.099%), just over it, and a planted
-      wrong exposure (0.2% high) on a correct index.
+      wrong exposure (0.2% high) on a still index. NIFTY moving 0.12% under the check gives `ok`. The second reading
+      failing gives `error` for an exposure outside 0.1% at the first. A rate step inside the range gives `error`.
+  - **The lot (judge 630 finding 3):** each basket is sent and compared for one lot of A14's own row builder
+    (`lot_sizes.NIFTY`, the lot its figures were computed with), one source for both. Before any Groww request, that
+    lot is checked against NSE's dated lot for the basket's expiry month in A20a's archived `fo_mktlots.csv` of the
+    day, read with the market school's reader (`fno/school/roads/lots.py`, never a second reader). The basket is
+    `error`, with no Groww request for it, in either case:
+    - the lots differ: "lot <n> differs from NSE's dated lot <m> for <expiry>": the row's figures are then for the
+      wrong quantity;
+    - the day's file is not archived yet: "no dated NSE lot for <expiry> on <day>". A20a archives it from 07:45 IST,
+      and a same-day rerun retries.
+    Tests: the dated lot equal, different, missing; the wiring gives the check the row builder's lot.
   - **Read-only by construction:** the Groww client is reached only through an allow-list per caller (A16's
     `ReadOnlyGroww`, agreed with A16's owner). This caller's list is `get_order_margin_details`, `get_quote` and the
     constants they need.
