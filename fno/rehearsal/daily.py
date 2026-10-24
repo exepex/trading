@@ -60,14 +60,19 @@ def _is_session(day: date) -> bool:
     return is_trading_day(build_session_calendar(), day)
 
 
-def _guard(env: dict, cwd: Path) -> list[str]:
+GUARD_COMMAND = (sys.executable, "-m", "fno", "rehearse", "check")
+GUARD_CRASHED = "the guard did not finish cleanly (exit {code}): {last}"
+
+
+def _guard(env: dict, cwd: Path, command: tuple[str, ...] = GUARD_COMMAND) -> list[str]:
     """`rehearse check` in a child started as every step is (`python -m fno`, the mode set, in the checkout): its own
-    clock and HTTP guard, and every builder's rehearsal form."""
-    command = [sys.executable, "-m", "fno", "rehearse", "check"]
-    done = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, check=False)
+    clock and HTTP guard, and every builder's rehearsal form. Only a clean exit with nothing printed is safe: a guard
+    that crashes or exits non-zero stops the rehearsal, whatever it printed (judge 560 F3)."""
+    done = subprocess.run(list(command), cwd=cwd, env=env, capture_output=True, text=True, check=False)
     found = [line for line in done.stdout.splitlines() if line]
-    if done.returncode != 0 and not found:
-        return [f"the guard could not run: {(done.stderr or '').strip().splitlines()[-1:]}"]
+    if done.returncode != 0:
+        last = (done.stderr or "").strip().splitlines()[-1:] or ["no error output"]
+        found.append(GUARD_CRASHED.format(code=done.returncode, last=last[0]))
     return found
 
 

@@ -112,3 +112,12 @@ def test_the_record_s_groww_file_comes_from_the_real_drive_checked_against_its_s
     assert store.get(f"{FOLDER}/nifty_20261023_145500.csv") == rows and real.writes == []
     with pytest.raises(RawQuoteHashMismatch):
         store.get(f"{FOLDER}/nifty_20261023_151500.csv")
+
+
+def test_a_late_execution_capture_is_never_served_an_earlier_attempt(day):
+    """Judge 559's note: at 15:20 the day recorded no capture, so the 15:15:40 attempt is not passed off as one."""
+    recorded, record, store, clock = day
+    clock.at = datetime(2026, 10, 23, 15, 20, tzinfo=IST)
+    result = recorded.capture()
+    assert result.status == "window closed" and "no recorded execution attempt" in result.reason
+    assert store.get(f"{FOLDER}/nifty_20261023_151500.csv") is None

@@ -9,6 +9,8 @@ from collections.abc import Mapping
 
 from .mode import rehearsal
 
+NO_DRIVE = "rehearsal: the recorded candles are in the owner's Drive; set its four FNO_GDRIVE_* settings"
+
 
 def rehearsed_candle_source(source, env: Mapping[str, str] = os.environ):
     mode = rehearsal(env)
@@ -21,6 +23,9 @@ def rehearsed_candle_source(source, env: Mapping[str, str] = os.environ):
     from ..storage.wiring import MANIFEST_FOLDER, RAW_AREA, build_owner_drive
     from .recorded_candles import RecordedCandles
 
-    raw = AreaStore(build_owner_drive().record_view(), RAW_AREA)
+    drive = build_owner_drive()
+    if drive is None:  # judge 559: say what is missing, never an AttributeError
+        raise RuntimeError(NO_DRIVE)
+    raw = AreaStore(drive.record_view(), RAW_AREA)
     manifests = mode.record / MANIFEST_FOLDER.relative_to(ROOT) / MANIFESTS
     return RecordedCandles(manifests, raw.get, now_ist, time.sleep)

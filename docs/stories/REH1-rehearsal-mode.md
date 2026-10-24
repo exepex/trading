@@ -330,6 +330,19 @@ clean.
   - A planted module with all six forms is caught, while `time.monotonic` and `time.sleep` are not reads.
   - The package has none today.
 - Gates on the branch: 14863 passed; ruff, format, imports, records and numbers clean.
+- **Judge 560 (judge E), round 1: FAIL on three plants nothing caught; all three accepted, each pinned:**
+  - **F1, the HTTP guard installed in a step process.** The same gap as judge 557's SF1, pinned by
+    `tests/rehearsal/test_process.py` (above).
+  - **F2, `--no-verify` on the clone's data commit.** `check_hooks` proved only the config. Now
+    `test_the_clone_s_data_commit_runs_the_record_scan_hook` gives the source a hook that leaves a mark when it runs.
+    The clone's data commit must leave it. Plant: `--no-verify` on that commit fails the test.
+  - **F3, a crashed guard read as clean.** `_guard` stopped the rehearsal on a non-zero exit only when nothing was
+    printed. Now any non-zero exit stops it, whatever was printed: only a clean exit with nothing printed is safe.
+    `test_a_guard_that_crashes_or_exits_non_zero_stops_the_rehearsal_whatever_it_printed` covers a crash, a silent
+    exit 3 and a clean pass. Plant: ignoring the exit code fails the test.
+  - **Minor (for REH1b/c, judge E):** `urllib3` used directly, or raw sockets, would bypass the HTTP guard. Nothing in
+    the daily run uses them today. A `urllib3` backstop comes in REH1b's follow-up; raw sockets stay a stated limit.
+
 
 ### REH1b: the recorded sources (for its two judges)
 
@@ -380,3 +393,19 @@ rehearsal form, chosen in the builder that builds it:
   card, as the real day posted none.
 - The shared Drive's raw NSE files are read as they are now, not point in time. They are published files of past
   sessions, and no step asks for one of the replayed day before NSE publishes it (reasoning only).
+
+#### REH1b follow-up (judge 559, judge B: PASS with notes; judge 560's minor point)
+
+- **REH1a's round 2 merged in:** judges 557 and 560.
+- **Note 1, accepted.** Dropping `finished_at >= now` in `RecordedRecorder._next` survived every test. Now
+  `test_a_late_execution_capture_is_never_served_an_earlier_attempt` asks for a capture at 15:20 and must get "window
+  closed": the 15:15:40 attempt is never passed off as a 15:20 one. Plant: dropping the rule fails the test.
+- **Note 2, accepted.** With no Drive set up, `candle_wiring` raised an `AttributeError`. It now says which settings
+  to set. `quote_wiring` already returned None, which A4b's store reports with the settings' names.
+- **Judge 560's minor point, accepted for `urllib3`.**
+  - `urllib3` overrides `http.client`'s connect, and its HTTPS connection has a connect of its own, so `urllib3` used
+    directly bypassed the guard. Probed: a `PoolManager` request to NSE was *reached*.
+  - The guard now wraps the connect of `http.client.HTTPConnection`, `urllib3.connection.HTTPConnection` and
+    `urllib3.connection.HTTPSConnection`.
+  - `tests/rehearsal/test_http_guard.py` probes a direct `urllib3` call, which is now refused.
+  - Raw sockets stay a stated limit: nothing in the package opens one.

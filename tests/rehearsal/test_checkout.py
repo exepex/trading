@@ -112,3 +112,34 @@ def test_a_push_to_the_rehearsal_s_origin_has_a_receipt_at_the_replay_time(sourc
     commit = git(checkout.clone, "rev-parse", "HEAD").strip()
     received = LocalPushReceipts(mode.state / PUSH_LOG, RepoHistory(checkout.clone)).received_at(commit)
     assert abs((received - datetime(2026, 10, 23, 15, 29, tzinfo=IST)).total_seconds()) < 30
+
+
+def test_the_clone_s_data_commit_runs_the_record_scan_hook(source, tmp_path):
+    """Judge 560 F2: the hooks path being set is not enough; the clone's own data commit runs the repository's hook
+    (never --no-verify). The source's hook leaves a mark when it runs."""
+    repo, _ = source
+    hooks = repo / ".githooks"
+    hooks.mkdir()
+    (hooks / "pre-commit").write_text('#!/bin/sh\ntouch "$(git rev-parse --show-toplevel)/../hook-ran"\n')
+    (hooks / "pre-commit").chmod(0o755)
+    git(repo, "add", ".githooks")
+    git(repo, "commit", "-q", "-m", "hooks", when="2026-10-24T10:05:00+05:30")
+    checkout = RehearsalCheckout(repo, Rehearsal.new(DAY, tmp_path / "home", repo), tmp_path / "home")
+    checkout.create(START)
+    assert (checkout.root / "hook-ran").is_file()
+
+
+def test_a_guard_that_crashes_or_exits_non_zero_stops_the_rehearsal_whatever_it_printed(tmp_path):
+    """Judge 560 F3: only a clean exit with nothing printed is safe."""
+    import sys
+
+    from fno.rehearsal.daily import _guard
+
+    crash = (sys.executable, "-c", "raise RuntimeError('guard broke')")
+    quiet_fail = (sys.executable, "-c", "raise SystemExit(3)")
+    clean = (sys.executable, "-c", "pass")
+    assert _guard(dict(os.environ), tmp_path, crash)[-1].startswith("the guard did not finish cleanly (exit 1)")
+    assert _guard(dict(os.environ), tmp_path, quiet_fail) == [
+        "the guard did not finish cleanly (exit 3): no error output"
+    ]
+    assert _guard(dict(os.environ), tmp_path, clean) == []
