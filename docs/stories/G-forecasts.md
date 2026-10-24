@@ -1204,7 +1204,8 @@ and the planned plant the judge can reuse):
   scripted routine answers, writes 10 rows (5 per book) that G8 scores; the marker is deleted in the same branch.
 - **C15 Not a money piece.** A test that no module under `fno/desk/`, `fno/ai_trading/` or any decider imports
   `fno.ai.v4_*` or reads `research/forecasts/v4/book*_v2/`.
-- **C16 Workflows.** `v4-fire.yml` runs `ai fire --protocol v4 --day <today>` on the release push and commits only
+- **C16 Workflows.** `v4-fire.yml` runs `ai fire --protocol v4 --day <today>` on the release receipt's push
+  (`receipts/data/v4/days/**`, D3), fires nothing for a catch-up record of an earlier day, and commits only
   `research/forecasts/ai_v4/` (judge 282.1's test kept); `forecast-capture.yml` runs `ai collect --protocol v4` after
   the 15:10:10 reveal; before `ai_books_v4`'s date both refuse and change nothing. No schedule is created or moved.
 - **C17 Cost report.** G11's output prints, per book, runtime p50 and p95 from BG1's ledger, split into working
@@ -1233,14 +1234,20 @@ and the planned plant the judge can reuse):
 
 **Dependencies on G10** (`story/g10-completion`, session_011hvvn9; to agree through the orchestrator; G11 reads only
 `fno/v4_pack`'s public names, all on `main` since (b1)):
-- **D1 The daily release:** the 14:30-14:40 pack captured, released and its release record committed every session
-  (G10 completion). G11 reads `ReleasedPacks`/the release record's `pack_sha256`, the `Pack` through the verified
-  Drive cache, and calls `check_pack_binding`. G10 tells G11 before renaming any of them.
-- **D2 Day labels:** `research/data/v4_days/<d>.json` with `system_late` for every scored session without a
-  complete pack, including catch-up. G11 writes no row for such a day.
-- **D3 The trigger:** the release commit is pushed with credentials that start workflows (never the Actions
-  `GITHUB_TOKEN`), so `v4-fire.yml` starts; G10 names the committed path(s) for its `paths:` filter. G11 lands
-  `v4-fire.yml` (judge 282.3's preferred path).
+Agreed (G10's answers, `story/g10-completion` c876ede5, "The pack's interface for G7b and G11"):
+- **D1 The daily release:** O1's new `v4_release` step releases the 14:30-14:40 pack every session. G11 reads only
+  `ReleasedPacks` (`release`, `pack`, `pack_bytes`), `ReleaseRecord.pack_sha256`, `Pack`, `check_pack_binding` and
+  `build_released_packs` (`fno/v4_pack/release.py`, `model.py`, `guard.py`, `wiring.py`); G10 tells G11 before any
+  rename.
+- **D2 Day labels:** the label is the release record in Drive `v4/days/<YYYY>/<date>.json`, read through
+  `ReleasedPacks.release(day)`; every scored session from G10's live date gets one, `system_late` included (catch-up).
+  `research/data/v4_days/` is retired by G10, so G11 reads no file there. G11 writes no AI row for a `system_late`
+  day, and a day with no release record yet is neither collected nor written (it waits for the catch-up).
+- **D3 The trigger:** the daily run's committer pushes `receipts/data/v4/days/<YYYY>/<date>.json.sha256` and the pack
+  receipt in one commit with the owner's routine credentials (never an Actions token), so `v4-fire.yml` starts on
+  the `paths:` filter `receipts/data/v4/days/**`. Catch-up records land on the same path, so `v4-fire.yml` fires only
+  for today's record (C16 tests a catch-up push fires nothing). G11 lands `v4-fire.yml` (judge 282.3's preferred
+  path).
 - **D4 Times:** `V4_LATEST_FIRE` 14:55, `V4_DEADLINE` 15:10, read from `fno/forecast_v4/terms.py`, never copied.
 - **D5 Freeze and the rules rows (not G10's; for the orchestrator):** who writes `FREEZE_v4.md` and the rules rows
   of `v4_slots.csv` under the 24 Oct rulings? G11 appends its 10 rows after them. If v4 runs without a freeze,
