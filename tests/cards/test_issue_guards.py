@@ -10,7 +10,7 @@ from datetime import date, datetime
 import pytest
 
 from fno.cards import wiring
-from fno.cards.card_clocks import ServerCardClocks
+from fno.cards.card_clocks import CardClocks, ServerCardClocks
 from fno.cards.deliveries import RepoDeliveryFiles, misses
 from fno.cards.issue import CardIssuer
 from fno.cards.posting import CardPoster, PostReceipt
@@ -124,6 +124,23 @@ def test_a_slack_time_that_cannot_be_read_is_a_failed_check_and_minimal_facts(tm
     delivery = json.loads(delivery_file(tmp_path).read_text())
     assert delivery["failure"] == "facts not built (ValueError)" and delivery["slack"]["server_time_utc"] is None
     assert delivery["clock"][0]["line"] == "clock NOT CHECKED: host vs Slack (ValueError)" and not result.saved
+
+
+class BrokenClocks(CardClocks):
+    def check(self, receipt, before, after):
+        raise RuntimeError("a broken clock form")
+
+
+def test_a_clock_form_that_raises_is_one_named_miss_and_the_records_are_still_written(tmp_path):
+    records = FakeRecords()
+    card, text = daily_card(records, tmp_path).prepare(DAY)
+    store = Saved()
+    result = CardIssuer(Sent(), store, RepoDeliveryFiles(tmp_path, records), BrokenClocks(), Ticking(), "c" * 40).issue(
+        card, text
+    )
+    stored = json.loads(delivery_file(tmp_path).read_text())
+    assert [c["line"] for c in stored["clock"]] == ["clock NOT CHECKED: host vs the clocks (RuntimeError)"]
+    assert store.saved and not result.saved
 
 
 class BrokenSection:
