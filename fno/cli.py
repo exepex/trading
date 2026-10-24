@@ -34,6 +34,7 @@ from .intraday.cli import add_intraday_parser
 from .itm_chance.cli import add_itmchance_parser
 from .learning.cli import add_postmortem_parser
 from .market_read_models.cli import add_market_parser
+from .models import today_local
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
 from .playbook.cli import add_playbook_parser
@@ -44,6 +45,7 @@ from .price_ranges.cli import add_pricerange_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
 from .record_store.cli import add_records_parser
+from .rehearsal.cli import add_rehearse_parser
 from .research_data.calendar import CalendarError
 from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
@@ -194,7 +196,7 @@ def main(argv: list[str] | None = None) -> int:
         "--to",
         dest="end",
         type=date.fromisoformat,
-        default=date.today() - timedelta(days=1),
+        default=today_local() - timedelta(days=1),
         help="YYYY-MM-DD (default: yesterday)",
     )
     v.add_argument("--filings", action="store_true", help="the company filings archive instead (story A12)")
@@ -218,6 +220,7 @@ def main(argv: list[str] | None = None) -> int:
     c.set_defaults(func=cmd_chain)
 
     add_quotes_parser(sub)
+    add_rehearse_parser(sub)  # story REH1
     add_intraday_parser(sub)
     add_account_parser(sub)
     add_desk_parser(sub)

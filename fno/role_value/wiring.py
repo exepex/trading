@@ -6,7 +6,6 @@ this file only."""
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from datetime import date
 from functools import cache
 from pathlib import Path
 
@@ -17,6 +16,7 @@ from ..constants import NIFTY_SYMBOL
 from ..desk.settlement import SettlementPrices
 from ..desk.snapshot import ExecutionSnapshotSource
 from ..evaluation.review_dates import review_dates
+from ..models import today_local
 from ..risk.open_risk import HeldMaxLoss
 from ..scoreboard.committed_runs import CommittedRuns
 from ..scoreboard.matched_days import CommonPacks
@@ -62,6 +62,6 @@ def build_role_value_report(cfg: dict, root: Path = ROOT) -> RoleValueReport:
     return role_value_report_from(
         root, cfg, build_session_calendar().sessions, build_execution_snapshots(),
         NseFinalSettlement(build_nse_fo_library()), protocol_status(root),
-        lambda month: build_month_meter(month, date.today(), root, cfg).allocation,
+        lambda month: build_month_meter(month, today_local(), root, cfg).allocation,
         lambda month: [row for row in ledger.rows() if row["date"].startswith(month)],
     )  # fmt: skip

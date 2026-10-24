@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 from datetime import date, datetime, timedelta
 
-from ..models import IST
+from ..models import IST, now_ist
 from ..storage.creation_times import CreationTimes
 from ..storage.raw_store import RawFileStore
 from .collection import UNREADABLE, Collection, SourcedValue, final_values
@@ -32,7 +32,7 @@ class ArchivedCopies:
         self.store, self.log, self.created = store, log, created
 
     def adopt(self, source: GlobalCueSource, path: str, start: date, end: date) -> Collection:
-        result = Collection(source.cue, datetime.now(IST))
+        result = Collection(source.cue, now_ist())
         try:
             result.fetched_at = datetime.strptime("/".join(path.split("/")[-4:])[:17], COPY_TIME).replace(tzinfo=IST)
             name = path.rsplit("/", 1)[-1].split("_", 1)[1]

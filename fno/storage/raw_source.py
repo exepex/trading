@@ -14,6 +14,7 @@ import requests
 
 from ..constants import MONTH_CODES
 from ..http_pacing import REFUSALS_BEFORE_PAUSE, SourceCoolingOff
+from ..models import now_utc
 from .retry_policy import (
     MAX_RETRY_AFTER_SECONDS,
     NOT_PUBLISHED,
@@ -89,7 +90,7 @@ class NseArchiveSource(RawFileSource):
     FILENAME = ""  # format string of the original file name for a day
     TIMEOUT_SECONDS = 60
 
-    def __init__(self, session: requests.Session, sleep=time.sleep, clock=lambda: datetime.now(UTC)):
+    def __init__(self, session: requests.Session, sleep=time.sleep, clock=lambda: now_utc()):
         """`clock`: the time an HTTP-date `Retry-After` is measured from."""
         self.session, self.sleep, self.clock = session, sleep, clock
 

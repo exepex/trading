@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-from datetime import UTC, datetime
 from pathlib import Path
 
 from ..ai.paths import AI_FOLDER
@@ -17,6 +16,7 @@ from ..forecast.capture import LIVE_FOLDER
 from ..forecast_scoring.wiring import SCORES_FOLDER
 from ..forecast_v4_rules.series import closes_rows, regular_closes
 from ..forecast_v4_rules.wiring import CLOSES_FILE
+from ..models import now_utc
 from ..research_data.calendar import SessionCalendar
 from ..research_engine.implied_vol import SpotBlackScholes
 from ..risk.profile_settings import profile_settings
@@ -142,7 +142,7 @@ def build_publication_inputs(local_folder: Path | None = None) -> PublicationInp
     return PublicationInputsFile(PUBLICATION_INPUTS, GitManifestRecorder(ROOT, PUBLICATION_INPUTS.parent).commit)
 
 
-def run_id(env=os.environ, clock=lambda: datetime.now(UTC)) -> str:
+def run_id(env=os.environ, clock=lambda: now_utc()) -> str:
     """GitHub's run ID and attempt (a re-run is its own run), else the local time."""
     if env.get(ENV_GITHUB_RUN_ID):
         return f"gh-{env[ENV_GITHUB_RUN_ID]}-{env.get(ENV_GITHUB_RUN_ATTEMPT, '1')}"

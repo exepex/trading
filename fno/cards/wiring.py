@@ -4,7 +4,7 @@ stores and clocks. Swapping Slack, Drive, the weather model or the forecasters c
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 
 from ..ai.history import RepoHistory
@@ -18,6 +18,7 @@ from ..constants import (
     FNO_DESK_CHANNEL_ID,
     GITHUB_REPOSITORY_VARIABLE,
 )
+from ..models import now_utc
 from ..server_clock import GITHUB_TIME_URL, HttpDateClock
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore
@@ -46,7 +47,7 @@ def _repository(env) -> str:
 
 
 def _host_now() -> datetime:
-    return datetime.now(UTC)
+    return now_utc()
 
 
 def build_daily_card(root: Path = ROOT) -> DailyCard:
@@ -82,7 +83,9 @@ def build_status(records: GitHeadRecords, root: Path = ROOT) -> RuledStatus:
 def build_card_poster(env=os.environ) -> CardPoster:
     """#fno-desk with `FNO_SLACK_BOT_TOKEN` only; without it nothing is sent and the outcome says so."""
     token = env.get(ENV_FNO_SLACK_BOT_TOKEN)
-    return SlackCardPoster(token, FNO_DESK_CHANNEL_ID) if token else NoCardPoster()
+    from ..rehearsal.card_label import rehearsed_card_poster
+
+    return rehearsed_card_poster(SlackCardPoster(token, FNO_DESK_CHANNEL_ID) if token else NoCardPoster())
 
 
 def build_card_records(env=os.environ) -> CardRecordStore:

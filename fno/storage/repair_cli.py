@@ -8,6 +8,8 @@ Nothing is ever deleted."""
 
 from __future__ import annotations
 
+from ..models import now_utc
+
 KEPT = "{path}: keep the copy created {created} ({verified}); {count} other copy(ies) emptied and renamed"
 MOVE = "  move {path}"
 NOTHING = "{path}: one folder, nothing to merge"
@@ -33,7 +35,6 @@ def add_repair_parser(subparsers) -> None:
 
 
 def cmd_merge_folders(args, out=print, merge=None) -> int:
-    from datetime import UTC, datetime
 
     from .drive_items import PathAmbiguous, PathNotFound
     from .repair_wiring import build_folder_merge
@@ -56,7 +57,7 @@ def cmd_merge_folders(args, out=print, merge=None) -> int:
         out(refusal)
     if plan.refusals or not args.apply:
         return 1 if plan.refusals else 0
-    problems = merge.apply(plan, datetime.now(UTC).date())
+    problems = merge.apply(plan, now_utc().date())
     for problem in problems:
         out(problem)
     if not problems:

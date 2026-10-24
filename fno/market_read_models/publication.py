@@ -10,8 +10,9 @@ import hashlib
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import date
 
+from ..models import now_utc
 from .blocks import BlockBuilder, SessionRows
 from .contract import ContractBroken, PinnedContract
 from .page_holds import PAGE_HOLDS, PageHeld, page_holds_payload
@@ -49,7 +50,7 @@ def canonical(payload) -> bytes:
 
 
 def utc_now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return now_utc().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class PublicationBuilder:

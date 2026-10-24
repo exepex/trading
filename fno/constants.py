@@ -21,6 +21,7 @@ ENV_GDRIVE_SERVICE_ACCOUNT_JSON = "FNO_GDRIVE_SERVICE_ACCOUNT_JSON"  # the key's
 ENV_GDRIVE_FOLDER_ID = "FNO_GDRIVE_FOLDER_ID"  # the shared folder's ID (from its Drive link)
 # Other secrets the routines' environment holds; named here so the public-record scan (story O5) watches them too
 ENV_FNO_SLACK_BOT_TOKEN = "FNO_SLACK_BOT_TOKEN"
+ENV_FNO_REHEARSAL = "FNO_REHEARSAL"  # story REH1: set only by a rehearsal, inherited by its children
 ENV_MOTHERDUCK_TOKEN = "MOTHERDUCK_TOKEN"
 
 # Slack channel for all F&O output (#fno-desk); its ID is public by design and allowed in committed records
