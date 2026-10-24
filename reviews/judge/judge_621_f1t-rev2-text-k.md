@@ -41,3 +41,15 @@ None: text round.
 
 - Open question 1 (does 25 Oct lift the 15 Oct "strategy passed first" rule?) is correctly put to the owner, with the builder's recommendation labelled. The code is the same either way.
 - The orchestrator's two earlier notes hold: the timeline, and that a slow `book1` never moves an observation (the child-process observer, judge 301).
+
+## Addendum 1: the newer head `story/f1t-runner-v2` at edbc939a3 (still round 1, judge K)
+
+**FAIL stands, lane 1.** SF1, m1 and m2 are unchanged. The one new commit (edbc939a3, text only, 21 lines) is sound.
+
+| Item | Verdict | Own evidence |
+|---|---|---|
+| Decisions as a third `RunTerms` instance instead of path parameters | MET (better: no second mechanism) | `fno/ai/run_terms.py` on main: `RunTerms(protocol, folder, deadline, reveal_from, reveal_by, books_key)` with v2's and v4's instances. `read_submission(..., terms)` (`submissions.py:40`), `TranscriptAudits(root, terms)` (`transcript_audit.py:52`), `stop_reason(..., terms)` (`stop_rule.py:31`) and `fired_sessions(root, terms)` (`audit_plan.py:34`) already take it. Its paths give `journal/ai_decisions/submissions/<YYYY>/<d>_<book>.commitment.json` and `.../<YYYY>/<d>_fired.json`, as the text states (`paths.py:25-54`) |
+| Nothing loosened | MET | the change removes the 16 Oct path-parameter plan and names `build_audit_seeds` as the one `fno/ai` change. The fallback (a minimal shared publish helper if `BookSession` needs forecast fields) is bounded, with G11's tests unchanged; the claims must say which was done |
+
+SF1 (the reported model must be the served one, `last_served_model`, not the configured one) is what still blocks the
+PASS. Its fix is text only.
