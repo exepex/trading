@@ -45,3 +45,31 @@ itself is right. 2 minor.
 ## Gates (my run, a trial merge with main 39b87915)
 - `pytest -n auto`: 14776 passed, 1 skipped, 16 xfailed.
 - ruff check, ruff format, check_imports, check_records (8887 files) and check_numbers: clean.
+
+## Addendum 1: round 2 at fc91e2b2
+
+**Verdict: PASS.** The should-fix is closed, minors 1 and 2 are taken, and minor 3 is noted in the register.
+
+| Item | Result | My evidence |
+|---|---|---|
+| Should-fix: start versus finish is tested | MET | `_run_log` takes a separate finish. Start 29 s / finish 31 s is OK; 31/31 and 31/29 are LATE. My round-1 plant (judging `finished_at`) now fails 2 tests |
+| Minor 1: E3's own verdict | MET | `_collected_late` reads a `NO_DECISION_LATE` book whose reason starts with E3's `COLLECTED_LATE` prefix (taken from the constant), and that wins over the start time. A book late for its own reason ("nothing visible ...") is not read as a late collection, and a test pins it |
+| Minor 2: the missing step's deadline | MET | The edges at +29 s (NOT_DUE) and +30 s (MISSED) are tested. My plant (bare deadline) fails 1 test |
+
+**Plants (mine, `tests/health`):** 7 of 8 caught.
+- Caught:
+  - the finish judged;
+  - the grace dropped;
+  - the grace doubled;
+  - the missing step at the bare deadline;
+  - E3's verdict ignored;
+  - any late reason read as collected late.
+- Survived (minor): not checking `decision == NO_DECISION_LATE`. It is harmless, because only E3's fail-closed path writes a reason with the `COLLECTED_LATE` prefix. The docstring says "every book", while the code takes any one; E3 writes all books alike, so the result is the same.
+
+**Merge note:** a trial merge with main 4a85d79b conflicts in `docs/WORK_REGISTER.md` only (row 112, both sides edited). The merge must resolve it before landing.
+- With the conflict left in, 5 tests fail: the conflict-marker test and 4 record-scan shards.
+- Resolved by keeping both sides (my local trial only, never pushed), those tests and `tests/health` gave 179 passed.
+
+**Gates (the same trial merge):**
+- `pytest -n auto`: 14778 passed, 1 skipped, 16 xfailed, plus the 5 conflict-only failures above.
+- ruff check, ruff format, check_imports, check_records (8891 files) and check_numbers: clean.
