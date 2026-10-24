@@ -618,6 +618,22 @@ reader on `fno/health/wiring.py` with the planted bare builder at line 56, then 
 {'ai/wiring.py': [], 'cards/wiring.py': [], 'health/wiring.py': [], 'price_ranges/wiring.py': [], 'v4_pack/wiring.py': []}
 ```
 
+### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
+
+Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
+
+- **Finding (REH1j's first 23 Oct sample, run 20261024T151531Z-97c17d):** "day done with problems: candles", "candle
+  back-fill stopped (RuntimeError)". `build_candle_backfill` built `GrowwProvider(cfg)` before REH1b's
+  `rehearsed_candle_source` replaced the source, and without the Groww SDK that raises "Install the Groww SDK first".
+  A rehearsal never calls Groww, so it must not need the SDK.
+- **Fix:** `rehearsed_candle_source` takes the live source's builder and calls it only in a real run; the builder
+  builds `GrowwProvider` inside it (`fno/intraday/backfill_wiring.py`). A real run builds exactly what it built.
+- **Tests** (`tests/rehearsal/test_routine_wiring.py`): the real `build_candle_backfill` under the mode with
+  `GrowwProvider` planted to raise gives `RecordedCandles`; with no mode it builds the provider once and gives
+  `GrowwCandleSource`; the source builder is never called in a rehearsal.
+- **Plants (2, both caught):** the provider built eagerly again (the rehearsal test fails); the builder returned
+  uncalled in a real run (both real-run tests fail).
+
 ### REH1g: DRY2's rehearsal gaps (for judges B and E)
 
 Branch `story/reh1g-record-gaps`, from main. Built by the O1 builder (session_014zYLf18PgCzR7YoHs1X5Dp) to b5ab43ef6;

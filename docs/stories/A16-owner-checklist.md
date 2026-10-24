@@ -98,3 +98,31 @@ gets a new version and the host question goes back to the owner (design 5.2 and 
    section 2.
 2. Tell the orchestrator it exists, and on which day it first runs.
 3. Delete the leftover branch `wip/a16-groww-15min-code` (the builder's session cannot delete remote branches).
+
+## 7. Owner question (24 Oct 2026): step 3 of the routine prompt must name its time limit
+
+**Why.** Since A16i (`fno/intraday/cover.py`, on `main`) the recorder runs one hour past `--until`, up to 15:35. That
+makes each fire last up to about 2h43m. The 08:22 fire, for example, now runs to 11:05, and the 08:52 to 12:52 fires
+about 2h13m each. Step 3 says only "run the recorder in the background, then wait for it to finish". It names no
+time limit, and the session's tool stops a background command at its default limit:
+- 23 Oct (`conversations/2026-10-23.md`, "15-minute recorder (story A16), scheduled run"): "First recorder run was
+  killed by the default background limit (~10 min) after the 15:00 mark; restarted at 15:05 with a long timeout."
+- A run in the foreground is no way out: a foreground command stops after 10 minutes.
+- Even the longest background limit, 2 hours, is shorter than a 2h13m or 2h43m fire.
+
+So the step needs the longest limit **and** an immediate rerun when the limit stops it. A rerun is safe: each mark
+has one claim, so a rerun skips the marks already taken and never takes one twice. If a fire is cut short with no
+rerun, its extra hour is lost and the marks fall back to one fire each (the 23 Oct failure). [some evidence: the
+23 Oct log; the 2 h limit is the tool's documented maximum]
+
+**Current step 3 (as stored in both A16 routines, "Omenix F&O 15-minute recorder (A16)" and "A16 recorder 08:22
+backup (copy)"):**
+
+> 3. Work out the end time and run the recorder in the background, then wait for it to finish: H=$(TZ=Asia/Kolkata date +%-H); if [ "$H" -ge 14 ]; then UNTIL=15:35; else UNTIL=$(printf '%02d:05' $((H + 2))); fi; python -m fno intraday run --until "$UNTIL" It waits for each 15-minute mark up to that time. After each mark it writes the slot row and the heartbeat, and it commits and pushes its own files in research/data/intraday/ (slots/, rv/, heartbeat.json). At the 15:30 mark it also writes the session's realised variance. On a day that is not a session it prints "not a trading day" and stops.
+
+**Proposed step 3 (replaces it word for word; steps 0-2 and 4-6 unchanged):**
+
+> 3. Work out the end time once: H=$(TZ=Asia/Kolkata date +%-H); if [ "$H" -ge 14 ]; then UNTIL=15:35; else UNTIL=$(printf '%02d:05' $((H + 2))); fi; echo "$UNTIL" — and keep that value for the whole fire. Then run python -m fno intraday run --until <that UNTIL> in the background with the longest time limit the tool allows (2 hours, 7200000 ms), never the default limit, and wait for it to finish. Do not run it in the foreground (a foreground command stops after 10 minutes). The recorder runs one hour past UNTIL, up to 15:35 (story A16i), so a fire can last about 2h45m. If the tool says the command was stopped at its time limit, run the same command with the same UNTIL again at once, the same way, and repeat until it ends by itself. A rerun is safe: it skips the marks already taken and never takes a mark twice. It waits for each 15-minute mark up to that time. After each mark it writes the slot row and the heartbeat, and it commits and pushes its own files in research/data/intraday/ (slots/, rv/, heartbeat.json). At the 15:30 mark it also writes the session's realised variance. On a day that is not a session it prints "not a trading day" and stops.
+
+The same text goes in section 3 above once the owner has changed the routines. No builder or orchestrator changes a
+routine.
