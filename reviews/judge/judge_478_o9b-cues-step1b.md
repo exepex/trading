@@ -53,3 +53,18 @@ The delta from 44ef74ad is one code line, a parametrized test and the story text
 | Minor: "one way, not two" | Section 2 says step 1b moves the public cues only; step 1c (the private cues, with the A17 owner) is a named row in section 3 | read | **Accepted** |
 
 Round 1's full suite (9,860 passed) stands for the unchanged code. The builder reports 9,862 on a2f96e5f.
+
+## Addendum 2: the DRY1 delta (story/o9b-cues @ 61a0eee5; delta da66ae90..61a0eee5)
+
+**Verdict: the PASS stands at 61a0eee5. It may merge under the stated steps** (no `global-cues` run queued, `move`
+before and after, full gates).
+
+- **g1, the merge of `main`:** `receipted_rows.py` holds both sides intact: judge 536's empty-series guard (`files()`
+  returns `[]` before syncing an empty series) beside this step's `catch_up` and `PartOutOfOrder`. The other
+  conflicts were additions on both sides.
+- **g7, the new `data` test:** while a moved file is still in the repository, its bytes must be a whole-line start of
+  the Drive table (`rebuilt().startswith(copy)`). That is the right direction: Drive may be ahead, never behind. The
+  builder reports that it failed on 24 Oct, a real `move` caught up us10y, usdinr_rbi and us_trading_dates, and it
+  then passed; the receipts are in the delta [as reported]. data-checks runs it daily and alerts.
+- **Checks:** tests/o9b, global_cues, o9_store and forecast_lab: 409 passed. The builder reports the full suite at
+  61a0eee5 as 14,784 passed.
