@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from types import SimpleNamespace
 
-from fno.cards.problem_steps import FAILED, UNREADABLE, ProblemSteps
+from fno.cards.problem_steps import DETAIL, UNREADABLE, ProblemSteps
 from fno.cards.rule_checks import DecisionOutcome, ExecutionOutcome, RunLogReader, failures_path, run_log_path
 from fno.cards.ruled_status import REFUSED, RuleChecks, RuledStatus
 from fno.constants import (
@@ -42,12 +42,12 @@ def status_lines(files: dict) -> tuple[str, ...]:
 
 def listed(files: dict) -> str | None:
     """T1e: T1d's step list is now the warning's detail (never a status line), or None with no warning."""
-    warning = status_reading(files).warning
+    warning = ProblemSteps(RunLogReader(FakeRecords(files))).warning(DAY)
     return warning and warning.detail
 
 
 def detail(steps: str) -> str:
-    return FAILED.detail.format(steps=steps)
+    return DETAIL.format(steps=steps)
 
 
 def no_list(lines) -> bool:
@@ -153,20 +153,23 @@ def test_odd_run_log_shapes_are_unreadable_at_the_reader_never_a_crash():
     O1's rule nor a card rule meets it (the earlier copy of the rule tolerated these shapes itself)."""
     for steps in ODD_STEPS:
         log = json.dumps({"day": DAY.isoformat(), "kind": "daily_run", "steps": steps}).encode()
-        reading = status_reading({run_log_path(DAY): log})
-        lines = reading.section.lines
+        files = {run_log_path(DAY): log}
+        lines = status_lines(files)
         assert lines[0] == f"Status: NO TRADE ({CARD_DATA_CHECK_FAILED})", steps
         assert any("not readable (steps are not name -> {result: {...}})" in line for line in lines), steps
-        assert reading.warning == UNREADABLE and no_list(lines), steps  # T1e: the doubt is in the headline
+        warning = ProblemSteps(RunLogReader(FakeRecords(files))).warning(DAY)
+        assert warning == UNREADABLE and no_list(lines), steps  # T1e: the doubt is in the headline
 
 
 def test_the_app_s_card_wires_the_problem_warning():
     """Self-review: dropping `ProblemSteps` from the wiring must fail a test, not silently remove the warning."""
     from fno.cards.committed import GitHeadRecords
-    from fno.cards.wiring import build_status
+    from fno.cards.wiring import build_daily_card, build_status
     from fno.config import ROOT
 
     assert isinstance(build_status(GitHeadRecords(ROOT), ROOT).problems, ProblemSteps)
+    builder = build_daily_card(ROOT).builder
+    assert builder.warning_source is builder.status_source.problems  # T1e: the card shows the same findings
 
 
 def _written_by_run_log(tmp_path, *entries) -> bytes:

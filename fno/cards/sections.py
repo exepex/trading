@@ -45,7 +45,6 @@ class StatusReading:
     status: CardStatus
     reason_code: str
     section: CardSection
-    warning: CardWarning | None = None
 
 
 class StatusSource(ABC):
@@ -55,6 +54,12 @@ class StatusSource(ABC):
 
 
 WEATHER_BLOCKS = "No new trades while the weather reading is missing (owner rule)."  # owner "4 A", 15 Oct 2026
+
+
+class WarningSource(ABC):
+    @abstractmethod
+    def warning(self, day: date) -> CardWarning | None:
+        """Story T1e: the card's warning for the day (a failed or refused desk step), or None."""
 
 
 class WeatherSource(ABC):

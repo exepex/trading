@@ -53,7 +53,8 @@ def _host_now() -> datetime:
 
 def build_daily_card(root: Path = ROOT) -> DailyCard:
     records = GitHeadRecords(root)
-    builder = CardBuilder(build_status(records, root), _weather(records), LiveCaptureForecasts(records))
+    status = build_status(records, root)
+    builder = CardBuilder(status, _weather(records), LiveCaptureForecasts(records), status.problems)  # T1e: one reader
     return DailyCard(SessionCheck(records), builder, SlackTextRenderer(), RepoDeliveryFiles(root, records))
 
 
