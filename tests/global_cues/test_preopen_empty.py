@@ -41,6 +41,11 @@ EMPTY_ANSWERS = {
     "no quote object": chart(indicators={"quote": []}),
 }
 CHANGED_LAYOUTS = {
+    "a quote without close": chart(timestamp=[1], indicators={"quote": [{"open": [LEVEL], "Close": [LEVEL]}]}),
+    "more timestamps than closes": chart(timestamp=[1, 2], indicators={"quote": [{"close": []}]}),
+    "a null close list": chart(timestamp=[1], indicators={"quote": [{"close": None}]}),
+    "a number for timestamps": chart(timestamp=5, indicators={"quote": [{"close": [LEVEL]}]}),
+    "a number for closes": chart(timestamp=[1], indicators={"quote": [{"close": 7}]}),
     "no meta": json.dumps({"chart": {"result": [{"indicators": {"quote": [{}]}}]}}).encode(),
     "no indicators.quote": json.dumps(
         {"chart": {"result": [{"meta": {"exchangeTimezoneName": "Asia/Taipei"}}]}}
@@ -136,7 +141,7 @@ def test_a_changed_layout_is_still_a_failure_and_its_raw_answer_is_kept(tmp_path
     found = reader.read(taiex(), "taiex")
     (row,) = rows.rows()
     assert found.status == FAILED and found.problems[0].kind == FAILURE
-    assert found.problems[0].text == f"taiex: failed (ValueError; raw {row['sha256'][:12]})"
+    assert found.problems[0].text == f"taiex: failed (ValueError: changed layout; raw {row['sha256'][:12]})"
     assert (row["status"], row["reason"]) == (FAILED, "changed layout (ValueError)") and len(archived(tmp_path)) == 1
 
 
@@ -206,7 +211,7 @@ def test_no_level_appears_in_any_line_alert_o10_row_or_committed_file(monkeypatc
     assert not any(str(LEVEL) in text or "23456" in text for text in [*out, *desk[0], *committed])
 
 
-def test_a_drive_failure_on_the_put_is_that_indexs_failure_and_nothing_is_parsed(tmp_path):
+def test_a_drive_failure_on_the_put_raises_before_any_parse_or_row(tmp_path):
     class Refusing(LocalFolderStore):
         def put(self, path, data):
             raise RuntimeError("Drive refused the write")

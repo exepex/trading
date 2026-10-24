@@ -39,6 +39,8 @@ class MarketClosures:
         self.name, self._covered, self._closures = name, set(), {}
         keyed = [(_day(row, n, name), row.get("kind", ""), row, n) for n, row in enumerate(rows, start=2)]
         for day, kind, _, n in keyed:
+            if kind == COVERS and ((day.month, day.day) != (1, 1) or day.year in self._covered):
+                raise ValueError(f"{name}: row {n} is not the only covers row of {day.year} on 1 Jan")
             if kind == COVERS:
                 self._covered.add(day.year)
             elif kind not in CLOSURE_KINDS:

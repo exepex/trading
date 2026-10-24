@@ -57,6 +57,8 @@ def test_a_covers_row_and_a_holiday_on_1_jan_live_side_by_side_but_a_day_twice_i
         (("2026-13-01", "holiday", "x"), "row 3 has no valid date"),
         (("", "holiday", "x"), "row 3 has no valid date"),
         (("2027-01-01", "holiday", "x"), "row 3 is a closure in 2027, which has no covers row"),
+        (("2026-01-01", "covers", "again"), "row 3 is not the only covers row of 2026 on 1 Jan"),
+        (("2027-10-01", "covers", "late"), "row 3 is not the only covers row of 2027 on 1 Jan"),
     ],
 )
 def test_a_malformed_row_is_refused_at_load_naming_the_row(bad, message):

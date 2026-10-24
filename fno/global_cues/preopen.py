@@ -80,14 +80,11 @@ def newest_level(index: str, data: bytes, seen_at: datetime, market: MarketClose
     EmptyAnswer for Yahoo's chart with no timestamp, an empty quote object or no non-null close; ValueError for any
     other layout. Never shows a level in an error."""
     zone, stamps, closes = _chart(data, index)
-    if not stamps or not closes:
+    if all(c is None for c in closes) and (not stamps or len(stamps) == len(closes)):
         raise EmptyAnswer(index)
     if len(stamps) != len(closes):
         raise ValueError(f"{index}: not one close per timestamp in Yahoo's answer")
-    points = [(t, c) for t, c in zip(stamps, closes, strict=True) if c is not None]
-    if not points:
-        raise EmptyAnswer(index)
-    stamp, level = points[-1]
+    stamp, level = [(t, c) for t, c in zip(stamps, closes, strict=True) if c is not None][-1]
     try:
         bar_start = datetime.fromtimestamp(stamp, ZoneInfo(zone))
     except (OverflowError, OSError, TypeError):
@@ -98,18 +95,20 @@ def newest_level(index: str, data: bytes, seen_at: datetime, market: MarketClose
 
 
 def _chart(data: bytes, index: str) -> tuple[str, list, list]:
-    """The answer's time zone, timestamps and closes; ValueError unless it is Yahoo's chart (result, meta's time zone
-    and a quote list), whatever those lists hold."""
+    """The answer's time zone, timestamps and closes. An empty quote object (or none) gives no closes; ValueError
+    unless it is Yahoo's chart (result, meta's time zone, a quote list) whose timestamps and closes, when given, are
+    lists: a quote object without a `close` list is a changed layout, not an empty answer."""
     try:
         result = json.loads(data)["chart"]["result"][0]
         zone, quotes = result["meta"]["exchangeTimezoneName"], result["indicators"]["quote"]
-        if not isinstance(quotes, list) or not isinstance(zone, str):
-            raise TypeError("quote is not a list")
         quote = quotes[0] if quotes else {}
-        closes = quote.get("close") or []
+        closes = quote["close"] if quote else []
+        stamps = result.get("timestamp") or []
+        if not all(isinstance(part, list) for part in (quotes, closes, stamps)) or not isinstance(zone, str):
+            raise TypeError("not a list")
     except (UnicodeDecodeError, json.JSONDecodeError, KeyError, IndexError, TypeError, AttributeError) as exc:
         raise ValueError(f"{index}: not Yahoo's chart answer ({type(exc).__name__})") from None
-    return zone, result.get("timestamp") or [], closes
+    return zone, stamps, closes
 
 
 class PreopenReader:
@@ -154,7 +153,7 @@ class PreopenReader:
             return self._no_session_data(index, seen_at, sha256, EMPTY, ("", ""))
         except ValueError as exc:
             self._append(index, seen_at, ("", ""), FAILED, sha256, "changed layout (ValueError)")
-            text = f"{index}: failed (ValueError; raw {sha256[:SHA_SHOWN]})"
+            text = f"{index}: failed (ValueError: changed layout; raw {sha256[:SHA_SHOWN]})"
             return ReadOutcome(
                 (f"{index}: FAILED (ValueError): {exc}; raw {sha256[:SHA_SHOWN]}",), FAILED, (Problem(text),)
             )
