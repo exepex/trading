@@ -176,6 +176,6 @@ def test_the_weekly_slot_run_too_early_says_not_started_like_the_other_indices(t
         return {WEEKLY_NAME: _weekly(tmp_path, NiftyProvider(), clock, FakeDrive())}
 
     assert record_indices(build, alerts, "cal.csv", clock.now, clock.sleep) == 1
-    assert alerts.sent == [INDEX_ALERT.format(names=f"{WEEKLY_NAME} ({TOO_EARLY_REASON})")]
+    assert alerts.sent == [INDEX_ALERT.format(names=f"{WEEKLY_NAME} ({TOO_EARLY_REASON})", pointer="")]
     assert capsys.readouterr().out.splitlines()[0].endswith(f"- {TOO_EARLY_REASON}")
     assert not list(tmp_path.rglob("*.canonical"))

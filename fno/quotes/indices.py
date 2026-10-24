@@ -10,12 +10,12 @@ from datetime import datetime, time
 
 from ..models import IST
 from .recorder import (
-    MAX_EARLY_WAIT_SECONDS,
     NOT_LISTED,
     RETRY_GAP_SECONDS,
     UNIVERSE,
     QuoteSnapshotRecorder,
     RecordResult,
+    earliest_waiting_moment,
     earliest_waiting_start,
 )
 from .slot import Slot
@@ -57,9 +57,9 @@ class IndexRecording:
         if not next(iter(self.recorders.values())).is_session(day):
             return dict.fromkeys(self.recorders, RecordResult("not a trading day"))
         start, end = (datetime.combine(day, moment, IST) for moment in (INDEX_WINDOW_START, INDEX_WINDOW_END))
+        if now < earliest_waiting_moment(day, INDEX_WINDOW_START):
+            return dict.fromkeys(self.recorders, RecordResult("too early", reason=TOO_EARLY_REASON))
         if now < start:
-            if (start - now).total_seconds() > MAX_EARLY_WAIT_SECONDS:
-                return dict.fromkeys(self.recorders, RecordResult("too early", reason=TOO_EARLY_REASON))
             self.sleep((start - now).total_seconds())
         results = {name: self._done(recorder, day) or NOT_STARTED for name, recorder in self.recorders.items()}
         pending = [name for name, result in results.items() if result is NOT_STARTED]
@@ -73,7 +73,7 @@ class IndexRecording:
             if pending:
                 self.sleep(RETRY_GAP_SECONDS)
         for underlying, result in results.items():
-            if not result.complete and result.status not in DONE_WITHOUT_ATTEMPT:
+            if closes_none(result):
                 self.recorders[underlying].close_day(day)
         return results
 
@@ -82,6 +82,12 @@ class IndexRecording:
         """A rerun on a day already recorded says so, inside the window or after it, like NIFTY's `record`."""
         marker = recorder.canonical(day)
         return RecordResult("already recorded", marker) if marker is not None else None
+
+
+def closes_none(result: RecordResult) -> bool:
+    """The day of an index not recorded is closed "none" at the window's end; never one not attempted for the day's
+    reason (closed market, already recorded, too early). The one test for the close and for its "canonical none"."""
+    return not result.complete and result.status not in DONE_WITHOUT_ATTEMPT
 
 
 def _final(reason: str) -> bool:
