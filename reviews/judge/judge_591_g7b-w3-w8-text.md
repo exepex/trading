@@ -54,3 +54,18 @@ The should-fix is a wording fix only: no new data is needed, and the numbers abo
     - "unchanged" becomes "decision 56 read as never a forecast input, outcome or base rate (owner, 24 Oct)";
     - the G7 line gets the same exception, "except a baseline's ratio window, W8".
 - m1 and m2 are unchanged (minor).
+
+## Addendum 2: round 2, `story/g7b-completion` at 3033da0c9 (judge K)
+
+**PASS, lane 1, text only.** The round-2 delta 5caa04e0c..3033da0c9 touches only `docs/stories/G-forecasts.md` (42
+lines); the branch's code is left for the next code slice. Doc-reading tests on 3033da0c9, run with the Slack token
+set: 853 passed, 15 xfailed.
+
+| Item | Verdict | Evidence (read) |
+|---|---|---|
+| SF1, the three edits | fixed | W8's bullet, row and wording cite the owner's row fa605291a; "decision 56 read as never a forecast input, outcome or base rate (owner, 24 Oct)" replaces "unchanged"; the G7 V1-HAR line now ends "except a baseline's ratio window, W8"; a "How decision 56 is read" bullet states the narrowing and its reason plainly. No contradiction is left |
+| m1 | fixed | step 0 is now described as 15-minute against 1-minute closes on 13 Oct, 14 Oct and 1 Sep 2026, before A16 went live, with no 2024-25 day checked ("some evidence only for those years") |
+| m2 | fixed | trigger: the median over the latest 20 live days outside [0.95, 1.05] gives one alert and an owner row; fewer than 20 paired days give nothing |
+| Extra fix: B's level line is a ratio of means | **accepted** | My own figures from the committed rows (19, 21, 22 Oct: live `RV_s` against the squared close-to-close returns from `warmup_closes.csv`): daily ratios 1.23, 9.91, 4.09; median 4.09, mean 5.08; ratio of means 2.34, as the builder says. A day's close proxy is one squared return, so it is noisy and can come close to 0. A mean or median of daily ratios is then dominated by quiet-close days and overstates the gap. The ratio of the means estimates the level ratio consistently (reasoning only, standard). The W8 drift line keeps a median of daily ratios. That is acceptable: both of its sides are intraday measures of the same day, near 1 and low in noise (0.96-1.01) |
+
+- **Note for the desk (some evidence, 3 days only):** the live intraday `RV_s` ran at about 2.3 times the close-proxy level on 19-22 Oct. Three days cannot separate a measure gap from chance (single squared returns). It is the line that yardstick B prints, so the level gap will be watched, not assumed.
