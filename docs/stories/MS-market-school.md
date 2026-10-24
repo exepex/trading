@@ -721,6 +721,39 @@ starts in time and runs past 15:30 (its late fills are `stale_seal`, visible; O1
 a stop mid-write is worse than a late finish); a whole rehearsal of the day through `rehearse daily` with the switch
 on (it needs the switch; the seams it rests on are criterion 8's tests and REH1's own).
 
+### MS-P1j4 The sections on a day with no school record · lane 1 (Slack reports, evaluation records shown) · model tier: S · `story/ms-p1j4-no-record` · depends on g and j2 (on `main`)
+
+The 23 Oct dry run with the switch on (evening rehearsal 20261024T231243Z-02bd7f) showed the 20:05 section printing
+"Trades closed: none ... Counts (eligible / fillable / executed): [nothing] ... Rs +0" for a session with no sealed
+record. A day the school step failed or was refused would read exactly like a quiet day with no trade: the dishonest
+empty case the owner forbids (orchestrator, 25 Oct 2026: "it must be fixed before reports go live"). MS-P1g's
+builder is out of reach, so MS-P1j's builder takes it. `school.reports` waits for this story; `school.enabled` does
+not.
+
+**Files owned:** `fno/school/reports/evening.py`, `fno/school/reports/today.py`, `fno/school/reports/inputs.py` (one
+port method), `fno/school/fleet/report_inputs.py` (its reader), `tests/school/reports/` (the fakes, a changed test
+and new ones), this section.
+
+**Acceptance criteria:**
+1. **No record, said so.** When the session has no sealed decisions file, the 20:05 section is: the red banner,
+   "No school record for <day>: <why>.", and the footer. No "Trades closed", no counts, no fleet total, no Rs figure.
+   It replaces g's `test_an_empty_day_says_none_and_is_red`, which pinned the old "none ... Rs +0" for that day.
+2. **The why, from the committed run log.** "the daily run's school step was <status> (<code>)" from
+   `journal/runs/<day>.json`'s `school` step (status and public reason code only, as O1-status-only keeps them,
+   e.g. "refused (school:TOO_LATE)", "failed (school:STOPPED)", "ok (school:OFF)"); "the daily run recorded no school
+   step" when the log or the step is missing. A log that cannot be read raises, and g's guard alerts it (never a
+   section built on a guess).
+3. **A counts line is never empty.** On a recorded day with no rule-driver counts row, the line reads
+   "Counts (eligible / fillable / executed): none".
+4. **The 08:50 rule.** When no road is open in the source session's data (every road closed, or no road listed), the
+   "Today" section says "No plan can be made today: no road is open." instead of "No candidate today: nothing is
+   planned." (which stays for a day with open roads and no proposal). Each line keeps its source note.
+5. **A recorded day is unchanged.** A session with a sealed decisions file renders exactly as before (g's tests stand),
+   whatever the run log says.
+
+**Gap list.** Every requirement above has a criterion. Out of scope: the rehearsal's separate Drive folder per
+routine (REH1's, by design), REH1p (the rehearsal's earlier-day quote files, REH1's builder).
+
 ### MS-P1m The roads' margins · lane 1 (money limits: C2's margin room; two judges) · model tier: H · depends on nothing in P1
 
 Owner: the A14 builder (session 01Vm1WnH8i9waM8EJG8zwWqg; orchestrator, 22 Oct 2026). Law 3 asks C2's `MarginRoom` on
