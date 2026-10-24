@@ -49,10 +49,11 @@ Made by `python -m fno recommend decide` as the daily-run step `recommend`, afte
     record names the version, structure, worst loss after C1 costs, exit plan, and the source decision record by
     path and SHA-256. The recommender never makes a trade itself: it only reads decisions already made and sealed.
   - `NO_TRADE`: with one reason code from a closed set, first match wins: `data_check_failed` (an input unreadable,
-    missing or its hash wrong), `step_problems` (O1's problem steps, as T1e), `quote_gate_failed` (the day's capture
-    or road gate failed), `weather_red` (M1's recorded colour red), `risk_cap` (C2/C4 or a school safety law refused),
-    `brake` (a drawdown brake or daily stop holds), `no_proven_version` (no version above rung 0), `no_candidate`
-    (versions above rung 0, none of them traded today).
+    missing or its hash wrong), `step_problems` (O1's problem steps, as T1e), `no_proven_version` (no version above
+    rung 0: the honest main reason, so it comes before the day's conditions), `quote_gate_failed` (the day's capture
+    or road gate failed), `weather_red` (M1's recorded colour red), `risk_cap` (C2/C4 or a school safety law
+    refused), `brake` (a drawdown brake or daily stop holds), `no_candidate` (versions above rung 0, none of them
+    traded today). While every version is at rung 0 only the first three can occur.
   - **Measurement trades** of rung-0 versions (school drivers and controls, desk versions at `research` or `shadow`)
     are listed apart as "measurement, not a recommendation" with their count only (assumption A2).
 
@@ -79,9 +80,32 @@ test each).
 ### 3. Where it goes (one record, every surface reads it)
 
 - **#fno-desk card:** a new `RecommendationStatus(StatusSource)` replaces `RegistryStatus` inside `RuledStatus`
-  (one line in `fno/cards/wiring.py`); T2's rule checks and T1e's warning stay above it, unchanged. Line 1 stays
-  "PAPER ONLY ..."; the status lines become "Real money: DO NOT TRADE (no proven edge)" and "Paper: NO TRADE
-  (no_proven_version)" or the trade, then the rung line.
+  (one line in `fno/cards/wiring.py`). Agreed with the card's owner (session_017q19WnkrRJvfQoXBLCy3hA, 25 Oct) on
+  these conditions, each checked against the card code on main:
+  - **Reason codes stay inside the pinned dashboard contract** (`contracts/omenix-dashboard/api/schemas/fno-card.yaml`
+    2.14.0, closed enum). The card's code is a mapping of the record's code, same meaning only:
+    `no_proven_version` -> `no_approved_strategy` (no version has passed), `quote_gate_failed` -> `data_check_failed`
+    (the day's inputs are unusable), and `data_check_failed`, `step_problems`, `weather_red` as they are. `risk_cap`,
+    `brake` and `no_candidate` have no same-meaning code: they need a contract addition and re-pin (as W3i did for
+    T1e), asked of the owner through the orchestrator (the 16 Oct UI pause allows contract reason lists, exception
+    a). They cannot occur in release 1 (all versions at rung 0); until the re-pin lands, one of them reaching the
+    card gives `data_check_failed` and an alert "reason not in the dashboard contract", never a wrong code.
+    `card_codes()` in `tests/cards/test_card_contract.py` reads `RecommendationStatus`'s own table too.
+  - **Line 1 of the section is a placeholder status line**, which `RuledStatus` replaces with "Status: <status>
+    (<code>)" after T2's severity order (data_check_failed > hard_rule_breach > step_problems > this code); then
+    "Real money: DO NOT TRADE (no proven edge)", "Paper: NO TRADE (<plain reason>)" or the trade's name, the rung
+    line, and T1's paper trade count line.
+  - **The card's status stays NO TRADE** (CardBuilder, card v1). A `PAPER_TRADE` day names the trade on its "Paper:"
+    line only; showing `TRADE` with fields is T1 slice B, built by the card's owner, needed before any version
+    reaches rung 1 (release 2 at the earliest).
+  - T1's criteria hold (PAPER ONLY on line 1, code plus plain reason, trade counts), and T1e's warning and T2's rule
+    lines are unchanged.
+  - **The record is read as a committed record:** through its receipt and the verified Drive cache, its path and
+    SHA-256 in the card's "Records used"; in a rehearsal the `dryrun/` record (REH1), on T1f's rehearsal clocks once
+    T1f is merged.
+  - No dead code: `RegistryStatus`'s registry and trade-count reading is imported, not copied; if nothing uses
+    `RegistryStatus` afterwards, it and its tests go in the same change.
+  - The `fno/cards/` and `tests/cards/` diff goes to the card's owner before judge I.
 - **08:50 "Today" and 20:05 "How did today go"** (MS-P1g sections, #fno-forecast): the morning shows the standing
   real-money answer from the latest rungs, labelled "standing; today's answer at about 15:20"; the evening shows the
   day's recommendation and its check (section 5). Agreed with MS-P1g's owner before REC1d's code.
@@ -151,8 +175,11 @@ judge if it judges otherwise. No merge 14:00-16:15 IST on a session day.
    test).
 7. **Write-once and receipt first.** Same day twice: same bytes, no-op; different bytes refused and alerted; a failed
    receipt push means no Slack post and one problem line to #fno-desk.
-8. **Card.** With today's main data the card reads "Real money: DO NOT TRADE (no proven edge)" and "Paper: NO TRADE
-   (no_proven_version)"; T2 and T1e lines unchanged (golden files); a missing record gives `data_check_failed`.
+8. **Card.** With today's main data the card reads "Status: NO TRADE (no_approved_strategy)", "Real money: DO NOT
+   TRADE (no proven edge)" and "Paper: NO TRADE (no version has passed)"; T2 and T1e lines unchanged and line 1 of the
+   section replaced by `RuledStatus` (golden files); a missing or hash-mismatched record gives `data_check_failed`;
+   every card code is in the pinned contract (`card_codes()`); a planted `brake` code before the re-pin gives
+   `data_check_failed` and the alert; a `PAPER_TRADE` record keeps the card's status NO TRADE.
 9. **Evening check.** Trade, no-trade, exits not closed ("not known yet") and missing record cases; it never edits the
    recommendation (hash unchanged) and never reads a price not already recorded.
 10. **Calibration line.** 99 outcomes or 59 sessions print "not enough outcomes to calibrate"; 100 over 60 print 5 bins.
@@ -173,6 +200,8 @@ judge if it judges otherwise. No merge 14:00-16:15 IST on a session day.
 | books 2 and 3 as recommenders | out: their trading job (F5, F6, F1t) is not built (DESK_DECISIONS 25 Oct (1)); they plug in as more versions with rungs, no change here |
 | real orders | out: hard line |
 | dashboard screen | out: UI pause; contract fields only |
+| dashboard reason codes `risk_cap`, `brake`, `no_candidate` | contract addition and re-pin, owner via the orchestrator, before release 2; guarded in criterion 8 |
+| the card showing `TRADE` with fields | T1 slice B, the card owner's story, before any version reaches rung 1 |
 | futures and stock options | out: not in the pilot (327 P3+) |
 
 ## Questions for the owner (each with the recommended answer; the text assumes it)
