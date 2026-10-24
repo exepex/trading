@@ -31,6 +31,10 @@ class ForwardOutcome:
     counted: bool  # the counting rule's verdict (MS-P1h `CountingRule`, or S1's order rule for the books)
     receipt_at: datetime | None  # GitHub's push receipt of its receipt commit; None: GitHub could not answer
 
+    def __post_init__(self):
+        if self.receipt_at is not None and self.receipt_at.utcoffset() is None:
+            raise ValueError("a receipt time without a time zone cannot be compared with the decision")
+
 
 @dataclass(frozen=True)
 class EstablishedTest:
@@ -53,6 +57,10 @@ class VersionEvidence:
     counted_sessions: int
     first_session: date | None
     last_session: date | None
+
+    def __post_init__(self):
+        if type(self.counted_sessions) is not int or not isinstance(self.rung, EvidenceRung):
+            raise ValueError("a version's evidence needs a whole session count and a rung")
 
 
 def counted_sessions(outcomes: Iterable[ForwardOutcome], version: str, day: date, made_at: datetime) -> list[date]:

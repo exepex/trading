@@ -1,6 +1,7 @@
-"""Reading and writing a recommendation (story REC1a): the school's canonical JSON (equal records, equal bytes),
-read strictly. A missing field (the candidate set and `evidence_cutoff` above all, judge 620.1), an unknown field,
-an unknown code or a broken rule refuses the bytes; nothing is ever filled in."""
+"""Reading and writing a recommendation (story REC1a): the school's canonical JSON (equal records, equal bytes), read
+strictly: only the exact canonical bytes read. A missing field (the candidate set and `evidence_cutoff` above all,
+judge 620.1), an unknown field at any depth, an unknown code or a broken rule refuses the bytes; nothing is filled
+in."""
 
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ FIELDS = frozenset(f.name for f in fields(Recommendation))
 MISSING = "recommendation record lacks {names}"
 UNKNOWN = "recommendation record has unknown fields {names}"
 UNREADABLE = "recommendation record does not read: {kind}"
+NOT_CANONICAL = "recommendation record is not in canonical form (a nested field added or a value respelled)"
 
 
 def encode(record: Recommendation) -> bytes:
@@ -28,11 +30,14 @@ def decode(data: bytes) -> Recommendation:
         raise RecordRefused(UNREADABLE.format(kind=type(plain).__name__))
     _same_fields(set(plain))
     try:
-        return Recommendation.from_bytes(data)
+        record = Recommendation.from_bytes(data)
     except RecordRefused:
         raise
     except (TypeError, ValueError, KeyError) as bad:
         raise RecordRefused(UNREADABLE.format(kind=type(bad).__name__)) from None
+    if encode(record) != data:  # every record is written canonical, so any other spelling is not one of ours
+        raise RecordRefused(NOT_CANONICAL)
+    return record
 
 
 def _same_fields(names: set[str]) -> None:

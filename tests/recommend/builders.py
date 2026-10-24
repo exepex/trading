@@ -32,7 +32,7 @@ def no_trade(**changes) -> Recommendation:
         schema_version=RECORD_SCHEMA_VERSION, kind=RECORD_KIND, session=DAY, made_at=MADE_AT,
         evidence_cutoff=MADE_AT, code_commit="a" * 40, config_sha256=sha(7), rung_rule_sha256=RUNG_RULE_SHA256,
         inputs=(RecordRef("playbook/registry.csv", sha(8)),),
-        versions=(VersionEvidence("school:CS1@1", EvidenceRung.EXPLORATORY, 3, date(2026, 10, 28), date(2026, 11, 1)),),
+        versions=(evidence_of("school:CS1@1", EvidenceRung.EXPLORATORY), evidence_of("school:N0@1")),
         candidates=(candidate("school:CS1@1", EvidenceRung.EXPLORATORY), candidate("school:N0@1", traded=False, n=2)),
         real_money=RealMoneyAnswer.DO_NOT_TRADE_REAL_MONEY, eligible_version=None, paper=PaperAnswer.NO_TRADE,
         paper_trade=None, reason=NoTradeReason.NO_ESTABLISHED_VERSION,
@@ -40,6 +40,23 @@ def no_trade(**changes) -> Recommendation:
     return replace(record, **changes) if changes else record
 
 
+def evidence_of(version: str, rung: EvidenceRung = EvidenceRung.UNPROVEN) -> VersionEvidence:
+    """The record's evidence line for a version at `rung` (counts consistent with the rung rule)."""
+    if rung is EvidenceRung.UNPROVEN:
+        return VersionEvidence(version, rung, 0, None, None)
+    counted = 3 if rung is EvidenceRung.EXPLORATORY else 30
+    return VersionEvidence(version, rung, counted, date(2026, 9, 1), date(2026, 11, 1))
+
+
 def paper_trade(rung: EvidenceRung = EvidenceRung.ESTABLISHED) -> Recommendation:
     trade = candidate("school:CS1@1", rung)
-    return no_trade(candidates=(trade,), paper=PaperAnswer.PAPER_TRADE, paper_trade=trade, reason=None)
+    return no_trade(versions=(evidence_of("school:CS1@1", rung),), candidates=(trade,), paper=PaperAnswer.PAPER_TRADE,
+                    paper_trade=trade, reason=None)  # fmt: skip
+
+
+def established_day(**changes) -> Recommendation:
+    """A no-trade day on which one version is established (rung 3) and made no trade."""
+    quiet = candidate("school:CS1@1", EvidenceRung.ESTABLISHED, traded=False)
+    day = {"versions": (evidence_of("school:CS1@1", EvidenceRung.ESTABLISHED),), "candidates": (quiet,),
+           "reason": NoTradeReason.NO_CANDIDATE}  # fmt: skip
+    return no_trade(**(day | changes))
