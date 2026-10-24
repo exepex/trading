@@ -42,3 +42,15 @@ clean after. **12 caught, 0 survived.**
 - "Before anything runs" (`fire_probe.py:4`): steps 0-1 do run first. They are harmless, so the wording is loose but
   the effect is right.
 - The step summary carries the session link. It is a private claude.ai link and not a secret.
+
+## Addendum 1: round 2 at 8d5ad1ec3 (diff 714509261..8d5ad1ec3)
+
+**PASS, lane 1** (Judge I, own session). The diff changes only `docs/stories/G-forecasts.md`; the code is the
+714509261 I judged, with its 12 of 12 plants and the merged-tree gates (16,559 passed, 0 failed).
+
+| Item | Verdict | My evidence |
+|---|---|---|
+| 624.1 should-fix: gap list | FIXED | Criterion 2 now says the secrets sit on the fire step only, and criterion 4 says a refusal is reported, never retried (one POST a run). With those, the orchestrator's six checks are all named criteria or Claims. The gap list states plainly what the probe does not prove (Book 2 assumed; the model's re-typing of a real pointer; no window guard; minutes unrecorded) |
+| 624.1 should-fix: output sample | FIXED | Lines for 200, 413, 401, no network and missing secrets, labelled a LOCAL run against a FAKE endpoint, with one POST per case. They match the code's templates (`fire_probe.py` `FIRED`/`NOT_FIRED`, `trigger.py`'s refusal texts, the missing-secrets line pinned by the test) |
+
+Doc-reading tests at 8d5ad1ec3, with `FNO_SLACK_BOT_TOKEN` kept: 922 passed, 14 xfailed.
