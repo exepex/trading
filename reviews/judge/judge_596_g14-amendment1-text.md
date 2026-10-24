@@ -70,3 +70,24 @@ lists `fno/constants.py`).
 4. **G14's own package is hashed in full.** The walk starts from the value-deciding files (history, capture,
    records, gap) for the imports outside the package. Every file of `fno/forecast_v5_v1/`, wiring and cli included,
    is still byte-checked, as the passed text's "this package's files" says.
+
+## Addendum 3: G14 Amendment 2 (story text), story/g14-o1-step at 4a54c1765, round 1 of 2
+**FAIL** (text), lane 1: 1 should-fix. Doc-reading tests with the token set: 920 passed, 14 xfailed.
+- **The fact is MET.** `fno/daily/steps.py:43-46`: `refused` only on exit 0 with "nothing written:"; any other exit
+  is `failed`. So criterion 7 as written could not hold.
+- **The refusal list is complete.** It has v4's own `capture_day` refusals (today only, a scored session, before
+  14:30: `forecast_v4_rules/cli.py:33-37`, exit 0) and G14's freeze states. Any other error (a file that cannot be
+  read, a traceback) exits non-zero and is `failed`, which is right.
+- **S1 (should fix) A broken or changed freeze record must be `failed`, not `refused`.**
+  - The text puts "missing, broken, changed or dated after today" together as refusals. A missing record and one
+    dated after today are planned states: before the freeze, or a freeze set for later. `refused` fits them.
+  - Changed bytes, an unparseable `Frozen on:` and a walk list that differs from today's are faults on a frozen
+    input, a possible tampering. They must not read as a planned state.
+  - v4's capture checks no freeze at capture, so it is no precedent. The precedent is v2's: `forecast-capture.yml:7`,
+    "a difference or a failed freeze check fails the run before any forecast".
+  - Both labels are alerted and both end the day "with problems". The difference is the committed run log's honest
+    label.
+  - Fix: the split the builder proposed through the orchestrator. Missing or future-dated is `refused` (exit 0,
+    "nothing written:"); changed bytes, an unparseable date or another walk list is `failed` (exit 1).
+    `RecordConflict` stays `failed`. One planned flag, or two `NotFrozen` subclasses. Criterion 7 names both cases
+    with a test each.
