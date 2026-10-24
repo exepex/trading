@@ -2608,6 +2608,9 @@ prompt, at go-live (exact text in `F1-G5-owner-checklist.md`, with who records v
   `run_timing.py`'s and `v4_cost.py`'s docstrings stay true before and after BG1-w. C8's stop sums `minutes` only: a
   test through `MeterBudgetStop` with 60 working plus 60 `wait_minutes` at a cap of 100 fires the books (passes now
   and after BG1-w adds the column); plant: summing `wait_minutes` too, caught.
+  F8c's `test_run_timing.py` (BG1-w's builder, 24 Oct) no longer pins BG1's reader's minutes: it checks the timing
+  file's own start-to-end (4:10) and start-to-seal (2:00) figures and only the reader's day and turns, so it passes in
+  either merge order; which minutes BG1 counts is BG1-w's own test. Plant: `sealed_at` a minute late, caught.
 - `test_v4_collect.py` passed 350 lines with round 2's tests; the fire-log, go-live and F2 tests moved unchanged to
   `test_v4_collect_log.py` (1f81dcbe2).
 
