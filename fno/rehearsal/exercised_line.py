@@ -20,8 +20,8 @@ EXERCISED_LINE = "not live in real runs (exercised): {items}"
 PART = "{step}'s {part} part"
 
 
-def exercised_line(steps: dict[str, dict]) -> str | None:
-    """The line for a run log's steps, or None when nothing was exercised."""
+def exercised_line(steps: dict[str, dict], fixed: tuple[str, ...] = ()) -> str | None:
+    """The line for a run log's steps, with the rehearsal's own `fixed` items last, or None when nothing was."""
     items = []
     for name, step in steps.items():
         result = step["result"]
@@ -29,6 +29,7 @@ def exercised_line(steps: dict[str, dict]) -> str | None:
             items.append(_item(name, result[STEP_EXERCISED]))
         parts = result.get(EXERCISED_PARTS, {})
         items += [_item(PART.format(step=name, part=part), done) for part, done in parts.items()]
+    items += fixed
     return EXERCISED_LINE.format(items="; ".join(items)) if items else None
 
 
@@ -47,12 +48,12 @@ def not_live_result(code: int, last: str) -> dict:
 
 
 def report_exercised(checkout: Path, day: date, out: Callable[[str], None], alerts: AlertSender,
-                     commands: dict[str, dict] | None = None) -> None:  # fmt: skip
+                     commands: dict[str, dict] | None = None, fixed: tuple[str, ...] = ()) -> None:  # fmt: skip
     """Prints and posts the line once, when the rehearsal exercised anything: the daily run's steps (its full log)
     and the routine's own commands not live in real runs (`commands`, REH1k)."""
     path = Path(checkout) / FULL_LOGS / f"{day.isoformat()}.json"
     steps = json.loads(path.read_text(encoding="utf-8"))["steps"] if path.is_file() else {}
-    line = exercised_line({**steps, **(commands or {})})
+    line = exercised_line({**steps, **(commands or {})}, fixed)
     if line is not None:
         out(line)
         alerts.send(line)

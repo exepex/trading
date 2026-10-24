@@ -621,7 +621,8 @@ reader on `fno/health/wiring.py` with the planted bare builder at line 56, then 
 ### REH1l: a pre-open read is never shifted past its window, and a rehearsal's own clock is not a capture problem (story text first)
 
 Branch `story/reh1l-preopen-serving`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV. Lane 1 (what a rehearsal
-records and posts; two judges). Placed before REH1g's section so it does not collide with REH1k's at the end of the
+records and posts). The text had one judge (F, 616); the code round has two, since it changes the #fno-desk exercised
+line (judge 616 m4). Placed before REH1g's section so it does not collide with REH1k's at the end of the
 file. Code starts after the judges.
 
 #### The two findings (the orchestrator's A22e replay of 23 Oct, run 20261024T173842Z-30b396)
@@ -678,11 +679,14 @@ closure, correct).
    the replay clock was not checked is said once per rehearsal, as one fixed item of REH1j's labelled exercised line
    on #fno-desk ("replay clock not checked (by design)"), added by `rehearse` itself whatever the routine.
    The clock forms (the orchestrator's ask (c)), file by file:
-   - `fno/rehearsal/preopen_wiring.py`: `RehearsalReading` and `RehearsalClockCheck`, chosen in
-     `fno/intraday/clock_wiring.py`'s `build_clock_check` (REH1c). Its readers: `fno/preopen/record.py:57` (the
-     pre-open's problem, the finding), `fno/intraday/recorder.py:117` (A16's marks add the warning as a line to the
-     mark's outcome, not a failure) and `fno/quotes/window_wiring.py:30` (`CaptureLog`'s clock line). With "" all three
-     say nothing about the replay clock.
+   - `fno/rehearsal/preopen_wiring.py`: `RehearsalClockCheck`, chosen in `fno/intraday/clock_wiring.py`'s
+     `build_clock_check` (REH1c). With no checks, the base `ClockReading.warning()` already returns "", so
+     `RehearsalReading` and its override are removed (judge 616 m3). Its readers of `warning()`:
+     `fno/preopen/record.py:57` (the pre-open's problem, the finding) and `fno/intraday/recorder.py:117` (A16's marks
+     add the warning as a line to the mark's outcome, not a failure); with "" both say nothing about the replay clock.
+     A third builder, `fno/quotes/window_wiring.py:30`, gives the clock to `CaptureLog`, which records only
+     `reading.status` and `worst`, never `warning()`; in a rehearsal `rehearsed_recorder` replaces that recorder, so
+     the v4 pack's `clock_ok` rule (`fno/v4_pack/builder.py:48`) is never reached (judge 616 m2: corrected).
    - `fno/rehearsal/card_label.py`: `RehearsalCardClocks` (T1f), which writes `unchecked(server, NOT_CHECKED)` lines
      into the card's delivery record. Unchanged by REH1l: the card's own record names each unchecked server, which is
      what T1f's judges passed; it is not a capture problem and changes no status.

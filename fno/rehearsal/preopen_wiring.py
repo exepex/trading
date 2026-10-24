@@ -28,17 +28,12 @@ def rehearsed_preopen_parts(parts: list, env: Mapping[str, str] = os.environ) ->
     return [RecordedPreopenPart(part, receipts, read, now_ist, time.sleep) for part in parts]
 
 
-class RehearsalReading(ClockReading):
-    def warning(self) -> str:
-        return NOT_CHECKED
-
-
 class RehearsalClockCheck(ClockCheck):
     def __init__(self):
         super().__init__([], lambda: None)
 
     def check(self) -> ClockReading:
-        return RehearsalReading(CLOCK_UNCHECKED, ())
+        return ClockReading(CLOCK_UNCHECKED, ())  # no checks, so no warning: not a capture problem (REH1l)
 
 
 def rehearsed_clock_check(check: ClockCheck, env: Mapping[str, str] = os.environ) -> ClockCheck:

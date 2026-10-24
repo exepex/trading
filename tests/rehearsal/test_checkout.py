@@ -12,7 +12,7 @@ from fno.daily.full_log import FULL_LOGS
 from fno.models import IST
 from fno.rehearsal.checkout import RehearsalCheckout, RehearsalCheckoutError, refuse_unless_rehearsal_ref
 from fno.rehearsal.mode import Rehearsal
-from fno.rehearsal.rehearse import rehearse_daily
+from fno.rehearsal.rehearse import REPLAY_CLOCK, rehearse_daily
 
 from .test_exercised_line import LINE, STEPS, Recording, full_log
 
@@ -257,8 +257,9 @@ def test_rehearse_prints_the_line_after_the_day_s_last_line_and_posts_it_once(so
     rehearse_daily(DAY, repo, lines.append, tmp_path / "home", is_session=lambda d: True, run_child=day_run,
                    guard=lambda env, cwd: [], alerts=sent)  # fmt: skip
     at = lines.index("day done")
-    assert lines[at + 1] == LINE and lines[at + 2].startswith("rehearsal daily 2026-10-23 ")  # then the end line
-    assert sent.sent == [LINE]
+    with_clock = f"{LINE}; {REPLAY_CLOCK}"  # REH1l: the replay clock, said once, last
+    assert lines[at + 1] == with_clock and lines[at + 2].startswith("rehearsal daily 2026-10-23 ")  # then the end
+    assert sent.sent == [with_clock]
 
 
 def test_an_unreadable_full_log_never_stops_the_publish(source, tmp_path):
@@ -298,7 +299,7 @@ def test_a_routine_s_not_live_command_is_printed_after_its_last_line_and_posted_
     monkeypatch.setattr(module, "_not_live_editions", lambda day, checkout: frozenset({"evening"}))
     code = module.rehearse(ROUTINES["evening"], DAY, repo, lines.append, tmp_path / "home",
                            is_session=lambda d: True, guard=lambda env, cwd: [], alerts=sent)  # fmt: skip
-    line = "not live in real runs (exercised): lab close failed: lab close said no"
+    line = f"not live in real runs (exercised): lab close failed: lab close said no; {REPLAY_CLOCK}"
     at = lines.index("7 commands done")
     assert code == 0 and lines[at + 1] == line and sent.sent == [line]
 
