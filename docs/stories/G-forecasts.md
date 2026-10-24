@@ -1875,7 +1875,7 @@ stays null.
 
 *Commits on top of the merge of `main` (7334ec2b; full suite there 15,215 passed):* 85df1067 C12; e3c6cb35 C5-C6;
 881ba676 C1-C4; 2c69136a C8, C9, C17, C19; dfb26381 C13-C16; then the self-review's fixes 8e34b29a (A), 8d896bf3 (B),
-99a916f2 (C).
+99a916f2 (C) and, after a second review, 251b65de (D); 562718c5 merges `main` (REH1i's receipts check passes).
 
 *Per criterion (code; tests; the builder's plants, every one caught):*
 - C1 `versions.py` (`V4_AI_QUESTIONS` = the family), prompts v2; `test_v4_versions.py`, `test_v4_fire.py`; plant: V7
@@ -1926,6 +1926,9 @@ stays null.
 7. v4's first 10 fired days need a recorded transcript audit before they score, as v2's did (before round 2c the
    gate read v2's fire logs only). Someone must record them: `ai audit-record --protocol v4`.
 8. `register-v4-slots` registers per rules row (a question whose rules row lands later is added by a later run).
+9. A commitment without a fire log waits 3 sessions (the fire keeps its log as a run artifact when its push fails),
+   then that book is `invalid`; the fire log is read as first committed; a Hybrid entry without an envelope is
+   `invalid`; the firer runs `brief`'s own pointer check before firing (each from the second review).
 
 *Self-review (quality rule 3):* three independent agents on dfb26381 (protocol logic, book side and prompts,
 workflows and wiring), then a fourth on the fixes. Accepted and fixed, each with a test: collect's rebuild from
@@ -1934,7 +1937,12 @@ changing files (blocking); `v4-fire.yml` failing every session before go-live on
 shown by `brief`, an editable envelope; weak variance caps; tracebacks on odd values; v2 collect writing
 `no_submission` after go-live; a refused question crashing settle; a lost fire log becoming `not_fired`; a failed
 pack read unalerted; v4 runs missing from BG1's capture coverage; the alert step's name cut by YAML at ` #`; ten
-mutations that survived. Not changed: C10's pin (above).
+mutations that survived. The second review (of 99a916f2) found, all fixed in 251b65de with a plant each: a
+`system_late` day collected as AI misses (blocking: the real `ReleasedPacks.release` returns a `system_late` record
+without raising, and the test fake had raised there, so the fake now behaves like the real class); the fire log
+trusted as it stood in the checkout; a lost log waiting forever; a pointer `brief` would refuse fired anyway. Not
+changed: C10's pin (above). Residual (reasoning only): a routine's own push credentials could add a file such as a
+forged fire log before the Actions push; the transcript audit names any push beyond `seal` and `reveal` a breach.
 
 *Real output sample* (`tests/e2e_acceptance/ai_v4_day.py` on 22 Oct 2026: the committed closes, rule and baseline
 rows and A16 rows; a fixture pack, scripted routines, recorded receipts):
