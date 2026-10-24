@@ -27,7 +27,9 @@ read in the fills) stops the run at that step: one alert naming why, what is mis
 nothing more committed, and `RunStopped` for the command to end on one line (decision 44). The rerun
 first commits that failed commit's files exactly as they were recorded, and never repeats the step that made them
 (`PendingCommitter`, decision 47). Any other error in a step fails that step only (DRY2 R2, 24 Oct): logged with its
-type and one line, alerted, and the run goes on; a step that reads a failed step's result (`NEEDS`) is refused.
+type and one line, alerted, and the run goes on; a step that reads a failed step's result (`NEEDS`) is refused. A
+rerun on the same day runs such a failed step again when it is safe and useful to repeat (`RETRIED_ON_RERUN`, DRY2
+SF1); the others stay failed for the day, and the alert says which.
 """
 
 from __future__ import annotations
@@ -49,11 +51,11 @@ from ..constants import (
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
 from ..research_engine.ledger import GitFailed
-from .daily_ports import CommitFailed, DayStep, Waiter
+from .daily_ports import RUN_STOPS, CommitFailed, DayStep, StepInterrupted, Waiter
 from .daily_steps import DeskSteps, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
 from .private_files import PrivateFiles
-from .run_log import RunLog
+from .run_log import RETRY, RunLog
 from .step_recorder import AsGiven, StepRecorder
 from .trade_marking import MarkingStep
 
@@ -68,7 +70,22 @@ PUSHES = "; the rerun pushes the local commit"
 RECOVERY = "the rerun's start"
 DOWNLOAD = "the download of the private paper records"
 PACK_RETRY = timedelta(seconds=30)
-STEP_ERROR = "F&O paper desk {day}: step {name} FAILED ({reason}); the run goes on, the steps that need it are refused"
+STEP_ERROR = ("F&O paper desk {day}: step {name} FAILED ({reason}){written}; the run goes on, the steps that need it "
+              "are refused; {rerun}")  # fmt: skip
+WRITTEN = " after {count} trades were recorded in their accounts; those records stay there, check them"
+RERUN_RETRIES = "a rerun today retries it (nothing it wrote is done twice)"
+RERUN_FINAL = "a rerun today will not retry it: {why}"
+# DRY2 SF1 (orchestrator, 24 Oct 06:24): the desk steps a rerun on the same day runs again after an unexpected error,
+# each idempotent by its trade, fill and event IDs, or replacing the day's own rows (O1's claims, "Round 2"); the rest
+# stay failed for the day, with why
+RETRIED_ON_RERUN = ("fills", "exits", RUN_LOG_TRADE_MARKS_STEP)
+NOT_RETRIED = {
+    "versions": "a version registered after the day's decision cannot count for it (D6)",
+    "pack": "the decisions and the snapshot's checks already ran without it",
+    RUN_LOG_DECISIONS_STEP: "what was visible at the deadline cannot be observed later",
+    "snapshot": "a second capture would split the day's one execution snapshot",
+}
+NOT_A_DESK_STEP = "only the desk's own steps are retried"
 NEEDS_FAILED = "needs {needed}, which failed today"
 NEEDS_MISSING = "needs {needed}, which has not run today"
 # DRY2 R2 (24 Oct): the steps that read another step's logged result, and which; the rest read their own inputs (the
@@ -109,8 +126,8 @@ class DailyRun:
                 self._step(log, SKIPPED, lambda: StepOutcome({"session": kind}, {"reason": "not a session day"}))
             return log
         plan = self._plan(day, log)
-        for name in DAILY_RUN_STEPS:
-            if name in plan and not log.done(name):
+        for name in DAILY_RUN_STEPS:  # a failed step is retried on its own day only: a later session read its log
+            if name in plan and not log.done(name) and (name not in log.steps or self.clock().date() == day):
                 moment, action = plan[name]
                 if moment is not None:
                     self.waiter.until(self.steps.timetable.at(day, moment))
@@ -205,8 +222,8 @@ class DailyRun:
         """A step whose input step has not run or failed today is refused, never run on a missing input (fail
         closed); the reason names which."""
         needs = NEEDS.get(name, ())
-        missing = [needed for needed in needs if not log.done(needed)]
-        failed = [needed for needed in needs if log.done(needed) and _failed(log.result(needed))]
+        missing = [needed for needed in needs if needed not in log.steps]  # a failed step awaiting its retry ran
+        failed = [needed for needed in needs if needed in log.steps and _failed(log.result(needed))]
         if not (missing or failed):
             return None
         reasons = ([NEEDS_MISSING.format(needed=", ".join(missing))] if missing else []) + (
@@ -216,15 +233,21 @@ class DailyRun:
 
     def _run_step(self, day: date, name: str, action: Callable[[], StepOutcome]) -> StepOutcome:
         """An unexpected error in one step fails that step only (DRY2 R2): it is logged with its type and one line,
-        alerted, and the run goes on; a failed commit or git read still stops the run (`_guarded`)."""
+        alerted, and the run goes on; a failed commit or git read still stops the run (`_guarded`). It is marked
+        `retry` when a same-day rerun runs it again (SF1)."""
         try:
             return action()
-        except (CommitFailed, GitFailed):
+        except RUN_STOPS:
             raise
         except Exception as error:  # noqa: BLE001 - any other error: this step fails, the day goes on
-            reason = f"{type(error).__name__}: {_one_line(error)}"
-            self.steps.alerts.send(STEP_ERROR.format(day=day, name=name, reason=reason))
-            return StepOutcome({}, {"status": STEP_FAILED, "reason": reason})
+            interrupted = isinstance(error, StepInterrupted)
+            cause = error.__cause__ if interrupted and error.__cause__ else error
+            reason = f"{type(cause).__name__}: {_one_line(cause)}"
+            written = WRITTEN.format(count=error.written) if interrupted else ""
+            retry = name in RETRIED_ON_RERUN
+            rerun = RERUN_RETRIES if retry else RERUN_FINAL.format(why=NOT_RETRIED.get(name, NOT_A_DESK_STEP))
+            self.steps.alerts.send(STEP_ERROR.format(day=day, name=name, reason=reason, written=written, rerun=rerun))
+            return StepOutcome({}, {"status": STEP_FAILED, "reason": reason, RETRY: retry})
 
     def _guarded(self, day: date, where: str, action: Callable[[], object]) -> None:
         """The one place a failed commit or git read is handled: the rerun's recovery, a step's own commit and any

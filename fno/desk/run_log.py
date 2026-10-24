@@ -1,6 +1,8 @@
 """The daily run's log (story E3 criterion 6): `journal/runs/<date>.json` holds, for every step, its start and end
 time, its inputs and its result, in the order the steps ran. It is rewritten whole after each step (written to a
-temporary file, then renamed) and committed, so a restarted run reads which steps are done and repeats none of them."""
+temporary file, then renamed) and committed, so a restarted run reads which steps are done and repeats none of them.
+A step failed by an unexpected error and marked `retry` is not done (DRY2 SF1, orchestrator 24 Oct): a same-day rerun
+runs it again and its new entry replaces the failed one; a step that finished, or was refused, is never replaced."""
 
 from __future__ import annotations
 
@@ -14,6 +16,7 @@ from ..constants import JOURNAL_FOLDER, STEP_FAILED, STEP_REFUSED
 
 RUNS_FOLDER = "runs"
 PROBLEMS = (STEP_FAILED, STEP_REFUSED)
+RETRY = "retry"  # a failed step's result key: true when a same-day rerun runs the step again
 
 
 @dataclass
@@ -36,7 +39,8 @@ class RunLog:
         return sorted(date.fromisoformat(name) for name in names)
 
     def done(self, step: str) -> bool:
-        return step in self.steps
+        """Recorded for good: an entry failed and marked for a retry is not done."""
+        return step in self.steps and not _retried(self.steps[step]["result"])
 
     def result(self, step: str) -> dict:
         return self.steps[step]["result"]
@@ -44,6 +48,7 @@ class RunLog:
     def record(self, step: str, started: datetime, finished: datetime, inputs: dict, result: dict) -> None:
         if self.done(step):
             raise ValueError(f"{self.day} step {step} is already recorded: a run never repeats a step")
+        self.steps.pop(step, None)  # a retried step's failed entry: the new one goes last, in the order steps ran
         self.steps[step] = {"started_at": started.isoformat(), "finished_at": finished.isoformat(),
                             "inputs": inputs, "result": result}  # fmt: skip
         self._write()
@@ -66,6 +71,10 @@ def book_results(result: dict) -> dict:
     """A per-book step's result (the decisions, the exits) as book -> entry; {} when the step itself failed or was
     refused (DRY2 R2): its `{"status", "reason"}` is never read as books."""
     return {} if _problem(result) else result
+
+
+def _retried(result: dict) -> bool:
+    return result.get("status") == STEP_FAILED and result.get(RETRY) is True
 
 
 def _problem(result: dict) -> bool:
