@@ -13,7 +13,7 @@ from datetime import date
 from pathlib import Path
 
 from ..alerts.sender import AlertSender
-from ..constants import EXERCISED_PARTS, STEP_EXERCISED, STEP_NOT_BUILT, STEP_NOT_LIVE, STEP_OK
+from ..constants import EXERCISED_PARTS, STEP_EXERCISED, STEP_FAILED, STEP_NOT_BUILT, STEP_NOT_LIVE, STEP_OK
 from ..daily.full_log import FULL_LOGS
 
 EXERCISED_LINE = "not live in real runs (exercised): {items}"
@@ -40,11 +40,19 @@ def _item(what: str, done: dict) -> str:
     return f"{what} {status}: {reason}" if status != STEP_OK and reason else f"{what} {status}"
 
 
-def report_exercised(checkout: Path, day: date, out: Callable[[str], None], alerts: AlertSender) -> None:
-    """Prints and posts the line once, when the rehearsal's run exercised anything (a routine with no daily run log
-    says nothing)."""
+def not_live_result(code: int, last: str) -> dict:
+    """A rehearsed routine's command not live in real runs (REH1k), in the run log's shape: its exit and last line."""
+    done = {"status": STEP_OK} if code == 0 else {"status": STEP_FAILED, "reason": last or f"exit {code}"}
+    return {"status": STEP_NOT_LIVE, STEP_EXERCISED: done}
+
+
+def report_exercised(checkout: Path, day: date, out: Callable[[str], None], alerts: AlertSender,
+                     commands: dict[str, dict] | None = None) -> None:  # fmt: skip
+    """Prints and posts the line once, when the rehearsal exercised anything: the daily run's steps (its full log)
+    and the routine's own commands not live in real runs (`commands`, REH1k)."""
     path = Path(checkout) / FULL_LOGS / f"{day.isoformat()}.json"
-    line = exercised_line(json.loads(path.read_text(encoding="utf-8"))["steps"]) if path.is_file() else None
+    steps = json.loads(path.read_text(encoding="utf-8"))["steps"] if path.is_file() else {}
+    line = exercised_line({**steps, **(commands or {})})
     if line is not None:
         out(line)
         alerts.send(line)

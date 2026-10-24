@@ -7,11 +7,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, time, timedelta
 
+from ..forecast_lab.constants import EVENING, MORNING
+
 
 @dataclass(frozen=True)
 class Command:
     args: tuple[str, ...]  # "{day}" and "{week_ago}" are the replayed day and the day a week before it
     background: bool = False
+    live_key: str | None = None  # REH1k: its `forecast_lab.live_from` edition; before it, exercised, not failed
 
     def for_day(self, day: date) -> list[str]:
         week_ago = day - timedelta(days=7)
@@ -34,7 +37,8 @@ ROUTINES = {
         Routine("preopen", "Pre-open capture (story A22)", time(8, 36),
                 (Command(("global-cues", "preopen"), background=True), Command(("preopen", "record")))),
         Routine("morning", "Morning and evening forecast routines", time(8, 38),
-                (Command(("data-librarian", "index-close", "--from", "{week_ago}")), Command(("lab", "open")),
+                (Command(("data-librarian", "index-close", "--from", "{week_ago}")),
+                 Command(("lab", "open"), live_key=MORNING),
                  Command(("records", "certify", "closes", "--since", "7", "--level", "certified", "--commit"))),
                 ("receipts/data/forecast_lab/v1/morning/",)),
         Routine("evening", "Morning and evening forecast routines", time(19, 53),
@@ -43,7 +47,7 @@ ROUTINES = {
                  Command(("data-librarian", "fo-bhavcopy", "--from", "{day}", "--to", "{day}")),
                  Command(("data-librarian", "participant-oi", "--from", "{day}", "--to", "{day}")),
                  Command(("data-snapshot", "fii-dii-cash-by-session")),
-                 Command(("lab", "close")), Command(("lab", "release-check"))),
+                 Command(("lab", "close"), live_key=EVENING), Command(("lab", "release-check"))),
                 ("receipts/data/forecast_lab/v1/evening/", "research/data/forecast_lab/release/")),
     )
 }  # fmt: skip

@@ -1246,3 +1246,148 @@ wiring point (build the recorded source without the provider), reported to the o
 
 **Related, not in REH1j:** G10's builder makes `v4-pack release` and `deadline` read the rehearsal's live dates
 (story/v4pack-rehearsed-live); their outcome then lands under `exercised` here with no change to REH1j.
+
+### REH1k: the lab's editions in a rehearsal of a day before their live date (story text first)
+
+Branch `story/reh1k-lab-editions`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV. Lane 1 (what a rehearsal
+posts to #fno-forecast and #fno-desk; two judges). Asked by the orchestrator on 24 Oct for the owner's weekend dry
+runs (replay of 22 and 23 Oct, every stage). Code starts after the judges, and after REH1j is on main (it reuses
+REH1j's exercised line).
+
+#### The finding (strong evidence: the code and `config.yaml`)
+
+- `EditionRun.run` checks the edition's own live date first (`fno/forecast_lab/edition_run.py:92-94`) and
+  `forecast_lab.live_from` is `morning: "2026-10-23"`, `evening: "2026-10-23"`. So `rehearse morning --day
+  2026-10-22` and `rehearse evening --day 2026-10-22` print "lab open 2026-10-22: not live (config
+  forecast_lab.live_from.morning: 2026-10-23); nothing posted" and exercise nothing: no edition is made, posted or
+  recorded under `dryrun/`.
+- REH1c's `rehearsed_live` covers only the daily run's steps (`fno/daily/wiring.py`); the lab has its own live dates
+  (`fno/forecast_lab/wiring.py:50-53`), read in `build_composer` (line 101), which `build_edition` and the evening's
+  `CloseReport` (line 106, the first evening it matches) use.
+- The owner's ask: "Run everything including full dry run stages" (DESK_DECISIONS line 329), and REH1c's "every
+  report runs in a rehearsal".
+
+#### Design (REH1c's rule and REH1j's reporting, applied to the lab; no edition code changes)
+
+1. **The lab's live dates in a rehearsal.** `build_composer` takes `rehearsed_lab_live(live_from(cfg))` (in
+   `fno/rehearsal/live_wiring.py`, beside `rehearsed_live`, the same rule and the same two notes): an edition not
+   live on the replayed day is made live on it, with its note. With no mode it returns the dates unchanged and no
+   notes. `EditionRun`, the composers, the records and the poster are untouched; `lab preview` is unchanged (it is
+   never part of a rehearsed routine).
+2. **Every post of such an edition says so.** The lab's root sets `FNO_REHEARSAL_NOT_LIVE` to the edition's note for
+   the edition's own process (each `lab open` and `lab close` is one child of the routine, so one note per process, as
+   REH1c sets it per step). REH1a's label decorators already read it through `labelled()`: the #fno-forecast report
+   and any #fno-desk alert of the edition carry the bold label, then "not live in real runs on 2026-10-22 (live from
+   2026-10-23)".
+3. **Exercised, never a routine failure.** A rehearsed routine's command may name its live key (`Command.live_key`:
+   `forecast_lab.morning` for `lab open`, `forecast_lab.evening` for `lab close`). When the key is not live on the
+   replayed day in real runs, the command still runs as on the day, but its exit code does not enter the routine's
+   "failed: ..." line. Its outcome goes into REH1j's exercised line instead: "not live in real runs (exercised): lab
+   open ok" or "... lab open failed: <its last line>". The line is printed after the routine's last line and posted
+   once, labelled, to #fno-desk (REH1j's `report_exercised`, given the routine's exercised commands beside the daily
+   run's full log).
+4. **Live editions unchanged.** On 23 Oct both editions are live: nothing above applies, and a failure stays in the
+   routine's "failed: ..." line.
+
+#### Criteria (each with good, bad, boundary and empty cases, a test and a plant)
+
+- **K1. Live dates.** Under the mode on 22 Oct, `build_edition("morning")` and `("evening")` run with live date
+  22 Oct and the note "not live in real runs on 2026-10-22 (live from 2026-10-23)"; on 23 Oct (boundary: the live
+  day itself) they are unchanged with no note; with no mode, `config.yaml`'s dates and no note; a null live date gives
+  the "(live_from unset)" note. Plants: the root not taking `rehearsed_lab_live`; the boundary `<` made `<=`.
+- **K2. The note in every post.** The edition's #fno-forecast post and its #fno-desk alert (a recording poster and
+  sender through the real builders) start with the label, then the note; a live edition's posts carry no note.
+  Plant: the note not set.
+- **K3. Not a routine failure.** `rehearse morning` on 22 Oct with `lab open` exiting 1 ends "<n> commands done"
+  (code 0) and the exercised line names "lab open failed: <its last line>"; on 23 Oct the same failure is in
+  "failed: lab open". Empty: a routine with no `live_key` commands (the pre-open) is as today. Plants: the live key
+  ignored; a not-live command's failure still counted.
+- **K4. The line, once.** Printed after the routine's last line and posted once, labelled; none when every command
+  is live. Plant: posted per command.
+- **K5. Real runs unchanged.** No mode (judge 611 m2: its own test case): `rehearsed_lab_live` returns `config.yaml`'s
+  dates unchanged and no note, no `FNO_REHEARSAL_NOT_LIVE` is set, and `build_edition` gives what it gives today; the full suite passes; the grep
+  test still finds the mode only in the roots and `fno/rehearsal/`; `test_routines.py` still holds the routines'
+  commands to CLAUDE.md (`live_key` is not part of a command's words).
+
+#### Gap list (rule 2)
+
+| Requirement | Covered by | Or out of scope, with reason |
+|---|---|---|
+| The orchestrator's gap 1 (24 Oct): "`lab open`/`lab close` take the rehearsal's live date like REH1c's rehearsed_live, post labelled 'not live in real runs', exercised like REH1j's steps" | Design 1-3, K1-K4 | |
+| Owner, line 329: "Run everything including full dry run stages" | Design 1, K1 | |
+| Owner, line 322: warning, not hidden | Design 3, K3, K4 | |
+| `lab release-check` (evening) | | Not gated by a live date (it is read-only and never fails); it already runs on 22 Oct |
+| `lab preview` | | Never part of a rehearsed routine; FL1-1f's own command |
+| The morning's and evening's other commands (librarians, certify, closes read) | | Not gated by `forecast_lab.live_from`; they run as today |
+| A 22 Oct evening rehearsal reading the morning rehearsal's edition (judge 611 m1) | | Each rehearsal has its own run id and writes only under its own `dryrun/<run_id>/`; another run's folder is never read, and the real record holds no 22 Oct morning edition (live from 23 Oct). So anything a 22 Oct evening rehearsal would read of a 22 Oct morning rehearsal's output is absent, as on a day that edition never ran; each edition reads only its own run's `dryrun/` and the real record |
+
+#### Claims, code round 1 (for judge E and a second judge)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1k-lab-editions` (main merged in, REH1j included). Code:
+- `fno/forecast_lab/wiring.py`: `lab_live` (REH1c's own `rehearsed_live` on the lab's dates: no second rule);
+  `build_edition` takes the run's dates and notes its process (`note_this_process`); `build_composer` takes the dates it
+  is given (`live`), so the edition and its `CloseReport` agree; `build_preview` passes the real dates (no note).
+- `fno/rehearsal/live_wiring.py`: `note_this_process`. `fno/rehearsal/routines.py`: `Command.live_key` on `lab open`
+  (`morning`) and `lab close` (`evening`) only.
+- `fno/rehearsal/rehearse.py`: `run_routine` keeps a not-live command's outcome out of "failed" and in `exercised`
+  (refused without a record; a lone not-live command never returns its own line); `_not_live_editions` reads the
+  clone's own `config.yaml`. `fno/rehearsal/exercised_line.py`: `not_live_result`, and `report_exercised` takes the
+  routine's commands beside the daily run's full log.
+
+| Criterion | Tests | Plants (each caught by its own test) |
+|---|---|---|
+| K1 | `test_lab_editions.py`: 22 Oct both editions live with the note; 23 Oct (the live day) and no mode unchanged; a null date's note; the real `build_edition` takes the date and notes its process, both editions | the root not taking `lab_live`; `<` made `<=` |
+| K2 | the edition's labelled posts carry the note; a live edition's do not | the note not set |
+| K3 | a not-live `lab open` exiting 1: "2 commands done" and exercised; on its live day "failed: lab open"; no record refused; a lone not-live command exercised; only the lab editions name a key | the key ignored; a not-live failure counted; the routine's keys dropped; no record allowed; a lone command's own line |
+| K4 | `test_checkout.py`: through `rehearse` itself, the line after the routine's last line, posted once; the not-live set from the checkout's own config | commands not reported; editions not computed; a failed command shown ok |
+| K5 | no mode: dates unchanged, no note (judge 611 m2); full suite | as K1 |
+
+**Plants:** 11 planted, 11 caught, in a separate worktree, each restored with `git checkout --`.
+
+**Self-review** (an independent review agent on `3006d6732`): no blocking finding. Fixed: the test fixture let the
+edition's note leak into later tests of the same worker (`monkeypatch.delenv` on an unset variable records nothing;
+now set first, then deleted); a not-live command with no `exercised` record would have vanished (now refused); a lone
+not-live command would have returned its own exit (now exercised); `_not_live_editions` read the source's config,
+not the clone's (now the clone's); `lab preview` under a rehearsal would have used rehearsed dates with no note (now
+the real dates); the config-coupled test now writes its own `config.yaml`.
+
+**Found while testing, fixed here (REH1h's own test, on main):** `test_recorded_archive_wiring.py` patched the constant
+`fno.storage.wiring.MANIFEST_FOLDER`. A module first imported during that test (`fno/intraday/backfill_daily.py`,
+which imports the constant at module level) kept the patched path for the rest of the xdist worker, and a later
+`test_rehearsed_day` in that worker failed ("... is not in the subpath of ..."): 2 of 3 runs here. The test now
+patches the writers' builder `build_manifest_folder`; 5 of 5 runs pass.
+
+**Real output samples** (the orchestrator's go, 24 Oct; this branch at a63623fb7, a full clone, the token kept):
+- `rehearse morning --day 2026-10-22`, run 20261024T185957Z-f11608, branch
+  `refs/heads/rehearsal/2026-10-22-20261024T185957Z-f11608`, ended "3 commands done". `lab open` exercised, failed:
+  "lab open 2026-10-22: the morning report was not made (RuntimeError); nothing was posted". The cause, reproduced
+  in that clone: "G13b's records could not be read verified from Drive: data/price_ranges/v1/live: no receipts under
+  it". On 22 Oct at 08:38 G13b had issued nothing yet (its first issue was 22 Oct 15:45), so the edition's input did
+  not exist: an honest exercised failure, posted, not a REH1k fault. #fno-desk, read back:
+  "*DRY RUN, 2026-10-22 replay, not a real trading day*" / "not live in real runs on 2026-10-22 (live from
+  2026-10-23)" / "F&O forecast lab 2026-10-22: the morning report was not made (RuntimeError); nothing was posted";
+  and "*DRY RUN, 2026-10-22 replay, not a real trading day*" / "not live in real runs (exercised): lab open failed:
+  ...".
+- `rehearse evening --day 2026-10-22`, run 20261024T190141Z-16b951, branch
+  `refs/heads/rehearsal/2026-10-22-20261024T190141Z-16b951`, ended "7 commands done": "lab close 2026-10-22: report
+  to #fno-forecast: posted", "not live in real runs (exercised): lab close ok". #fno-forecast, read back: "*DRY RUN,
+  2026-10-22 replay, not a real trading day*" / "not live in real runs on 2026-10-22 (live from 2026-10-23)" /
+  "*Was today's forecast right?* (Thu 22 Oct, 20:05) ... :x: *NIFTY* today: no verdict. No forecast was issued for
+  today (the Wed 21 Oct 15:45 issue holds no next-session forecast for Thu 22 Oct) ..." (the same for BANKNIFTY, with
+  each one's next ranges). #fno-desk: "*DRY RUN, 2026-10-22 replay, not a real trading day*" / "not live in real runs
+  (exercised): lab close ok".
+- Every post of both runs carries the bold label; none was unlabelled.
+
+**Gates** (main merged in): 16404 passed, 14 xfailed, 0 failed; ruff, format, imports, record scan, numbers clean.
+
+#### Claims, code round 2 (judges 618 E: FAIL, 617 B: PASS with one minor; every item answered)
+
+Tests only; no code changed (`tests/rehearsal/test_lab_editions.py`).
+
+| Item | Answer | Plant (caught) |
+|---|---|---|
+| 618 SF1: no test where a not-live command exits 0 | `test_a_not_live_command_that_exits_0_is_exercised_ok_and_nothing_failed`: `lab open` exits 0 under the mode: "2 commands done", exercised `{"status": "not_live", "exercised": {"status": "ok"}}`, and `exercised_line` gives "not live in real runs (exercised): lab open ok" | E's own: `not_live_result` records exit 0 as failed |
+| 617 m1: nothing pins `build_preview`'s real dates | `test_the_preview_takes_the_real_dates_and_sets_no_note`, under the mode (22 Oct) and with no mode: the composer gets `config.yaml`'s dates (23 Oct both) | B's own: `build_composer(edition, env)` |
+| 618 m1: the preview under the mode | the same test, under the mode: the real dates, and no not-live note in the process | the preview given the rehearsal's dates; the preview noting its process |
+
+**Plants:** 4 planted, 4 caught, in a separate worktree, each restored with `git checkout --`.
