@@ -4,6 +4,8 @@ never reads candle files itself."""
 
 from __future__ import annotations
 
+import ast
+import inspect
 import shutil
 from pathlib import Path
 
@@ -22,6 +24,8 @@ from fno.forecast_v5_v1.method import (
     recorded,
     walk,
 )
+from fno.global_cues.table import BACKFILLED
+from fno.storage.wiring import CALENDAR_FILE, build_session_calendar
 
 INTRADAY = ("fno/intraday/candle_rv_table.py", "fno/intraday/rv_table.py", "fno/intraday/row_files.py")
 
@@ -34,8 +38,31 @@ def test_the_walk_reaches_the_candle_table_chain_and_v4s_forecasters():
 
 
 def test_the_shared_modules_are_listed_not_hashed():
-    assert set(recorded(ROOT, RECORD_STARTS)) == set(SHARED) == {"fno/constants.py", "fno/constants_operations.py",
-                                                  "fno/constants_channels.py", "fno/models.py"}  # fmt: skip
+    assert set(recorded(ROOT, RECORD_STARTS)) == set(SHARED)
+    assert len(SHARED) == 9  # a new entry is a judged change (judge 596 addendum 2)
+
+
+def test_w8s_reader_takes_only_the_backfilled_label_from_global_cues_and_its_value_is_pinned():
+    tree = ast.parse((ROOT / "fno/forecast_v4_rules/candle_history.py").read_text(encoding="utf-8"))
+    taken = [
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and "global_cues" in (node.module or "")
+        for alias in node.names
+    ]
+    assert taken == ["BACKFILLED"]
+    assert BACKFILLED == "backfilled"
+
+
+def test_the_session_calendar_builder_is_pinned():
+    # judge 615 m1: fno/storage/wiring.py is neither walked nor hashed (it wires the whole app); its two lines that
+    # choose G14's calendar are pinned here, so a change to them is a judged change; the class is walked
+    assert (
+        inspect.getsource(build_session_calendar).splitlines()[-1].strip()
+        == "return load_session_calendar(CALENDAR_FILE)"
+    )
+    assert CALENDAR_FILE == ROOT / "research" / "data" / "calendar" / "nse_sessions.csv"
+    assert "fno/research_data/calendar.py" in checked(ROOT, RECORD_STARTS)
 
 
 def test_the_freeze_walk_adds_the_report_side():

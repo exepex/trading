@@ -27,11 +27,19 @@ WIRING = (  # pick the reader, the folders and the inputs: hashed, their imports
     "fno/forecast_v4_rules/wiring.py",
     "fno/forecast_v4_rules/pack_wiring.py",
 )
-SHARED = (  # changed by other stories almost daily (125 commits in the 10 days to 24 Oct 2026)
+SHARED = (
+    # changed by other stories almost daily (125 commits in the 10 days to 24 Oct 2026)
     "fno/constants.py",
     "fno/constants_channels.py",
     "fno/constants_operations.py",
     "fno/models.py",
+    # reached only because W8's reader imports one label, BACKFILLED, from global_cues/table.py (judge 615 S1; 10
+    # commits in 10 days, none on G14's value path); the label's value is pinned by a test instead
+    "fno/global_cues/table.py",
+    "fno/global_cues/collection.py",
+    "fno/global_cues/source.py",
+    "fno/storage/row_log.py",
+    "fno/storage/raw_store.py",
 )
 
 

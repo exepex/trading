@@ -322,10 +322,24 @@ Deviation: the card lives in `research/ideas/` (Registration, above).
   (`fno/forecast_v4/sessions.py`, `fno/storage/trading_days.py`, and through them `fno/research_data/calendar.py`)
   is walked from `OUTSIDE_STARTS`, and v4's `wiring.py` and `pack_wiring.py` are hashed without following their
   imports, like G14's own wiring (`method.WIRING`), in both the freeze and each record's method hash.
-- **Said plainly for judge J:** G7b's reader imports `fno/global_cues/table.py`, so the walk byte-checks five global
-  cues and storage files (`global_cues/table.py`, `collection.py`, `source.py`, `storage/raw_store.py`,
-  `row_log.py`) and `research_data/calendar.py`, none hashed by v4's freeze. Fail closed, any edit to them stops
-  G14's capture until a new record; only a judged change may move one into `SHARED`.
+- `research_data/calendar.py` (the calendar class, walked) is byte-checked though v4's freeze does not hash it.
+
+### Round 2 (judge 615)
+
+- **S1, accepted** (checked: `candle_history.py:14` imports only `BACKFILLED` from `global_cues/table.py`). The five
+  files it dragged in (`global_cues/table.py`, `collection.py`, `source.py`, `storage/row_log.py`,
+  `storage/raw_store.py`) are in `SHARED` by this judged change: recorded with their SHA-256, not checked.
+  `test_w8s_reader_takes_only_the_backfilled_label_from_global_cues_and_its_value_is_pinned` fails if the reader takes
+  any other name from `global_cues` or the label stops being `"backfilled"`; `SHARED`'s size is pinned at 9.
+- **m1, covered by a test, not by the hash.** `fno/storage/wiring.py` wires the whole app (10 commits in 10 days),
+  so hashing it would stop the capture for unrelated edits. The two lines that choose G14's calendar have not changed
+  since 12 Oct (`git log -L`: `build_session_calendar` e1fd4e10d, `CALENDAR_FILE` 377d44630) and are pinned by
+  `test_the_session_calendar_builder_is_pinned` (its body returns `load_session_calendar(CALENDAR_FILE)`, the file is
+  `research/data/calendar/nse_sessions.csv`); the class `CsvSessionCalendar` is in the walked, byte-checked
+  `research_data/calendar.py`. The calendar's data file is hashed by neither freeze, as for v4.
+- **m2, accepted.** At the commit adding `FREEZE_v5_v1.md`, before pushing it, the builder runs and reports
+  `git merge-base --is-ancestor <FREEZE_v4.md's adding commit> HEAD` (exit 0), with both SHAs in the commit message;
+  the orchestrator confirms it before the merge.
 - Real output (this tree, 24 Oct): `capture` prints "nothing written: FREEZE_v5_v1.md is missing" (exit 1);
   `freeze` prints "FREEZE_v4.md is not in this tree yet" (exit 1); `report` prints the five forecasters with "not
   enough data yet" and the gap 0.962 / 0.997 / 1.009 for 19, 21 and 22 Oct.
