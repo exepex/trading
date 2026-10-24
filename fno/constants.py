@@ -332,6 +332,7 @@ CARD_NO_APPROVED_STRATEGY = "no_approved_strategy"  # no playbook version is at 
 CARD_TRADE_FIELDS_NOT_BUILT = "trade_fields_not_built"  # a version is at `paper`; card v1 has no trade fields (slice B)
 CARD_DATA_CHECK_FAILED = "data_check_failed"  # a record the status needs could not be read
 CARD_HARD_RULE_BREACH = "hard_rule_breach"  # T2: C4 refused a book's proposed trade today (its committed rows)
+CARD_STEP_PROBLEMS = "step_problems"  # T1e: a desk step failed or was refused today (O1's `problem_steps`)
 CARDS_AREA = "cards"  # Drive area of the card records (beside raw/ and pipeline/); never the public repository
 PAPER_AREA = "paper"  # Drive area of the private paper records: accounts, desk records, private packs (story E2c)
 DAILY_TOTALS_FILE = "daily_totals.csv"  # journal/<book>/daily_totals.csv: the public per-book daily totals (story E2c)
