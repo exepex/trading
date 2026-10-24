@@ -62,6 +62,7 @@ DAILY_RUN_STEPS = (
     "margin_check",
     "weather",
     "forecasts_v4",
+    "forecasts_v5_v1",  # story G14: v4's V1 forecasters on the candle history, the same 14:30 cutoff (about 14:12)
     V4_RELEASE_STEP,  # G10 completion: after the `v4` part's capture ends (by 14:45), before E3's pack (14:58)
     V4_PACK_FORECASTS_STEP,  # G7b completion: the pack-derived v4 rows, after the release, committed before 15:10
     *DESK_RUN_STEPS[:2],

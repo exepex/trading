@@ -210,6 +210,9 @@ daily:
     margin_check: null  # A14c's `margins stress-broker-check`: set when its code lands
     weather: "2026-10-22"  # owner, 21 Oct 2026 (response 299 item 15): on before the v4 freeze, routine at 14:05
     forecasts_v4: "2026-10-22"  # the same; G7's rule forecasts, uncounted until the day after `Frozen on:`
+    # G14: v4's V1 forecasters on the candle history (a measurement); null until FREEZE_v5_v1.md is on main, then the
+    # first NSE session after this step's merge day (story G14, amendment 1 section 4)
+    forecasts_v5_v1: null
     # G11: the AI books' own v4 go-live (the v4 AI fire runs and the v2 AI fire stops from it), never forecasts_v4's
     # date; null until the v4 freeze, the AI slots' registration and the routines' steps 3-4 (F1-G5-owner-checklist.md)
     ai_books_v4: null

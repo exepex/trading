@@ -28,6 +28,8 @@ from .runner import DayRunner
 V4_RECORDS = "research/forecasts/v4/"  # G7's rows and M1's weather records (`fno/forecast_v4_rules/wiring.py`)
 WEATHER = ("weather", "capture")  # today only, before its cutoff
 FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
+FORECASTS_V5_V1 = ("forecast-v5-v1", "capture")  # G14: today only, before 14:30, frozen only; exit 1 on refusal
+V5_V1_RECORDS = "research/forecasts/v5/v1_candle/"  # G14's rows (`fno/forecast_v5_v1/wiring.py`, RECORDS_FOLDER)
 FORECASTS_V4_PACK = ("forecast-v4", "capture-pack")  # G7b completion: today's pack-derived rows, by 15:10
 # G7b completion's Drive folders, whose receipts its step commits
 PACK_RECORD_FOLDERS = ("v4/records/live", "v4/terms", "v4/ratios", "v4/outcomes", "v4/diagnostics")
@@ -37,9 +39,9 @@ MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file 
 SCHOOL_STARTS_BY = time_of_day(15, 25)  # MS-P1j2: 5 minutes before law 6's close; a run takes ~2-4 (reasoning only)
 SCHOOL_NOT_RETRIED = "; " + RERUN_FINAL.format(why="a later run never decides the session's paper trades")
 FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
-LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, V4_PACK_FORECASTS_STEP, "card",
-              OWNER_TIMING_STEP, "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges",
-              "price_range_scores", "premium_range_scores", "close_read", "close_recheck")  # fmt: skip
+LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "forecasts_v5_v1", V4_PACK_LIVE_KEY, V4_PACK_FORECASTS_STEP,
+              "card", OWNER_TIMING_STEP, "price_distribution", "premium_ranges", "price_distribution_scores",
+              "price_ranges", "price_range_scores", "premium_range_scores", "close_read", "close_recheck")  # fmt: skip
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
 PREMIUM_SCORES = ("premrange", "score")  # G13d: every issue whose next session has passed, and the seals
 
@@ -148,6 +150,11 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         "forecasts_v4": Alerted(
             "forecasts_v4", LiveFrom(command(lambda day: FORECASTS_V4, V4_RECORDS), live["forecasts_v4"]), alerts
         ),  # fmt: skip
+        "forecasts_v5_v1": Alerted(
+            "forecasts_v5_v1",
+            LiveFrom(command(lambda day: FORECASTS_V5_V1, V5_V1_RECORDS), live["forecasts_v5_v1"]),
+            alerts,
+        ),  # G14: its own records only
         V4_PACK_FORECASTS_STEP: Alerted(
             V4_PACK_FORECASTS_STEP,
             LiveFrom(

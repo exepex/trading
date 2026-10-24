@@ -62,6 +62,7 @@ def day(root, tmp_path, alerts):
                 "margin_check": RecordedStep("margin_check", calls),
                 "weather": RecordedStep("weather", calls),
                 "forecasts_v4": RecordedStep("forecasts_v4", calls),
+                "forecasts_v5_v1": RecordedStep("forecasts_v5_v1", calls),
                 "v4_release": RecordedStep("v4_release", calls),
                 "forecasts_v4_pack": RecordedStep("forecasts_v4_pack", calls),
                 "quotes": StartQuoteParts(parts),
@@ -96,8 +97,8 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
     log = run.run(NORMAL)  # a rerun the same day repeats nothing (criterion 3)
     assert (code, line) == (0, DAY_DONE)
     assert tuple(log.steps) == DAILY_RUN_STEPS and calls == [
-        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "v4_release", "forecasts_v4_pack", "book1",
-        "reviews", "card",
+        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "forecasts_v5_v1", "v4_release",
+        "forecasts_v4_pack", "book1", "reviews", "card",
         "price_distribution", "premium_ranges", "school", "price_distribution_scores", "price_ranges",
         "price_range_scores", "premium_range_scores", "v4_deadline", "candles", "close_read", "close_recheck",
     ]  # fmt: skip
@@ -196,8 +197,8 @@ def test_a_rerun_skips_every_recorded_step_and_takes_the_parts_the_killed_run_re
     again, rerun, _, new_parts, _, new_calls = day(recorded=recorded, files={})
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
-    assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "v4_release", "forecasts_v4_pack",
-                     "book1", "reviews"]  # fmt: skip
+    assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "forecasts_v5_v1", "v4_release",
+                     "forecasts_v4_pack", "book1", "reviews"]  # fmt: skip
     assert new_calls == ["card", "price_distribution", "premium_ranges", "school", "price_distribution_scores",
                          "price_ranges", "price_range_scores", "premium_range_scores", "v4_deadline", "candles",
                          "close_read", "close_recheck"]  # fmt: skip
