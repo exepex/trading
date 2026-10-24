@@ -2367,8 +2367,8 @@ stays null.
   15:09:59, 15:10:00, 15:10:01 (`test_v4s_deadline_is_g10s_receipt_rule`). It is not the same function because
   F1/G5's judging chain takes one `RunTerms` for both protocols (v2's deadline is not G10's), so the rule stays in
   the terms and the pin proves the two agree (judge 586 m3 corrected the earlier reason; ruled the pin enough).
-- C11 `v4_collect.py`, `v4_settle.py`; `test_v4_collect.py`; plants: never-fired day skipped, no catch-up, lost log
-  as `not_fired`, no too-early check, no containment.
+- C11 `v4_collect.py`, `v4_settle.py`; `test_v4_collect.py`, `test_v4_collect_log.py`; plants: never-fired day
+  skipped, no catch-up, lost log as `not_fired`, no too-early check, no containment.
 - C12 `run_terms.py`, `stop_rule.py`, `audit_plan.py`, `transcript_audit.py`, `scoring_gate.py`, `cli.py`;
   `test_v4_round_2c.py`, `test_v4_wiring.py`; plants: gate, stop rule, fire-log shape, settler glob, v4 weeks
   dropped, audits-due v2 only.
