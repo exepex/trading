@@ -11,6 +11,7 @@ from datetime import date
 
 from ...constants import V1_RV_1S, V2_RV_5S, V3_RV_20S, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S, V7_VIX_UP_5S
 from ...forecast_v4.terms import HORIZON_SESSIONS
+from ...forecast_v4_rules.intraday_series import INTRADAY_SERIES, intraday_horizon_sum
 from .inputs import Outcome, V4OutcomeSource
 
 VIX_MISSING = "VIX close missing for {day}{more}: fill it via O6 (no v4 report until then)"
@@ -65,7 +66,7 @@ class SeriesOutcomes(V4OutcomeSource):
         }
 
     def _values(self, question: str, sessions) -> dict[date, tuple[object, bool]]:
-        days, horizon = [s[0] for s in sessions], HORIZON_SESSIONS[question]
+        days, horizon = [s[0] for s in sessions], HORIZON_SESSIONS[INTRADAY_SERIES.get(question, question)]
         found: dict[date, tuple[object, bool]] = {}
         if question in (V6_BIG_MOVE_1S, V6_BIG_MOVE_5S, V7_VIX_UP_5S):
             outcomes = self._binary(question)
@@ -78,6 +79,8 @@ class SeriesOutcomes(V4OutcomeSource):
             elif question == V1_RV_1S and ahead[0] in intraday:
                 void = intraday[ahead[0]] is None
                 found[day] = (VOID_PLACEHOLDER if void else intraday[ahead[0]], void)
+            elif question in INTRADAY_SERIES and (summed := intraday_horizon_sum(intraday, ahead)) is not None:
+                found[day] = (VOID_PLACEHOLDER if summed[1] else summed[0], summed[1])
         return found
 
     def _binary(self, question: str) -> dict[date, bool]:

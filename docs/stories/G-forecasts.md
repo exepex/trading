@@ -1111,6 +1111,27 @@ they found and what was fixed or why not.
   `C_e` 7, IV 13.80%, 13.567% on the session clock.
 - **Gates:** see the commit message.
 
+### Claims, build step 4: part f (V2 and V3 intraday series) and part e's first piece (no "not started")
+
+- **Code:** `fno/forecast_v4_rules/intraday_series.py` (the series keys `<question>/intraday` and the sum rule: a void
+  session voids, a missing row leaves the day unresolved). **Changed from this text:** the rule sits in its own module,
+  not in `series.py`, because `series.py` is a phase-1 method file and editing it would force a regeneration of 9,636
+  committed rows with no value changed. G8: `outcomes.py` forms the series outcome from that rule (and A16's live rows
+  only, through `G7Series.intraday_rv`); `scoring.py` reports each series as its own key, scoring V2's (V3's) forecaster
+  rows against it with V2's primary baseline, loss and block, a seed word of its own (after 15), never a member;
+  `NOT_STARTED` is removed: V4 and V5 read "not enough data yet" until they have rows.
+- **Lane-1 test edit, said plainly:** `tests/forecast_scoring_v4/test_records_and_report.py` expected "not started"
+  for V5; it now expects "not enough data yet" and checks part f's key too. No other G8 test changed.
+- **Tests:** `test_v4rules_intraday_series.py` (5: good, void, boundary, empty, keys), `test_intraday_series_report.py`
+  (5: the first full live window starts the series, void and unresolved days, the close-proxy series unchanged, V2's
+  rows scored apart and never pooled, never a member, the report's actual seed captured).
+- **Plants (4 + 1 equivalent):** a void session skipped: caught; the series' horizon taken as 1: caught; the series
+  seeded with V2's word: caught (after a capturing test was added); **equivalent:** the series given V2's slot (its key
+  is never in the family, so `seed_word` returns the same number).
+- **Not yet (part e, after the live capture writes them):** V4's and V5's outcome sources from their Drive terms and
+  outcome records, the Drive record reader with its duplicate-day stop, the proxy-drift line, the V4 and V5 labels.
+- **Gates:** see the commit message.
+
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
 premium ratio is fitted on the EOD proxy and applied to the 14:30 pack's IV30 (the mismatch is the drift criterion 14
