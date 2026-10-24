@@ -790,6 +790,86 @@ past its last read (09:10:45): one read, `failed`. The outcome on 23 Oct is the 
 its window), but a forward wait in one part can take another part's window in the same rehearsal; a real run's reads
 never wait. Out of REH1l's scope (its text did not cover the run's order); a follow-up is proposed to the orchestrator.
 
+### REH1n: a quote capture that did not exist on the replayed day is not a part of it (story text first)
+
+Lane 1 (it changes what `fno/quotes/` treats as a good result, and what a rehearsal records and posts): two judges.
+Builder session_01GAACYjcfHWkC3hp33iiMXV, branch `story/reh1n-new-quote-parts`. Ordered by the orchestrator on 24 Oct
+from tonight's dry runs ("write REH1n's text now ... with the exercised-line plumbing ... state the one wrong case
+plainly").
+
+#### Finding (strong evidence: reproduced, and seen on two replayed days)
+
+- `daily run --rehearse --day 2026-10-21` (the orchestrator's run 20261024T220648Z-e86e9a) and `--day 2026-10-19`
+  (run 20261024T221832Z-d53c4f) both end "day done with problems: quotes_done": the `indices` part fails
+  (`command:exit_1`). The real runs of both days recorded every part (`journal/runs/2026-10-19.json` and
+  `2026-10-21.json`: BANKNIFTY, FINNIFTY and MIDCPNIFTY complete).
+- Reproduced alone: `quotes record-indices` under the mode for 21 Oct, replay clock at 15:00:50, prints "NIFTY weekly
+  window closed: - (0 contracts, complete=False) - rehearsal: no recorded in-window attempt of niftyweekly on
+  2026-10-21, canonical none", alerts, and exits 1.
+- The cause: A4f added NIFTY's weeklies to `record-indices` (fe89e640b, on `main` 21 Oct 22:25 UTC, which is 22 Oct
+  03:55 IST); the record's first `niftyweekly` marker is `niftyweekly_20261022.canonical`. A rehearsal runs today's
+  code, so it asks for a capture the replayed day never made. `RecordedRecorder.attempt_now`
+  (`fno/rehearsal/recorded_quotes.py`) finds no attempt and answers "window closed", which is not one of
+  `fno/quotes/indices.py`'s `QUIET_STATUSES`: `indices_cli` counts it missing (one alert, exit 1), and `closes_none`
+  writes a "none" marker (under the rehearsal only: the 19 Oct branch holds `niftyweekly_20261019.canonical`).
+- The weekly lives inside the `indices` part (one process, no live key), so REH1j's `ExercisedPartsApart` cannot set
+  it apart.
+- The same happens to `quotes_done`'s `v4` part on every day before A4e's first `v4` capture: already apart (its live
+  key `v4_pack` is not live), but posted as "failed: window closed".
+
+#### Design
+
+1. **The rule (rehearsal only).** A capture's stem (`niftyweekly`, `banknifty`, the `v4` dataset's `nifty`, ...) is
+   "not a part of the day" on the replayed day D when the real record (`mode.record`, never the rehearsal's own store)
+   holds no canonical marker of that stem in that dataset on or before D. The rule never reads a day after D: no
+   look-ahead.
+2. **Where.** `RecordedRecorder.record` and `RecordedRecorder.attempt_now`, before any wait: such a stem answers
+   `RecordResult(NOT_A_PART, reason="rehearsal: <stem> not recorded on or before <D>")` and writes nothing (no file,
+   no sidecar, no "none" marker). A stem with an earlier marker, or a marker on D, is served as today.
+   `capture` (the desk's 15:15 execution read, NIFTY only) is unchanged: NIFTY's monthly stem is in the record on
+   every replayable day.
+3. **The real code accepts it as quiet.** `NOT_A_PART = "not a part of the day"` is a named constant in
+   `fno/quotes/recorder.py` beside `NOT_LISTED`; it joins `fno/quotes/indices.py`'s `QUIET_STATUSES` (so it is in
+   `DONE_WITHOUT_ATTEMPT`: never closed "none", never alerted, never an exit 1) and `fno/quotes/cli.py`'s
+   `GOOD_STATUSES` (`quotes record` exits 0). A real recorder never returns it, so a real run is unchanged.
+4. **Said once, in the exercised line** (the orchestrator's ask): each part line carrying the status becomes one item
+   of REH1j's line, e.g. "quotes_done's indices part: NIFTY weekly not a part of 2026-10-21", read from the full
+   log's part `lines` (live and exercised parts alike) through the one status constant. The part's own line stays as
+   printed: "NIFTY weekly not a part of the day: - (0 contracts, complete=False) - rehearsal: niftyweekly not
+   recorded on or before 2026-10-21".
+
+**The one wrong case, plainly.** A capture that existed on D but whose run crashed before writing anything (no
+sidecar, no marker), and had never recorded before D, reads here as "not a part of the day" instead of a failure. It
+can only be a capture's very first day; the real day's own run log already records that failure, and the rehearsal
+replays the record, not the crash. Every later day of a capture keeps the real rule: A4 and A4c always leave a marker
+(recorded or "none"), so a day with no marker after an earlier one is still a failure.
+
+#### Criteria (each with good, bad, boundary and empty cases, a test and a plant)
+
+- **N1. A capture not yet in the record is not a part.** 21 Oct under the mode: `record-indices` prints the three
+  indices as recorded and "NIFTY weekly not a part of the day: ...", exits 0, posts no alert, writes no
+  `niftyweekly` file or marker. Plant: the rule dropped (the weekly back to "window closed").
+- **N2. Boundary: the first day.** 22 Oct (the weekly's first marker is on D itself): served as today. Plant: "before D"
+  made "on or before D-1 only" (on D) or "any day" (look-ahead: a 21 Oct replay must not see 22 Oct's marker).
+- **N3. Bad: a known capture that recorded nothing stays a failure.** A stem with a marker on an earlier day and none
+  on D (a planted record): "window closed", alerted, exit 1, as today. Plant: the rule keyed on "no marker on D".
+- **N4. Real runs unchanged.** No mode: the real recorder; `NOT_A_PART` is never returned; the quiet sets only gain
+  a status nobody real produces; the full suite passes. Plant: `NOT_A_PART` left out of `QUIET_STATUSES` (N1 fails)
+  or out of `GOOD_STATUSES` (`quotes record` exits 1 for a `v4` replay before A4e).
+- **N5. Said once.** The 21 Oct replay's exercised line holds "quotes_done's indices part: NIFTY weekly not a part of
+  2026-10-21" once, posted labelled; `quotes_done` is ok when every other part is. Empty: a day with every capture
+  in the record has no such item. Plant: the item not collected.
+
+#### Gap list (rule 2)
+
+| Requirement (the orchestrator, 24 Oct) | Covered by | Or out of scope, with reason |
+|---|---|---|
+| "a part that did not exist on the replayed day is exercised, never a failure of that day" | Design 1-3, N1, N2 | |
+| "with the exercised-line plumbing" | Design 4, N5 | |
+| "state the one wrong case plainly" | "The one wrong case" | |
+| The `v4` part posted "failed" before A4e | Design 1 (same rule) | |
+| G13's issuers refusing themselves in a rehearsal (finding 2) | | REH1o, proposed to the orchestrator |
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
