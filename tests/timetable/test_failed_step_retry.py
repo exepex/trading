@@ -1,15 +1,15 @@
 """DRY2 SF1 (orchestrator, 24 Oct 06:24): a desk step failed by an unexpected error is recorded failed and retried by a
-same-day rerun when it is safe to repeat; the retry doubles no fill, exit or ledger row, and a step that finished is
-never repeated. Judge 570 minor 2: a fills step failed after N trades says those trades stay in the account."""
+same-day rerun when it is safe to repeat (the exits and the marks; never the fills, owner 24 Oct: see
+test_fills_final.py); the retry doubles no fill, exit or ledger row, and a step that finished is never repeated."""
 
 from datetime import date, timedelta
 
 import pytest
 
 from fno.books.account import PaperAccount
-from fno.constants import BOOK1_RULES, BOOK2_HYBRID, OUTCOME_CLOSED, OUTCOME_OPENED, STEP_FAILED
+from fno.constants import BOOK1_RULES, BOOK2_HYBRID, OUTCOME_CLOSED, STEP_FAILED
 from fno.desk.daily_ports import CommitFailed
-from fno.desk.daily_run import RERUN_RETRIES, WRITTEN, RunStopped
+from fno.desk.daily_run import RERUN_RETRIES, RunStopped
 from fno.desk.exit_rules import TimeExit
 from fno.desk.run_log import RETRY
 
@@ -97,28 +97,6 @@ class FailingSync(LocalSync):
         if book == self.book:
             raise TimeoutError("planted: the Drive read timed out")
         return super().write(book, apply, message)
-
-
-@pytest.mark.parametrize(("failing", "written"), [(BOOK1_RULES, 0), (BOOK2_HYBRID, 1)])
-def test_a_rerun_after_a_fills_failure_fills_the_rest_and_never_doubles_a_trade(root, tmp_path, alerts, failing,
-                                                                               written):  # fmt: skip
-    books = (BOOK1_RULES, BOOK2_HYBRID)
-    run, clock, *_ = trade_open_on_normal(root, tmp_path, alerts, books)
-    real = run.steps.sync
-    run.steps.sync = FailingSync(root, failing)
-    log = run_day(run, clock, NORMAL)
-    assert log.result("fills") == {"status": STEP_FAILED, "reason": TIMEOUT, RETRY: True}
-    alert = next(t for t in alerts.sent if "step fills FAILED" in t)
-    assert (WRITTEN.format(count=written) in alert) is bool(written) and alert.endswith(RERUN_RETRIES)
-    before = {book: (fills(root, book), ledger(root, book)) for book in books}
-
-    run.steps.sync = real
-    log = run.run(NORMAL)
-    assert log.result("fills")["t1"]["outcome"] == log.result("fills")["b1"]["outcome"] == OUTCOME_OPENED
-    if written:  # book 1's trade, written before the error, is replayed: no fill and no ledger row twice
-        assert (fills(root, BOOK1_RULES), ledger(root, BOOK1_RULES)) == before[BOOK1_RULES]
-    assert all(len({r["fill_id"] for r in fills(root, b)}) == len(fills(root, b)) for b in books)
-    assert len(fills(root, failing)) > len(before[failing][0])
 
 
 def test_a_failed_marking_is_retried_once_and_nothing_else_repeats(root, tmp_path, alerts):

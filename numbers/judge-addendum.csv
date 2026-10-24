@@ -710,3 +710,14 @@ number,name,session,claimed_at_utc
 568.1,a4c2-text-r2,session_01QLDqmpqUA7gAi7vcijnj5Y,2026-10-24T06:30:15Z
 569.1,o1-r2-pending,session_01YEVAEMygZa9VgBATxsZrXQ,2026-10-24T06:45:36Z
 570.1,o1-r1r2-round2-pending,session_01HkXMVPDEqVsmJZtghFrGzM,2026-10-24T06:46:23Z
+571.1,a4c2-code-round2,session_01Mt6dcBU5kp2htdPN2KmiZH,2026-10-24T09:49:17Z
+569.2,o1-r1r2-round2,session_01Mt6dcBU5kp2htdPN2KmiZH,2026-10-24T09:53:39Z
+570.2,o1-r1r2-round2-retry,session_01Mt6dcBU5kp2htdPN2KmiZH,2026-10-24T09:56:22Z
+572.1,reh1g-round2-b,session_01A5eN1mc54x9Db1TjJssgYr,2026-10-24T10:44:20Z
+573.1,reh1h-text-round2-b,session_01A5eN1mc54x9Db1TjJssgYr,2026-10-24T10:44:26Z
+574.1,reh1g-round2-e,session_01Sp5rJyPberRttZaJ4WwW26,2026-10-24T10:45:33Z
+575.1,reh1h-text-round2-e,session_01Sp5rJyPberRttZaJ4WwW26,2026-10-24T10:45:38Z
+571.2,a4c2-recheck-own-session,session_01A8XfbTUVgeeEpqatHaWbtP,2026-10-24T10:49:33Z
+576.1,t1d-code-own-session-recheck,session_01CHtddAzFcEdQh4HFiz3mqU,2026-10-24T10:51:17Z
+579.1,g11-delta-a3de25b,session_013gvtjtZJEjpki7qkbzU5kK,2026-10-24T10:57:31Z
+577.1,t1e-text-round-2,session_01CHtddAzFcEdQh4HFiz3mqU,2026-10-24T11:02:40Z

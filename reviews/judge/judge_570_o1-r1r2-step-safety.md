@@ -80,3 +80,64 @@
      - The builder says T1d fixes the card's reader and merges together with R2. Do not merge R2 without
        T1d.
 - REH1g has not reached me.
+
+## Addendum 2
+
+- **Head:** 2c80be430 (story/o1-r1r2-step-safety-b), a re-check of my round-2 PASS at f0bb2aa9c. Judge E
+  (session_01Mt6dcBU5kp2htdPN2KmiZH), lane 1, money path. Rounds are spent, so a finding goes to the owner.
+- **Verdict: FAIL, 1 should-fix.** No double was found. The should-fix is a timing gap in the fills retry.
+- **Gates (2c80be430 merged with main b0fa95235, code-identical to main 69446b2a2):**
+  - ruff check, ruff format --check, check_imports and check_records: clean.
+  - pytest -n auto: 15,149 passed, 1 failed. The failure is `test_a_live_holder_keeps_its_lock_after_its_lease_expires`,
+    a lock-lease timing test, run while 3 other suites shared 4 CPUs. Alone it passed 3 of 3. The delta touches no
+    file under fno/books.
+
+### Criteria
+| Item | Result | Evidence |
+|---|---|---|
+| Retry of a failed fills, exits or marks step, and only those | MET | `done()` and `record()` (run_log.py:41-52); `RETRY: true` survives the public log. I ran `PublicResult` myself: `{'status': 'failed', 'reason': 'raised:TimeoutError', 'retry': True}`. Plants J2, J3, J4, J13 and J14 caught. |
+| Nothing doubled | MET | Probe: a write cut between legs, then a retry: 4 fills, opening plus 4 ledger rows, one `opened` event. A ledger fill without its desk row gets stuck (IndexError on every retry), but nothing doubles. A failed account commit stays `CommitFailed` and stops the run (J5 caught). |
+| A final step never reruns | MET | A refused step, a command step (no key) and `retry: false` all count as `done`. J3 and J13 caught. |
+| Same snapshot on a retry | MET | Only the snapshot step writes capture records (`records_folder` grep), and it is never retried. The gate's window uses the capture's own times (snapshot_checks.py:30). |
+| Same-day guard, health line, input problem refuses the fills | MET | J1, J8, J7 and J12 caught. |
+| My minor 1 (NEEDS pin) and minor 2 (written count) | MET | J10 and J11 caught. |
+
+### Findings
+1. **Should fix: a retried fills step can open new risk hours after the fills window.**
+   - The fills plan's moment is `execution_snapshot`, so `waiter.until` on a past time returns at once.
+   - Nothing compares the clock with `fills_by` (15:20). `check_point_in_time` refuses only a snapshot that
+     finished after now.
+   - Probe: fills failed in run 1; a rerun at 21:00 opened t1 at the 15:15 snapshot (`exec_20261014_151500`).
+   - In practice every same-day rerun comes after the close. The day lock makes a second run in the same container
+     do nothing, and the first run lasts until A4h's 16:00 recheck.
+   - So whether a paper entry exists is decided by a person who has seen the move after 15:15. That is a
+     hindsight option in the record that decides whether real money is used.
+   - The design says "fills and exits finish by `fills_by`" (config.yaml:159).
+   - Fix expected: retry the fills only while the clock is within the fills window. After it, the fills stay
+     failed with that reason in the alert. Or the owner rules, in their own words, that late fills are accepted, and
+     each such fill is flagged.
+   - Exits and marks can stay retryable. They are risk-reducing or replace the day's own rows.
+
+### Minor (not blocking)
+- **J6 survives:** `written = len(result)` passes every test. A blocked or "not filled" entry would then be
+  counted in the alert. Add one case with a blocked book.
+
+### The builder's four open points
+1. **Per-book exit errors are never retried:** an acceptable stated limit. It fails closed: `_unreviewed` blocks that
+   book the next session, and its due exits wait one day. Also, the per-book `except Exception` in `review_exits`
+   catches `CommitFailed` too. That predates this delta. Note only.
+2. **Marks and the card are not rerun after a retried fill:** acceptable. Today's equity row is consistent as of
+   before the trade. The list should also name the exits: a trade opened in a retry gets no exit review that day.
+3. **The selection risk of a manual rerun:** this is finding 1 above, not a stated limit. The same risk already
+   exists for a fills rerun after `RunStopped` (decision 47, before this delta). The same bound should cover it.
+4. **The shared-scratchpad restore:** no effect on the SHA judged. I judged clean detached worktrees of the pushed
+   commits, read the whole fno/ delta (no leftover plant) and ran my own plants. Each was restored with
+   `git checkout --` and `git status` came back clean.
+
+### Plants: 14 planted, 13 caught, 1 survived (J6, minor). 3 probes run (mid-trade cut, cut inside record_fill, 21:00 rerun).
+
+### T1d merge order
+- The trial merge used T1d at 5cbd3c4c7, which already contains 2c80be430, with main merged in.
+- tests/daily, timetable, desk, scoreboard and cards: 633 passed.
+- At 2c80be430 alone, `fno/cards/rule_checks.py:97` still reads a failed decisions result as books.
+- So my condition stands: merge R2 only together with T1d, after T1d's own PASS.

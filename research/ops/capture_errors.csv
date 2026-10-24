@@ -35,3 +35,4 @@ date,job,step,kind,message,run_url
 2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942043789
 2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942032537
 2026-10-23,data-checks,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/39942019512
+2026-10-24,index-closes,closes / Commit the closes,failure,closes / Commit the closes: failure,https://github.com/exepex/trading/actions/runs/40087915710

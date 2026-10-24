@@ -39,6 +39,10 @@ FILL_REASONS = (
     ("c4:NOT_RUN", recorded_c4.NOT_RUN),
     ("c4:FAILED", recorded_c4.FAILED),
     ("owner_timing:HANDED_OVER", pending_entries.HANDED_OVER),
+    ("desk:FILLS_LATE", daily_run.FILLS_LATE),  # owner, 24 Oct: no fills by a rerun after fills_by
+    ("desk:NEEDS_FAILED", daily_run.NEEDS_FAILED),
+    ("desk:NEEDS_MISSING", daily_run.NEEDS_MISSING),
+    ("desk:NEEDS_REFUSED", daily_run.NEEDS_REFUSED),
 )
 OWNER_TIMING = (
     ("owner_timing:APPLIED", owner_timing.APPLIED),
