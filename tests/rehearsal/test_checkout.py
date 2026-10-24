@@ -166,3 +166,27 @@ def test_a_step_s_commit_through_the_rehearsal_s_env_carries_the_replay_date(sou
                    guard=lambda env, cwd: [])  # fmt: skip
     committed = datetime.fromisoformat(dates[0])
     assert abs((committed - START).total_seconds()) < 120  # the replay time, not today's
+
+
+def test_a_routine_s_receipts_commit_carries_the_replay_date(source, tmp_path):
+    """Judge 564 F2: the receipts commit `rehearse` makes after the routine's commands goes through the rehearsal's
+    git too, so it is dated at the routine's replayed time (19:53 IST on the day), never the wall clock's."""
+    from fno.rehearsal.rehearse import rehearse
+    from fno.rehearsal.routines import ROUTINES
+
+    repo, github = source
+    evening = ROUTINES["evening"]
+
+    def commands(clone, routine, day, env, out):
+        folder = clone / evening.receipts[0]
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "edition.sha256").write_text("x")
+        return 0, "1 commands done"
+
+    rehearse(evening, DAY, repo, [].append, tmp_path / "home", is_session=lambda d: True, run_child=commands,
+             guard=lambda env, cwd: [])  # fmt: skip
+    ref = [r for r in refs(github) if r.startswith("refs/heads/rehearsal/")][0]
+    subject, when = git(github, "log", "-1", "--format=%s%n%cI", ref).splitlines()
+    assert subject == "Rehearsal evening 2026-10-23: the routine's receipts"
+    start = datetime.combine(DAY, evening.start, IST)
+    assert abs((datetime.fromisoformat(when) - start).total_seconds()) < 120  # the replay time, not today's

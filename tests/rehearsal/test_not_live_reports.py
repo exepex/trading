@@ -45,3 +45,17 @@ def test_each_post_of_such_a_step_carries_the_line_and_only_while_it_runs():
     assert step.seen == f"*DRY RUN*\n{NOT_LIVE_UNSET}\nthe card"
     assert ENV_FNO_REHEARSAL_NOT_LIVE not in os.environ
     assert labelled("*DRY RUN*", "an alert") == "*DRY RUN*\nan alert"
+
+
+def test_the_daily_run_wraps_every_step_not_live_on_the_replayed_day_with_its_note(monkeypatch, tmp_path):
+    """Judge 564 F1: the daily run's composition root is what makes these steps run; dropping its one line must fail."""
+    from fno.config import load_app_config
+    from fno.daily import wiring
+
+    monkeypatch.setenv(ENV_FNO_REHEARSAL, env(tmp_path)[ENV_FNO_REHEARSAL])
+    monkeypatch.setenv("FNO_SLACK_BOT_TOKEN", "xoxb-test")
+    cfg = load_app_config()
+    _, notes = rehearsed_live(wiring.live_dates(cfg))
+    steps = wiring.build_day_runner(cfg, sleep=lambda seconds: None).daily_run.day_steps
+    wrapped = {name: step.note for name, step in steps.items() if isinstance(step, NotLiveInRealRuns)}
+    assert "card" in notes and wrapped == notes

@@ -516,3 +516,14 @@ now, once the replay clock reaches that time, read from the real record:
   through `build_nse_source` under the mode and pins `rehearsal:NOT_RECORDED`, with no request made.
 - **The conflict with main** in `fno/close_read/wiring.py` is resolved by keeping both sides: main's
   `build_stored_index_close_files` and REH1b's `rehearsed_close_list`.
+
+### REH1c round 2 (judge 564, judge E's part)
+
+- **F1, the not-live wrap pinned at its composition root.** `test_the_daily_run_wraps_every_step_not_live_on_the_
+  replayed_day_with_its_note` builds the real `build_day_runner` with the mode set, then checks that every step not
+  live on the replayed day is a `NotLiveInRealRuns` carrying its note, and only those. The card must be among them,
+  so the test cannot pass on an empty set. Plant (`steps = rehearsed_not_live(...)` replaced by `pass`): it fails.
+- **F2, the receipts commit dated by the replay clock.** `test_a_routine_s_receipts_commit_carries_the_replay_date`
+  rehearses the evening on a real repository and finds its receipts commit on the published rehearsal branch. The
+  commit must be dated within 2 minutes of 19:53 IST on the day. Plant (`commit_receipts`' git with `env=None`, past
+  the shim): it fails.
