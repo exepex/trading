@@ -5,7 +5,6 @@ stays out). Owner rule (15 Oct 2026, "4 A"): a missing or unscored reading block
 from __future__ import annotations
 
 import json
-import math
 from collections.abc import Callable
 from datetime import date
 
@@ -91,7 +90,7 @@ def _chances(record: dict) -> dict[str, str] | None:
 
 
 def _is_chance(value) -> bool:
-    return isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 1
+    return isinstance(value, int | float) and not isinstance(value, bool) and 0 <= value <= 1  # NaN and inf fail it
 
 
 def _scored_lines(record: dict, chances: dict[str, str]) -> tuple[str, ...]:

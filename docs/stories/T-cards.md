@@ -368,11 +368,12 @@ Out:
 - **Intraday colours:** LM1 and M1's intraday rule.
 
 **Design:** the card's lines, by the day's record (constants at the top of the module):
-1. **No record, an unreadable file, a record whose `day` is not the card's day, or a record that is not `live`**
-   (the not-live line names the label):
+1. **No record, an unreadable file, or a record whose `day` is not the card's day:**
    - "Weather: no reading for <d>";
    - "No new trades while the weather reading is missing (owner rule).";
    - missing: "weather record for <d>".
+   A record that is not `live` gives "Weather: no live reading for <d> (the record is <label>, not today's weather)",
+   the same "no new trades" line and missing "live weather record for <d>" (criterion 5).
 2. **`colour` "not scored", or `status` other than "scored":** (M1 writes `status` as "scored" or
    "not scored: <what is missing>", `fno/weather/day.py`)
    - "Weather: not scored for <d> (<what is missing>)";
@@ -441,4 +442,4 @@ string is M1's `WeatherColour.NOT_SCORED`, imported from `fno/weather/constants.
 - `status` is exactly "scored" or "not scored: ...";
 - they will warn T1c's owner before any move of these records to Drive (O9).
 
-**Depends:** T1, M1 · **Size:** S · **Status:** story text, waiting for the judge (Judge E)
+**Depends:** T1, M1 · **Size:** S · **Status:** done: text judge 401 PASS, code judge 555 PASS (e30ab3d0)
