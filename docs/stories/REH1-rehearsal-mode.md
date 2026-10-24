@@ -790,6 +790,50 @@ past its last read (09:10:45): one read, `failed`. The outcome on 23 Oct is the 
 its window), but a forward wait in one part can take another part's window in the same rehearsal; a real run's reads
 never wait. Out of REH1l's scope (its text did not cover the run's order); a follow-up is proposed to the orchestrator.
 
+### REH1o: G13's issuers take the rehearsed live date (story and code in one round)
+
+Lane 1 (it changes what a rehearsal issues): two judges, one round. Builder session_01GAACYjcfHWkC3hp33iiMXV, branch
+`story/reh1o-issuer-live-dates`. The orchestrator, 24 Oct: "since it repeats G10's judged pattern (rehearsed_live),
+write the short story section and the code together and send ONE SHA ... The AI fire stays real and is never
+rehearsed".
+
+#### Finding (strong evidence: two replayed days and the code)
+
+- The 19 Oct replay (run 20261024T221832Z-d53c4f) posted, in its exercised line: "price_distribution refused: nothing
+  written: not live on 2026-10-19 (config.yaml daily.live_from.price_distribution: 2026-10-22)", the same for
+  `price_ranges` (2026-10-22) and `premium_ranges` (2026-10-23); the three scores steps then STOPPED on empty folders
+  ("no receipts under it"). The 22 Oct replay (the orchestrator's run 20261024T220648Z-cdeb4d) posted the same for
+  `premium_ranges`.
+- The cause: REH1c makes each step live for the rehearsal, but these three children check their own date, read
+  straight from `config.yaml`: `fno/price_distribution/wiring.py` `build_live_recorder`, `fno/price_ranges/wiring.py`
+  `build_issuer` and `fno/premium_ranges/wiring.py` `build_issuer` pass `live_from(cfg)` to their issuers, which
+  refuse a day before it. G10 fixed the same for the v4 pack (`fno/v4_pack/wiring.py`, `run_live_dates`).
+- The scores' stop on an empty own folder is a consequence here; on a real day it is G13d's open item (the
+  orchestrator's register note), not REH1o's.
+
+#### Design
+
+- `fno/rehearsal/live_wiring.py`: `rehearsed_date(key, real, env)`, one `daily.live_from` date as the daily run's root
+  sees it (`rehearsed_live` on that one key: the replayed day when the real date is unset or after it, else the real
+  date; no mode, the real date).
+- The three live builders give their issuer `rehearsed_date(STEP, live_from(cfg))`; each `STEP` is already its
+  `daily.live_from` key. The step's not-live note reaches the child's posts as for every REH1j step
+  (`NotLiveInRealRuns` sets it in the environment the child inherits).
+- Not changed: the backfills (`build_backfill` in `price_distribution` and `price_ranges`), which a rehearsal never runs
+  and which stop before the real date; the AI books' `ai_books_v4` (`fno/ai/wiring.py`): its fire makes paid AI calls
+  and stays real (the orchestrator; the AI-books replay is its own story with G11's builder).
+- FREEZE_v4.md (`story/v4-freeze`): none of the four code files is in its byte-checked or its recorded table;
+  `fno/rehearsal/live_wiring.py` is in "Reached by v4's code ... (named, not hashed)".
+
+#### Criteria (tests in `tests/rehearsal/test_issuer_live_dates.py`)
+
+- **O1. Before its date, a rehearsal's issuer issues on the replayed day** (19 Oct, each of the three). Plants: each
+  wiring back to `live_from(cfg)`; the helper ignoring the mode.
+- **O2. On its date, after it, and with no mode, the real date stands** (boundary: the live day itself; 26 Oct).
+  Plant: the helper always giving the replayed day.
+- **O3. Empty: an unset date** is the replayed day in a rehearsal and None in a real run.
+- **O4. The backfills keep the real date.** Plant: the backfill rehearsed too.
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
