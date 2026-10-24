@@ -73,6 +73,11 @@ def book_results(result: dict) -> dict:
     return {} if _problem(result) else result
 
 
+def retried_steps(steps: dict[str, dict]) -> list[str]:
+    """Each step a same-day rerun runs again (failed and marked `retry`), in the order the steps ran."""
+    return [name for name, step in steps.items() if _retried(step["result"])]
+
+
 def _retried(result: dict) -> bool:
     return result.get("status") == STEP_FAILED and result.get(RETRY) is True
 

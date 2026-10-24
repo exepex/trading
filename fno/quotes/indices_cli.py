@@ -10,16 +10,14 @@ from ..alerts.output import announce
 from ..alerts.sender import AlertSender
 from ..models import now_ist
 from ..research_data.calendar import CalendarError
-from .indices import IndexRecording
+from .indices import ATTEMPTED, CLOSED_NONE, QUIET_STATUSES, IndexRecording, closes_none
 from .recorder import QuoteSnapshotRecorder, RecordResult
 
-INDEX_LINE = "{underlying} {status}: {snapshot_id} ({rows} contracts, complete={complete}){reason}"
-INDEX_ALERT = (
-    "3 pm index recorder: not recorded today (canonical none): {names}. Data only; NIFTY is separate; the sidecars "
-    "in research/data/quotes/groww/ say why."
-)
+INDEX_LINE = "{underlying} {status}: {snapshot_id} ({rows} contracts, complete={complete}){outcome}"
+INDEX_ALERT = "3 pm index recorder: not recorded today: {names}. Data only; NIFTY is separate{pointer}."
+# A4c-2 (judge 571 should-fix 2): only an attempt writes a sidecar, so only the attempted indices are pointed to it
+SIDECAR_POINTER = "; the sidecars in research/data/quotes/groww/ say why for {names}"
 INDEX_CALENDAR_STOP = "3 pm index recorder stopped, nothing recorded: {error} ({file})"
-QUIET_STATUSES = ("not a trading day", "already recorded")
 
 
 def record_indices(build: Callable[[], Mapping[str, QuoteSnapshotRecorder]], alerts: AlertSender, calendar_file: str,
@@ -33,21 +31,37 @@ def record_indices(build: Callable[[], Mapping[str, QuoteSnapshotRecorder]], ale
         return 1
     for underlying, result in results.items():
         print(_line(underlying, result))
-    missing = [f"{name} ({_why(result)})" for name, result in results.items() if _missing(result)]
+    missing = {name: result for name, result in results.items() if _missing(result)}
     if missing:
-        announce(alerts, INDEX_ALERT.format(names="; ".join(missing)))
+        announce(alerts, index_alert(missing))
     return 1 if missing else 0
+
+
+def index_alert(missing: Mapping[str, RecordResult]) -> str:
+    """The one alert: each index not recorded with its outcome, and the sidecar pointer for the attempted ones only."""
+    names = "; ".join(f"{name} ({outcome(result)})" for name, result in missing.items())
+    attempted = [name for name, result in missing.items() if result.status == ATTEMPTED]
+    pointer = SIDECAR_POINTER.format(names=", ".join(attempted)) if attempted else ""
+    return INDEX_ALERT.format(names=names, pointer=pointer)
+
+
+def outcome(result: RecordResult) -> str:
+    """The index's own outcome (A4c-2), the one text its result line and the alert both print, so they cannot
+    disagree: empty for a complete recording; "canonical none" exactly when its day was closed none."""
+    texts = [text for text in (result.reason, result.raw_file_error) if text]
+    if _missing(result) and not texts:
+        texts.append("incomplete" if result.status == ATTEMPTED else result.status)
+    if closes_none(result):
+        texts.append(CLOSED_NONE)
+    return ", ".join(texts)
 
 
 def _missing(result: RecordResult) -> bool:
     return not result.complete and result.status not in QUIET_STATUSES
 
 
-def _why(result: RecordResult) -> str:
-    return result.reason or result.raw_file_error or ("incomplete" if result.status == "recorded" else result.status)
-
-
 def _line(underlying: str, result: RecordResult) -> str:
-    reason = "".join(f" - {text}" for text in (result.reason, result.raw_file_error) if text)
+    text = outcome(result)
     return INDEX_LINE.format(underlying=underlying, status=result.status, snapshot_id=result.snapshot_id or "-",
-                             rows=result.rows, complete=result.complete, reason=reason)  # fmt: skip
+                             rows=result.rows, complete=result.complete,
+                             outcome=f" - {text}" if text else "")  # fmt: skip
