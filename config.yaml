@@ -176,6 +176,10 @@ desk:
 # orchestrator's decision while the owner was away, response 113; the owner may change it).
 # `v4_freeze_date` is protocol v4's freeze day once it exists (G6); empty means "projected".
 budget:
+  # Owner, 24 Oct 2026 (DESK_DECISIONS "No monthly AI budget cap: unlimited"): "No monthly budget cap for AI. Keep it
+  # unlimited." BG1 records and reports minutes; nothing alerts or stops (story BG1-u). `share` would bring back the 15
+  # Oct cap below; its five settings are unused while `cap: none`, kept for a later decision.
+  cap: none
   books_and_roles_share_pct: 50
   alert_pct: 80
   stop_pct: 100
@@ -210,13 +214,13 @@ daily:
     # date; null until the v4 freeze, the AI slots' registration and the routines' steps 3-4 (F1-G5-owner-checklist.md)
     ai_books_v4: null
     v4_pack: "2026-10-26"  # G10: the 14:27 `v4` capture, the release by 14:45, the 15:10 check (owner, 24 Oct)
-    card: null
+    card: "2026-10-26"  # T1's daily card to #fno-desk (owner, 24 Oct: "enable/activate everything that has been completed")
     price_distribution: "2026-10-22"  # story G13's valuation record and price-distribution forecasts
     price_distribution_scores: "2026-10-22"  # G13's daily `pricedist score` (the previous sessions' outcomes)
     price_ranges: "2026-10-22"  # story G13b's 15:45 NIFTY and BANKNIFTY ranges
     price_range_scores: "2026-10-22"  # G13b's daily `pricerange score` and seals; the same one-session lag
     premium_ranges: "2026-10-23"  # story G13d's next-session 3 pm premium ranges (judge 465.2 PASS; merged 22 Oct evening)
-    premium_range_scores: null  # G13d's daily `premrange score` and seals
+    premium_range_scores: "2026-10-26"  # G13d's daily `premrange score` and seals (owner, 24 Oct: the same)
     close_read: "2026-10-23"  # story A4h's 15:40 close read: record-only for its first 5 sessions (orchestrator)
     close_recheck: "2026-10-23"  # A4h's 16:00 second read
 
