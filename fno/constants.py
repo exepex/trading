@@ -195,7 +195,6 @@ V4_QUESTIONS = (
     V7_VIX_UP_5S,
 )  # fmt: skip
 V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI = "rules", "hybrid", "ai_team"  # one registered forecaster per slot
-FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4 = "v2", "v4"  # which protocol an AI book version answers (G11)
 V4_SLOTS = (V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI)
 V4_DAY_A, V4_DAY_SYSTEM_LATE = "A", "system_late"  # G10: a day's quality label (protocol 1.6; A2 dropped, 16 Oct)
 V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE = "close_proxy", "live"  # G10: scored apart, never pooled

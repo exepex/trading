@@ -32,14 +32,14 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
-from ..constants import AI_BOOKS, BOOK2_HYBRID, FORECAST_PROTOCOL_V4
+from ..constants import AI_BOOKS, BOOK2_HYBRID
 from ..v4_pack.release import NotReleased, ReleasedPacks
 from .envelope import Envelope
 from .history import RepoHistory
 from .outcome import INVALID, NOT_FIRED, Outcome, judge, mark_exposures
 from .receipts import PushReceipts, ReceiptUnknown
 from .record_writer import audit_text
-from .run_terms import V4_TERMS
+from .run_terms import FORECAST_PROTOCOL_V4, V4_TERMS
 from .submissions import read_submission
 from .v4_book_inputs import V4BookInputs
 from .v4_go_live import BEFORE_GO_LIVE, first_collected_day

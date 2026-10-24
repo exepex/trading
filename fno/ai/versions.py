@@ -9,15 +9,9 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..constants import (
-    BOOK2_HYBRID,
-    BOOK3_AI,
-    FORECAST_PROTOCOL_V2,
-    FORECAST_PROTOCOL_V4,
-    FORECAST_QUESTIONS,
-    ISOLATION_SEALED_SAME_DAY,
-)
+from ..constants import BOOK2_HYBRID, BOOK3_AI, FORECAST_QUESTIONS, ISOLATION_SEALED_SAME_DAY
 from ..forecast_v4.terms import FAMILY_QUESTIONS
+from .run_terms import FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4
 
 V4_AI_QUESTIONS = FAMILY_QUESTIONS  # what prompt v2 defines: every family question the rules slot answers (G11 C1)
 

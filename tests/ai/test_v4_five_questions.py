@@ -13,13 +13,13 @@ import pytest
 
 from fno.ai.answer import VARIANCE_CAP, check_answer
 from fno.ai.envelope import Envelope
+from fno.ai.run_terms import FORECAST_PROTOCOL_V4
 from fno.ai.v4_book_inputs import V4BookInputs
 from fno.ai.v4_input import PRIMARY
 from fno.ai.versions import current_version
 from fno.constants import (
     BOOK2_HYBRID,
     BOOK3_AI,
-    FORECAST_PROTOCOL_V4,
     V1_RV_1S,
     V2_RV_5S,
     V4_BASELINE_HAR_DAILY,

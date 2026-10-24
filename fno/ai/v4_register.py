@@ -21,11 +21,12 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
-from ..constants import AI_BOOKS, FORECAST_PROTOCOL_V4, V4_SLOT_RULES
+from ..constants import AI_BOOKS, V4_SLOT_RULES
 from ..forecast_scoring.v4.records import LookRecords, SlotRegistry
 from ..forecast_scoring.v4.slot_file import COLUMNS, RegistrationRefused
 from ..forecast_v4.terms import FAMILY_QUESTIONS
 from ..models import IST
+from .run_terms import FORECAST_PROTOCOL_V4
 from .v4_rows import SLOTS
 from .versions import current_version
 

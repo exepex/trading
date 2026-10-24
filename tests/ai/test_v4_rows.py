@@ -6,10 +6,11 @@ from datetime import date, timedelta
 
 import pytest
 
+from fno.ai.run_terms import FORECAST_PROTOCOL_V4
 from fno.ai.scoring_gate import PENDING, SCORED, UNSCORED, ScoringStatus
 from fno.ai.v4_rows import BookDay, v4_rows, v4_status, write_book_day
 from fno.ai.versions import current_version
-from fno.constants import BOOK2_HYBRID, BOOK3_AI, FORECAST_PROTOCOL_V4, V4_SLOT_AI, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
+from fno.constants import BOOK2_HYBRID, BOOK3_AI, V4_SLOT_AI, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.inputs import ForecastFiles
 from fno.forecast_scoring.v4.reconcile import AiSlotDays
 from fno.forecast_scoring.v4.records import Registration, SlotRegistry

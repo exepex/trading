@@ -22,7 +22,8 @@ from __future__ import annotations
 import json
 from datetime import date
 
-from ..constants import AI_BOOKS, FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4
+from ..constants import AI_BOOKS
+from .run_terms import FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4
 from .transcript_audit import BREACH_KINDS
 
 

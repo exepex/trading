@@ -4,15 +4,10 @@ and the forecaster it registers as."""
 
 import pytest
 
+from fno.ai.run_terms import FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4
 from fno.ai.versions import VERSIONS, VersionRefused, current_version
 from fno.config import ROOT
-from fno.constants import (
-    AI_BOOKS,
-    BOOK3_AI,
-    FORECAST_PROTOCOL_V2,
-    FORECAST_PROTOCOL_V4,
-    FORECAST_QUESTIONS,
-)
+from fno.constants import AI_BOOKS, BOOK3_AI, FORECAST_QUESTIONS
 from fno.forecast_v4.terms import FAMILY_QUESTIONS
 
 

@@ -25,14 +25,14 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..alerts.sender import AlertSender
-from ..constants import AI_BOOKS, FORECAST_PROTOCOL_V4
+from ..constants import AI_BOOKS
 from ..forecast_v4.terms import V4_LATEST_FIRE
 from ..models import IST
 from ..pipeline.trigger import FireFailed, RoutineTrigger
 from ..v4_pack.model import Pack
 from ..v4_pack.release import NotReleased, ReleasedPacks
 from .budget_stop import BudgetStop
-from .run_terms import V4_TERMS
+from .run_terms import FORECAST_PROTOCOL_V4, V4_TERMS
 from .stop_rule import stop_reason
 from .v4_book_inputs import V4BookInputs
 from .v4_go_live import missed_before_go_live

@@ -2627,6 +2627,11 @@ prompt, at go-live (exact text in `F1-G5-owner-checklist.md`, with who records v
   file's `test_the_ledger_gets_each_books_minutes_once` still pinned 4.17 and failed once BG1-w (cb98827ac) was
   merged; with BG1-w on `main` first, its two expectations are now BG1-w's working minutes ("recorded 2.0 minutes
   (and a wait of 2.17 minutes apart, not capped)", row "2.00"), nothing else changed (judge J's merge condition).
+- The same merge put `fno/constants.py` at 351 lines: `main` holds it at exactly 350 and G11 added one line
+  (`FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4`). Root cause: those names repeated the literals `RunTerms` already
+  held. They now live once in `fno/ai/run_terms.py` (`V2_TERMS`/`V4_TERMS` use them; every importer, all in
+  `fno/ai` and `tests/ai`, reads them there); `fno/constants.py` is byte-identical to `main`'s, so no other story's
+  file and nothing the v4 freeze records changed.
 - `test_v4_collect.py` passed 350 lines with round 2's tests; the fire-log, go-live and F2 tests moved unchanged to
   `test_v4_collect_log.py` (1f81dcbe2).
 

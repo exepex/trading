@@ -9,10 +9,11 @@ import sys
 import pytest
 
 from fno.ai.pointer import PointerRefused
+from fno.ai.run_terms import FORECAST_PROTOCOL_V4
 from fno.ai.v4_input import V4InputFor, build_v4_input, input_sha256
 from fno.ai.v4_pointer import V4Pointer, parse_v4_pointer
 from fno.ai.versions import current_version
-from fno.constants import BOOK2_HYBRID, BOOK3_AI, FORECAST_PROTOCOL_V4
+from fno.constants import BOOK2_HYBRID, BOOK3_AI
 from fno.constants_operations import ROUTINE_POINTER_MAX_BYTES
 from tests.ai.test_book_session import THIRD_PARTY
 from tests.ai.test_v4_input import DAY, QUESTIONS, RULES, WIDTHS, a_pack, closes, history

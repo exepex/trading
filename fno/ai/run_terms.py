@@ -17,6 +17,7 @@ from ..forecast_v4.terms import V4_DEADLINE
 from ..models import IST
 from .paths import AI_FOLDER, AI_V4_FOLDER, audit_path, commitment_path, fired_path, reveal_path, transcript_audit_path
 
+FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4 = "v2", "v4"  # which protocol a run and a book version answer
 REVEAL_FROM = time(15, 15, 10)  # v2: 10 s after the deadline, so a little clock drift cannot open an answer early
 V4_REVEAL_FROM = time(15, 10, 10)  # v4: the same 10 s after its deadline
 REVEAL_DEADLINE = time(15, 30)  # both: the collection keeps forecast-capture's slot
@@ -65,5 +66,5 @@ class RunTerms:
         return datetime.combine(day, self.reveal_by, tzinfo=IST)
 
 
-V2_TERMS = RunTerms("v2", AI_FOLDER, GENERATION_DEADLINE, REVEAL_FROM, REVEAL_DEADLINE)
-V4_TERMS = RunTerms("v4", AI_V4_FOLDER, V4_DEADLINE, V4_REVEAL_FROM, REVEAL_DEADLINE, books_key="books")
+V2_TERMS = RunTerms(FORECAST_PROTOCOL_V2, AI_FOLDER, GENERATION_DEADLINE, REVEAL_FROM, REVEAL_DEADLINE)
+V4_TERMS = RunTerms(FORECAST_PROTOCOL_V4, AI_V4_FOLDER, V4_DEADLINE, V4_REVEAL_FROM, REVEAL_DEADLINE, books_key="books")

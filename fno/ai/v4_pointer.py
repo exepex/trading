@@ -14,10 +14,11 @@ import json
 from dataclasses import dataclass
 from datetime import date
 
-from ..constants import AI_BOOKS, BOOK2_HYBRID, FORECAST_PROTOCOL_V4, V4_QUESTIONS
+from ..constants import AI_BOOKS, BOOK2_HYBRID, V4_QUESTIONS
 from ..constants_operations import ROUTINE_POINTER_MAX_BYTES
 from .envelope import Envelope
 from .pointer import SHA256, PointerRefused
+from .run_terms import FORECAST_PROTOCOL_V4
 from .v4_input import input_sha256
 from .v4_input_check import check_v4_input
 from .versions import VersionRefused, current_version
