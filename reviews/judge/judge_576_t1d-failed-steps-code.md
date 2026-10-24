@@ -98,3 +98,25 @@ restored with `git checkout --` and `__pycache__` cleared; tree clean after. 13 
 - Round 1's notes stand: the `problems=None` default only for T2's older tests; the pre-existing T2 non-dict per-book
   entry; a malformed previous-day log fails closed.
 - Round 1's verdict is confirmed. No blocking or should-fix finding.
+
+## Addendum 2 (merge with R2's final head)
+
+**PASS at 80b5259de, lane 1.** Judge I, own session (session_01CHtddAzFcEdQh4HFiz3mqU). Delta only:
+- fa7278957 merges R2's final head ee5711075 (judges 569.3 and 570.3);
+- 80b5259de changes one test line.
+
+| Check | Verdict | My evidence |
+|---|---|---|
+| `git diff ee5711075 80b5259de -- fno/desk fno/daily` empty | MET | 0 lines |
+| T1d's own changes since 5cbd3c4c7 are this one line | MET | All six T1d files at fa7278957 are byte for byte those at 5cbd3c4c7 (sha1 of each). `git diff 2c80be430 ee5711075` touches none of them, so the merge resolved nothing in T1d's files. `git diff fa7278957 80b5259de` is the one change |
+| The change: `on_its_day=lambda day: True` on the fake DailyRun, nothing else, no assertion weakened | MET | The diff adds only that keyword (with `# fmt: skip`). The assertion `(code, last) == (1, "day done with problems: snapshot, fills")` and the card line are unchanged. R2's runner calls `self.daily_run.on_its_day(day)` (`runner.py:69`). With `True` it reads `retried_steps`, and the test's log has no `retry` key, so the expected line is the same |
+| Without the line, the merged pair is red | MET | My plant (the keyword removed) on the trial merge: `AttributeError` at `fno/daily/runner.py:69`, 1 failed. Restored, tree clean |
+
+## Gates (80b5259de merged with origin/main ac88bfeb3 as 7ea6e0f95, clean)
+
+- `pytest -n auto tests/daily tests/timetable tests/desk tests/scoreboard tests/cards`: **646 passed, 0 failed**
+  (77 s).
+- `ruff check fno tests tools`: clean; the changed test file is formatted.
+- Not run: the full suite, which the orchestrator did not ask for. Judges 569.3 and 570.3 judged R2's side.
+
+No finding. On this PASS, R2 (ee5711075) and T1d (80b5259de) may merge together.
