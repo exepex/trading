@@ -20,10 +20,11 @@ from .constants import (
     NONE_PASSED,
     NOT_CERTIFIED,
     NOT_PUSHED,
+    UNREADABLE_LINE,
 )
 from .models import CheckResult, Record, Verdict
 from .record_folder import RecordFolder, chosen_in
-from .rules import DatasetRules
+from .rules import DatasetRules, SourceUnreadable
 from .staging import VersionSource
 
 
@@ -47,6 +48,13 @@ class Certifier:
         if held is not None:  # recorded here before: it counts once origin's main holds it (a refused push is retried)
             line = ALREADY.format(dataset=name, session=session, level=level, sha=held.sha256[:12])
             return self._published(session, level, held.sha256, Outcome(True, line))
+        try:
+            return self._certify(session, level)
+        except SourceUnreadable as unreadable:  # never an ordinary NOT recorded: exit 1 and #fno-desk
+            line = UNREADABLE_LINE.format(dataset=name, session=session, level=level, why=unreadable)
+            return Outcome(False, line, alert=True)
+
+    def _certify(self, session: str, level: str) -> Outcome:
         verdicts, passing = [], []
         for version in self.versions.versions(session):
             data, problem = self._bytes(version)
@@ -62,7 +70,9 @@ class Certifier:
         choice = self.rules.choose(session, level, passing)
         if choice.version is None:
             return self._refused(session, level, choice.reason)
-        record = Record(name, session, level, choice.version, choice.reason, self.rules.version, tuple(verdicts))
+        record = Record(
+            self.rules.name, session, level, choice.version, choice.reason, self.rules.version, tuple(verdicts)
+        )
         return self._written(record, len(passing), len(verdicts))
 
     def _checks(self, session: str, level: str, sha256: str, data: bytes | None, problem: str) -> list[CheckResult]:
