@@ -52,3 +52,21 @@ this is a new report.
   file on main. The nearest is "do a dry run of V5 over the weekend" (`conversations/2026-10-24.md:92`, earlier that
   day). The conclusion holds on the sign-off row alone (line 341 names G14's step), so cite that row and the exact
   log line.
+
+## Addendum 2: ruling on criterion 12's import walk (builder's proposal via the orchestrator, 24 Oct)
+**Yes, with four conditions.** The builder's fact holds: on main, `fno/constants.py`, `constants_channels.py`,
+`constants_operations.py` and `models.py` changed in 125 commits in the last 10 days (`constants.py` alone in 99),
+so byte-checking them would refuse almost every day. v4 settles this the same way (`freeze_check.RECORDED_NOT_CHECKED`
+lists `fno/constants.py`).
+1. **Fail closed.** The exclusions are one named list in code (like v4's). A test checks that the byte-checked set
+   is the walk minus that list. A file the walk finds later is byte-checked unless it is added to the list by a
+   judged change.
+2. **Recorded means recorded.** FREEZE_v5_v1 lists each excluded file with its SHA-256 at the freeze, for the record
+   (not checked). Their behaviour stays locked by G14's own tests: criterion 1's splice and criterion 3's equality
+   with G7.
+3. **`rv_table.py` stays byte-checked** although v4 lists it as recorded only. The proposal's "the three intraday
+   files stay byte-checked" overrides v4's list for G14, and the record must say so. It changed 6 times in 10 days,
+   so a refusal there is honest: the input reader changed, and G14 re-freezes as a new version.
+4. **G14's own package is hashed in full.** The walk starts from the value-deciding files (history, capture,
+   records, gap) for the imports outside the package. Every file of `fno/forecast_v5_v1/`, wiring and cli included,
+   is still byte-checked, as the passed text's "this package's files" says.
