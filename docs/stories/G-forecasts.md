@@ -663,12 +663,22 @@ stored is checked in the build:** if no stored field holds it, the A8 log is the
 using the receipt's GitHub push time instead (later than the archive, so stricter) is proposed as W4 for the judge,
 never assumed.
 
-**V4 terms, frozen from the pack of `d` (protocol 1.4).** `e` = the nearest listed NIFTY expiry with at least 5 scored
-sessions in `(d, e]`, among the expiries the pack holds; `S_e` = that count; `C_e` = calendar days from `d` to `e`. ATM
+**V4's expiry rule, one pure function (G10's answer, 24 Oct: A4e's `v4` window imports it).**
+`first_v4_expiry(day, listed_expiries, calendar) -> date | None` in `fno/forecast_v4_rules/v4_expiry.py`: the first
+listed NIFTY expiry `e > day` with at least 5 A7 `regular` sessions in `(day, e]` (special and muhurat sessions not
+counted); None when no listed expiry has 5. No I/O, no Groww, no clock. It is the **first commit of the build**, so it
+can merge on its own ahead of the rest (lane 1, its own judge round) and G10's capture imports it from `main`; until
+then G10 builds against the same signature. One rule, one place: G7b's terms and A4e's capture call the same function.
+
+**V4 terms, frozen from the pack of `d` (protocol 1.4).** `e` = the pack's `v4_expiry` (the expiry the capture chose
+with `first_v4_expiry`, interface item 3 below); `S_e` = its scored sessions in `(d, e]`; `C_e` = calendar days from `d` to `e`. ATM
 call and put of `e`, each a live two-sided quote under the 5% rule; parity forward `F = K + e^(r C_e / 365) (C_mid -
 P_mid)`; each leg's Black-76 IV on `F`; the ATM IV is their mean; `sigma_IV = units.implied_vol_session_clock(IV, C_e,
-S_e)`. Void with its reason otherwise. If the pack does not hold an expiry with 5 or more scored sessions, the day is
-void (`no_v4_expiry`), counted, never a nearer expiry.
+S_e)`. Void with its reason otherwise. If the pack names no `v4_expiry`, or holds no chain rows for it, the day is void
+(`no_v4_expiry`), counted, never another expiry: picking "the first expiry in the pack with 5 sessions" instead would
+silently take a later monthly on a day the weekly's quotes failed, a different question. G7b also checks the
+choice on A7's calendar: a `v4_expiry` with fewer than 5 scored sessions in `(d, e]`, or (when the pack carries the
+listed expiries) not `first_v4_expiry`'s answer on them, is void (`v4_expiry_mismatch`), so the two sides cannot drift.
 
 **V4 outcome (protocol 1.4, `units.v4_outcome`).** `sigma_RV` from A16's live intraday `RV_s` of `d+1..d+5`
 (`V1_INTRADAY_METHOD`, non-void, never A16b's back-fill); outcome `sigma_RV < sigma_IV`. Any void session voids the
@@ -729,21 +739,30 @@ both name its SHA-256.
 | V4 outcome resolver | V4 terms (pack) + A16 rows | A16 live rows exist from 16 Oct |
 | Live raw and premium-adjusted, V5 option-implied, V4/V5 terms and rules, proxy drift | **yes** | released packs from G10's capture |
 
-**Interface asked of G10 (agreed through the orchestrator before code; nothing built twice):**
-1. The pack's chain holds, for V5's `e` (the future's expiry) **and** for every listed NIFTY expiry up to and including
-   the first with at least 5 scored sessions in `(d, e]`, every listed strike within at least 3% of spot, each call and
-   put with bid, ask and `observed_at` (enough for ATM and the next strikes either side). Today's text says "once V4 is
-   built, the nearest weekly": the nearest weekly often has fewer than 5 sessions, so V4 needs the next one.
-2. Which expiries the pack holds is G10's choice; G7b selects V4's expiry from the expiries present with the rule
-   above. If G10 prefers to select it in the builder, the rule lives in one pure function in G7b's module and G10
-   imports it (one rule, one place).
-3. `future` keeps bid and ask (W2 prices `F` at mid).
-4. `iv30.flagged` as on main.
+**The pack's interface, as G10 answered (story/g10-completion c876ede53, "The pack's interface for G7b and G11",
+criterion 3a; relayed by the orchestrator, 24 Oct):**
+1. **Expiries:** the two monthlies as today, plus the first listed expiry with at least 5 scored sessions when it is not
+   a monthly (from `first_v4_expiry`, imported); nearer weeklies are skipped (V4 uses only that expiry). Accepted: it
+   is all V4 reads, and it saves Groww load.
+2. **Strikes:** A4's 5% band around spot (`fno/quotes/recorder.py` `SPOT_BAND`) for every recorded expiry. Accepted:
+   it covers ATM and the strikes either side.
+3. **Asked back, one field (open):** the pack names the expiry the capture chose, `v4_expiry` (None when
+   `first_v4_expiry` returned None). Without it G7b cannot tell "the weekly was not recorded" from "V4's expiry is the
+   monthly", and would have to guess from what is present. If G10 prefers, the pack may carry the listed expiries it
+   passed to the function instead; either lets G7b check the choice.
+4. **The future:** one Groww quote of `e`'s future with bid, ask and `observed_at` (G10's new `FutureQuotes`
+   interface). A failed future quote leaves bid and ask empty and V5 voids itself (`no_future_quote`); the pack is not
+   `system_late`. Accepted.
+5. `iv30.flagged` as on main; `ReleasedPacks`, `ReleaseRecord.pack_sha256`, `Pack` and `check_pack_binding` keep their
+   names (G10's answer to G11).
+6. **Day labels:** the release record in Drive `v4/days/<YYYY>/<date>.json`, read only through
+   `ReleasedPacks.release(day)`; `research/data/v4_days/` is retired by G10. The post-release capture and part e read
+   labels only that way.
 
 **The O1 step (reviewed by O1's builder, session_016CU8KFuEEtWAM7ZNnFcKxv, through the orchestrator):**
-- `fno/constants_operations.py`: a new step `forecasts_v4_pack` in `DAILY_RUN_STEPS`, placed **directly after G10's
-  pack-release step** (its name is set by the G10 completion; if G10 releases inside another step, directly after that
-  step) and before `card`, so the card can say whether it ran. Its value is the subcommand above, run as a child
+- `fno/constants_operations.py`: a new step `forecasts_v4_pack` in `DAILY_RUN_STEPS`, in the order G10's text fixes:
+  `forecasts_v4`, `v4_release`, **`forecasts_v4_pack`**, `versions` (so before `card`, and the card can say whether it
+  ran). G10 adds `v4_release`; G7b adds only its own step. Its value is the subcommand above, run as a child
   process like the other steps; it commits only its own receipt paths (`receipts/data/v4/records/`,
   `receipts/data/v4/terms/`, `receipts/data/v4/outcomes/`, `receipts/data/v4/diagnostics/`).
 - `config.yaml`: `daily.live_from.forecasts_v4_pack: null` (`not_live` until the owner sets a date; `fno/config.py`'s
@@ -771,6 +790,8 @@ both name its SHA-256.
   diagnostic, not a variance-risk-premium estimate" and V5's "terminal intrinsic-payoff proxy, not evidence of money"
   (protocol 1.4, 1.5). The report's JSON only gains keys, so LR1's reader (`forecast_section.py`) keeps working; a test
   reads one old report through it.
+- Day labels (`A`, `system_late`) come only from G10's reader of the Drive release records (`ReleasedPacks.release`);
+  part e never reads `research/data/v4_days/` (retired by G10).
 - Wiring in `fno/forecast_scoring/v4/wiring.py` only.
 
 ### Part f: V2 and V3's intraday versions (protocol 1.1, reported only)
@@ -841,6 +862,7 @@ both name its SHA-256.
 | 17 | Part f: the intraday V2 and V3 outcome (sum of live A16 `RV_s`; void and unresolved rules; first full window), scored as separate series, never pooled, never in the family | one void session voids; the 4th of 5 sessions missing is unresolved; A16b's rows ignored; no live window yet prints "not enough data yet"; the close-proxy series' scores unchanged | pooling the two series; a void session skipped |
 | 18 | The O1 step: `forecasts_v4_pack` directly after the release step and before `card`, `not_live` while its key is null, commits only its receipt paths, refused from 15:10:00 | key null: `not_live`; a date: runs; `system_late`: ok with nothing written | step placed before the release; another path committed |
 | 19 | Design and size: no file or class over 350 lines; no `fno/forecast_v4/` rule re-implemented (imports checked); every outside source behind an interface (pack source, settlement prices, first-seen times, record store), wired in `fno/forecast_v4_rules/wiring.py`; the method hash covers the new files and the hash gate covers the back-fill's path | `tests/test_code_size.py`; the gate fails on a stale back-fill | a new method file left out of the hash |
+| 20 | `first_v4_expiry`: the first listed expiry with at least 5 regular sessions in `(d, e]`; V4 terms use the pack's `v4_expiry` and refuse a mismatch | a Monday with Tuesday's weekly (1 session) takes the next weekly (6); exactly 5 taken, 4 not; a muhurat or special session not counted; no such expiry: None; pack without `v4_expiry` or without its rows: void `no_v4_expiry`; a pack naming a 4-session expiry: void `v4_expiry_mismatch` | `>= 5` to `> 5`; special sessions counted; first expiry in the pack used instead of `v4_expiry` |
 
 **Real output sample (claims):** one back-filled V2 premium-adjusted row and one V5 outcome from a past expiry's public
 file, made by the committed code; a live-shaped sample only from a fixture pack (no Groww value, no live strike, record
@@ -867,7 +889,7 @@ they found and what was fixed or why not.
 | 3.2 V2, V3 also reported: raw implied, HAR, trailing, EWMA | criterion 2; the rest on main |
 | 3.2 V5 also reported: base rate | criterion 11 |
 | 3.2 Primary not eligible gives a missing pair | G8 on main (`primary.py`), unchanged |
-| 1.4 Expiry with at least 5 scored sessions, `S_e`, `C_e` | criterion 9 |
+| 1.4 Expiry with at least 5 scored sessions, `S_e`, `C_e` | criteria 9, 20 (`first_v4_expiry`, shared with A4e's capture) |
 | 1.4 ATM, tie lower, two-sided quotes, 5% spread, mid | criteria 6, 9 (W5) |
 | 1.4 Black-76 IV at 6.5% on the parity forward, mean of legs | criterion 9 |
 | 1.4 Units on one session clock, golden example | criterion 9 |
@@ -891,8 +913,10 @@ they found and what was fixed or why not.
   step is written here and O1's builder reviews it; W1-W7 go to the owner at the freeze.
 - **Storage:** Drive for every new row (CLAUDE.md, O9, register row G7b). Phase 1's repo CSVs would put Groww-derived
   values in the repository: refused.
-- **Open:** G10's answer on the interface. The live wiring (step 3 of the scope) starts only after it; if G10 cannot
-  hold the V4 expiry, V4 stays void every day and that is reported, never worked around with a nearer expiry.
+- **G10's answer received (c876ede53):** items 1, 2, 4, 5 and 6 above accepted as written; the step order is G10's.
+- **Open:** item 3 (`v4_expiry` named in the pack), asked back through the orchestrator. Until it is agreed, V4's live
+  terms are not wired. **Merge order:** `first_v4_expiry` merges first (G10's capture imports it); the rest of this
+  story after G10's pack and release are on `main`.
 
 **Known limits:** V2's r is unmeasured (protocol 11 D) and the back-fill (b1) gives its first exploratory measure;
 V4's and V5's base rates need about two years of live outcomes, so those comparisons do not exist until then; the
