@@ -15,6 +15,7 @@ from fno.research_engine.implied_vol import Black76
 from fno.weather.wiring import build_weather_days
 
 DAY = date(2026, 10, 15)
+pytestmark = pytest.mark.usefixtures("no_v4_drive_records")  # the point is no implied vol, not the records
 
 
 def run_v4_day():

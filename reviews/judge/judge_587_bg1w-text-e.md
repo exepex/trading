@@ -89,3 +89,36 @@ None blocking, none should-fix, none minor.
 ## Plants
 
 None (text round). The text's plants: one per criterion, plus the switch flipped. The code round runs them.
+
+## Addendum 2
+
+**BG1-w code, round 1 of 2 (story/bg1w-reveal-wait @ 3d19625a2): PASS. Lane 1.** Judge E. The code is
+`self_timed.py` (83 lines), `usage_ledger.py`, `report.py`, `usage_reader.py`, `constants.py`, plus the ledger file
+and two test files.
+
+| Criterion | Result | My evidence |
+|---|---|---|
+| 1 working minutes | MET | `_split`: working = seal − start, wait = whole − working (the parts add up). The example recomputed by hand: 29.67 − 3.50 = 26.17. B1 caught (6 failed) |
+| 2 never sealed, both rules (587.1's condition) | MET | `SelfTimedUsageReader(path, no_seal)` is tested under each rule. B4 (upper bound written as 0), B5 (unknown writes a row), B6 (default flipped) and B14 (unknown rule name accepted) each caught |
+| 3 no key | MET | B7 (a missing key read as never sealed) caught |
+| 4 the column | MET | `_check_row` refuses negative, nan, inf and text; a blank is allowed (B9 caught). The migration test compares the file at `git show` before the column; my B13 (one old value 0.42 → 0.43) caught. The diff shows only the column added, blank in all 10 rows |
+| 5 never capped | MET | B2 (wait added to the cap) and B3 (wait added to the basis) each fail `test_the_cap_and_the_measured_basis_count_working_minutes_only` |
+| 6 meter | MET | B10 (sums `minutes`), B11 (row's wait blank) and B12 (a 0.00 wait not counted) caught. Real meter, before and after: `diff` shows exactly one added line, "none recorded" |
+| 7 gates | MET | Trial merge a68b11b10 with origin/main 68721eed0: ruff clean, format clean (2,515 files), imports clean (2,644 files), record scan clean (9,095 files). Full suite with the token kept: **15,662 passed, 1 skipped (`growwapi`), 15 xfailed, 0 failed** |
+
+**Plants:** 14 planted, 14 caught, each alone on `tests/budget` and `tests/ai` (257 tests), restored after each.
+
+**Stated limits, ruled:**
+1. **Cost allocation by `minutes`** (`allocation.py:38-43`; F9a's `role_value/cost.py:43-44`). **Accepted as the
+   right consequence:** the plan is used by work, not by a timed sleep, so the books' cost share should follow working
+   minutes. But it moves an evaluation input: F9a's per-unit cost falls for v4 days. October mixes the two bases (the
+   v2 rows include v2's short wait). Tell F9a's owner and the owner; no code change here.
+2. **The branch rewrites every ledger line.** **Accepted, with conditions for the merge.** Merge outside 15:15-15:35
+   IST. Main's ledger still has the same 10 rows (the trial merge has no conflict). A row added on main before the
+   merge conflicts loudly and needs its blank `wait_minutes` in the merge. After the merge, old code reading the file
+   fails on the header check (`rows()`), and that shows as a "refused" line, never a silent wrong row.
+
+## Findings
+
+None blocking, none should-fix, none minor. The owner's no-seal answer is still pending; the default is the upper
+bound, as 587.1 ruled.
