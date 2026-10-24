@@ -96,8 +96,11 @@ def pointer(root: Path, book: str = BOOK2_HYBRID, day: date = DAY, cards: dict |
                            CARDS if cards is None else cards, at(15, 10, day=day), at(15, 10, 10, day=day))  # fmt: skip
 
 
-def draft(action: str = "trade", reason: str = "IV rich against the rule default", model: str = MODEL, **extra) -> dict:
-    return {"decision": {"action": action, "reason": reason, **extra}, "model_reported": model}
+def draft(action: str = "trade", reason: str = "IV rich against the rule default", model: str = MODEL,
+          configured: str | None = None, source: str = "session_tool", **extra) -> dict:  # fmt: skip
+    """`model`: the served model the session copied (`last_served_model`); `configured` defaults to the same."""
+    return {"decision": {"action": action, "reason": reason, **extra}, "model_reported": model,
+            "model_configured": model if configured is None else configured, "model_source": source}  # fmt: skip
 
 
 def answer(root: Path, book: str = BOOK2_HYBRID, **kwargs) -> dict:

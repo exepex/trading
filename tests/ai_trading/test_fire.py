@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from fno.ai.budget_stop import BudgetCheck, BudgetStop
 from fno.ai.fire_once import FIRED, NOT_FIRED
 from fno.ai.transcript_audit import TranscriptAudit, TranscriptAudits
 from fno.ai_trading.fire import DecisionFirer
@@ -14,7 +15,6 @@ from fno.ai_trading.ports import DayPacks, NoAnalystCards
 from fno.composition import build_record_scanner
 from fno.constants import BOOK2_HYBRID, BOOK3_AI
 from fno.desk.private_pack import PrivatePack
-from fno.learning.writer import BudgetSignal
 from fno.pipeline.trigger import FireFailed, RoutineTrigger
 from tests.ai.fakes import Clock
 
@@ -34,12 +34,12 @@ class Trigger(RoutineTrigger):
         return f"https://example.invalid/{pointer.book}"
 
 
-class Budget(BudgetSignal):
-    def __init__(self, stopped=False):
-        self.stopped = stopped
+class Budget(BudgetStop):
+    def __init__(self, stopped=False, note=""):
+        self.stopped, self.note = stopped, note
 
-    def ai_roles_stopped(self, day):
-        return self.stopped
+    def check(self, day):
+        return BudgetCheck("BG1 stop: the budget level is stop" if self.stopped else "", self.note)
 
 
 class Cards:
@@ -111,7 +111,7 @@ def test_the_stop_rule_counts_breaches_of_this_version_in_decision_days(tmp_path
         (tmp_path / fired_path(day)).write_text("{}")
         audits.record(day, TranscriptAudit(BOOK2_HYBRID, day.isoformat(), label, "s", "breach", ["file_outside_input"],
                                            "read journal/book3_ai", "judge", "2026-10-17"))  # fmt: skip
-    assert "stopped: 2 transcript breaches" in not_fired(fire(tmp_path)[0])
+    assert "stopped: 2 breaches (transcript or model fields)" in not_fired(fire(tmp_path)[0])
 
 
 def test_one_breach_still_fires(tmp_path):

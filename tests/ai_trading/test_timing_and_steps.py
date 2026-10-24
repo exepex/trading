@@ -77,8 +77,8 @@ class Processes:
 
 
 class Firer:
-    def __init__(self, log):
-        self.log, self.calls = log, 0
+    def __init__(self, log, note=""):
+        self.log, self.calls, self.budget_note = log, 0, note
 
     def fire(self, day, books, fire_timing):
         self.calls += 1
@@ -108,7 +108,8 @@ def test_ai_fire_starts_the_observer_once_and_reports_each_book_not_fired(tmp_pa
     )
     assert done.result == {
         "status": STEP_REFUSED,
-        "reason": "book3_ai not_fired: budget stop; no trade today for these",
+        "reason": "AI books not fired: book3_ai not_fired: budget stop; no trade today for these",
+        "n": 1,
     }
     ObservationFile(tmp_path / observations_path(DAY)).append(
         Observation(at(15, 10), at(15, 10), at(15, 10, 1), "c1"))  # fmt: skip
@@ -155,7 +156,7 @@ def test_ai_collect_waits_for_the_last_reading_then_reports(tmp_path, statuses, 
     done = step.run(DAY)
     assert clock.now == at(15, 11, 1) and done.result["status"] == status
     if status == STEP_REFUSED:
-        assert done.result["reason"] == "book3_ai late: why; no trade today for these"
+        assert done.result["reason"] == "AI books not promoted: book3_ai late: why; no trade today for these"
 
 
 def test_ai_collect_gives_up_waiting_when_the_reading_can_no_longer_be_valid(tmp_path):

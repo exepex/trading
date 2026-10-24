@@ -14,20 +14,19 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..ai.audit_plan import FIRED_SUFFIX
+from ..ai.budget_stop import BudgetCheck, BudgetStop
 from ..ai.fire_once import Commit, FireOnceLog
 from ..ai.run_terms import RunTerms
-from ..ai.stop_rule import stop_reason
-from ..learning.writer import BudgetSignal
 from ..pipeline.trigger import FireFailed, RoutineTrigger
 from ..record_scan.scanner import RecordScanner
 from .answer import labels_of
 from .figures import texts as texts_of
+from .model_audit import decision_stop_reason
 from .paths import DECISIONS_FOLDER, fired_path
 from .pointer import MAX_POINTER_BYTES, DecisionPointer
 from .ports import AnalystCards, DayPacks
 from .versions import DecisionRegistry, VersionRefused
 
-BUDGET_STOP = "AI roles stopped by the budget (BG1 signal: stop)"
 NO_PACKS = "the day's packs are not written ({why}): nothing to decide from"
 LATE_START = "the fire step started {now:%H:%M:%S}, after {latest:%H:%M:%S}: its answer could only be late"
 TOO_BIG = "the pointer is {size} bytes, over the {cap}-byte cap: not sent (never truncated)"
@@ -43,10 +42,11 @@ class FireTiming:
 
 class DecisionFirer:
     def __init__(self, root: Path, registry: DecisionRegistry, triggers: Mapping[str, RoutineTrigger],
-                 budget: BudgetSignal, packs: DayPacks, cards: AnalystCards, scanner: RecordScanner,
+                 budget: BudgetStop, packs: DayPacks, cards: AnalystCards, scanner: RecordScanner,
                  commit: Commit, clock: Callable[[], datetime], terms: RunTerms):  # fmt: skip
         self.root, self.registry, self.triggers, self.budget = Path(root), registry, dict(triggers), budget
         self.terms = terms  # the decision run's (`terms.decision_terms`): the stop rule reads its audits
+        self.budget_note = ""  # the day's BG1 reading failed: fired anyway, said in the step's alert
         self.packs, self.cards, self.scanner, self.commit, self.clock = packs, cards, scanner, commit, clock
 
     def fire(self, day: date, books: Sequence[str], timing: FireTiming) -> dict[str, dict]:
@@ -55,22 +55,26 @@ class DecisionFirer:
         if log.read():
             return log.fire({}, self._never, "F1t fire")  # a rerun: nothing is fired again
         pointers, planned = {}, {}
+        budget = self.budget.check(day)  # once a day, for every book
+        self.budget_note = budget.note
         for book in books:
-            pointer, entry = self._plan(day, book, timing)
+            pointer, entry = self._plan(day, book, timing, budget)
             planned[book] = entry
             if pointer is not None:
                 pointers[book] = pointer
         return log.fire(planned, lambda book: self._fire_one(book, pointers[book]), f"F1t {day} decision fire")
 
-    def _plan(self, day: date, book: str, timing: FireTiming) -> tuple[DecisionPointer | None, dict]:
-        if self.budget.ai_roles_stopped(day):
-            return None, {"reason": BUDGET_STOP}
+    def _plan(
+        self, day: date, book: str, timing: FireTiming, budget: BudgetCheck
+    ) -> tuple[DecisionPointer | None, dict]:
+        if budget.stop:
+            return None, {"reason": budget.stop}
         try:
             version = self.registry.current(book)
         except VersionRefused as missing:
             return None, {"reason": str(missing)}
         entry = {"version": version.label}
-        stopped = stop_reason(self.root, book, version.label, day, self.terms, decision_days(self.root))
+        stopped = decision_stop_reason(self.root, book, version.label, day, self.terms, decision_days(self.root))
         if stopped:
             return None, entry | {"reason": stopped}
         try:

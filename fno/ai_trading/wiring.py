@@ -117,11 +117,13 @@ def build_ai_steps(
 ) -> dict:
     """O1's two steps, unwrapped (the daily run's wiring wraps each in `Alerted` with the run's one sender)."""
     from ..ai.history import RepoHistory
+    from ..budget.wiring import build_month_meter
     from ..composition import build_record_scanner
     from ..constants import AI_COLLECT_STEP, AI_FIRE_STEP
     from ..desk.pending_commit import PendingCommitter
     from ..desk.timetable import timetable_from_config
-    from ..learning.writer import SignalFile
+    from ..rehearsal.mode import rehearsal
+    from .budget import LevelBudgetStop
     from .collect import DecisionCollector
     from .fire import DecisionFirer
     from .promote import Promoter
@@ -135,14 +137,14 @@ def build_ai_steps(
         return config_refused(str(wrong))
     terms, packs, cards = decision_terms(timing), build_day_packs(root), cards or NoAnalystCards()
     triggers = {book: build_decision_trigger(book, env) for book in ROUTINES}
-    firer = DecisionFirer(root, REGISTRY, triggers, SignalFile(root), packs, cards, build_record_scanner(),
-                          PendingCommitter(committer, root).commit, clock, terms)  # fmt: skip  # E3's recovery
+    budget, commit = LevelBudgetStop(build_month_meter), PendingCommitter(committer, root).commit  # E3's recovery
+    firer = DecisionFirer(root, REGISTRY, triggers, budget, packs, cards, build_record_scanner(), commit, clock, terms)
     deciders = {book: book_parts.decider for book, book_parts in parts.items()}
     pull = lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.target)  # noqa: E731 - O1 publish branch
     collector = DecisionCollector(root, RepoHistory(root), REGISTRY, Promoter(root, deciders), packs, cards, pull,
                                   terms)  # fmt: skip
-    observer = ObserverHandle()
+    observer, rehearsing = ObserverHandle(), lambda: rehearsal() is not None  # REH1: a rehearsal never fires
     return {
-        AI_FIRE_STEP: AiFireStep(root, firer, timing, live, processes, observer),
-        AI_COLLECT_STEP: AiCollectStep(root, collector, timing, live, waiter, clock, observer),
+        AI_FIRE_STEP: AiFireStep(root, firer, timing, live, processes, observer, rehearsing),
+        AI_COLLECT_STEP: AiCollectStep(root, collector, timing, live, waiter, clock, observer, rehearsing),
     }

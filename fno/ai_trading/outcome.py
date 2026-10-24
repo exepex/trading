@@ -14,7 +14,7 @@ from ..ai.outcome import model_check as compare_models
 from ..ai.receipts import PushReceipts, ReceiptUnknown
 from ..ai.seal import Commitment, SealBroken, open_reveal
 from ..ai.submissions import Submission
-from .answer import AnswerRefused, CheckedAnswer, check_answer
+from .answer import SESSION_TOOL, AnswerRefused, CheckedAnswer, check_answer
 
 ACCEPTED, MODEL_UNVERIFIED, REFUSED, PROMOTED = "accepted", "model_unverified", "refused", "promoted"
 NOT_TRADED = (NOT_FIRED, NO_SUBMISSION, LATE, EXPOSED, INVALID, NOT_REVEALED, MODEL_MISMATCH, MODEL_UNVERIFIED, REFUSED)
@@ -23,8 +23,8 @@ NOT_ON_TIME = "commitment not on the remote at {at:%H:%M:%S} ({why})"
 OTHERS_EARLY = "{books} revealed before {at:%H:%M:%S}: their answer could be read"
 OWN_EARLY = "revealed before {at:%H:%M:%S} (the reveal waits for every seal)"
 NO_REVEAL = "no reveal on the remote at {at:%H:%M:%S}"
-MISMATCH = "the session reported {reported}, not {registered}"
-UNVERIFIED = "the session did not report its model (unknown): no trade"
+MISMATCH = "the session was served by {reported} (configured {configured}), not the registered {registered}"
+UNVERIFIED = "the model is not verified (source {source}: only the session tool's served model counts): no trade"
 
 
 @dataclass
@@ -33,7 +33,9 @@ class DayOutcome:
     status: str
     reason: str = ""
     version: str = ""
-    model_reported: str = ""
+    model_reported: str = ""  # the served model the session copied from its session tool
+    model_configured: str = ""
+    model_source: str = ""
     model_check: str = ""
     commitment_commit: str = ""
     reveal_commit: str = ""
@@ -95,16 +97,26 @@ def _check(outcome: DayOutcome, facts: Judged, commitment_text: str, reveal_text
         checked = check_answer(answer, facts.labels, facts.shape_check, facts.private)
     except (SealBroken, AnswerRefused) as broken:
         return outcome.stop(INVALID, str(broken))
-    outcome.model_reported = checked.model_reported
-    outcome.model_check = compare_models(checked.model_reported, facts.registered_model)
+    outcome.model_reported, outcome.model_configured = checked.model_reported, checked.model_configured
+    outcome.model_source = checked.model_source
+    outcome.model_check = served_model_check(checked, facts.registered_model)
     if outcome.model_check == "mismatch":
-        return outcome.stop(
-            MODEL_MISMATCH, MISMATCH.format(reported=checked.model_reported, registered=facts.registered_model)
-        )
+        return outcome.stop(MODEL_MISMATCH, MISMATCH.format(reported=checked.model_reported,
+                                                            configured=checked.model_configured,
+                                                            registered=facts.registered_model))  # fmt: skip
     if outcome.model_check != "match":
-        return outcome.stop(MODEL_UNVERIFIED, UNVERIFIED)
+        return outcome.stop(MODEL_UNVERIFIED, UNVERIFIED.format(source=checked.model_source))
     outcome.answer = checked
     return outcome
+
+
+def served_model_check(checked: CheckedAnswer, registered: str) -> str:
+    """ "match" only when the session tool reported both its served and its configured model as the registered one
+    (judges 621 and 623; the orchestrator's ruling: an instructions line alone is not verified)."""
+    if checked.model_source != SESSION_TOOL:
+        return "unverified"
+    checks = {compare_models(checked.model_reported, registered), compare_models(checked.model_configured, registered)}
+    return "mismatch" if "mismatch" in checks else "match" if checks == {"match"} else "unverified"
 
 
 def seen_at(receipts: PushReceipts, commit: str) -> datetime | None:

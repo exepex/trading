@@ -3,7 +3,8 @@ forecasts' rule and with their code: every session of the first 10 fired days, t
 weekly seed; a breach makes that book-day unscored, and two in 20 decision days stop that book's decision fires.
 
 - `audits-due`: records any new weekly draw of decision sessions, then lists the selected sessions not audited yet;
-- `audit-record`: records one decision session's transcript audit (clean, or the breach kinds found), written once.
+- `audit-record`: records one decision session's transcript audit (clean, or the breach kinds found), written once;
+- `model-audit`: records whether the session's copied model fields equal its session tool's answer (criterion 3c).
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from datetime import date
 from ..ai.fire_once import FIRE_UNKNOWN
 from ..ai.transcript_audit import BREACH_KINDS
 from ..constants import AI_BOOKS
+from .model_audit import RESULTS
 
 
 def add_ai_trading_parser(subparsers) -> None:
@@ -27,11 +29,37 @@ def add_ai_trading_parser(subparsers) -> None:
     record.add_argument("--evidence", required=True, help="what was read and seen (tool calls, files), never a secret")
     record.add_argument("--auditor", required=True, help="who read the transcript")
     record.add_argument("--session", default="", help="the session, when the fire log has no link")
+    model = actions.add_parser("model-audit", help="record whether a decision's model fields match its transcript")
+    model.add_argument("--day", type=date.fromisoformat, required=True, help="YYYY-MM-DD")
+    model.add_argument("--book", required=True, choices=AI_BOOKS)
+    model.add_argument("--result", required=True, choices=RESULTS)
+    model.add_argument("--evidence", required=True, help="the tool call's fields as seen, never a secret")
+    model.add_argument("--auditor", required=True, help="who read the transcript")
     parser.set_defaults(func=cmd_ai_trading)
 
 
 def cmd_ai_trading(args) -> int:
-    return _audit_record(args) if args.ai_trading_cmd == "audit-record" else _audits_due()
+    commands = {"audit-record": _audit_record, "model-audit": _model_audit}
+    return commands[args.ai_trading_cmd](args) if args.ai_trading_cmd in commands else _audits_due()
+
+
+def _model_audit(args) -> int:
+    from ..config import ROOT
+    from ..models import now_ist
+    from .model_audit import ModelAuditRefused, ModelAudits
+    from .paths import fired_path
+
+    log = ROOT / fired_path(args.day)
+    version = json.loads(log.read_text(encoding="utf-8")).get(args.book, {}).get("version", "") if log.is_file() else ""
+    try:
+        path = ModelAudits(ROOT).record(
+            args.day, args.book, version, args.result, args.evidence, args.auditor, now_ist()
+        )
+    except ModelAuditRefused as refused:
+        print(f"refused: {refused}")
+        return 1
+    print(f"recorded {args.result}: {path}")
+    return 0
 
 
 def _audits_due() -> int:

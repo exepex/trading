@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
 
+from fno.ai.budget_stop import BudgetCheck, BudgetStop
 from fno.ai.history import RepoHistory
 from fno.ai.observed_receipts import Observation, ObservationFile
 from fno.ai_trading.collect import DecisionCollector
@@ -40,9 +41,9 @@ class KeepPointer(RoutineTrigger):
         return f"https://example.invalid/{pointer.book}"
 
 
-class NoStop:
-    def ai_roles_stopped(self, day):
-        return False
+class NoStop(BudgetStop):
+    def check(self, day):
+        return BudgetCheck("", "")
 
 
 class SameCards:
