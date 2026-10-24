@@ -13,7 +13,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..constants import AI_BOOKS, BOOK2_HYBRID
-from .book import answer_labels, envelope_of
+from .book_run import answer_labels, envelope_of
 from .export import ExportRefused, build_export
 from .history import RepoHistory
 from .outcome import INVALID, NO_SUBMISSION, NOT_FIRED, Outcome, judge, mark_exposures
@@ -28,6 +28,9 @@ from .versions import VersionRefused, current_version, version_by_label
 LINE = "Omenix F&O AI forecasts (GitHub Actions): {day}: {result}"
 
 
+STOPPED = "v2 AI collection stopped: the books answer protocol v4 from {live_from} (nothing recorded, never a miss)"
+
+
 @dataclass
 class AiForecastCollector:
     root: Path
@@ -35,8 +38,11 @@ class AiForecastCollector:
     receipts: PushReceipts
     writer: AiRecordWriter
     clock: Callable[[], datetime]
+    v4_live_from: date | None = None  # the AI books' v4 go-live: the v2 AI run, fire and collection, stops that day
 
     def collect(self, day: date) -> list[str]:
+        if self.v4_live_from is not None and day >= self.v4_live_from:
+            return [LINE.format(day=day, result=STOPPED.format(live_from=self.v4_live_from))]
         pack_file = self.root / pack_path(day)
         if not pack_file.is_file():
             return [LINE.format(day=day, result="no v2 pack for the day; nothing recorded")]
