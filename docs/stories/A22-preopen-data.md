@@ -163,15 +163,17 @@ session_01Mt6dcBU5kp2htdPN2KmiZH. **Deadline:** on `main` before Mon 26 Oct 08:3
 fail every trading day: step 0b tested candles read from history (after the session), where 09:00-09:14 exist; read
 live at 09:10, Groww serves none of them.
 
-### Evidence (24 Oct, 19:40 IST; the archived raw answers through the verified Drive cache, A16's `ReadOnlyGroww` for history; differences only, no value) [strong, one session]
+### Evidence (24 Oct, 19:40 IST; the archived raw answers through the verified Drive cache, A16's `ReadOnlyGroww` for history; differences only, no value) [strong, one session; rows marked * are the builder's
+read of Groww's history, not replayable from the repository (no 23 Oct 1-minute archive); judge 589 reproduced the
+others from Drive]
 
 | Check, 23 Oct | NIFTY | BANKNIFTY |
 |---|---|---|
 | Live answer (`nifty_091059.json`, `banknifty_091101.json`): candles of the day | one, stamped 09:15 | one, stamped 09:15 |
 | That candle: open = high = low = close; volume field | yes; `null` | yes; `null` |
 | Its close minus NSE's official open (`ind_close_all`, Open Index Value) | 0.00 | 0.00 |
-| Its close minus the 09:09 close Groww serves from history now | 0.00 | 0.00 |
-| The real 09:15 candle in history now: flat? its open minus the live candle's close | no; 0.95 points | no; 14.65 points |
+| Its close minus the 09:09 close Groww serves from history now * | 0.00 | 0.00 |
+| The real 09:15 candle in history now: flat? its open minus the live candle's close * | no; 0.95 points | no; 14.65 points |
 
 So before 09:15 Groww's one candle is a placeholder for the minute to come, holding the index's last value, which
 from 09:08-09:09 to 09:15 is the pre-open result (step 0b: the close is final from the 09:08 or 09:09 candle on 21 of
@@ -199,17 +201,23 @@ receipt O8 reads and the GIFT file are untouched.
 
 ### How a wrong value is caught: the open check
 
-- **When:** at the start of `preopen record` on a trading day, before the GIFT window (the routine starts 08:36; the
-  run waits for 08:40 anyway), so it never delays the 09:12 commit. It checks each of the last 10 sessions before
-  today that has a day row with a value and no check file yet.
+- **When:** after `preopen record`'s own commits (about 09:11-09:12), as its last step on a trading day, so no Drive
+  wait in it can move GIFT's 08:40 read (the 08:50 edition needs GIFT's receipt at about 08:41) or the 09:12 commit
+  (judge 589 finding 1). Chosen over a hard stop before 08:40 because a stop between calls cannot bound one slow Drive
+  call, and after the commit nothing waits on the check (no reader of the label until the next morning's row). It
+  checks each of the last 10 sessions before today that has a day row with at least one index value and no check file
+  yet; a row with no value (23 Oct's) is skipped. A day row written before A22d has no basis columns: its values are
+  checked and its basis reads blank, so it never counts toward the label.
 - **What:** each index's value against NSE's Open Index Value in that session's `ind_close_all`, read from the stores
   only (`build_stored_index_close_files`, never NSE, never a Drive write; A9's librarian archives it at 08:38 and
   through `index-closes.yml`). Match: at most one tick (0.05 points) apart, A16b's `beyond` (one rule, not a second).
   Its result goes write-once to Drive, `data/preopen/check/YYYY/MM/<date>.csv` (per index: basis, `match`, `mismatch`
-  or `no value`, and the difference, in Drive only), with its receipt, committed by the run's own committers.
+  or `no value`, and the difference, in Drive only), with its receipt, committed by a second run of the run's own committers after the check. Its lines follow the
+  capture's: "open check: <n> checked, <m> waiting for NSE's file", or "open check with problems: ..." with its own
+  #fno-desk line (sent only then); either problem line makes the command exit 1.
 - **No official file yet:** no check file is written; that session is checked again the next morning (a 10-session
   look-back covers a long weekend and a late archive). Never counted as a match.
-- **Mismatch:** one problem line in the run's one #fno-desk alert and one O10 row ("nifty open check mismatch:
+- **Mismatch:** one problem line in the check's #fno-desk alert and one O10 row ("nifty open check mismatch:
   flat 09:15 candle differs from NSE's official open on <day>"; no value or difference in the alert or the repository).
   The day's row is not changed (write-once); its check file says `mismatch`.
 - **Label, before 5 sessions are checked:** a `flat_0915` value is kept and labelled `flat_0915_unverified`, not
@@ -218,7 +226,9 @@ receipt O8 reads and the GIFT file are untouched.
   label lets FL1 (the only reader to come; it reads no pre-open value yet) show or skip it. A value is labelled
   `flat_0915_verified` when that index's 5 most recent checked `flat_0915` sessions are all `match`; any `mismatch`
   among them makes it `unverified` again (5 fresh matches needed). `candle_0909` values are checked too but are not
-  part of the count. Earliest `verified`: about Mon 2 Nov, after five live sessions from 26 Oct.
+  part of the count. Today's label is set when the day row is written (09:11) from the check files already there, so
+  it counts sessions up to the day before yesterday. Earliest `verified`: Tue 3 Nov's row (values of 26-30 Oct,
+  the fifth checked on 2 Nov after that morning's row).
 
 ### Acceptance criteria (each with good, bad, boundary and empty cases; injected clock)
 
@@ -230,15 +240,18 @@ D2. Not accepted: read at 09:15:00 (boundary) and 09:16; read at 09:09:59 (bound
     never a value.
 D3. Precedence: an answer with the 09:09 candle and a flat 09:15 candle gives the 09:09 close, basis `candle_0909`.
 D4. Day row: the two basis columns, filled as the rule says; blank for an index with no value; other columns
-    unchanged (header test).
+    unchanged (header test); a day row in the old header (23 Oct's, no basis columns) still reads.
 D5. Open check: match at 0.00 and at 0.05 (boundary), mismatch at 0.06 and at -0.06; mismatch gives one alert line
     and one O10 row without a value; no official file writes no check file and is retried next morning; a session
-    already checked is not checked again (write-once file taken); no day rows to check does nothing; the check reads
+    already checked is not checked again (write-once file taken); no day rows to check does nothing; an old-header row with a value is checked with a blank basis and does not
+    count; a row with no value is skipped; the check reads
     only stored index-close files (a fake NSE that fails the test if called).
 D6. Label: 4 matches then today gives `unverified`, 5 gives `verified`; 5 matches with a mismatch in the last 5
     gives `unverified`; no check file at all gives `unverified`.
-D7. Timing: the check runs before 08:40 and a check failure (Drive down, unreadable file) is one problem line, never
-    a stop of the capture (GIFT and pre-open still read).
+D7. Timing: with a slow fake store (each check read takes 10 minutes on the injected clock) GIFT's first read is
+    still at 08:40:00 and the capture's commit precedes the check; the check runs only after the capture's commits; a
+    check failure (Drive down, unreadable file) is one problem line and exit 1, never a change to the capture's day
+    row, files or commit.
 D8. Real output sample in the Claims: the run's lines on the 23 Oct recorded answers through REH1c's rehearsal, and
     the first live morning's (26 Oct) lines.
 
@@ -261,8 +274,8 @@ D8. Real output sample in the Claims: the run's lines on the 23 Oct recorded ans
 1. Drop the flat test. 2. Drop `seen_at < 09:15`. 3. Drop the 09:10 lower bound. 4. Accept any volume. 5. Accept any
 lone candle from 09:14. 6. Allow other candles beside it. 7. Prefer `flat_0915` over the 09:09 candle. 8. Count a
 missing official file as a match. 9. Tolerance 0.10. 10. Label verified at 4 matches. 11. Ignore a mismatch in the
-count. 12. Send the difference in the alert. 13. Check against NSE live instead of the stores. 14. Run the check after
-the pre-open window.
+count. 12. Send the difference in the alert. 13. Check against NSE live instead of the stores. 14. Run the check before
+the capture (at the start of `preopen record`).
 
 ### Claims (A22d)
 
