@@ -42,3 +42,28 @@ say only what waits on sessions.
 
 ## Plants
 9 planted, 8 caught, 1 survived (finding 1).
+
+## Addendum 1
+
+**Round 2 of 2:** story/ms-sim-dryrun-fixes at 4364179cc. Since 2b90a22ad it changes only the sessions line:
+`practice/{render,report,runner}.py`, `source/{coverage,snapshots}.py` and `test_runner.py`. **Verdict: PASS.** Lane 1.
+
+**Gates (my run):** pytest -n 6: 14,792 passed, 1 skipped, 16 xfailed. ruff check/format and check_imports are clean.
+
+**Should-fix 1: ACCEPTED.**
+- A leg found insufficient now records its own bucket's sessions (`InsufficientSpreadData.sessions`, always under 30).
+- The line names only those buckets: "K spread buckets are short ... (shortest A, longest B)". Each bucket line
+  carries "S of 30 sessions".
+- A bucket with 30 or more sessions is never named, so the "35 of the 30" line can't occur.
+- The tests use unequal buckets (8, 12, 35).
+- Plants caught: the runner's collection dropped, the source's record dropped, min and max swapped.
+
+**Minor (new): the case of a leg with no bucket is untested.** `bucket_of` gives None for an expired contract or a
+spot of zero or less. Two plants survived:
+- `if not short` replaced by `if False`: with only such legs, `min(())` would raise and lose the report;
+- the bucket count taken from all insufficient buckets.
+
+In that mixed case the "so X of Y legs" count also includes the unbucketed legs, which aren't waiting on sessions.
+This is rare, so add one test when this code is next touched.
+
+**Plants:** 5 this round, 3 caught, 2 survived (the minor).
