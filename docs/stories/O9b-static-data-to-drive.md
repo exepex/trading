@@ -341,6 +341,11 @@ assigned by the orchestrator 23-24 Oct; agreed with the A4h, FL1 and G13 builder
     (where set) plus the owner Drive's raw area, read with the owner's settings, because GitHub's jobs carry only
     those. Without that, a reader there would have found no store at all.
   - `build_index_close_files()` stays the writer's: the panel and the warm-up closes (`cli.py`).
+  - **Where reads now come from (the FL1 builder's note, stated plainly):** the old library read only the service
+    account's stores and wrote to the owner's Drive. So a file that existed only in the owner's raw area was never
+    read from there; it was fetched from NSE again, and the archive's `put` then found the same bytes. Readers now
+    also read the owner's raw area, so they find exactly what the librarian archived. The writer's library keeps
+    its old read order.
   - `daily_files`' docstring is corrected; it had said "Drive is only read".
 - **Switched:** `forecast_lab/wiring.py` (`build_composer`), `forecast_lab/page_wiring.py` (VixSection),
   `price_ranges/wiring.py` (`build_issuer`, `build_table_update`) and `close_read/wiring.py` (the Confirmer).
@@ -357,7 +362,8 @@ assigned by the orchestrator 23-24 Oct; agreed with the A4h, FL1 and G13 builder
   - G13's `build_table_update` (their ask);
   - every reader's composition root naming only the reader's builder (FL1's ask for `build_composer` and the page).
   `build_composer` is not driven end to end (its cache and config stack), which is why the last check is by name.
-  A mutation back to the fetching library fails 2 tests.
+  The by-name check reads the whole file text, so an import of the fetching builder fails it as well as a call
+  (FL1's ask). A mutation back to the fetching library fails 2 tests. FL1 approved their lines (24 Oct).
 - **Not yet:** `close_read/official.py`'s docstring waits for A4h-2, which changes that file. `research_data/
   nifty_panel.py`'s `DailyFiles` docstring also says "never writes to Drive"; that module sits with the v3 panel,
   so it is left for its owner.
