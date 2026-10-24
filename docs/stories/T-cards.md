@@ -507,5 +507,18 @@ Out:
 **Split:** O1's builder (session_014zYLf18PgCzR7YoHs1X5Dp) owns `fno/daily/runner.py` and `fno/desk/run_log.py`. The
 move of the rule into `problem_steps` is asked of them before code.
 
+**Claims (for judge I):**
+- The problem rule exists once today, inline in `fno/daily/runner.py:61` with `PROBLEMS` at line 19. T1d moves it,
+  never copies it (strong: code read).
+- R2's failed and refused results are run-log statuses (`STEP_FAILED`, `STEP_REFUSED` in
+  `fno/constants_operations.py`), committed after each step before the card step runs (strong: `DailyRun._step`).
+- The card's existing `RunLogReader` already reads that committed log for T2 (strong), so nothing new reads git.
+- Gap list:
+  - the orchestrator's ask (one line naming the failed steps, none when none failed) is criteria 1 and 2;
+  - "through O1's own interface" is criteria 4 and 5;
+  - refused steps are included because O1's own rule counts them as problems (reasoning: the owner should see that
+    `fills` did not run as well as why);
+  - steps after the card are Out, as a Known limit.
+
 **Depends:** T1, T2, O1 R2 (`story/o1-r1r2-step-safety`) · **Size:** S · **Status:** story text, waiting for judge I;
 code after R2 merges
