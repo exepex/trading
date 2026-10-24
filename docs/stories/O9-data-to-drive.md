@@ -203,9 +203,11 @@ ea232e876681.csv: in the receipts, not returned by Drive".
   caches an absent folder or file as `None` (`fno/storage/google_drive.py:68-81`, `_file_id(fresh=False)` at
   90-99). The cache's instance had looked under the folder before the writer's instance created it, kept "absent",
   and answered the later read from that memory without asking Drive.
-- A warm local cache hides it (a file already on disk with the receipt's SHA-256 is never asked of Drive), which is
-  why an earlier run of the same day passed. The 15:19:53 and 15:19:58 start times were not the cause: both are
-  before the real day's 15:20:35.
+- Two things hide it, so it fails only when both are absent. A warm local cache (a file already on disk with the
+  receipt's SHA-256 is never asked of Drive). And the replay clock: from the real file's own receipt time (15:20:35
+  for this table) REH1g lets `DryrunDrive` fall back to the real record's copy, whose bytes are the same, so a read
+  after that time passes despite the stale absence. A cold cache read before 15:20:35 fails. (Corrected in the code
+  round: the text first said the start times were not the cause; they are one of the two masks.)
 - It is not a rehearsal-only bug. In a real run the same happens whenever one instance reads a path before another
   creates it in the same process (the first file of a new folder: a new year, a new dataset). A rehearsal makes it
   systematic, since every `dryrun/<run_id>/` folder starts absent and `DryrunDrive.get` looks there first.
@@ -214,8 +216,10 @@ ea232e876681.csv: in the receipts, not returned by Drive".
 
 - `_child` caches only what it found (an ID), never an absence: a later lookup of an absent name asks Drive again.
   That is the rule `GoogleDriveUploadStore._fresh_child` already states for writes ("Looks again instead of
-  trusting a cached absent"); reads now keep it too. `_fresh_child` and `file_id(fresh=True)` keep their own
-  re-check of a found ID.
+  trusting a cached absent"); reads now keep it too. `_fresh_child` keeps its own re-check of a found ID.
+  `file_id(fresh=True)` only drops the file's own key, so today a cached absent folder above it fails it too (judge
+  612 reproduced it); with the rule it finds the file like every other walker of `_child` (`get`, `metadata`,
+  `checksums`, `folders`).
 - A cached ID is still trusted: the record is write-once (never deleted or moved by a reader), so a found item
   stays found.
 - **Cost (reasoning only):** one more Drive list call per repeated lookup of an absent name within one process. A

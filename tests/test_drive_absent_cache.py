@@ -15,7 +15,7 @@ from fno.storage.data_store import DataStore
 from fno.storage.drive_cache import DriveCache
 from fno.storage.google_drive import DRIVE_FILES_URL
 from fno.storage.receipts import ReceiptFolder
-from tests.dr1.fake_drive import FakeDrive, store_on
+from tests.dr1.fake_drive import Answer, FakeDrive, store_on
 
 OLD, NEW = b"date,close\n2026-10-21,1\n", b"date,close\n2026-10-21,1\n2026-10-22,2\n"
 OLD_PATH = closes_path("BANKNIFTY", date(2026, 10, 21), 2414, "c7457fef611a")
@@ -23,7 +23,7 @@ NEW_PATH = closes_path("BANKNIFTY", date(2026, 10, 22), 2415, "ea232e876681")
 
 
 class Counting(FakeDrive):
-    """Counts Drive's list calls (each `_child` lookup is one)."""
+    """Counts Drive's list calls (each `_child` lookup is one) and answers a file's metadata."""
 
     def __init__(self):
         super().__init__()
@@ -31,6 +31,8 @@ class Counting(FakeDrive):
 
     def get(self, url, params=None, timeout=None):
         self.lists += url == DRIVE_FILES_URL
+        if url != DRIVE_FILES_URL and params and "fields" in params:
+            return Answer(body=self._answer(url.rsplit("/", 1)[1]))
         return super().get(url, params, timeout)
 
 
@@ -39,11 +41,20 @@ class Counting(FakeDrive):
 
 @pytest.mark.parametrize("path", ["x.json", "a/x.json", "a/b/c/x.json"])
 def test_an_absence_one_instance_saw_never_hides_what_another_created(path):
-    remote = FakeDrive()
+    """Judge 612's condition: every walker of `_child` on the first instance sees the new file, not only `get`."""
+    remote = Counting()
     reader, writer = store_on(remote), store_on(remote)
-    assert reader.get(path) is None  # every folder of the path absent, then the file
+    folder, _, name = path.rpartition("/")
+    parent, _, last = folder.rpartition("/")
+    assert reader.get(path) is None and reader.file_id(path) is None  # the path absent, from its first folder down
+    assert reader.metadata(path, "id") is None
+    assert not folder or reader.checksums(folder) == {}
+    assert not parent or reader.folders(parent) == []
     writer.put(path, b"made")
     assert reader.get(path) == b"made"
+    assert reader.file_id(path) is not None and reader.metadata(path, "id")["id"] == reader.file_id(path)
+    assert not folder or name in reader.checksums(folder)
+    assert not parent or last in reader.folders(parent)
 
 
 def test_the_last_folder_absent_under_a_folder_that_exists():
