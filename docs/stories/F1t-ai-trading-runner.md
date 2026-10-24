@@ -26,7 +26,8 @@ and book **paper** trades; the 22 Oct cut-list's pause on them is lifted. Their 
 the timeline names the v4 forecast run of the same books beside it; the two steps' public reasons are O1-status-only
 codes (criterion 17); a rehearsal never fires a routine (criterion 18); BG1's stop is read through G11's
 `BudgetStop`, with the owner's "no AI budget cap" (25 Oct); known limits and go-live checks updated with the real
-timing and model evidence of 15-23 Oct. No criterion of the PASS is removed or loosened.
+timing and model evidence of 15-23 Oct; decisions reuse G11's `RunTerms` chain as a third instance instead of the 16
+Oct path parameters (Design, "The decision run's terms"). No criterion of the PASS is removed or loosened.
 
 ## Context and why (each fact marked)
 
@@ -257,8 +258,8 @@ not exactly these, whose version is not the book's current one, or whose private
   decimal point. A strike or a price from the common pack may be named; a fill price, cash or P&L may not. The refusal
   names the token's place, never prints the figure.
 - `reveal`: waits until `reveal_from`, then publishes answer and salt to `<d>_<book>.reveal.json`.
-- The seal and reveal steps are the same as the forecast's: `fno/ai/book.py`'s publish logic moves into one shared
-  helper used by both (no behaviour change for forecasts; their tests unchanged), so nothing is written twice.
+- The seal and reveal steps are the forecast's own (`fno/ai/book.py`'s `BookSession` on the decision run's terms,
+  Design "The decision run's terms"); no behaviour change for forecasts, their tests unchanged; nothing written twice.
 
 **Receipts (`ObservedPushes(PushReceipts)`):** a commit's receipt is the first observation (receipt deadline, reveal
 deadline) whose fetched `origin/main` contains it; its nominal time is that deadline. Never a commit's own date. A
@@ -367,9 +368,18 @@ audit's breach kind `file_outside_input`, as for forecasts.
 
 **Transcript audit and stop rule:** the same rule as the forecasts (every session of the first 10 fired days, then 2 a
 week drawn with the same verified weekly seed), the same record and breach kinds, written to
-`journal/ai_decisions/<YYYY>/<d>_<book>_transcript_audit.json` by `python -m fno ai-trading audit-record`. `fno/ai`'s
-`fired_sessions`, `TranscriptAudits` and `breached_days` take the folder or path as a parameter whose default is
-today's value (no forecast behaviour changes).
+`journal/ai_decisions/<YYYY>/<d>_<book>_transcript_audit.json` by `python -m fno ai-trading audit-record`.
+
+**The decision run's terms (revision 2; G11's design on `main`, `fno/ai/run_terms.py`):** G11 made `fno/ai`'s whole
+chain take one `RunTerms` (paths of the commitment, reveal, audits and fire log, the receipt deadline and reveal
+times), with two instances, v2's and v4's. A decision run is a third instance, `decision_terms(timing)`, built in F1t's
+wiring from `ai_books.decision_timing` (protocol `"decision"`, folder `journal/ai_decisions`, deadline
+`receipt_deadline`, `reveal_from`, `reveal_deadline`). `read_submission`, `TranscriptAudits`, `stop_reason`,
+`fired_sessions` and `BookSession`'s seal and reveal then serve decisions with no new parameter and no copy; the 16 Oct
+code's path parameters (`path_of`, `commitment_of`, `folder`) are dropped. The only change in `fno/ai` beyond the
+shared pieces below is `build_audit_seeds` drawing the decision terms' weeks too (one term in its union). If
+`BookSession` cannot take a decision answer without forecast fields (`questions`, `envelope`), the code round extracts
+the smallest shared publish helper from it, with G11's tests unchanged and passing; the claims say which was done.
 
 **Usage (F8, agreed with F8c's owner, 16 Oct):** one mechanism, F8c's: `brief` starts `RunTiming` and `reveal`
 publishes it to a role-bearing timing path (`timing_path(day, book, run="decision")`, giving
@@ -388,9 +398,9 @@ with no book live the two steps record `not_live` (O8 sees every step of `DAILY_
 `fire.py`, `receipts.py`, `outcome.py`, `promote.py`, `records.py`, `steps.py`, `ports.py`, `paths.py`, `audit.py`,
 `cli.py`, `wiring.py`, `book_wiring.py`); new shared pieces in `fno/ai/`, generic (a path, a transport, a clock; no
 book in their signatures) because F2's role routines reuse them too (agreed with F2, 16 Oct): `sealed_publish.py`
-(`SealedPublisher`, extracted from `BookSession` on top of F8c's version), `observed_receipts.py` (`ObservedPushes`)
-and `fire_once.py` (`FireOnceLog`; G5's `fno/ai/fire.py` is untouched); changed: `fno/ai/book.py` (uses the publisher), `fno/ai/audit_plan.py`,
-`fno/ai/transcript_audit.py`, `fno/ai/stop_rule.py` (path parameters), `fno/constants_operations.py`
+(`SealedPublisher`, only if `BookSession` cannot serve a decision as is: design above), `observed_receipts.py`
+(`ObservedPushes`) and `fire_once.py` (`FireOnceLog`; G5's and G11's fire code untouched); changed: `fno/ai/wiring.py`
+(`build_audit_seeds`, one term), `fno/constants_operations.py`
 (`DAILY_RUN_STEPS` gains `ai_fire` and `ai_collect`), `fno/daily/wiring.py` (the two steps and per-book dispatch),
 `fno/desk/pack_wiring.py` (packed books from the run's books), `config.yaml` and `fno/config.py`
 (`ai_books.decision_timing`, two `daily.live_from` keys), `fno/daily/reason_codes.py` (the five `ai:` codes),
@@ -583,9 +593,8 @@ alert; checks that both switches null leaves the day byte-identical; reads the r
 
 Settled: the interfaces with F5 (16 Oct; F5 text PASS, judge 307 add. 5), F6 (16 Oct; F6 text PASS, judge 302 add.
 2), F2 (16 Oct; F2 text PASS, judge 303 add. 1) and F4 (16 Oct, judge 308.1 waits only on this text); model "unknown"
-is no trade (orchestrator, 16 Oct); the new package `fno/ai_trading/` with default-preserving changes to `fno/ai/`
-(G11's code, merged 712386480): `book.py`'s publish helper, `audit_plan`, `transcript_audit` and `stop_rule` take a
-folder or path parameter whose default is today's value, and G11's tests stay unchanged and passing.
+is no trade (orchestrator, 16 Oct); the new package `fno/ai_trading/` reuses G11's `RunTerms` chain (merged
+712386480) with one more instance and no new parameter, and G11's tests stay unchanged and passing.
 
 ## Depends
 
