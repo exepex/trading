@@ -91,3 +91,15 @@ def test_a_day_the_calendar_does_not_cover_raises_even_with_nothing_listed_after
         first_v4_expiry(date(CALENDAR.last.year + 1, 6, 1), [], CALENDAR)
     with pytest.raises(CalendarError):
         first_v4_expiry(date(CALENDAR.first.year - 1, 12, 31), [], CALENDAR)
+
+
+def test_year_end_21_dec_takes_29_dec_and_22_dec_raises_until_2027_is_in_the_calendar():
+    # judge 581 m1: 21 Dec -> 29 Dec holds 22, 23, 24, 28, 29 Dec (25 Dec Christmas) = 5; from 22 Dec only 4, so the
+    # next listed expiry (Jan 2027) is needed, and the calendar has no 2027 rows yet (the scheduled task adds them).
+    listed = [date(2026, 12, 29), date(2027, 1, 5)]
+    assert first_v4_expiry(date(2026, 12, 21), listed, CALENDAR) == date(2026, 12, 29)
+    if CALENDAR.last.year == 2026:
+        with pytest.raises(CalendarError):
+            first_v4_expiry(date(2026, 12, 22), listed, CALENDAR)
+    else:  # once 2027 is in, 22 Dec takes the January expiry (at least 23, 24, 28, 29, 30, 31 Dec are sessions)
+        assert first_v4_expiry(date(2026, 12, 22), listed, CALENDAR) == date(2027, 1, 5)

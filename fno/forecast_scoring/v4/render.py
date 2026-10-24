@@ -8,6 +8,7 @@ from dataclasses import asdict
 
 from ...constants import V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE
 from ...forecast_v4.terms import POWER_REPORT_AT
+from ...forecast_v4_rules.intraday_series import INTRADAY_SERIES
 from .comparison import Comparison, margin
 from .days import DayCounts
 from .records import EXPLORATORY
@@ -17,13 +18,14 @@ COHORT_HEADINGS = {
     V4_COHORT_CLOSE_PROXY: "close-proxy cohort (back-fill: the close stands in for the 14:30 pack; exploratory)",
     V4_COHORT_LIVE: "live cohort (captured before the cutoff)",
 }  # G10: scored apart, never pooled
+SERIES_NOTE = " (reported only: the intraday measure, protocol 1.1)"
 SECONDARY = "Forecasts are secondary to net profit; no p-value here is a verdict (verdicts come only from a look)."
 
 
 def report_lines(reports: list[QuestionReport], frozen: bool, as_of: str, days: DayCounts) -> list[str]:
     lines = ([] if frozen else [EXPLORATORY]) + [f"Omenix F&O protocol v4 scores as of {as_of}", SECONDARY, days.line()]
     for report in reports:
-        lines.append(f"{report.question}: {report.status}")
+        lines.append(f"{report.question}: {report.status}{SERIES_NOTE if report.question in INTRADAY_SERIES else ''}")
         if report.status != STATUS_SCORED:
             continue
         lines.append(f"  live forecasts: {report.live_forecasts}")
