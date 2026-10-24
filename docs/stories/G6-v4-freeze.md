@@ -330,7 +330,7 @@ input "protocol v4's registered family, frozen" (`stop_rule_tracker.INPUTS`, sto
    temporary git repository: G: intact; B: a commit not in history, a protocol edited after it; Bd: the protocol
    commit equal to HEAD; E: no `Protocol commit:` line. Plants: skip the ancestry check; compare with HEAD's text.
 3. **The rate** (`fno/forecast_v4/pricing.V4_RISK_FREE_RATE = 0.065`): the pack's IV30 rule and G7b's two users
-   run at it whatever `config.yaml` says (config set to 0.10 in the test); `pricing.py` is in
+   run at it, and no code path takes a config value (`build_iv30_rule()` takes none); `pricing.py` is in
    `IV30_METHOD_FILES`; no module in the walk's classes reads `cfg["risk_free_rate"]` or calls `build_atm_iv30`. G: the
    three users; B: a planted config read; Bd: a comment naming the setting is not a read; E: a module with no rate.
    Plants: read the config again in the pack's wiring; drop `pricing.py` from `IV30_METHOD_FILES`.
@@ -462,4 +462,54 @@ not the final-text commit (criterion 2), and the disclosure's robustness and Dri
 
 ## Claims
 
-None yet (story text only).
+### Freeze code, rounds 1-2 (criteria 1-4, 9, 11, 12; branch `story/v4-freeze`)
+
+Criteria 5-8 and 10 are the freeze commit's (the record, the slot and ledger rows, the freeze date, the protocol
+commit); they are built when G7b and G11 are on `main`.
+
+- **Code:** `fno/forecast_scoring/v4/freeze_classes.py` (new: the three classes, 127 byte-checked files today, 54
+  recorded with their lock, 43 not deciding with a reason); `freeze_check.py` (`FreezeCheck`, `check`, `unmatched`,
+  `recorded` with G11's own "AI registration" table, `drift`, `protocol_problems`, `rate_readers`);
+  `freeze_disclosure.py` (new); `cli.py` and `wiring.py` (`build_freeze_check`; the report's first lines; the look
+  refuses unless the freeze holds; the check is a required keyword argument); `fno/forecast_v4/pricing.py` (new,
+  agreed byte for byte with G7b's builder); `fno/v4_pack/wiring.py` (`build_iv30_rule` at the v4 rate, `pricing.py`
+  in `IV30_METHOD_FILES`; G10's builder agreed); `tools/v4_freeze_table.py` (refusals, all three classes, platform,
+  disclosure).
+- **Tests:** `tests/forecast_scoring_v4/test_freeze_check.py`, `test_freeze_protocol_commit.py`, `test_freeze_rate.py`,
+  `test_freeze_look_refusal.py`, `test_freeze_walk.py`, `test_freeze_disclosure.py`, `test_freeze_tool.py`; four older
+  look tests pass the now required check explicitly (`helpers.intact`).
+- **Plants (19, all caught; 3 survived the first run and their tests were tightened):** criterion 1: the `v4_pack` glob
+  dropped, `fno/constants.py` byte-checked, `unmatched` blind to recorded files; 2: no ancestry check, an earlier
+  commit with the same text accepted, two `Protocol commit:` lines accepted, a shallow clone read as checked; 3: the
+  pack at another rate, `pricing.py` out of the IV30 method, the reader scan blind to `build_atm_iv30`; 4: the look
+  ignoring the check, the report without its freeze line; 9: live rows read as back-fill, Drive live rows not cut at
+  the freeze day, M1's day files dropped; 11: A16b's `candle_rv_table.py` out of the classes; 12: drift on the wrong
+  hash, drift dropped from `check`; the tool ignoring a dirty tree.
+- **Self-review (an independent agent on round 1's code), each fixed or answered:** (B1) the weekly post-mortem's
+  shallow checkout would print "BROKEN": a shallow clone is "NOT CHECKED" and the look refuses; the workflow's
+  `fetch-depth: 0` is `story/lr1-fetch-depth` (orchestrator's assignment); (B2) G7b's EOD proxy reads the configured
+  rate: named, and `rate_readers` keeps the tool refusing until G7b's change lands; (B3) a listed file matching
+  nothing: `unmatched`, the tool refuses; (B4) the check defaulted to "intact": now required; (S5) unclassed v4
+  inputs: the walk, criterion 11; (S6) two protocol commit lines: refused; (S7) a broken CSV, an empty file, missing
+  columns, an empty receipt: `DisclosureError` naming the file; (S8) Drive live rows: listed by receipt, folders from
+  G7b's constants; (S9) the protocol text compared after git's text decoding: **kept, said plainly**: a CRLF or
+  non-UTF-8 protocol would read as "not the text the record pins", which fails safe, and the file is UTF-8 with LF;
+  (m10) the rate test now checks the built rule and the scan; (m11) the platform line names "unknown", the tool
+  refuses a dirty tree; (m12) the protocol commit must be the last commit that changed the protocol; (m13) the rate
+  moved to `pricing.py` (judge 597 SF1).
+- **Real output sample** (committed code, this branch, 24 Oct 2026; the tool refuses until G11 and G7b land, by
+  design):
+
+```
+$ python tools/v4_freeze_table.py --frozen-on 2026-10-25
+freeze tables NOT printed:
+matches no file: agents/forecast/book2_hybrid_v2.md
+matches no file: agents/forecast/book3_ai_v2.md
+reads the configured rate (protocol 1.4: pricing.py only): fno/forecast_v4_rules/wiring.py
+reads the configured rate (protocol 1.4: pricing.py only): fno/forecast/wiring.py
+```
+
+  The disclosure on `main`'s data (round 1's run): G7's 14 back-fill files 2017-01-03 to 2026-10-15 (2,410 rows each,
+  method `21f62594f26f`), M1's 4 files and its day files to 2026-10-19 (2,412 rows, `a49c62612a46`), live rows of
+  22-23 Oct apart, G8's reports of 10, 17 and 24 Oct.
+- **Gates:** see the commit message of the pushed head.
