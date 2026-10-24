@@ -127,13 +127,15 @@ def built(label="A"):
 
 
 def test_the_cli_refuses_without_a_release_record_and_o1_reads_it_as_nothing_written(monkeypatch, capsys):
-    from fno.v4_pack.release import NotReleased
+    from fno.forecast_v4_rules.pack_wiring import PackCapture
 
-    def missing(day):
-        raise NotReleased("no release record")
+    def missing(day):  # judge 598 SF1: the refit ratios and V5 are settled before the release is read
+        return PackCapture(None, None, None, None, {}, ["premium ratio close_proxy v1 for 2026-10: 0.6"],
+                           "no release record")  # fmt: skip
 
     code, out = run_cli(monkeypatch, capsys, missing)
-    assert code == 0 and "nothing written:" in out
+    assert code == 0 and "nothing written: no release record" in out and "premium ratio close_proxy" in out
+    assert "proxy drift" not in out  # no release: the follow-ups wait for a released day
 
 
 def test_the_cli_on_a_system_late_day_is_no_refusal(monkeypatch, capsys):

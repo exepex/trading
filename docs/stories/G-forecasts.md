@@ -643,9 +643,10 @@ premium-adjusted value that day (missing, counted). Must be strictly positive, e
   option-B ratio never collides with an option-A one (judge 578.1 n2):
   the ratio, the window's first and last day, its count, its `backfill_window` points (W8) and the inputs' SHA-256);
   every later day of the month reads the stored ratio and never recomputes it with files archived after the refit day
-  (judge 578 m3). A refit day with no stored ratio (the capture did not run, or the day was `system_late`) is never
-  computed later: the month's premium-adjusted rows are `not_eligible`, counted (the stricter rule; the receipt-time
-  filter this text first promised is not built, step 7's review item 3).
+  (judge 578 m3). The ratios of both measures are stored on the refit day whatever its release label, before the
+  release is read (judge 598 SF1: they read no pack). A refit day with no capture run leaves the month not eligible,
+  counted; never a late ratio (judge 598, item 3 ruled). Cost: one missed first-session run makes that month's B and
+  A rows `not_eligible`, about 21 sessions.
 - Value for `d`: raw implied of `d` times the refit's ratio; missing when either is missing.
 - **V2 and V3** use the close proxy (protocol 1.1). **V1 and part f's intraday series: both yardsticks (W3, owner
   24 Oct 2026, DESK_DECISIONS c63eb7e0b: "I want both intraday and daily closes"), each its own labelled row, never
@@ -1343,6 +1344,25 @@ they found and what was fixed or why not.
   zero live value pairs nothing), and `drift_days` for `proxy_drift`; W8's drift line and review trigger use it
   (`pack_followups.backfill_pairs` removed). On the committed tables: 19 Oct 0.962, 21 Oct 0.997, 22 Oct 1.009, the
   story's figures. Tests: the pairing test in `test_v4rules_w8.py`; plants (4, all caught).
+- **Round 2 (judge 598, on bc1260a36: B1 blocking, SF1, m1, m2; item 3 ruled, item 6 accepted), one head:**
+  - B1 (main red on the fixture seam): main merged again (083367c68 and later; conflicts as before: `v4_pack`
+    "2026-10-26" beside `forecasts_v4_pack: null`); the fixture patches `build_drive_records`; full gates on the merged
+    tree (commit message).
+  - SF1: `pack_capture.store_refit_ratios` stores every measure's and question's ratio on the refit day, called in
+    `build_pack_capture` before the release is read; a day with no release record is no longer an exception but
+    `PackCapture.refused` (the CLI prints the stored ratios and V5's outcomes, then "nothing written:"). Tests
+    (`test_v4rules_pack_build.py`, through `build_pack_capture`): a `system_late` refit day and one with no release
+    record both store the 6 ratios; the next day reads them and writes none; a missed refit day is never computed by
+    the next day.
+  - Item 3: the text says the stricter rule in the judge's words, with its cost (criterion 3's paragraph above).
+  - m1: the same test file's V5 test fails when `with_v5_outcomes(written)` is removed (planted, caught).
+  - m2: the level line keeps a pair whose close proxy is exactly 0 (it adds 0 to the denominator); a zero sum gives
+    no ratio.
+  - G14's ask: `pack_wiring.candle_history() -> list[CandleSession]` (W8's one reader of the table) and `candle_rv()`
+    built on it; a missing folder gives `[]`.
+  - Plants (9, all caught): V5 outcomes not added; the refit store dropped; a store on every session; one measure
+    only; the refusal caught too widely; the history short a row; a zero proxy dropped; an all-zero sum divided; the
+    refusal not printed.
 - **Not done here:** the CLAUDE.md routine line for `forecasts_v4_pack` (when it goes live); the W1-W8 wordings into
   `PROTOCOL_v4.md` (a protocol edit, its own change); the real Drive back-fill run (after merge); the orchestrator's
   `no_v4_drive_records` fixture (adopted once on `main`).

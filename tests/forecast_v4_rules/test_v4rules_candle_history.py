@@ -37,3 +37,13 @@ def test_the_committed_table_is_read_whole_and_its_void_rows_stay_void():
     assert {s.day for s in found if s.rv_session is None} == {
         date.fromisoformat(r["session"]) for r in rows if r["status"] != "ok"
     }
+
+
+def test_g14_reads_the_history_through_the_wiring_and_candle_rv_is_built_on_it(monkeypatch, tmp_path):
+    from fno.forecast_v4_rules import pack_wiring
+
+    history = pack_wiring.candle_history()
+    assert history == candle_sessions(CandleRvTable(INTRADAY_FOLDER).rows())  # the one reader, first_seen_at kept
+    assert pack_wiring.candle_rv() == {s.day: s.rv_session for s in history}
+    monkeypatch.setattr(pack_wiring, "INTRADAY_FOLDER", tmp_path / "missing")
+    assert pack_wiring.candle_history() == [] and pack_wiring.candle_rv() == {}  # no folder: empty, no error

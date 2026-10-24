@@ -190,3 +190,14 @@ def _write(path: str, data: bytes, row: Record | None, clock, get, put) -> None:
         put(path, data)
     elif held != data and (row is None or not read_live(held)[0].same_as(row)):
         raise ChangedRow(CHANGED_ROW.format(path=path))
+
+
+def store_refit_ratios(implied: Mapping[str, Mapping[str, ImpliedBaselines]], day: date,
+                       sessions: Sequence[date]) -> list[str]:  # fmt: skip
+    """Judge 598 SF1: on the month's refit day, every measure's and question's ratio is stored, whatever the day's
+    release (it reads no pack: the EOD proxy, the closes and A16/A16b rows from before the day); any other day
+    stores none. Returns one line per stored ratio."""
+    if day not in sessions or first_session_of_month(day, list(sessions)) != day:
+        return []
+    return [f"premium ratio {measure} {question} for {day:%Y-%m}: {by_question.ratio.at(day)}"
+            for measure, baselines in implied.items() for question, by_question in baselines.items()]  # fmt: skip

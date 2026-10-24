@@ -96,9 +96,10 @@ def test_the_iv30_line_is_the_median_of_paired_ratios_and_its_recent_drift():
 
 def test_the_rv_lines_are_a_ratio_of_sums_not_a_median_of_daily_ratios():
     pairs = [(DAYS[0], 4.0, 1.0), (DAYS[1], 1.0, 1.0), (DAYS[2], 1.0, 2.0)]  # median of ratios 1.0, sums 6 / 4
-    pairs += [(DAYS[3], None, 1.0), (DAYS[4], 1.0, 0.0)]  # unpaired: a missing side, a zero denominator
-    assert "3 paired day(s); ratio of sums 1.5000, latest 20 1.5000, drift 0.0000" in level_line(pairs)
-    assert "3 paired day(s); median ratio 1.0000" in median_line(W8_LABEL, pairs)  # W8's line: the median
+    pairs += [(DAYS[3], None, 1.0), (DAYS[4], 1.0, 0.0)]  # a missing side is no pair; a 0 close proxy adds 0 (m2)
+    assert "4 paired day(s); ratio of sums 1.7500, latest 20 1.7500, drift 0.0000" in level_line(pairs)
+    assert "1 paired day(s); ratio of sums n/a" in level_line([(DAYS[0], 1.0, 0.0)])  # an all-zero sum: no ratio
+    assert "3 paired day(s); median ratio 1.0000" in median_line(W8_LABEL, pairs[:3])  # W8's line: the median
 
 
 def test_the_latest_20_is_the_last_20_paired_days_in_date_order():

@@ -2,9 +2,9 @@
 computed only on the refit day itself, from the inputs present then, and written write-once to Drive,
 `v4/ratios/<measure>/<question>/<YYYY-MM>.json` (the ratio, the window's first and last day, its count, how many of
 its points rest on A16b's back-fill, `backfill_window` (W8), and the inputs' SHA-256); every later day of that month
-reads it and never recomputes it. A month whose refit day had no capture has no ratio (premium-adjusted not eligible
-all month, counted): computing it later could read files archived after the refit day (the story's stricter rule,
-step 7's review item 3). A refit with no eligible window
+reads it and never recomputes it. The capture stores it on the refit day whatever the release (judge 598 SF1). A
+refit day with no capture run leaves the month not eligible, counted; never a late ratio (it could read files archived
+after the refit day; judge 598, item 3). A refit with no eligible window
 is stored too (`null`): the month stays not eligible, a transient gap included."""
 
 from __future__ import annotations

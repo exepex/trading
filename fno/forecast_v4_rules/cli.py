@@ -68,18 +68,16 @@ def _capture_pack() -> int:
     refusal (the day is out for everyone); a changed row for the day is a failure (exit 1)."""
     from ..models import now_ist
     from ..storage.raw_store import RawFileConflict
-    from ..v4_pack.release import NotReleased
     from .pack_capture import CaptureRefused, ChangedRow, capture_pack
     from .pack_wiring import build_pack_capture, run_followups
 
     day = now_ist().date()
-    try:
-        built = build_pack_capture(day)
-    except NotReleased as missing:
-        print(f"v4 pack forecasts {day}: nothing written: {missing}")
-        return 0
-    for line in built.settled:  # V5's outcomes, settled before the day's rows
+    built = build_pack_capture(day)
+    for line in built.settled:  # the refit day's ratios and V5's outcomes, settled before the day's rows
         print(line)
+    if built.refused is not None:
+        print(f"v4 pack forecasts {day}: nothing written: {built.refused}")
+        return 0
     code = _capture_day(day, built, capture_pack, (CaptureRefused, (ChangedRow, RawFileConflict)))
     for line in run_followups(day, built.eod, built.put):  # the drift pairs and W8's review, whatever the rows did
         print(line)

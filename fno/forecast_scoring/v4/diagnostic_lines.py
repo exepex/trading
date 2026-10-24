@@ -35,7 +35,7 @@ def median_line(label: str, pairs: Pairs) -> str:
 
 
 def level_line(pairs: Pairs) -> str:
-    paired = sorted((day, a, b) for day, a, b in pairs if a is not None and b is not None and b > 0)
+    paired = sorted((day, a, b) for day, a, b in pairs if a is not None and b is not None)  # a 0 proxy adds 0
     overall, recent = _sum_ratio(paired), _sum_ratio(paired[-RECENT:])
     drift = None if overall is None or recent is None else recent - overall
     return LINE.format(label=LEVEL_LABEL, pairs=len(paired), kind="ratio of sums", all=_text(overall),
@@ -43,7 +43,8 @@ def level_line(pairs: Pairs) -> str:
 
 
 def _sum_ratio(paired) -> float | None:
-    return sum(a for _, a, _ in paired) / sum(b for _, _, b in paired) if paired else None
+    below = sum(b for _, _, b in paired)
+    return sum(a for _, a, _ in paired) / below if below else None
 
 
 def diagnostic_lines(iv30: Pairs, backfill: Pairs, level: Pairs) -> list[str]:
