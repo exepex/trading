@@ -50,10 +50,10 @@ from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
 from ..research_engine.ledger import GitFailed
 from .daily_ports import CommitFailed, DayStep, Waiter
-from .daily_steps import DeskSteps, StepOutcome
+from .daily_steps import DeskSteps, FillsInterrupted, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
 from .private_files import PrivateFiles
-from .run_log import RunLog
+from .run_log import RunLog, retryable
 from .step_recorder import AsGiven, StepRecorder
 from .trade_marking import MarkingStep
 
@@ -68,7 +68,28 @@ PUSHES = "; the rerun pushes the local commit"
 RECOVERY = "the rerun's start"
 DOWNLOAD = "the download of the private paper records"
 PACK_RETRY = timedelta(seconds=30)
-STEP_ERROR = "F&O paper desk {day}: step {name} FAILED ({reason}); the run goes on, the steps that need it are refused"
+STEP_ERROR = (
+    "F&O paper desk {day}: step {name} FAILED ({reason}){partial}; the run goes on, the steps that need it are "
+    "refused; {rerun}"
+)
+RERUN_RETRIES = "a same-day rerun (`fno daily run`) retries it"
+FINAL = "final today: {why}"
+PARTIAL = (
+    "; {count} trade(s) written before the error stay in the account, a retry never doubles them (idempotent by "
+    "fill ID)"
+)
+# DRY2 R2 (judge 569, the orchestrator's ruling): each desk step a rerun may retry after an unexpected error, with why
+# that is safe; every other step's failure is final (an O1 command's child may have posted or written before it)
+RETRY_SAFE = {
+    "versions": "D6 refuses a second version on the same day",
+    "pack": "pack files are write-once: the same bytes are kept, other bytes refused",
+    RUN_LOG_DECISIONS_STEP: "a retry after the deadline's grace marks every book late (fail closed)",
+    "snapshot": "the gate takes only a capture between the execution time and fills_by; a later one is invalid",
+    "fills": "E1's fills and the desk's fill rows are idempotent by fill ID; an entered trade returns its outcome",
+    "exits": "idempotent by fill ID; a closed position is no longer open",
+    RUN_LOG_TRADE_MARKS_STEP: "the session's marks and equity row replace that session's own",
+}
+NOT_RETRIED = "an O1 step's command may have posted or written before the error"
 NEEDS_FAILED = "needs {needed}, which failed today"
 NEEDS_MISSING = "needs {needed}, which has not run today"
 # DRY2 R2 (24 Oct): the steps that read another step's logged result, and which; the rest read their own inputs (the
@@ -110,7 +131,7 @@ class DailyRun:
             return log
         plan = self._plan(day, log)
         for name in DAILY_RUN_STEPS:
-            if name in plan and not log.done(name):
+            if name in plan and not log.finished(name):
                 moment, action = plan[name]
                 if moment is not None:
                     self.waiter.until(self.steps.timetable.at(day, moment))
@@ -212,7 +233,8 @@ class DailyRun:
         reasons = ([NEEDS_MISSING.format(needed=", ".join(missing))] if missing else []) + (
             [NEEDS_FAILED.format(needed=", ".join(failed))] if failed else []
         )
-        return StepOutcome({}, {"status": STEP_REFUSED, "reason": "; ".join(reasons)})
+        retry = not missing and all(retryable(log.result(needed)) for needed in failed)  # it runs once they do
+        return StepOutcome({}, {"status": STEP_REFUSED, "reason": "; ".join(reasons), "retry": retry})
 
     def _run_step(self, day: date, name: str, action: Callable[[], StepOutcome]) -> StepOutcome:
         """An unexpected error in one step fails that step only (DRY2 R2): it is logged with its type and one line,
@@ -222,9 +244,13 @@ class DailyRun:
         except (CommitFailed, GitFailed):
             raise
         except Exception as error:  # noqa: BLE001 - any other error: this step fails, the day goes on
-            reason = f"{type(error).__name__}: {_one_line(error)}"
-            self.steps.alerts.send(STEP_ERROR.format(day=day, name=name, reason=reason))
-            return StepOutcome({}, {"status": STEP_FAILED, "reason": reason})
+            cause = error.cause if isinstance(error, FillsInterrupted) else error
+            reason, retry = f"{type(cause).__name__}: {_one_line(cause)}", name in RETRY_SAFE
+            rerun = RERUN_RETRIES if retry else FINAL.format(why=NOT_RETRIED)
+            written = error.written if isinstance(error, FillsInterrupted) else 0  # judge 570: fills go trade by trade
+            partial = PARTIAL.format(count=written) if written else ""
+            self.steps.alerts.send(STEP_ERROR.format(day=day, name=name, reason=reason, partial=partial, rerun=rerun))
+            return StepOutcome({}, {"status": STEP_FAILED, "reason": reason, "retry": retry})
 
     def _guarded(self, day: date, where: str, action: Callable[[], object]) -> None:
         """The one place a failed commit or git read is handled: the rerun's recovery, a step's own commit and any

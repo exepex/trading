@@ -414,6 +414,66 @@ The exits and the marks check the snapshot through the gate themselves, so risk-
 freeze's own rule must decide first: when the freeze merges, its check goes before `_refused` in `_step`, so a frozen
 day's fills are `frozen`, never refused or run. Both are O1's own code; the freeze branch carries the test.
 
+**Round 2, judge 569 SF1 (the orchestrator's ruling): a failed step is retried by a same-day rerun when that is
+safe.**
+- **The rule:** a step failed by an unexpected error is logged `{"status": "failed", "reason", "retry": true|false}`.
+  The run loop now asks `RunLog.finished` (done and not retryable), so a rerun runs a retryable step again, and
+  `record` replaces its entry.
+  - A finished step is never repeated.
+  - A `refused` step whose failed inputs are all retryable is retryable too: the rerun retries the snapshot, then the
+    fills it refused. A step refused for a missing input is final.
+- **The alert says which:** "a same-day rerun (`fno daily run`) retries it", or "final today: <why>".
+- **The public run log keeps `retry`.** Checked: O1-status-only's `PublicResult` keeps the boolean leaf and codes the
+  reason as `raised:<Type>`.
+
+| Step | Retry after an unexpected error | Why it is safe (from the code) |
+|---|---|---|
+| versions | yes | D6 refuses a second version on the same day (`book_versions.keep`) |
+| pack | yes | write-once pack files: the same bytes are kept, others refused |
+| decisions | yes | a retry after the deadline's grace marks every book late (`collect_decisions`, fail closed) |
+| snapshot | yes | the gate takes only a capture between `execution_snapshot` and `fills_by` (15:15-15:20); a later one is invalid, so no fills |
+| fills | yes | E1's cash ledger and the desk's fill rows are idempotent by fill ID (`DeskJournal.record_fill`); an entered trade returns its recorded outcome (`EntryDesk.enter`) |
+| exits | yes | idempotent by fill ID; a closed position is no longer open; each book's error is already caught inside |
+| trade_marks | yes | `write_trade_marks` and the equity row replace that session's own rows |
+| every O1 step (commands, quote parts, card, reviews) | no, final | a command's child may have posted or written before the error; their own failures already alert |
+
+**Judge 570, fills partly written.** `DeskSteps.fill` re-raises an unexpected error as `FillsInterrupted(written,
+cause)`: commit and git failures still pass through untouched (decision 44). The step's reason is the cause, and the
+alert adds "N trade(s) written before the error stay in the account, a retry never doubles them (idempotent by fill
+ID)".
+
+**Tests** (`tests/timetable/test_step_error_run.py`, now 6):
+- a rerun retries a failed snapshot, then the fills it had refused, and repeats no finished step;
+- a fills error after one trade says "1 trade(s) written"; the retry enters the rest, and no fill ID appears twice;
+- failed decisions refuse the fills naming decisions, with no fill (SF2, judge 570's pin);
+- an O1 step's failure is final, says so, and is not rerun.
+
+**Plants:**
+- `finished` back to `done`: 2 fail.
+- fills out of `RETRY_SAFE`: 1 fails.
+- `NEEDS` without decisions: 1 fails.
+- The pass-through for commit and git failures dropped: caught by `test_commit_failure_run.py` (7 fail).
+
+**T1's self-review finding, recorded and not changed here.** `problem_steps` reads `status` only, so three desk
+outcomes that alert but carry no `status` are not named on the last line or the card:
+- an exits book's `error`;
+- `trade_marks` `{"marked": False}`;
+- `pack` `{"built": False}`.
+Naming them is a small follow-up for T1d or O1, to agree.
+
+## Status at handover (24 Oct, the owner's usage limit; builder session_014zYLf18PgCzR7YoHs1X5Dp)
+
+- **R1/R2:** on `story/o1-r1r2-step-safety`; round 2 is the head commit of this push.
+  - Judge E's 570 passed e8dc9498d. Judge B's 569 failed e8dc9498d on SF1 and SF2.
+  - The head commit carries SF1, SF2 and both of judge E's minors. It is for judge B's round 2, the last allowed, and
+    judge E's delta.
+  - Merge only together with T1d (story/t1d-failed-steps), which must drop its own copy of `problem_steps` and
+    `book_results` for these.
+- **A4c's shared early limit:** agreed with session_01MKtUHByHsR9cNwaP5KhFYH. When A4c-2 merges, `earliest_start`
+  becomes `earliest_waiting_start(w) + START_MARGIN`, and the tests pin 14:38 and 14:44.
+- **Next for the O1 owner:** answer the round-2 verdicts; the desk freeze's check goes before `_refused` when it
+  merges.
+
 **Not changed, said plainly:**
 - The card's own text (T1's) does not list failed steps. The run's last line already names them ("day done with
   problems: snapshot, fills"), and each failed step is alerted.

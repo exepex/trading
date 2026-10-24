@@ -12,10 +12,12 @@ from pathlib import Path
 from ..alerts.sender import AlertSender
 from ..checks.gate import DataGate
 from ..constants import NO_DECISION_LATE
+from ..research_engine.ledger import GitFailed
 from .common_pack import CommonPack
 from .daily_ports import (
     AccountSync,
     AccountWriteRefused,
+    CommitFailed,
     CommittedDecision,
     DecisionSource,
     ExecutionCapture,
@@ -44,6 +46,15 @@ DOUBLE = "{count} original runs ({runs}): only {taken} counts; check why the dec
 BLOCKED = "no new entry: {why} (today's exits run; the next session opens as usual)"
 ENTRY_REFUSED = "trade {trade} not opened: {reason}: information, no action"
 NOT_VALIDATED = "not filled: no completed C4 pass ({problems})"
+
+
+class FillsInterrupted(Exception):
+    """An unexpected error inside the fills after `written` trades were entered: those stay in the account (a retry
+    returns their recorded outcome, idempotent by fill ID); the daily run fails the step with that count."""
+
+    def __init__(self, written: int, cause: Exception):
+        super().__init__(f"{type(cause).__name__}: {cause}")
+        self.written, self.cause = written, cause
 
 
 @dataclass(frozen=True)
@@ -149,6 +160,17 @@ class DeskSteps:
             what = "; ".join(f"{book} {BLOCKED.format(why=why)}" for book, why in blocked.items())
             self.alerts.send(ALERT.format(day=day, book="entries", what=what))
         pack, result = self.pack(day), {}
+        try:
+            self._fill_books(day, pack, collected, blocked, snapshot_valid, result)
+        except (CommitFailed, GitFailed):
+            raise  # a failed commit or git read stops the run, as ever (decision 44)
+        except Exception as error:  # noqa: BLE001 - re-raised with the trades already written (judge 570)
+            raise FillsInterrupted(sum(1 for r in result.values() if r.get("outcome") not in (None, "not filled")),
+                                   error) from error  # fmt: skip
+        return StepOutcome(inputs, result)
+
+    def _fill_books(self, day: date, pack, collected: dict, blocked: Mapping[str, str], snapshot_valid: bool,
+                    result: dict) -> None:  # fmt: skip
         for book in self.books:
             entry = collected.get(book, {})
             if book in blocked:
@@ -170,7 +192,6 @@ class DeskSteps:
                     reason = NOT_WRITTEN.format(reason=refused)
                     result[order.proposal.trade_id] = {"outcome": "not filled", "reason": reason}
                     self.alerts.send(ALERT.format(day=day, book=book, what=reason))
-        return StepOutcome(inputs, result)
 
     def _fill_one(self, pack: CommonPack, decision: CommittedDecision, order, snapshot_valid: bool) -> dict:
         if not snapshot_valid:

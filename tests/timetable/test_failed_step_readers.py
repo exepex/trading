@@ -52,4 +52,4 @@ def test_the_scoreboard_reads_a_failed_decisions_and_exits_step_as_no_run_and_no
 def test_a_step_whose_input_step_has_not_run_is_refused(tmp_path):
     log = logged(tmp_path, {"decisions": step({BOOK1_RULES: {"run_id": "r1"}})})
     refused = DailyRun._refused(None, log, "fills")
-    assert refused.result == {"status": STEP_REFUSED, "reason": NEEDS_MISSING.format(needed="snapshot")}
+    assert refused.result == {"status": STEP_REFUSED, "reason": NEEDS_MISSING.format(needed="snapshot"), "retry": False}

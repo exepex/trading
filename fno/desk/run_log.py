@@ -38,11 +38,16 @@ class RunLog:
     def done(self, step: str) -> bool:
         return step in self.steps
 
+    def finished(self, step: str) -> bool:
+        """Done and not to be retried: a step that failed by an unexpected error and is safe to retry (DRY2 R2,
+        judge 569) runs again on a same-day rerun; every other recorded step is never repeated."""
+        return self.done(step) and not retryable(self.steps[step]["result"])
+
     def result(self, step: str) -> dict:
         return self.steps[step]["result"]
 
     def record(self, step: str, started: datetime, finished: datetime, inputs: dict, result: dict) -> None:
-        if self.done(step):
+        if self.finished(step):
             raise ValueError(f"{self.day} step {step} is already recorded: a run never repeats a step")
         self.steps[step] = {"started_at": started.isoformat(), "finished_at": finished.isoformat(),
                             "inputs": inputs, "result": result}  # fmt: skip
@@ -70,3 +75,8 @@ def book_results(result: dict) -> dict:
 
 def _problem(result: dict) -> bool:
     return result.get("status") in PROBLEMS
+
+
+def retryable(result: dict) -> bool:
+    """A step failed by an unexpected error that is safe to retry, or refused only because such a step failed."""
+    return result.get("status") in PROBLEMS and result.get("retry") is True
