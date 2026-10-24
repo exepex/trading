@@ -5,6 +5,7 @@ its receipt."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from ..research_engine.ledger import Git
 
@@ -12,5 +13,9 @@ from ..research_engine.ledger import Git
 @dataclass(frozen=True)
 class RepoHistory(Git):
     def first_commit_adding(self, path: str) -> str | None:
-        found = self._run("log", "--format=%H", "--reverse", "--diff-filter=A", "--", path).stdout.split()
+        found = self._out("log", "--format=%H", "--reverse", "--diff-filter=A", "--", path).split()
         return found[0] if found else None
+
+    def committed_at(self, commit: str) -> datetime:
+        """The commit's own committer date: set by whoever made it, so only ever a bound to search from."""
+        return datetime.fromisoformat(self._out("show", "-s", "--format=%cI", commit).strip())

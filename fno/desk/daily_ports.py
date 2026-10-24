@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
 from ..checks.data_checks import CaptureRecord
+from ..research_engine.ledger import GitFailed
 from .common_pack import CommonPack
 from .entries import EntryOrder
 from .exit_rules import ExitRule
@@ -57,6 +58,18 @@ class CommitFailed(Exception):
     def __init__(self, message: str, unpushed: bool = False):
         super().__init__(message)
         self.unpushed = unpushed
+
+
+RUN_STOPS = (CommitFailed, GitFailed)  # what stops the whole run (decision 44), never one step's own failure
+
+
+class StepInterrupted(Exception):
+    """An unexpected error inside a step after it had written `written` trades to the accounts (`__cause__` is the
+    error): the daily run fails the step and its alert says those trades stay (judge 570 minor 2)."""
+
+    def __init__(self, written: int):
+        super().__init__(f"{written} trades written before the error")
+        self.written = written
 
 
 @dataclass(frozen=True)

@@ -6,6 +6,7 @@ import json
 from collections.abc import Callable
 from functools import partial
 
+from ..alerts.output import announce
 from ..alerts.sender import AlertSender
 from ..research_data.calendar import CalendarError
 from .recorder import NO_SAME_DAY_TRADES, RAW_FILE_NOT_SAVED, QuoteSnapshotRecorder, RecordResult
@@ -51,6 +52,7 @@ def add_quotes_parser(subparsers) -> None:
 def cmd_quotes(args) -> int:
     from ..composition import build_alert_sender, build_nse_quote_recorder, build_quote_recorder
     from ..config import ROOT, load_app_config
+    from ..daily.alerts import ReportedAlerts
     from ..storage.wiring import CALENDAR_FILE, QUOTES_FOLDER, build_quote_store
     from .report import canonical_snapshots, spread_report
 
@@ -64,17 +66,18 @@ def cmd_quotes(args) -> int:
         print("\n".join(compare_lines(QUOTES_FOLDER, build_quote_store(QUOTES_FOLDER))))
         return 0
     calendar_file = CALENDAR_FILE.relative_to(ROOT).as_posix()
+    alerts = ReportedAlerts(build_alert_sender())  # an unsent alert is printed with its text (O2)
     if args.quotes_cmd == "record-indices":
-        from ..composition import build_index_quote_recorders
+        from .index_wiring import build_index_quote_recorders
         from .indices_cli import record_indices
 
         build_indices = partial(build_index_quote_recorders, load_app_config(args.config))
-        return record_indices(build_indices, build_alert_sender(), calendar_file)
+        return record_indices(build_indices, alerts, calendar_file)
     if args.window:
-        return _record_window(args, build_alert_sender(), calendar_file)
+        return _record_window(args, alerts, calendar_file)
     builder = build_nse_quote_recorder if args.source == NSE_SOURCE else build_quote_recorder
     build = partial(builder, load_app_config(args.config))
-    return record_today(build, build_alert_sender(), args.outside_window, calendar_file)
+    return record_today(build, alerts, args.outside_window, calendar_file)
 
 
 def _record_window(args, alerts: AlertSender, calendar_file: str) -> int:
@@ -107,18 +110,18 @@ def record_today(
     except CalendarError as error:
         message = CALENDAR_STOP.format(error=error, file=calendar_file)
         print(message)
-        print(alerts.send(message))
+        announce(alerts, message)
         return 1
     reason = "".join(f" - {text}" for text in (result.reason, result.raw_file_error) if text)
     print(f"{result.status}: {result.snapshot_id or '-'} ({result.rows} contracts, complete={result.complete}){reason}")
     if result.reason == NO_SAME_DAY_TRADES:
-        print(alerts.send(CROSS_CHECK_ALERT.format(reason=result.reason, snapshot_id=result.snapshot_id)))
+        announce(alerts, CROSS_CHECK_ALERT.format(reason=result.reason, snapshot_id=result.snapshot_id))
     if result.monthly_unverified:
         alert = MONTHLY_UNVERIFIED_ALERT.format(reason=result.monthly_unverified, snapshot_id=result.snapshot_id)
-        print(alerts.send(alert))
+        announce(alerts, alert)
     if result.raw_file_error:
         error = f"{result.raw_file_error.removeprefix(f'{RAW_FILE_NOT_SAVED}: ')}: {result.raw_file_detail}"
-        print(alerts.send(RAW_FILE_ALERT.format(reason=error, snapshot_id=result.snapshot_id)))  # Slack: private
+        announce(alerts, RAW_FILE_ALERT.format(reason=error, snapshot_id=result.snapshot_id))  # Slack: private
     return exit_code(result, outside_window)
 
 

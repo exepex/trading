@@ -1,0 +1,2 @@
+session,status,rv_session,rv_intraday,rv_overnight,vol_pct,void_reason,good_slots,due_slots,basis_counts,measure,method,source,as_of,first_seen_at,inputs_sha256,moved_after_cutoff,cutoff_move_sign
+2026-10-19,ok,0.0001533569,0.0001533157,0.0000000412,1.2384,,26,26,candle_1m_close:25;candle_1m_open:1,quote_snapshot,rv-quote-15m-v1,groww,2026-10-19T10:00:00+00:00,2026-10-19T10:01:12.184738+00:00,448c5da8d338fb3e33930bba6c4f12dcf2ba936725cc6ccdeb5cc22da502effb,no,+

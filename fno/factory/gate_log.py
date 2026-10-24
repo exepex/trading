@@ -6,6 +6,7 @@ deletion of any earlier row, in the working file or anywhere in its git history 
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import astuple, dataclass
 from pathlib import Path
 
@@ -62,9 +63,13 @@ class GateLog:
         self.rows()  # every row valid
 
     def append(self, row: GateRow) -> None:
-        self.require_append_only()
+        self.prepare(row)()
+
+    def prepare(self, row: GateRow) -> Callable[[], None]:
+        """Checks the log and the row now and returns the append, which reads nothing (`AppendOnlyCsv.prepare`)."""
+        self.rows()  # every row valid
         _check_row(row)
-        self.store.append(astuple(row))
+        return self.store.prepare(astuple(row))
 
 
 def figures(row: GateRow) -> dict[str, str]:

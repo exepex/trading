@@ -1701,3 +1701,34 @@ snapshot); the risk manager's own valuation with live marks (C2, unchanged); the
 (shadow accounts), O5 (the record scan) · **Size:** S-M · **Owner:** 0134MoC6 (E2c's owner) ·
 **Status:** done: text (judge 250 addendum 2) and code (judge 262) PASS, merged; the desk's `live_from` is on or after
 this merge (O8's owner, judge 262).
+
+## E2e. A book's sheet in its private pack, and the pack's own snapshot for every reader
+
+**Description:** As the owner, I want each book that needs its own view of the day (Book 2's rule default, Book 3's
+candidates) to get it inside its private pack through one hook, and every reader of the cutoff market to read exactly
+the snapshot the common pack froze, so that no book's evaluation is public and none can price on a later quote.
+
+**Design:**
+- `BookSheet.sheet(book, day, common) -> Mapping`. `WrittenPacks` runs it after the common pack, and its result
+  goes into the book's private pack under `"evaluation"`. Private packs are Drive-only, and git keeps only the
+  `.sha256` (E2c).
+- `canonical_snapshot(day, common, quotes)`:
+  - reads the snapshot ID the common pack recorded, from its recorded dataset;
+  - checks the quote file and the sidecar against the recorded SHA-256s;
+  - parses those verified bytes;
+  - never follows the day's `.canonical` marker (judge 309).
+
+  Book 1's inputs use it, and so do F5's and F6's sheets and deciders.
+
+**Acceptance criteria:**
+1. A book's sheet is in its private pack under "evaluation", built from the day's common pack.
+2. A book without a sheet: its private pack is byte-identical (same SHA-256).
+3. A sheet that raises: that book's pack is not written (no partial pack) and one alert names the book. Every other
+   book's pack is written and kept. Without an alert sender the line is printed.
+4. `canonical_snapshot` returns the pack's own capture, even when the marker names a later capture with other
+   quotes. It refuses a quote file or sidecar that differs from the recorded hash, a missing file, and a pack that
+   names no snapshot.
+5. The daily run keeps its one reported alert sender.
+
+**Depends:** E2 and E2c (packs, Drive), A4 (the snapshot store) · **Size:** S · **Owner:** 0134MoC6 ·
+**Status:** done: merged (judge 309 and addendum 1 PASS); F5 and F6 add their sheets.

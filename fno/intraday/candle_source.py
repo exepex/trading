@@ -48,9 +48,10 @@ class IntradayCandleSource(ABC):
 
 
 class GrowwCandleSource(IntradayCandleSource):
-    def __init__(self, api, clock: Callable[[], datetime], sleep=time.sleep, monotonic=time.monotonic):
-        """`api`: A16's `ReadOnlyGroww`, never the SDK client itself."""
-        self.api, self.clock, self.sleep, self.monotonic = api, clock, sleep, monotonic
+    def __init__(self, api, clock: Callable[[], datetime], sleep=time.sleep, monotonic=time.monotonic,
+                 symbol: str = CANDLE_SYMBOL):  # fmt: skip
+        """`api`: A16's `ReadOnlyGroww`, never the SDK client itself; `symbol`: Groww's index (A22 adds BANKNIFTY)."""
+        self.api, self.clock, self.sleep, self.monotonic, self.symbol = api, clock, sleep, monotonic, symbol
         self._last_start: float | None = None
 
     def candles(self, start: date, end: date) -> CandleAnswer:
@@ -65,7 +66,7 @@ class GrowwCandleSource(IntradayCandleSource):
         requested = self.clock()
         try:
             answer = self.api.get_historical_candles(
-                exchange=self.api.EXCHANGE_NSE, segment=self.api.SEGMENT_CASH, groww_symbol=CANDLE_SYMBOL,
+                exchange=self.api.EXCHANGE_NSE, segment=self.api.SEGMENT_CASH, groww_symbol=self.symbol,
                 start_time=f"{start} {DAY_FROM}", end_time=f"{end} {DAY_TO}",
                 candle_interval=getattr(self.api, interval), timeout=CALL_TIMEOUT_SECONDS,
             )  # fmt: skip

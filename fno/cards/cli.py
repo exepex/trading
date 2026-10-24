@@ -50,7 +50,7 @@ def cmd_card_daily(args, out=print) -> int:
         return 0
     result = build_card_issuer().issue(card, text, test=args.test)
     out("\n".join(result.lines))
-    return 0 if result.sent and result.saved else 1
+    return 0 if result.sent and result.complete else 1
 
 
 def cmd_card_witness(args, out=print) -> int:

@@ -95,9 +95,9 @@ Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REG
 | G13 valuation and price distribution | 01UkTaDe | text |
 | F8c AI usage per routine | 0134MoC6 (folded with G11) | text |
 | A17/A15 schedules | 01MBnbVU | with judge F |
-| **T1c: the card reads M1's weather record** (found by O11: `fno/cards/weather.py` still prints "M1 pending" and blocks trades; M1's text left T1 out) | **none** | **missing**: smallest story, one `WeatherSource` adapter over `WeatherRecords.for_day` plus one wiring line |
-| **O1 start at 14:05** (known: the 14:33 start misses the 14:30 forecast cutoff, proven in O11's failure test) | O1 builder 014zYLf1 (follow-up for judge D) | open; then the owner edits the routine's time |
-| **`daily.live_from` dates** for margin check, weather, v4 forecasts, card | **owner** | all null today |
+| **T1c: the card reads M1's weather record** (found by O11: `fno/cards/weather.py` still prints "M1 pending" and blocks trades; M1's text left T1 out) | T1/T2 builder 0145TfSw (orchestrator, 16 Oct) | text: one `WeatherSource` adapter over `WeatherRecords.for_day` plus one wiring line |
+| **O1 start at 14:05** (known: the 14:33 start misses the 14:30 forecast cutoff, proven in O11's failure test) | owner decided (DESK_DECISIONS, 16 Oct): the owner moves the routine once G10's pack code (b) merges, about 19-21 Oct; O1's follow-up (captures as child processes at the run's start) with judge D | open until moved |
+| **`daily.live_from` dates** for margin check, weather, v4 forecasts, card | owner, set as the **first step of the 10-day trial** (orchestrator, 16 Oct) | null until the trial starts |
 
 ## (d) Built or planned but serving no expectation now
 
@@ -107,7 +107,7 @@ Owner sessions shortened to their first 8 characters (full ids in `docs/WORK_REG
 | BR1 breadth code beyond the freezer | Defer: claims failed their own null check; descriptive only (row 231) |
 | G7b parts b-d (V2-V5) | Defer past the books: V2 alone needs 8-22 years of outcomes (row 214) |
 | LR3, F9 shadow firing, M2 price of calm, RM2 code, LM1 round 2b | Keep texts, build no code until the first real paper trades |
-| Four F2 analysts at once; F3 red team as its own story | One analyst first (now the F2 owner's plan); fold F3 into T3. F4 stays (its text was amended to "no paper override" and merged); I withdraw "drop F4" |
+| Four F2 analysts at once; F3 red team as its own story | One analyst first (now the F2 owner's plan); fold F3 into T3. F4 stays: its text was amended to "no paper override" and it is being built (owner decision; builder 01AN94h4); I withdraw "drop F4" |
 | A12 full-history filings | Keep the cheap job; build no consumer now |
 | `quote-recorder-nse.yml` | **Kept** (orchestrator: the owner's NSE fallback; I withdraw "retire"). But a fallback that fails every day is no fallback: its failures must reach O10's rows and alerts, and O11's finding 2 (NSE contract IDs refused by C5's buckets) must be fixed before it can ever feed the desk |
 | Judge paperwork per tiny change | 257 judge files in 5 days; the owner asked "are we ... making it over-engineered, over-complicated?" (15 Oct:336). Keep lane 2 and 3 as written; add no review layer |
@@ -123,7 +123,7 @@ freeze) → O11 zero xfails, judged → 10-day trial with zero silent failures =
 |---|---|---|---|
 | 1 | F5; F1t; F6/F7 | 01SFDjjZ; 01PLbKH1; 01KTAQCD | 2, 3 |
 | 2 | External data first, because history is lost daily: O10, A17 schedules, A19, A20 | 013YJ5gj, 01MBnbVU, 01Qj3wtY, 013u1Ac2 | everything |
-| 2b | Capture health before the trial: O8's first runs seen (or fixed); nse-margins' early cron starts or moves to a time GitHub honours; participant-OI's second slot root-caused; O10's staleness alert proven on a job that never started (its O11 xfail turns real) | 012eM7Ti, 01Vm1WnH, 013YJ5gj | 1 |
+| 2b | Capture health before the trial, each with a **first run verified** row under O8/O10 (orchestrator, 16 Oct): health-check's first slot 16 Oct 12:21 UTC (no run by 18:21 UTC is the failure); nse-margins' early cron first runs the night of 16 Oct (A14's catch-up crons with judge D); participant-OI's cancels fixed in O10. Then: O8's first runs seen (or fixed); nse-margins' early cron starts or moves to a time GitHub honours; participant-OI's second slot root-caused; O10's staleness alert proven on a job that never started (its O11 xfail turns real) | 012eM7Ti, 01Vm1WnH, 013YJ5gj | 1 |
 | 3 | E8 merge, then E6b code, R3 part B | 01H1CmuW, 0134MoC6, 0145TfSw | 1 |
 | 4 | O1's 14:05 start; T1c card weather | 014zYLf1; needs an owner | 1 |
 | 5 | G6 v4 freeze → G10 part 2 pack → G11 merge, M1 live, G7b b-c | 01MgTu3L, 01VK88Lx, 01XFXpbk, 0185gR5D | 1 |
@@ -131,7 +131,7 @@ freeze) → O11 zero xfails, judged → 10-day trial with zero silent failures =
 | 7 | S1 freeze (needs E8, S3/S6 code, cash rate, E8 switch) | 0185gR5D | after 3 |
 | 8 | Owner: routine time, `live_from` dates, A16 and LR1 routines, secrets | owner | after 4, 5 |
 | 9 | O11 turns each xfail real as its story lands, then is judged with zero xfails; O2 over O1 | this session; 014zYLf1 | from 1 |
-| 10 | **10-day trial**; any silent failure restarts the count | everyone | last |
+| 10 | **10-day trial**: day 0 is the owner setting every `daily.live_from` date; any silent failure restarts the count | everyone | last |
 
 Plainly [reasoning]: Books 2 and 3 will record "no approved strategy" every day until R1/R3 qualify one (row 239).
 A finished engine is not the same as an engine that trades, and the 10-day trial proves reliability, not profit.

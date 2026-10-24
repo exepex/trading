@@ -8,9 +8,18 @@ from fno.cards.card import CardBuilder
 from fno.cards.sections import ForecastSource, StatusSource
 from fno.cards.session import CALENDAR_PATH
 from fno.cards.status import REGISTRY_PATH
-from fno.cards.weather import PendingWeather
 from fno.constants import CARD_DATA_CHECK_FAILED, CARD_NO_APPROVED_STRATEGY, CARD_TRADE_FIELDS_NOT_BUILT, CardStatus
-from tests.cards.fakes import CAPTURE, PAPER_ROW, REGISTRY_HEADER, REPORT, FakeRecords, account, daily_card, planted
+from tests.cards.fakes import (
+    CAPTURE,
+    PAPER_ROW,
+    REGISTRY_HEADER,
+    REPORT,
+    FakeRecords,
+    account,
+    daily_card,
+    planted,
+    weather_of,
+)  # fmt: skip
 
 DAY = date(2026, 10, 15)
 COLOURS = re.compile(r"\b(GREEN|AMBER|RED)\b")
@@ -33,16 +42,16 @@ def test_a_full_card_says_paper_only_no_trade_with_its_reason_and_the_owner_line
     assert "order" not in text.lower()  # a card never tells the owner to place an order
 
 
-def test_weather_is_never_a_colour_on_a_v1_card(tmp_path):
+def test_without_a_weather_record_the_card_shows_no_colour(tmp_path):
     _, text = card_of(planted(), tmp_path)
-    assert "Weather: not yet scored (M1 pending)" in text
+    assert "Weather: no reading for 2026-10-15" in text
     assert not COLOURS.search(text)
 
 
 def test_missing_weather_says_it_blocks_new_trades_owner_rule(tmp_path):
     _, text = card_of(planted(), tmp_path)
     lines = text.splitlines()
-    weather = lines.index("Weather: not yet scored (M1 pending)")
+    weather = lines.index("Weather: no reading for 2026-10-15")
     assert lines[weather + 1] == "No new trades while the weather reading is missing (owner rule)."
 
 
@@ -134,7 +143,7 @@ class Broken(StatusSource, ForecastSource):
 
 def test_a_source_that_raises_never_loses_the_card(tmp_path):
     records = FakeRecords()
-    builder = CardBuilder(Broken(), PendingWeather(), Broken())
+    builder = CardBuilder(Broken(), weather_of(records), Broken())
     answer = daily_card(records, tmp_path).sessions.answer(DAY)
     card = builder.build(DAY, answer)
     assert card.status == CardStatus.NO_TRADE and card.reason_code == CARD_DATA_CHECK_FAILED

@@ -1,0 +1,84 @@
+{
+ "data_health": {
+  "a16_sessions": 5,
+  "days": [
+   {
+    "capture": "complete=True, finished 2.9 minutes after 14:55",
+    "capture_complete": true,
+    "card": "no card on record for 2026-10-19",
+    "day": "2026-10-19",
+    "weather": "yes"
+   },
+   {
+    "capture": "complete=True, finished 2.8 minutes after 14:55",
+    "capture_complete": true,
+    "card": "no card on record for 2026-10-21",
+    "day": "2026-10-21",
+    "weather": "missing"
+   },
+   {
+    "capture": "complete=True, finished 6.5 minutes after 14:55",
+    "capture_complete": true,
+    "card": "no card on record for 2026-10-22",
+    "day": "2026-10-22",
+    "weather": "yes"
+   },
+   {
+    "capture": "complete=True, finished 2.6 minutes after 14:55",
+    "capture_complete": true,
+    "card": "no card on record for 2026-10-23",
+    "day": "2026-10-23",
+    "weather": "yes"
+   }
+  ]
+ },
+ "exploratory": true,
+ "forecasts": {
+  "g4_report": "research/forecasts/scores/2026-10-24.json",
+  "v4_report": "research/forecasts/v4_scores/2026-10-24.json"
+ },
+ "sessions": [
+  "2026-10-19",
+  "2026-10-21",
+  "2026-10-22",
+  "2026-10-23"
+ ],
+ "weather": {
+  "days": [
+   {
+    "big_move": "no",
+    "colour": "GREEN",
+    "day": "2026-10-19",
+    "label": "backfill_exploratory",
+    "status": "scored",
+    "v0_colour": "AMBER"
+   },
+   {
+    "big_move": "no",
+    "colour": "missing",
+    "day": "2026-10-21",
+    "label": "missing",
+    "status": "missing",
+    "v0_colour": "missing"
+   },
+   {
+    "big_move": "no",
+    "colour": "GREEN",
+    "day": "2026-10-22",
+    "label": "live",
+    "status": "scored",
+    "v0_colour": "AMBER"
+   },
+   {
+    "big_move": "unresolved",
+    "colour": "GREEN",
+    "day": "2026-10-23",
+    "label": "live",
+    "status": "scored",
+    "v0_colour": "AMBER"
+   }
+  ],
+  "misses": []
+ },
+ "week_ending": "2026-10-24"
+}

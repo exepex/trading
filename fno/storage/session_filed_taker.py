@@ -16,10 +16,17 @@ from .raw_store import RawFileStore
 from .snapshot_taker import ALREADY, NOT_SERVED, TAKEN
 
 FROM_THE_FUTURE = "{path}: the copy covers {session}, after the run's day {day}; refused"
+STALE = "{path}: stale: the copy covers {session}, before the run's day {day}; refused"
+BEYOND_NEXT = "{path}: the copy covers {session}, after the next trading day following {day}; refused"
 
 
 class LaterSession(ValueError):
     """The copy covers a session after the run's day: refused, nothing written."""
+
+
+class StaleCopy(ValueError):
+    """The copy covers a session before the run's day where only the day's own copy is valid: refused, nothing
+    written."""
 
 
 CoveredSession = Callable[[str, bytes], date]  # (file name, data) -> the session the copy covers
@@ -38,11 +45,31 @@ class SessionFiledTaker:
         self.validate(self.source.FILENAME, data)
         session = self.covered(self.source.FILENAME, data)
         path = self.source.path_for(session)
-        if session > day:
-            raise LaterSession(FROM_THE_FUTURE.format(path=path, session=session, day=day))
+        self._check(session, day, path)
         existing = self.store.get(path)
         if existing is not None:
             self.store.put(path, existing)  # the same bytes: the store keeps them; the archive's manifest gets its row
             return ALREADY.format(path=path)
         self.store.put(path, data)
         return TAKEN.format(path=path, size=len(data))
+
+    def _check(self, session: date, day: date, path: str) -> None:
+        if session > day:
+            raise LaterSession(FROM_THE_FUTURE.format(path=path, session=session, day=day))
+
+
+class CurrentSessionTaker(SessionFiledTaker):
+    """For a list valid only for the session it names, published the evening before (A20a's ban list): a copy for a
+    session from the run day up to `latest(day)` (the next trading day) is taken under that session; one for an earlier
+    session means the publisher has not written today's yet (stale), and one further ahead cannot exist yet."""
+
+    def __init__(self, store: RawFileStore, source: NseArchiveSource, validate: Validator, covered: CoveredSession,
+                 latest: Callable[[date], date]):  # fmt: skip
+        super().__init__(store, source, validate, covered)
+        self.latest = latest
+
+    def _check(self, session: date, day: date, path: str) -> None:
+        if session < day:
+            raise StaleCopy(STALE.format(path=path, session=session, day=day))
+        if session > day and session > self.latest(day):  # asked only past today: the calendar may end today
+            raise LaterSession(BEYOND_NEXT.format(path=path, session=session, day=day))

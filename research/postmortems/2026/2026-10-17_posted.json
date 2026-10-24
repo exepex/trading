@@ -1,0 +1,6 @@
+{
+ "advocate": "rule 4: number written in words (zero)",
+ "lines_sha256": "f8454c4701fded8606de2cf8f33d5b2694a77b6a0f207cf18f528f1cf61b0d2b",
+ "slack": "alert sent to #fno-desk",
+ "summary": "posted"
+}

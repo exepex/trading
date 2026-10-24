@@ -64,3 +64,20 @@ day, the same "duplicate rather than silence" limit I accepted in judge 350 add.
 
 It is removed by the same change as judge 359 SF1: `if: ${{ failure() }}`, and the step exits 0 without sending when
 `posted == 'true'`. I recommend doing it in the same merge.
+
+## Addendum 2: d0fdc34b, the alert-step change recommended in addendum 1
+
+**Verdict: PASS. A20a may merge at d0fdc34b, after a fresh merge of main gated on the exact merged tree.**
+
+The fallback step now runs on every failure (`if: ${{ failure() }}`) and exits 0 without sending when the job's own
+`posted` output is `true` (passed as `POSTED` through `env`, never pasted into the script). So O10's watcher, now on
+main at 54312c31, sees an "Alert" step that ran and adds no duplicate line. A crash, where `posted` is empty, still
+sends the fallback line. `tests/fo_masters/test_workflow.py` pins the `if:`, the `env` and the first script line, and
+runs the script with `POSTED=true` (exit 0, "already spoke"). Checked by reading the code.
+
+Merge notes:
+- capture-watch's list on main must gain `fo-masters`. O10 part 1 is merged, so A20a adds it in its merge, and O10's
+  `test_every_job_is_watched` must pass.
+- The branch dates from 16 Oct. Merge main, run the full gates (pytest, ruff, ruff format, `check_imports.py`,
+  `check_records.py`, `check_numbers.py`) on the exact tree you push, and keep both sides of any
+  CLAUDE.md / WORK_REGISTER / README conflicts.

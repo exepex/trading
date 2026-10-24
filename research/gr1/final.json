@@ -1,0 +1,912 @@
+{
+ "cells": {
+  "BANKNIFTY/N1": {
+   "c0": {
+    "bands_ok": true,
+    "crossed": false,
+    "days": 439,
+    "dropped": 0,
+    "dropped_reason": null,
+    "inside_05_95": 0.9271070615034168,
+    "inside_25_75": 0.5375854214123007,
+    "mean_qs": 0.0044183062244462345,
+    "mean_qs_difference_vs_c0": 0.0,
+    "median_width_50_points": 600.6694284884129,
+    "median_width_90_points": 1610.9656824289648
+   },
+   "c9_split": [
+    {
+     "c0": {
+      "crossed": false,
+      "days": 439,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.9271070615034168,
+      "inside_25_75": 0.5375854214123007,
+      "mean_qs": 0.0044183062244462345,
+      "mean_qs_difference_vs_c0": 0.0,
+      "median_width_50_points": 600.6694284884129,
+      "median_width_90_points": 1610.9656824289648
+     },
+     "c9": {
+      "crossed": false,
+      "days": 439,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.9134396355353075,
+      "inside_25_75": 0.4874715261958998,
+      "mean_qs": 0.004395178934778559,
+      "mean_qs_difference_vs_c0": -2.3127289667675053e-05,
+      "median_width_50_points": 552.8392431034147,
+      "median_width_90_points": 1460.4736141740384
+     },
+     "segment": "2024-11-14 to end"
+    }
+   ],
+   "every_candidate": {
+    "C1": {
+     "crossed": false,
+     "days": 439,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9066059225512528,
+     "inside_25_75": 0.49658314350797267,
+     "mean_qs": 0.004409374590699995,
+     "mean_qs_difference_vs_c0": -8.931633746239423e-06,
+     "median_width_50_points": 555.6941283869537,
+     "median_width_90_points": 1490.4916995303581
+    },
+    "C10": {
+     "crossed": false,
+     "days": 427,
+     "dropped": 12,
+     "dropped_reason": "India VIX of d",
+     "inside_05_95": 0.9016393442622951,
+     "inside_25_75": 0.5011709601873536,
+     "mean_qs": 0.004421765561426085,
+     "mean_qs_difference_vs_c0": -9.268791103399393e-06,
+     "median_width_50_points": 541.8444833049859,
+     "median_width_90_points": 1469.5890262163696
+    },
+    "C11(C4+C9)": {
+     "crossed": false,
+     "days": 427,
+     "dropped": 12,
+     "dropped_reason": "India VIX of d or of the session before",
+     "inside_05_95": 0.9110070257611241,
+     "inside_25_75": 0.49414519906323184,
+     "mean_qs": 0.004408587887429215,
+     "mean_qs_difference_vs_c0": -2.2446465100269877e-05,
+     "median_width_50_points": 540.125821760202,
+     "median_width_90_points": 1438.4907351907182
+    },
+    "C2": {
+     "crossed": false,
+     "days": 439,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9134396355353075,
+     "inside_25_75": 0.49430523917995445,
+     "mean_qs": 0.004410574546856638,
+     "mean_qs_difference_vs_c0": -7.731677589596243e-06,
+     "median_width_50_points": 548.5547865325013,
+     "median_width_90_points": 1525.3974964013237
+    },
+    "C3": {
+     "crossed": false,
+     "days": 427,
+     "dropped": 12,
+     "dropped_reason": "India VIX of d",
+     "inside_05_95": 0.9086651053864169,
+     "inside_25_75": 0.5058548009367682,
+     "mean_qs": 0.004423146383352034,
+     "mean_qs_difference_vs_c0": -7.887969177450448e-06,
+     "median_width_50_points": 549.0495484513428,
+     "median_width_90_points": 1489.9741010322853
+    },
+    "C4": {
+     "crossed": false,
+     "days": 427,
+     "dropped": 12,
+     "dropped_reason": "India VIX of d or of the session before",
+     "inside_05_95": 0.9110070257611241,
+     "inside_25_75": 0.5175644028103045,
+     "mean_qs": 0.004424948687862833,
+     "mean_qs_difference_vs_c0": -6.085664666650889e-06,
+     "median_width_50_points": 551.9619354215756,
+     "median_width_90_points": 1479.2187314142623
+    },
+    "C5": {
+     "crossed": false,
+     "days": 439,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9066059225512528,
+     "inside_25_75": 0.49658314350797267,
+     "mean_qs": 0.0044113078991002514,
+     "mean_qs_difference_vs_c0": -6.99832534598252e-06,
+     "median_width_50_points": 554.3518302820885,
+     "median_width_90_points": 1485.4790943444698
+    },
+    "C6": {
+     "crossed": false,
+     "days": 439,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9111617312072893,
+     "inside_25_75": 0.49658314350797267,
+     "mean_qs": 0.004407961402875334,
+     "mean_qs_difference_vs_c0": -1.0344821570899763e-05,
+     "median_width_50_points": 558.5618234227702,
+     "median_width_90_points": 1501.6237145066339
+    },
+    "C7": {
+     "crossed": false,
+     "days": 439,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9111617312072893,
+     "inside_25_75": 0.4988610478359909,
+     "mean_qs": 0.004407073378883307,
+     "mean_qs_difference_vs_c0": -1.1232845562927633e-05,
+     "median_width_50_points": 551.8158853399894,
+     "median_width_90_points": 1488.0675024241152
+    },
+    "C9": {
+     "crossed": false,
+     "days": 439,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9134396355353075,
+     "inside_25_75": 0.4874715261958998,
+     "mean_qs": 0.004395178934778559,
+     "mean_qs_difference_vs_c0": -2.3127289667675053e-05,
+     "median_width_50_points": 552.8392431034147,
+     "median_width_90_points": 1460.4736141740384
+    }
+   },
+   "verdict": "not shown at this sample size",
+   "winner": null
+  },
+  "BANKNIFTY/N3": {
+   "c0": {
+    "bands_ok": true,
+    "crossed": false,
+    "days": 434,
+    "dropped": 0,
+    "dropped_reason": null,
+    "inside_05_95": 0.9147465437788018,
+    "inside_25_75": 0.5299539170506913,
+    "mean_qs": 0.007572393932795167,
+    "mean_qs_difference_vs_c0": 0.0,
+    "median_width_50_points": 1040.9256842837153,
+    "median_width_90_points": 2789.064071082087
+   },
+   "c9_split": [
+    {
+     "c0": {
+      "crossed": false,
+      "days": 434,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.9147465437788018,
+      "inside_25_75": 0.5299539170506913,
+      "mean_qs": 0.007572393932795167,
+      "mean_qs_difference_vs_c0": 0.0,
+      "median_width_50_points": 1040.9256842837153,
+      "median_width_90_points": 2789.064071082087
+     },
+     "c9": {
+      "crossed": false,
+      "days": 434,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.9055299539170507,
+      "inside_25_75": 0.5184331797235023,
+      "mean_qs": 0.007568653802474344,
+      "mean_qs_difference_vs_c0": -3.7401303208227573e-06,
+      "median_width_50_points": 1020.1258326308866,
+      "median_width_90_points": 2703.853740514962
+     },
+     "segment": "2024-11-14 to end"
+    }
+   ],
+   "checks": {
+    "bands_ok": true,
+    "crossed": false,
+    "gap_ok": true,
+    "narrower_90": false
+   },
+   "every_candidate": {
+    "C1": {
+     "crossed": false,
+     "days": 434,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9147465437788018,
+     "inside_25_75": 0.5276497695852534,
+     "mean_qs": 0.007568625645675561,
+     "mean_qs_difference_vs_c0": -3.7682871196057543e-06,
+     "median_width_50_points": 1024.3085428509821,
+     "median_width_90_points": 2744.661507506041
+    },
+    "C10": {
+     "crossed": false,
+     "days": 424,
+     "dropped": 10,
+     "dropped_reason": "India VIX of d",
+     "inside_05_95": 0.9150943396226415,
+     "inside_25_75": 0.5306603773584906,
+     "mean_qs": 0.007638482546021209,
+     "mean_qs_difference_vs_c0": 1.2628624106832727e-05,
+     "median_width_50_points": 1034.6281914284534,
+     "median_width_90_points": 2810.3848844511217
+    },
+    "C11(C5+C9)": {
+     "crossed": false,
+     "days": 434,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9009216589861752,
+     "inside_25_75": 0.5138248847926268,
+     "mean_qs": 0.0075990343555899665,
+     "mean_qs_difference_vs_c0": 2.6640422794800173e-05,
+     "median_width_50_points": 1007.0970375410411,
+     "median_width_90_points": 2687.2384289591655
+    },
+    "C2": {
+     "crossed": false,
+     "days": 434,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9147465437788018,
+     "inside_25_75": 0.5092165898617511,
+     "mean_qs": 0.00756815223803644,
+     "mean_qs_difference_vs_c0": -4.241694758726342e-06,
+     "median_width_50_points": 984.3955964254044,
+     "median_width_90_points": 2784.3209870512146
+    },
+    "C3": {
+     "crossed": false,
+     "days": 424,
+     "dropped": 10,
+     "dropped_reason": "India VIX of d",
+     "inside_05_95": 0.9127358490566038,
+     "inside_25_75": 0.5259433962264151,
+     "mean_qs": 0.007630598218448449,
+     "mean_qs_difference_vs_c0": 4.744296534072207e-06,
+     "median_width_50_points": 1023.4643747917294,
+     "median_width_90_points": 2765.627334108348
+    },
+    "C4": {
+     "crossed": false,
+     "days": 424,
+     "dropped": 10,
+     "dropped_reason": "India VIX of d or of the session before",
+     "inside_05_95": 0.9150943396226415,
+     "inside_25_75": 0.5212264150943396,
+     "mean_qs": 0.007608345774818338,
+     "mean_qs_difference_vs_c0": -1.7508147096038996e-05,
+     "median_width_50_points": 1008.0235019908791,
+     "median_width_90_points": 2717.7786337316934
+    },
+    "C5": {
+     "crossed": false,
+     "days": 434,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9078341013824884,
+     "inside_25_75": 0.5253456221198156,
+     "mean_qs": 0.007589687857514747,
+     "mean_qs_difference_vs_c0": 1.7293924719579967e-05,
+     "median_width_50_points": 1021.9208953392067,
+     "median_width_90_points": 2735.7960379309297
+    },
+    "C6": {
+     "crossed": false,
+     "days": 434,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9170506912442397,
+     "inside_25_75": 0.5368663594470046,
+     "mean_qs": 0.007569185651000918,
+     "mean_qs_difference_vs_c0": -3.2082817942488804e-06,
+     "median_width_50_points": 1032.4035561866376,
+     "median_width_90_points": 2785.4678272495557
+    },
+    "C7": {
+     "crossed": false,
+     "days": 434,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9055299539170507,
+     "inside_25_75": 0.5230414746543779,
+     "mean_qs": 0.007570362770887789,
+     "mean_qs_difference_vs_c0": -2.031161907376919e-06,
+     "median_width_50_points": 1002.9654125486611,
+     "median_width_90_points": 2713.935833640064
+    },
+    "C9": {
+     "crossed": false,
+     "days": 434,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9055299539170507,
+     "inside_25_75": 0.5184331797235023,
+     "mean_qs": 0.007568653802474344,
+     "mean_qs_difference_vs_c0": -3.7401303208227573e-06,
+     "median_width_50_points": 1020.1258326308866,
+     "median_width_90_points": 2703.853740514962
+    }
+   },
+   "holm_significant": false,
+   "interval_unadjusted_95": [
+    -1.0423272163425931e-05,
+    4.218518812960922e-05
+   ],
+   "known_before_the_study": false,
+   "mean_difference": 1.2628624106832727e-05,
+   "p_value": 0.33526647335266474,
+   "tested": true,
+   "verdict": "not sharper",
+   "winner": "C10",
+   "winner_numbers": {
+    "crossed": false,
+    "days": 424,
+    "dropped": 10,
+    "dropped_reason": "India VIX of d",
+    "inside_05_95": 0.9150943396226415,
+    "inside_25_75": 0.5306603773584906,
+    "mean_qs": 0.007638482546021209,
+    "mean_qs_difference_vs_c0": 1.2628624106832727e-05,
+    "median_width_50_points": 1034.6281914284534,
+    "median_width_90_points": 2810.3848844511217
+   }
+  },
+  "NIFTY/N1": {
+   "c0": {
+    "bands_ok": true,
+    "crossed": false,
+    "days": 443,
+    "dropped": 0,
+    "dropped_reason": null,
+    "inside_05_95": 0.9187358916478555,
+    "inside_25_75": 0.5282167042889391,
+    "mean_qs": 0.003919863736772206,
+    "mean_qs_difference_vs_c0": 0.0,
+    "median_width_50_points": 234.82039539759296,
+    "median_width_90_points": 610.872711702732
+   },
+   "c9_split": [
+    {
+     "c0": {
+      "crossed": false,
+      "days": 164,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.9085365853658537,
+      "inside_25_75": 0.5548780487804879,
+      "mean_qs": 0.004080860142572324,
+      "mean_qs_difference_vs_c0": 0.0,
+      "median_width_50_points": 251.99892185099588,
+      "median_width_90_points": 647.5770586590736
+     },
+     "c9": {
+      "crossed": false,
+      "days": 164,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.8902439024390244,
+      "inside_25_75": 0.5304878048780488,
+      "mean_qs": 0.004048376411293715,
+      "mean_qs_difference_vs_c0": -3.248373127860931e-05,
+      "median_width_50_points": 235.28127244667672,
+      "median_width_90_points": 609.3956819512075
+     },
+     "segment": "start to 2025-09-01"
+    },
+    {
+     "c0": {
+      "crossed": false,
+      "days": 279,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.9247311827956989,
+      "inside_25_75": 0.5125448028673835,
+      "mean_qs": 0.0038252278566603074,
+      "mean_qs_difference_vs_c0": 0.0,
+      "median_width_50_points": 223.21648429924724,
+      "median_width_90_points": 580.9226719975173
+     },
+     "c9": {
+      "crossed": false,
+      "days": 279,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.899641577060932,
+      "inside_25_75": 0.4767025089605735,
+      "mean_qs": 0.0038330002183666603,
+      "mean_qs_difference_vs_c0": 7.772361706353331e-06,
+      "median_width_50_points": 214.0342634369683,
+      "median_width_90_points": 549.6677409006066
+     },
+     "segment": "2025-09-01 to end"
+    }
+   ],
+   "checks": {
+    "bands_ok": true,
+    "crossed": false,
+    "gap_ok": true,
+    "narrower_90": true
+   },
+   "every_candidate": {
+    "C1": {
+     "crossed": false,
+     "days": 443,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9142212189616253,
+     "inside_25_75": 0.5056433408577878,
+     "mean_qs": 0.003914753993180843,
+     "mean_qs_difference_vs_c0": -5.109743591361872e-06,
+     "median_width_50_points": 226.65857791171493,
+     "median_width_90_points": 589.670896701014
+    },
+    "C10": {
+     "crossed": false,
+     "days": 431,
+     "dropped": 12,
+     "dropped_reason": "India VIX of d",
+     "inside_05_95": 0.9187935034802784,
+     "inside_25_75": 0.5150812064965197,
+     "mean_qs": 0.0038648761879055867,
+     "mean_qs_difference_vs_c0": -7.266187705665223e-06,
+     "median_width_50_points": 227.16663760728477,
+     "median_width_90_points": 587.1800600657888
+    },
+    "C11(C8+C9)": {
+     "crossed": false,
+     "days": 437,
+     "dropped": 6,
+     "dropped_reason": "NIFTY's intraday realised variance of d, or implied's N1 variance",
+     "inside_05_95": 0.8878718535469108,
+     "inside_25_75": 0.4965675057208238,
+     "mean_qs": 0.003948217085435652,
+     "mean_qs_difference_vs_c0": 6.747643049432295e-06,
+     "median_width_50_points": 219.72267632867093,
+     "median_width_90_points": 579.6139483787248
+    },
+    "C2": {
+     "crossed": false,
+     "days": 443,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9142212189616253,
+     "inside_25_75": 0.5056433408577878,
+     "mean_qs": 0.003914640479217012,
+     "mean_qs_difference_vs_c0": -5.223257555192848e-06,
+     "median_width_50_points": 228.26794027255295,
+     "median_width_90_points": 588.522754371174
+    },
+    "C3": {
+     "crossed": false,
+     "days": 431,
+     "dropped": 12,
+     "dropped_reason": "India VIX of d",
+     "inside_05_95": 0.9002320185614849,
+     "inside_25_75": 0.4918793503480278,
+     "mean_qs": 0.0038628774783883543,
+     "mean_qs_difference_vs_c0": -9.264897222897577e-06,
+     "median_width_50_points": 214.39248525532034,
+     "median_width_90_points": 557.3179756604534
+    },
+    "C4": {
+     "crossed": false,
+     "days": 431,
+     "dropped": 12,
+     "dropped_reason": "India VIX of d or of the session before",
+     "inside_05_95": 0.9118329466357309,
+     "inside_25_75": 0.5081206496519721,
+     "mean_qs": 0.003865088670464001,
+     "mean_qs_difference_vs_c0": -7.053705147250883e-06,
+     "median_width_50_points": 224.09120710652894,
+     "median_width_90_points": 581.6820989978903
+    },
+    "C5": {
+     "crossed": false,
+     "days": 443,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9142212189616253,
+     "inside_25_75": 0.5056433408577878,
+     "mean_qs": 0.003914796975101773,
+     "mean_qs_difference_vs_c0": -5.066761670432615e-06,
+     "median_width_50_points": 226.61834897181083,
+     "median_width_90_points": 590.1020261170413
+    },
+    "C6": {
+     "crossed": false,
+     "days": 443,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.909706546275395,
+     "inside_25_75": 0.5011286681715575,
+     "mean_qs": 0.003913555537185235,
+     "mean_qs_difference_vs_c0": -6.308199586970953e-06,
+     "median_width_50_points": 226.5856155138055,
+     "median_width_90_points": 585.3911052756551
+    },
+    "C7": {
+     "crossed": false,
+     "days": 443,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.90744920993228,
+     "inside_25_75": 0.5033860045146726,
+     "mean_qs": 0.003918476053720806,
+     "mean_qs_difference_vs_c0": -1.3876830513990413e-06,
+     "median_width_50_points": 225.23665064147494,
+     "median_width_90_points": 587.0398139965217
+    },
+    "C8": {
+     "crossed": false,
+     "days": 437,
+     "dropped": 6,
+     "dropped_reason": "NIFTY's intraday realised variance of d, or implied's N1 variance",
+     "inside_05_95": 0.9016018306636155,
+     "inside_25_75": 0.5011441647597255,
+     "mean_qs": 0.003959856848481583,
+     "mean_qs_difference_vs_c0": 1.8387406095363024e-05,
+     "median_width_50_points": 231.52453983004648,
+     "median_width_90_points": 607.2120916213822
+    },
+    "C9": {
+     "crossed": false,
+     "days": 443,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.8961625282167043,
+     "inside_25_75": 0.4966139954853273,
+     "mean_qs": 0.003912733165635367,
+     "mean_qs_difference_vs_c0": -7.1305711368382554e-06,
+     "median_width_50_points": 220.83793869161937,
+     "median_width_90_points": 575.8078838655082
+    }
+   },
+   "holm_significant": false,
+   "interval_unadjusted_95": [
+    -1.3155780760675264e-06,
+    3.403411262739135e-05
+   ],
+   "known_before_the_study": false,
+   "mean_difference": 1.8387406095363024e-05,
+   "p_value": 0.047995200479952004,
+   "tested": true,
+   "verdict": "not sharper",
+   "winner": "C8",
+   "winner_numbers": {
+    "crossed": false,
+    "days": 437,
+    "dropped": 6,
+    "dropped_reason": "NIFTY's intraday realised variance of d, or implied's N1 variance",
+    "inside_05_95": 0.9016018306636155,
+    "inside_25_75": 0.5011441647597255,
+    "mean_qs": 0.003959856848481583,
+    "mean_qs_difference_vs_c0": 1.8387406095363024e-05,
+    "median_width_50_points": 231.52453983004648,
+    "median_width_90_points": 607.2120916213822
+   }
+  },
+  "NIFTY/N3": {
+   "c0": {
+    "bands_ok": true,
+    "crossed": false,
+    "days": 440,
+    "dropped": 0,
+    "dropped_reason": null,
+    "inside_05_95": 0.9090909090909091,
+    "inside_25_75": 0.4727272727272727,
+    "mean_qs": 0.00688703063564495,
+    "mean_qs_difference_vs_c0": 0.0,
+    "median_width_50_points": 408.2860076004835,
+    "median_width_90_points": 1050.5953026034804
+   },
+   "c9_split": [
+    {
+     "c0": {
+      "crossed": false,
+      "days": 164,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.8963414634146342,
+      "inside_25_75": 0.5,
+      "mean_qs": 0.007131020062632184,
+      "mean_qs_difference_vs_c0": 0.0,
+      "median_width_50_points": 437.3101094402306,
+      "median_width_90_points": 1122.9366205433053
+     },
+     "c9": {
+      "crossed": false,
+      "days": 164,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.8963414634146342,
+      "inside_25_75": 0.49390243902439024,
+      "mean_qs": 0.007135356065397233,
+      "mean_qs_difference_vs_c0": 4.336002765049434e-06,
+      "median_width_50_points": 430.10548565195825,
+      "median_width_90_points": 1084.8853955261623
+     },
+     "segment": "start to 2025-09-01"
+    },
+    {
+     "c0": {
+      "crossed": false,
+      "days": 276,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.9166666666666666,
+      "inside_25_75": 0.45652173913043476,
+      "mean_qs": 0.0067420514109134055,
+      "mean_qs_difference_vs_c0": 0.0,
+      "median_width_50_points": 386.4752546715688,
+      "median_width_90_points": 1002.864330425144
+     },
+     "c9": {
+      "crossed": false,
+      "days": 276,
+      "dropped": 0,
+      "dropped_reason": null,
+      "inside_05_95": 0.9057971014492754,
+      "inside_25_75": 0.44565217391304346,
+      "mean_qs": 0.006757999703492839,
+      "mean_qs_difference_vs_c0": 1.594829257943345e-05,
+      "median_width_50_points": 373.95280479987275,
+      "median_width_90_points": 979.3964098990184
+     },
+     "segment": "2025-09-01 to end"
+    }
+   ],
+   "checks": {
+    "bands_ok": true,
+    "crossed": false,
+    "gap_ok": true,
+    "narrower_90": true
+   },
+   "every_candidate": {
+    "C1": {
+     "crossed": false,
+     "days": 440,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9,
+     "inside_25_75": 0.46136363636363636,
+     "mean_qs": 0.0068876562237809216,
+     "mean_qs_difference_vs_c0": 6.255881359713896e-07,
+     "median_width_50_points": 398.0547232517256,
+     "median_width_90_points": 1024.3735409236047
+    },
+    "C10": {
+     "crossed": false,
+     "days": 430,
+     "dropped": 10,
+     "dropped_reason": "India VIX of d",
+     "inside_05_95": 0.9093023255813953,
+     "inside_25_75": 0.4906976744186046,
+     "mean_qs": 0.006878128882297182,
+     "mean_qs_difference_vs_c0": 5.377836669209429e-06,
+     "median_width_50_points": 422.79851422892114,
+     "median_width_90_points": 1090.3494751712205
+    },
+    "C11(C3+C9)": {
+     "crossed": false,
+     "days": 430,
+     "dropped": 10,
+     "dropped_reason": "India VIX of d",
+     "inside_05_95": 0.9186046511627907,
+     "inside_25_75": 0.4883720930232558,
+     "mean_qs": 0.006896276664954995,
+     "mean_qs_difference_vs_c0": 2.3525619327022662e-05,
+     "median_width_50_points": 424.12694574471925,
+     "median_width_90_points": 1107.7294925528554
+    },
+    "C2": {
+     "crossed": false,
+     "days": 440,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9,
+     "inside_25_75": 0.4681818181818182,
+     "mean_qs": 0.006886165704385496,
+     "mean_qs_difference_vs_c0": -8.649312594542708e-07,
+     "median_width_50_points": 404.71500095306965,
+     "median_width_90_points": 1025.8684645890446
+    },
+    "C3": {
+     "crossed": false,
+     "days": 430,
+     "dropped": 10,
+     "dropped_reason": "India VIX of d",
+     "inside_05_95": 0.9116279069767442,
+     "inside_25_75": 0.4930232558139535,
+     "mean_qs": 0.006880735831024373,
+     "mean_qs_difference_vs_c0": 7.984785396400083e-06,
+     "median_width_50_points": 423.40879790646505,
+     "median_width_90_points": 1094.3397950741191
+    },
+    "C4": {
+     "crossed": false,
+     "days": 430,
+     "dropped": 10,
+     "dropped_reason": "India VIX of d or of the session before",
+     "inside_05_95": 0.9,
+     "inside_25_75": 0.46744186046511627,
+     "mean_qs": 0.00688285443463659,
+     "mean_qs_difference_vs_c0": 1.0103389008616531e-05,
+     "median_width_50_points": 398.4025671550187,
+     "median_width_90_points": 1023.1601502909443
+    },
+    "C5": {
+     "crossed": false,
+     "days": 440,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.8954545454545455,
+     "inside_25_75": 0.4636363636363636,
+     "mean_qs": 0.006897397463315619,
+     "mean_qs_difference_vs_c0": 1.036682767066935e-05,
+     "median_width_50_points": 398.88169418767836,
+     "median_width_90_points": 1026.4657029461603
+    },
+    "C6": {
+     "crossed": false,
+     "days": 440,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.8977272727272727,
+     "inside_25_75": 0.4636363636363636,
+     "mean_qs": 0.006887556790329802,
+     "mean_qs_difference_vs_c0": 5.261546848517274e-07,
+     "median_width_50_points": 400.8174892442817,
+     "median_width_90_points": 1025.952429617084
+    },
+    "C7": {
+     "crossed": false,
+     "days": 440,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9022727272727272,
+     "inside_25_75": 0.4636363636363636,
+     "mean_qs": 0.006888679228354739,
+     "mean_qs_difference_vs_c0": 1.6485927097880309e-06,
+     "median_width_50_points": 397.24411727312634,
+     "median_width_90_points": 1024.433761988882
+    },
+    "C8": {
+     "crossed": false,
+     "days": 434,
+     "dropped": 6,
+     "dropped_reason": "NIFTY's intraday realised variance of d, or implied's N1 variance",
+     "inside_05_95": 0.9055299539170507,
+     "inside_25_75": 0.46774193548387094,
+     "mean_qs": 0.006921818976960629,
+     "mean_qs_difference_vs_c0": -1.6483807460096261e-06,
+     "median_width_50_points": 406.26308651282466,
+     "median_width_90_points": 1044.1185654668968
+    },
+    "C9": {
+     "crossed": false,
+     "days": 440,
+     "dropped": 0,
+     "dropped_reason": null,
+     "inside_05_95": 0.9022727272727272,
+     "inside_25_75": 0.4636363636363636,
+     "mean_qs": 0.0068986507111117494,
+     "mean_qs_difference_vs_c0": 1.1620075466799407e-05,
+     "median_width_50_points": 394.8427689131119,
+     "median_width_90_points": 1029.7703854464553
+    }
+   },
+   "holm_significant": false,
+   "interval_unadjusted_95": [
+    -9.270926491385093e-06,
+    3.6849476214768823e-05
+   ],
+   "known_before_the_study": false,
+   "mean_difference": 1.1620075466799407e-05,
+   "p_value": 0.3190680931906809,
+   "tested": true,
+   "verdict": "not sharper",
+   "winner": "C9",
+   "winner_numbers": {
+    "crossed": false,
+    "days": 440,
+    "dropped": 0,
+    "dropped_reason": null,
+    "inside_05_95": 0.9022727272727272,
+    "inside_25_75": 0.4636363636363636,
+    "mean_qs": 0.0068986507111117494,
+    "mean_qs_difference_vs_c0": 1.1620075466799407e-05,
+    "median_width_50_points": 394.8427689131119,
+    "median_width_90_points": 1029.7703854464553
+   }
+  }
+ },
+ "n0": {
+  "N0-A": {
+   "crossed": false,
+   "days": 442,
+   "dropped": 0,
+   "dropped_reason": null,
+   "inside_05_95": 0.9004524886877828,
+   "inside_25_75": 0.5067873303167421,
+   "mean_qs": 0.003068480816185963,
+   "mean_qs_difference_vs_c0": 0.0,
+   "median_width_50_points": 183.1627941988071,
+   "median_width_90_points": 475.16970013600337
+  },
+  "N0-B": {
+   "crossed": false,
+   "days": 442,
+   "dropped": 0,
+   "dropped_reason": null,
+   "inside_05_95": 0.8891402714932126,
+   "inside_25_75": 0.4841628959276018,
+   "mean_qs": 0.0030663179245964435,
+   "mean_qs_difference_vs_c0": -2.162891589519364e-06,
+   "median_width_50_points": 176.5788321614569,
+   "median_width_90_points": 458.10702607262175
+  },
+  "N0-C": {
+   "crossed": false,
+   "days": 442,
+   "dropped": 0,
+   "dropped_reason": null,
+   "inside_05_95": 0.8687782805429864,
+   "inside_25_75": 0.47058823529411764,
+   "mean_qs": 0.0030655580787225752,
+   "mean_qs_difference_vs_c0": -2.922737463387669e-06,
+   "median_width_50_points": 172.16191168550387,
+   "median_width_90_points": 447.5277492616136
+  },
+  "N1": {
+   "crossed": false,
+   "days": 442,
+   "dropped": 0,
+   "dropped_reason": null,
+   "inside_05_95": 0.918552036199095,
+   "inside_25_75": 0.5294117647058824,
+   "mean_qs": 0.003924483651906395,
+   "mean_qs_difference_vs_c0": 0.0,
+   "median_width_50_points": 234.8585410462553,
+   "median_width_90_points": 611.0674886282754
+  },
+  "carried": "N0-A",
+  "ratio_N0-A": {
+   "days": 442,
+   "interval_95": [
+    0.7788551035139237,
+    0.7795371026113379
+   ],
+   "mean_ratio": 0.7792377028533896
+  },
+  "ratio_N0-B": {
+   "days": 442,
+   "interval_95": [
+    0.7508798243422533,
+    0.7515558446230076
+   ],
+   "mean_ratio": 0.7512543719338631
+  },
+  "ratio_N0-C": {
+   "days": 442,
+   "interval_95": [
+    0.7255854526358566,
+    0.7368344874351606
+   ],
+   "mean_ratio": 0.7304087576302434
+  }
+ },
+ "records_sha256": "6f39e4de022f4b6ad1d882d34ab12caa77230c64488128060c36090ded042c27",
+ "selection_sha256": "083756a0a80c649e02965749da25a737939a97082966446feb88a99c011de65c"
+}

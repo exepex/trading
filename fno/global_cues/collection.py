@@ -7,7 +7,8 @@ from datetime import datetime
 
 from .source import CueValue, GlobalCueSource
 
-UNREADABLE = (ValueError, KeyError, TypeError)  # a file that is not the publisher's layout
+# a file that is not the publisher's layout: a short row (IndexError) or an impossible timestamp (OverflowError) too
+UNREADABLE = (ValueError, KeyError, TypeError, IndexError, ArithmeticError)
 
 
 @dataclass(frozen=True)

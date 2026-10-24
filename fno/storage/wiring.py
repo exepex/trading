@@ -30,33 +30,27 @@ from .librarian import RawDataLibrarian
 from .manifest_commit import GitManifestRecorder, ManifestRecorder
 from .manifest_folder import FingerprintingStore, ManifestFolder
 from .owner_token import OwnerAccessToken
-from .raw_library import RawFileLibrary
+from .raw_library import FileLibrary, RawFileLibrary, StoredFilesLibrary
 from .raw_source import (
     NseArchiveSource,
     NseDailyFoSource,
-    NseDeliverySource,
-    NseEquityBhavcopySource,
     NseIndexCloseSource,
     NseLegacyFoSource,
-    NseSpanBodSource,
     ParticipantOiSource,
 )
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
 from .revision_source import RevisionCapturingSource
 from .revisions import RevisionArchive, RevisionIndex
-from .session_filed_taker import SessionFiledTaker
+from .session_filed_taker import CurrentSessionTaker, SessionFiledTaker
 from .snapshot_source import (
     CorporateActionsBySymbolSource,
-    CorporateActionsSource,
-    EquityListSource,
-    FiiDiiCashBySessionSource,
-    FiiDiiCashSource,
-    Nifty500ListSource,
-    NsdlFpiDailyBySessionSource,
-    NsdlFpiDailySource,
-    SymbolChangeSource,
 )
 from .snapshot_taker import SnapshotTaker
+from .source_lists import DATED_SOURCES, LIBRARIAN_DATASETS, RAW_SOURCES, SNAPSHOT_DATASETS
+from .source_lists import FINGERPRINT_SOURCES as FINGERPRINT_SOURCES  # re-exported: callers read them from here
+from .source_lists import RUN_DATED_FLOWS as RUN_DATED_FLOWS
+from .source_lists import SNAPSHOT_SOURCES as SNAPSHOT_SOURCES
+from .trading_days import next_trading_day
 from .versioned_store import VersionedRawStore
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
@@ -67,26 +61,6 @@ COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
 REPOSITORY = Path(__file__).resolve().parents[2]
 MANIFEST_FOLDER = REPOSITORY / "research" / "data" / "manifests"  # SHA-256 per file (A10)
 REVISION_INDEX_FOLDER = MANIFEST_FOLDER / "revisions"  # one row per archived later version (A11)
-DATED_SOURCES = (
-    NseLegacyFoSource,
-    NseDailyFoSource,
-    NseIndexCloseSource,
-    ParticipantOiSource,
-    NseEquityBhavcopySource,
-    NseDeliverySource,
-    NseSpanBodSource,
-)  # one file per session: the coverage check's datasets
-SNAPSHOT_SOURCES = (
-    EquityListSource,
-    Nifty500ListSource,
-    SymbolChangeSource,
-    CorporateActionsSource,
-    CorporateActionsBySymbolSource,
-    FiiDiiCashBySessionSource,
-    NsdlFpiDailyBySessionSource,
-)  # reference lists, one copy per day fetched (P6); the flows reports, one copy per session covered (P8)
-RUN_DATED_FLOWS = (FiiDiiCashSource, NsdlFpiDailySource)  # P8's first copies, filed by run day: kept, never taken again
-RAW_SOURCES = DATED_SOURCES + SNAPSHOT_SOURCES + RUN_DATED_FLOWS  # every dataset with a manifest
 
 
 def build_raw_stores(project_folder: Path | None = None, token_for=service_account_token) -> list[RawFileStore]:
@@ -128,7 +102,10 @@ def build_owner_drive(env=os.environ, session=None) -> GoogleDriveUploadStore | 
     folder, client_id, client_secret, refresh_token = (env.get(name) for name in OWNER_UPLOAD_SETTINGS)
     if not (folder and client_id and client_secret and refresh_token):
         return None
-    return GoogleDriveUploadStore(folder, OwnerAccessToken(client_id, client_secret, refresh_token), session)
+    from ..rehearsal.drive_wiring import rehearsed_drive
+
+    store = GoogleDriveUploadStore(folder, OwnerAccessToken(client_id, client_secret, refresh_token), session)
+    return rehearsed_drive(store)  # story REH1: under `dryrun/<run_id>/` when rehearsing, else unchanged
 
 
 def build_revision_index() -> RevisionIndex:
@@ -182,7 +159,9 @@ def build_nse_library(source_type: type[NseArchiveSource], project_folder: Path 
 
 def build_nse_source(source_type: type[NseArchiveSource]) -> NseArchiveSource:
     """One NSE dataset straight from NSE's archive, through the shared polite session."""
-    session = PacedSession()
+    from ..rehearsal.nse_wiring import rehearsed_session
+
+    session = rehearsed_session(PacedSession())  # story REH1b: a rehearsal never fetches
     session.headers["User-Agent"] = RESEARCH_USER_AGENT  # NSE refuses the default python-requests identity
     return source_type(session)
 
@@ -236,28 +215,6 @@ def coverage_datasets(manifests: ManifestFolder | None = None) -> tuple[Coverage
     )
 
 
-def dataset_name(source: type[NseArchiveSource]) -> str:
-    return source.dataset.rsplit("/", 1)[-1]
-
-
-# Datasets the librarian may upload: each new one needs its own story (A9: participant OI; A10: index closes; P6: the
-# equity, delivery and current-format F&O files the market read models need each day, and the reference lists; A14:
-# the beginning-of-day SPAN files).
-LIBRARIAN_DATASETS = {
-    dataset_name(s): s
-    for s in (
-        ParticipantOiSource,
-        NseIndexCloseSource,
-        NseEquityBhavcopySource,
-        NseDeliverySource,
-        NseDailyFoSource,
-        NseSpanBodSource,
-    )
-}
-SNAPSHOT_DATASETS = {dataset_name(s): s for s in SNAPSHOT_SOURCES}
-FINGERPRINT_SOURCES = {dataset_name(s): s for s in DATED_SOURCES}
-
-
 def build_own_list_taker() -> SnapshotTaker:
     """A symbol's own NSE corporate-action list into the owner's Drive (symbols NSE's range list leaves out)."""
     store = build_owner_drive_store()
@@ -275,8 +232,11 @@ def build_snapshot_taker(name: str) -> SnapshotTaker | SessionFiledTaker:
         raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to upload to Drive")
     source_type = SNAPSHOT_DATASETS[name]
     if source_type in COVERED_SESSION:  # a latest-day report: filed under the session it covers
-        covered = COVERED_SESSION[source_type]
-        return SessionFiledTaker(store, build_nse_source(source_type), VALIDATORS[source_type], covered)
+        parts = (store, build_nse_source(source_type), VALIDATORS[source_type], COVERED_SESSION[source_type])
+        if source_type.STALE_REFUSED:  # valid only for its own session, written the evening before (A20a)
+            calendar = build_session_calendar()
+            return CurrentSessionTaker(*parts, lambda day: next_trading_day(calendar, day))
+        return SessionFiledTaker(*parts)
     return SnapshotTaker(store, build_nse_source(source_type), VALIDATORS[source_type])
 
 
@@ -309,8 +269,9 @@ EVENTS_FILE = Path(__file__).resolve().parents[2] / "research" / "data" / "event
 LIVE_VALIDATION_FOLDER = Path(__file__).resolve().parents[2] / "research" / "live_validation"  # story B7 reports
 
 
-def daily_files(label: str, source_type: type[NseArchiveSource], library: RawFileLibrary) -> DailyFiles:
-    """A day's original file name and bytes from a raw-file library (stores first, then NSE; Drive is only read)."""
+def daily_files(label: str, source_type: type[NseArchiveSource], library: FileLibrary) -> DailyFiles:
+    """A day's original file name and bytes from a library: a writer's fetches what no store has from NSE and archives
+    it; a reader's (`StoredFilesLibrary`) only reads the stores."""
     return DailyFiles(
         label,
         source_type.dataset,
@@ -330,8 +291,22 @@ def build_nifty_panel_files(project_folder: Path | None = None) -> tuple[list[Da
 
 
 def build_index_close_files(project_folder: Path | None = None) -> DailyFiles:
-    """NSE's daily index-close files (the panel's closes, and story A10's warm-up closes; never an F&O file)."""
+    """NSE's daily index-close files for a WRITER (the panel, story A10's warm-up closes): a file no store has is
+    fetched from NSE and archived to Drive. Readers use `build_stored_index_close_files`."""
     return daily_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, build_nse_index_close_library(project_folder))
+
+
+def build_stored_index_close_files() -> DailyFiles:
+    """NSE's daily index-close files for a READER: the stores only, never NSE and never a Drive write; a day no store
+    has reads as None (not archived yet). The librarian (index-closes.yml, the morning routine) is the one writer."""
+    return daily_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, StoredFilesLibrary(_reader_raw_stores()))
+
+
+def _reader_raw_stores(env=os.environ) -> list[RawFileStore]:
+    """The raw stores a reader looks in: the service account's (where set), then the owner's Drive raw area read with
+    the owner's settings (GitHub's jobs and the routines carry these), each only ever read."""
+    drive = build_owner_drive(env)
+    return build_raw_stores() + ([AreaStore(drive, RAW_AREA)] if drive is not None else [])
 
 
 def build_panel_sink(folder: Path | None = None) -> PanelSink:
@@ -344,5 +319,5 @@ def build_session_calendar() -> SessionCalendar:
 
 
 def build_file_exceptions() -> dict:
-    """(dataset, day) -> reason, for sessions NSE never published a file for (sourced; A1)."""
+    """(dataset, day) -> reason, for sessions with no archived file: never published (A1) or refused content (A23)."""
     return read_exceptions(COVERAGE_EXCEPTIONS)

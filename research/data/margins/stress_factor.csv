@@ -1,3 +1,4 @@
 as_of,factor,computed,unrounded,status,peak,coverage_through,evidence_sha256
 2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14 Oct",,
 2026-10-16,2.1,2.1,2.081729,applied,PDS 300 entered 2020-04-08 peak 2020-05-04 needed 2.0817,2026-10-15,54d0ab13ce131fff95a6e9108586d728944d746ce9e5d4b130d730a75cece46c
+2026-10-18,2.1,2.1,2.081729,applied,carried from the run through 2026-10-15,2026-10-16,3ea716e810a8dbddb6d178bd728defa068121d4dd36bdeeb5141d66e1a894376

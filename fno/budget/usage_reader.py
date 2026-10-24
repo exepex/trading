@@ -25,6 +25,7 @@ class DayUsage:
     turns: int
     tokens: dict[str, int] | None  # None: tokens unknown for the day (some turn carried none, or the reader has none)
     source: str  # where the figures came from, written to the ledger
+    wait_minutes: float | None = None  # BG1-w: an AI book's seal-to-end wait, outside the cap; None: not measured apart
 
 
 class SessionUsageReader(ABC):

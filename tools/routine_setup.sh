@@ -34,11 +34,21 @@ for name in python3 python; do
 done
 [ -n "$interpreters" ] || { echo "routine setup FAILED: no python3 or python on PATH" >&2; exit 1; }
 
-for py in $interpreters; do
+# A package the container's own installer (Debian's apt) put there has no RECORD file, so pip cannot uninstall it to
+# upgrade it ("Cannot uninstall cryptography 41.0.7"): on 23 Oct the 13:52 recorder fire hit that after
+# requirements.txt asked for cryptography>=42, stopped here, and no part of the system noticed. The first try is the
+# plain install (seconds when everything is present); only when it fails is it repeated over the system copies.
+install() {
     # shellcheck disable=SC2086  # requirements holds several words on purpose
-    "$py" -m pip install -q --root-user-action=ignore --use-pep517 $requirements || {
-        echo "routine setup FAILED: installing into $py" >&2
-        exit 1
+    "$1" -m pip install -q --root-user-action=ignore --use-pep517 $2 $requirements
+}
+for py in $interpreters; do
+    install "$py" "" || {
+        echo "routine setup: plain install failed in $py, repeating over the system packages" >&2
+        install "$py" "--ignore-installed" || {
+            echo "routine setup FAILED: installing into $py" >&2
+            exit 1
+        }
     }
 done
 for name in python3 python; do

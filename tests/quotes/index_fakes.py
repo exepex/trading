@@ -5,13 +5,15 @@ from datetime import date, datetime
 
 from fno.models import IST, OptionChain, OptionQuote, QuoteBook
 from fno.quotes.indices import index_slot
+from fno.quotes.indices_cli import record_indices
 from fno.quotes.recorder import QuoteSnapshotRecorder
 from tests.quotes.drive_fakes import FakeDrive, split_store
-from tests.quotes.test_recorder_calendar import CALENDAR
+from tests.quotes.test_recorder_calendar import CALENDAR, Alerts
 
 DAY = date(2026, 10, 13)  # a Tuesday session
 MONTHLIES = [date(2026, 10, 27), date(2026, 11, 23), date(2026, 12, 29)]
 SPOTS = {"BANKNIFTY": 55000.0, "FINNIFTY": 25000.0, "MIDCPNIFTY": 13800.0}
+TOO_EARLY = "not started: too early (before 14:41); a rerun from 14:41 to 15:13 records it"  # A4c-2, word for word
 FILE = {"source": "fake", "file": "nse/derivatives/fo-bhavcopy/2026/10/fake.zip", "file_date": "2026-10-12",
         "sha256": "a" * 64}  # fmt: skip
 
@@ -86,3 +88,10 @@ def recorders(folder, clock, provider=None, listing=None, drive=None, **slot_cha
         )  # fmt: skip
         for name in SPOTS
     }
+
+
+def alerted(folder, start, capsys, **kwargs):
+    """`quotes record-indices` on the fakes from `start`: (exit code, alerts sent, printed lines)."""
+    clock, alerts = Clock(start), Alerts()
+    code = record_indices(lambda: recorders(folder, clock, **kwargs), alerts, "cal.csv", clock.now, clock.sleep)
+    return code, alerts.sent, capsys.readouterr().out.splitlines()

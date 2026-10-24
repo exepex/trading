@@ -11,6 +11,7 @@ from datetime import date, timedelta
 from functools import partial
 
 from ..alerts.sender import AlertSender
+from ..models import today_local
 from .manifest_commit import ManifestRecorder
 from .owner_token import DriveSignInRefused
 from .raw_source import RawSourceUnavailable
@@ -41,7 +42,7 @@ def add_librarian_parser(subparsers) -> None:
         "--to",
         dest="end",
         type=date.fromisoformat,
-        default=date.today() - timedelta(days=1),
+        default=today_local() - timedelta(days=1),
         help="YYYY-MM-DD (default: yesterday)",
     )
     lib.set_defaults(func=cmd_data_librarian)

@@ -6,8 +6,11 @@ The panel on `main` grows every evening (story A13, G1 v3), so the back-fill is 
 from: its own days only, and its pack hash is the SHA-256 of the panel manifest at the commit that wrote it (ChatGPT
 review 30 item 5). A day added to the panel later is not part of the back-fill and never changes one of its records."""
 
+import csv
 import gzip
 import hashlib
+import io
+import math
 import subprocess
 from collections import defaultdict
 
@@ -42,8 +45,57 @@ def test_the_committed_backfill_equals_a_fresh_recomputation(committed):
     history = build_forecast_history(load_app_config())
     last = max(r.date for r in committed)
     fresh = [r for r in backfill_records(history, build_baselines(history), backfill_pack_sha256()) if r.date <= last]
-    # the records' exact CSV, not the gzip byte stream, which another zlib version may compress differently
-    assert gzip.decompress(records_gzip(fresh)) == gzip.decompress((ROOT / BACKFILL_FILE).read_bytes())
+    # the records' CSV, not the gzip byte stream, which another zlib version may compress differently
+    assert_same_records(gzip.decompress(records_gzip(fresh)), gzip.decompress((ROOT / BACKFILL_FILE).read_bytes()))
+
+
+# The probabilities come from `math.erf` (fno/analytics.py `norm_cdf`), which CPython takes from the platform's C
+# library. glibc 2.43 replaced erf with CORE-MATH's correctly rounded one, so its last bit differs from glibc 2.39's on
+# about 1 call in 10: the committed back-fill (glibc 2.39) and a recomputation on Ubuntu 26.04 (glibc 2.43) differ by
+# at most 2.2e-16 in a probability. That cannot be fixed in our code without changing the method, so every field is
+# compared exactly except the probability, which may differ by at most 1e-12: far above libm noise, far below any
+# real change (a changed input, rule or day moves a probability by orders of magnitude more).
+LIBM_TOLERANCE = 1e-12
+
+
+def same_probability(fresh: str, committed: str) -> bool:
+    if fresh == "" or committed == "":
+        return fresh == committed  # "no forecast" must stay "no forecast"
+    return math.isclose(float(fresh), float(committed), rel_tol=0, abs_tol=LIBM_TOLERANCE)
+
+
+def _rows(data: bytes) -> list[list[str]]:
+    return list(csv.reader(io.StringIO(data.decode("utf-8"))))
+
+
+def assert_same_records(fresh: bytes, committed: bytes) -> None:
+    new, old = _rows(fresh), _rows(committed)
+    assert new[0] == old[0] and len(new) == len(old)  # same header, same number of records
+    p = old[0].index("probability")
+    for line, (a, b) in enumerate(zip(new[1:], old[1:]), start=2):
+        assert a[:p] + a[p + 1 :] == b[:p] + b[p + 1 :], f"line {line}"
+        assert same_probability(a[p], b[p]), f"line {line}: probability {a[p]} != {b[p]}"
+
+
+COMMITTED = b"book,date,probability\nb,2026-10-12,0.4694583588320299\nb,2026-10-13,\n"
+
+
+def test_the_record_comparison_allows_a_last_bit_libm_difference():
+    assert_same_records(COMMITTED.replace(b"0.4694583588320299", b"0.46945835883202985"), COMMITTED)  # CI's glibc 2.43
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        (b"0.4694583588320299", b"0.4694583598320299"),  # a probability 1e-9 away
+        (b"2026-10-13,\n", b"2026-10-13,0.5\n"),  # "no forecast" became a forecast
+        (b"2026-10-12", b"2026-10-14"),  # another field
+        (b"b,2026-10-13,\n", b""),  # a record missing
+    ],
+)
+def test_the_record_comparison_catches_every_real_change(old, new):
+    with pytest.raises(AssertionError):
+        assert_same_records(COMMITTED.replace(old, new), COMMITTED)
 
 
 @pytest.mark.usefixtures("full_history")

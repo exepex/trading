@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 
 from ..constants import CARD_VALID_UNTIL
 from .card import TradeCard
+from .sections import CardWarning
 
 FIRST_LINE = "PAPER ONLY. Omenix F&O daily card, {day:%a %d %b %Y} ({session}). Information, no action."
 PREVIOUS = "Previous card: {miss}"
@@ -30,7 +31,8 @@ class CardRenderer(ABC):
 class SlackTextRenderer(CardRenderer):
     def render(self, card: TradeCard) -> str:
         status, *others = card.sections
-        lines = [FIRST_LINE.format(day=card.day, session=card.session), *status.lines, card.owner_unavailable]
+        first = FIRST_LINE.format(day=card.day, session=card.session)
+        lines = [*opening(first, card.warning), *status.lines, card.owner_unavailable]
         lines += [PREVIOUS.format(miss=miss) for miss in card.previous_misses]
         for section in others:
             lines += ["", *section.lines]
@@ -38,3 +40,10 @@ class SlackTextRenderer(CardRenderer):
         lines += [ISSUANCE, RECORDS]
         lines += [RECORD_LINE.format(path=r.path, sha256=r.sha256) for r in card.used] or [NO_RECORDS]
         return "\n".join(lines)
+
+
+def opening(first: str, warning: CardWarning | None) -> list[str]:
+    """Story T1e: where the warning goes, the one place to change if the owner picks the other placement. Today (a):
+    its headline before T1's first line (PAPER ONLY stays on line 1, the warning is in a phone's preview), its detail
+    on line 2. Option (b) would be `[first, f"{warning.headline} {warning.detail}"]`."""
+    return [first] if warning is None else [f"{warning.headline} {first}", warning.detail]

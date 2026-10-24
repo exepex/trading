@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from fno.fo_bhavcopy import COLUMNS, BadFile, legacy_date, read_fo_file, read_index_closes
+from fno.fo_bhavcopy import COLUMNS, BadFile, legacy_date, read_fo_file, read_index_closes, read_index_values
 
 NSE = Path(__file__).parent / "fixtures" / "nse"
 CURRENT = "BhavCopy_NSE_FO_0_0_0_20240102_F_0000.csv.zip"
@@ -27,6 +27,19 @@ def test_index_closes_include_nifty_bank_and_vix():
     closes = read_index_closes((NSE / "ind_close_all_02012024.csv").read_bytes())
     assert closes["Nifty 50"] == 21665.8 and closes["Nifty Bank"] == 47761.65 and closes["India VIX"] == 14.58
     assert closes["Nifty MidSmall Financial Services"] == 13048.62  # a "-" open does not hide the close
+
+
+def test_index_values_hold_each_index_s_open_high_low_and_close():
+    """Story A4h-2: the official day range; a "-" is None, never a number, and the closes equal read_index_closes'."""
+    data = (NSE / "ind_close_all_02012024.csv").read_bytes()
+    values = read_index_values(data)
+    assert values["Nifty 50"]["close"] == 21665.8 and set(values["Nifty 50"]) == {"open", "high", "low", "close"}
+    assert values["Nifty 50"]["low"] <= values["Nifty 50"]["close"] <= values["Nifty 50"]["high"]
+    assert values["Nifty MidSmall Financial Services"]["open"] is None
+    closes = {name: found["close"] for name, found in values.items() if found["close"] is not None}
+    assert closes == read_index_closes(data)
+    odd = data.replace(b"Financial Services,02-01-2024,-,", b"Financial Services,02-01-2024,NA,", 1)
+    assert odd != data and read_index_values(odd)["Nifty 50"] == values["Nifty 50"]  # one odd row voids no other
 
 
 def test_both_formats_give_the_same_contracts_and_numbers():

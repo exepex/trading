@@ -6,7 +6,7 @@ from datetime import date, datetime
 
 import pytest
 
-from fno.constants import V4_DAY_A, V4_DAY_A2, V4_DAY_SYSTEM_LATE, V6_BIG_MOVE_5S
+from fno.constants import V4_DAY_A, V4_DAY_SYSTEM_LATE, V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.comparison import compare, paired_rows
 from fno.forecast_scoring.v4.cutoff_moves import RecordedCutoffMoves
 from fno.forecast_scoring.v4.days import DayCounts, DayFileError, DayLabel, LateDaysOut, day_counts, parse_day
@@ -29,7 +29,7 @@ def body(label=V4_DAY_A, sha=PACK, observed="2026-10-22T14:31:12+05:30", day="20
 def test_a_day_file_carries_its_label_pack_and_latest_observed_at():
     found = parse_day("2026-10-22", body())
     assert found == DayLabel(DAY, V4_DAY_A, PACK, datetime(2026, 10, 22, 14, 31, 12, tzinfo=IST))
-    assert parse_day("2026-10-22", body(V4_DAY_A2, observed="2026-10-22T14:40:00+05:30")).label == V4_DAY_A2
+    assert parse_day("2026-10-22", body(observed="2026-10-22T14:40:00+05:30")).label == V4_DAY_A
     assert parse_day("2026-10-22", body(V4_DAY_SYSTEM_LATE, sha="", observed="")).pack_sha256 == ""
 
 
@@ -38,7 +38,8 @@ def test_a_day_file_carries_its_label_pack_and_latest_observed_at():
     [
         body(observed="2026-10-22T14:40:01+05:30"),  # a field after 14:40:00: the day is system_late, never A
         body(sha=""),  # an A day names its pack
-        body(V4_DAY_A2, observed=""),
+        body(observed=""),
+        body(label="A2"),  # dropped 16 Oct: A16's 14:30 mark cannot hold a full pack
         body(sha="x" * 64),
         body(label="B"),
         body(day="2026-10-23"),
@@ -92,11 +93,11 @@ def test_a_system_late_day_is_out_for_every_family_never_a_miss_nor_scored():
 
 
 def test_every_report_counts_the_labels_and_the_flag_up_to_its_day():
-    labels = {d: DayLabel(d, lab, PACK, None) for d, lab in zip(DAYS[:5], [V4_DAY_A, V4_DAY_A, V4_DAY_A2,
+    labels = {d: DayLabel(d, lab, PACK, None) for d, lab in zip(DAYS[:5], [V4_DAY_A, V4_DAY_A, V4_DAY_A,
               V4_DAY_SYSTEM_LATE, V4_DAY_A])}  # fmt: skip
     flags = {DAYS[0]: True, DAYS[1]: False, DAYS[2]: None, DAYS[3]: None, DAYS[4]: True}
     counts = day_counts(labels, flags.get, as_of=DAYS[3])  # DAYS[4] is after the report's day
-    assert counts == DayCounts(a=2, a2=1, late=1, flagged=1, unknown=2)
+    assert counts == DayCounts(a=3, late=1, flagged=1, unknown=2)
     assert counts.line() in report_lines([], frozen=False, as_of="x", days=counts)
     assert report_json([], frozen=False, as_of="x", days=counts)["days"]["late"] == 1
 

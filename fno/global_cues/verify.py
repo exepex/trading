@@ -60,9 +60,16 @@ class CueTableVerifier:
         """`first_seen_at` never before the copy was fetched, and `provenance` recomputed from it."""
         seen = datetime.fromisoformat(row["first_seen_at"])
         problems = []
-        if fetched_at is not None and seen < fetched_at:
+        if fetched_at is not None and _to_copy_second(seen) < _to_copy_second(fetched_at):
             problems.append(f"{cue} {row['value_date']}: first seen {seen} before its copy was fetched {fetched_at}")
         label = provenance(date.fromisoformat(row["value_date"]), seen, self.next_session)
         if row["provenance"] != label:
             problems.append(f"{cue} {row['value_date']}: labelled {row['provenance']}, should be {label}")
         return problems
+
+
+def _to_copy_second(moment: datetime) -> datetime:
+    """A moment at a copy path's precision (`archived_copies.COPY_TIME`, whole seconds). An adopted row is first seen
+    at its path's second, while the log may keep the same copy's fetch to the microsecond (A17d adopted FBIL copies
+    already logged by the fill: DRY1 row c4), so the two are compared at the coarser of the two precisions."""
+    return moment.replace(microsecond=0)

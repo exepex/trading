@@ -99,10 +99,12 @@ def test_the_alert_names_each_failed_or_stale_cue_and_a_failed_commit(tmp_path):
         "us10y: 2 dates added, 0 revisions logged, last 2026-10-15\n"
         "brent: 0 dates added, 0 revisions logged, last 2026-09-22; STALE: older than 16 days on 2026-10-16\n"
         "gaps: us10y missing 2\n"
+        "nasdaq100: BEHIND, its newest value is older than the session expected by 09:15 IST\n"
+        "still behind (alerted before): sp500\n"
     )
-    assert _alert_text(tmp_path, output) == "sp500,brent failed or stale (the log names why)"
+    assert _alert_text(tmp_path, output) == "sp500,brent,nasdaq100 failed, stale or behind (the log names why)"
     assert _alert_text(tmp_path, "us10y: 1 dates added\nchecks FAILED (OSError): disk full\n") == (
-        "checks failed or stale (the log names why)"
+        "checks failed, stale or behind (the log names why)"
     )
     assert _alert_text(tmp_path, "STOPPED (RuntimeError): set FNO_GDRIVE_FOLDER_ID. Run again.\n") == "the run failed"
     assert _alert_text(tmp_path, "us10y: 1 dates added\n", commit="failure") == (

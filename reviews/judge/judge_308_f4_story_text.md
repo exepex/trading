@@ -68,3 +68,23 @@ The diff from 80c3ca5f adds one sentence to design 2: the number rule runs one w
 private value without quoting it, which matches F1t's 3d. It also adds F6's answer to response 271. Both are fine.
 **Both should-fix findings stand.** Minor 1 also stands: account files are whole-text items, so a pointer into them
 cannot resolve to a scalar. Even "cite without quoting" works only for `evaluation` values.
+
+## Addendum 1: 992a3f89
+
+**Verdict: still FAIL, on one remaining item (F1t's side of should-fix 2). Everything else is closed.**
+- **Should-fix 1: closed.** The owner chose "Code daily + AI monthly (Recommended)" (`docs/DESK_DECISIONS.md` line 257,
+  16 Oct). It is recorded under "Owner decisions", so the code gate is now the owner's choice, not the builder's.
+- **Should-fix 2:**
+  - `change` is gone: "any action other than `follow_rule`" (lines 39-40 add that F5's check refuses a top-level
+    `follow_rule` whose slots change).
+  - F5 (0bb574de, judge 307 addendum 4) and F6 (c625151e, judge 302 addendum 2) carry the `evidence` key and the
+    check. Both closed.
+  - **F1t's text is not yet updated.** I checked F1t's branch head c96c4923: no `judge_failed` status, no `JudgeStep`
+    call, no `AcceptedDecision.judge` or `judge_blocks`. Since 0bb574de, F5's design needs `decide()` always run with
+    `judge_blocks`, and F1t's run check must refuse a blocked run with a chosen trade.
+- **Minors: closed.** Design 2 says which private values are citable (only `/evaluation` scalars, not account
+  files); design 5 item 6 names where the audit runs.
+
+A PASS follows when F1t's text carries the agreed port: the `JudgeStep` call before `decide()`, `judge` and
+`judge_blocks` in `AcceptedDecision`, the run check, and the judge's time inside the 15:11-15:12 window. That will be
+checked as an addendum to judge 301.

@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 from datetime import date, datetime, timedelta
 
-from ..models import IST
+from ..models import IST, today_local
 
 STORED = "REVISION {day} {path}: NSE's newer version kept as {revision_path} ({size} bytes, available from {at})"
 NOT_ARCHIVED = "not in the raw archive, so not a revision (the librarian archives it): {path}"
@@ -27,7 +27,7 @@ def add_revisions_parser(subparsers) -> None:
     sweep = actions.add_parser("sweep", help="read NSE's files in full; keep any newer version as a revision")
     sweep.add_argument("dataset", choices=sorted(FINGERPRINT_SOURCES))
     sweep.add_argument("--from", dest="start", type=date.fromisoformat, default=None, help="YYYY-MM-DD")
-    sweep.add_argument("--to", dest="end", type=date.fromisoformat, default=date.today() - timedelta(days=1))
+    sweep.add_argument("--to", dest="end", type=date.fromisoformat, default=today_local() - timedelta(days=1))
     versions = actions.add_parser("versions", help="one day's archived versions and which one each reader returns")
     versions.add_argument("dataset", choices=sorted(FINGERPRINT_SOURCES))
     versions.add_argument("--day", type=date.fromisoformat, required=True, help="YYYY-MM-DD")

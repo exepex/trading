@@ -14,6 +14,14 @@ from .document import SnapshotDocument, parse_time
 OBSERVER_FAILED = "mark observer failed at {mark}: {error} (the recorder's rows and commit go ahead)"
 
 
+class MembersFailed(Exception):
+    """Some members of an observer group failed; `names` holds only class names and "timed out" (never a text)."""
+
+    def __init__(self, names: list[str]):
+        super().__init__()
+        self.names = names
+
+
 class MarkObserver(ABC):
     @abstractmethod
     def after_mark(self, day: date, mark: datetime, document: SnapshotDocument | None, status: str) -> None:
@@ -34,5 +42,6 @@ def notify(observer: MarkObserver, day: date, rows: list[dict], taken: SnapshotD
         try:
             observer.after_mark(day, mark, document, row["status"])
         except Exception as exc:  # isolation: the class name only, and the recorder carries on
-            lines.append(OBSERVER_FAILED.format(mark=row["mark_ist"], error=type(exc).__name__))
+            error = ", ".join(exc.names) if isinstance(exc, MembersFailed) else type(exc).__name__
+            lines.append(OBSERVER_FAILED.format(mark=row["mark_ist"], error=error))
     return lines

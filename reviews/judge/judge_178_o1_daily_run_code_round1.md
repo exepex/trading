@@ -455,3 +455,24 @@ so it cannot happen before the merge and the owner's new prompt. Since e57046f3 
 `RUN_LOG_TRADE_MARKS_STEP` in `fno/constants_operations.py` (the fixed-strings rule) and uses it in `DESK_RUN_STEPS` and
 the desk plan. There is no behaviour change. Full suite on edb4e2b6: 7410 passed and 3 failed, the 3 risk tests that
 are red on main itself (addendum 17).
+
+## Addendum 19: O1 criterion 9, the real days (claims at story/o1-criterion-9 3de993be)
+**Verdict: criterion 9 MET, except "the card in #fno-desk", which stays OPEN until T1's card goes live.** I checked
+the run logs and the commit list on main myself.
+
+| Part | Result | Evidence |
+|---|---|---|
+| Every step recorded, once, in `DAILY_RUN_STEPS` order | MET | `journal/runs/2026-10-19.json` and `2026-10-21.json` hold all 16 steps (`quotes` … `candles`); 20 Oct is `skipped` ("not a session day") |
+| Every record committed; NIFTY first | MET | 19 Oct (IST): `3 pm quotes nifty` 14:57:57, `nse` 14:58:01, `indices` 15:05:34. Then `book1` (decision `bd11a8de`, committed 14:58:45), `decisions` at 15:12, the snapshot `nifty_20261019_151500` valid, and fills, exits, trade_marks, reviews, quotes_done, card and candles, each step its own commit |
+| A16's marks beside the 3 pm capture | MET (checked as a risk) | A16's 14:45, 15:00 and 15:15 marks on 19 Oct are all `good`, and quotes_done says "every part ok", so the two Groww users did not cost the capture anything that day (one day: some evidence) |
+| The card in #fno-desk | **OPEN** | `daily.live_from.card` is null, so the step is `not_live` and no card was posted. The owner sets the date; the part closes on the first live card day |
+| Not-live steps | as designed | margin_check, weather, forecasts_v4 and card are `not_live` (no `live_from` date). Book 1 decided, with no trade (no `paper` strategy) |
+
+**My Monday check, "NIFTY and NSE started at about 14:38".** It cannot be read directly: the log holds no start time
+per part, and `quotes`' reason "started nifty, nse" has been misleading since 7b08108c, because the parts now start
+later, at 14:38. The indirect evidence holds: attempt `nifty_20261019_145500` shows the recording waited for its
+window, and nothing printed "too early". The builder will fix the wording in the next O1 change; it should then record
+each part's start time.
+
+**Note for the owner:** S1's "one live day" is met by the run itself, but the desk has not traded yet. Every Book 1
+decision so far is no-trade, because no strategy has `paper` status.

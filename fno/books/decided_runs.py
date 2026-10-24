@@ -38,8 +38,8 @@ class GitDecidedRuns(DecidedRuns):
         folder = self.store.day_folder(day)
         name = folder.relative_to(self.git.root).as_posix()
         try:
-            self.git("fetch", "-q", "origin", self.git.branch())
-            origin, head = f"origin/{self.git.branch()}", "HEAD"
+            self.git("fetch", "-q", "origin", self.git.target)
+            origin, head = f"origin/{self.git.target}", "HEAD"
             places = {ON_ORIGIN: self._runs(origin, name), COMMITTED: self._runs(head, name)}
         except GitError as failed:
             raise CommitFailed(f"origin could not be checked for an earlier decision: {failed}") from failed
@@ -49,17 +49,13 @@ class GitDecidedRuns(DecidedRuns):
             place = next(p for p in (ON_ORIGIN, COMMITTED, ON_DISK) if run_id in places[p])
             commit = origin if place == ON_ORIGIN else head
             inputs = folder / run_id / INPUTS_FILE
-            data = inputs.read_bytes() if inputs.is_file() else self._show(commit, f"{name}/{run_id}/{INPUTS_FILE}")
+            data = inputs.read_bytes() if inputs.is_file() else self.git.show(commit, f"{name}/{run_id}/{INPUTS_FILE}")
             found.append(FoundRun(run_id, place, data))
         return found
 
     def _runs(self, commit: str, folder: str) -> set[str]:
         listed = self.git("ls-tree", "-d", "--name-only", f"{commit}:{folder}", check=False)
         return {n for n in listed.stdout.split() if not n.startswith(".")} if listed.returncode == 0 else set()
-
-    def _show(self, commit: str, path: str) -> bytes | None:
-        shown = self.git.run(["git", "show", f"{commit}:{path}"], cwd=self.git.root, capture_output=True)
-        return shown.stdout if shown.returncode == 0 else None
 
 
 def changed_fields(recorded: bytes | None, fresh: bytes) -> list[str]:

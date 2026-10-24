@@ -7,6 +7,8 @@ from __future__ import annotations
 import random
 from datetime import date, timedelta
 
+from ..models import today_local
+
 SPOT_CHECK_SEED = 13102026  # fixed, so a judge draws the same sample
 
 
@@ -26,7 +28,7 @@ def add_fingerprints_parser(subparsers) -> None:
         "--to",
         dest="end",
         type=date.fromisoformat,
-        default=date.today() - timedelta(days=1),
+        default=today_local() - timedelta(days=1),
         help="YYYY-MM-DD (default: yesterday)",
     )
     fp.add_argument("--spot-check", type=int, default=0, help="files compared with NSE's live bytes (default 0)")

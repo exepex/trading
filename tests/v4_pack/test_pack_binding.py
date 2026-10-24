@@ -3,15 +3,30 @@ names exactly the released pack; every other forecaster names none."""
 
 import pytest
 
-from fno.constants import BOOK2_HYBRID, BOOK3_AI
+from fno.constants import (
+    BOOK2_HYBRID,
+    BOOK3_AI,
+    V4_BASELINE_BASE_RATE,
+    V4_BASELINE_OPTION_IMPLIED_PROB,
+    V4_BASELINE_PREMIUM_ADJUSTED,
+    V4_BASELINE_RAW_IMPLIED,
+)
 from fno.forecast_v4.terms import V4_LATEST_FIRE
+from fno.forecast_v4_rules.constants import (
+    V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY,
+    V4_RULE_V4_EWMA_CHI2,
+    V4_RULE_V5_EWMA_LOGNORMAL,
+)
 from fno.v4_pack.guard import PACK_READERS, PackBindingRefused, check_pack_binding
 
 DAY, RELEASED, OTHER = "2026-10-22", "a" * 64, "b" * 64
 
 
-def test_the_pack_readers_are_the_ai_books():
-    assert {BOOK2_HYBRID, BOOK3_AI} == PACK_READERS
+def test_the_pack_readers_are_the_ai_books_and_g7b_completions_pack_rows():
+    """G7b completion: the pack-derived baselines and the V4 and V5 rules read the pack; base rates do not."""
+    g7b = {V4_BASELINE_RAW_IMPLIED, V4_BASELINE_PREMIUM_ADJUSTED, V4_BASELINE_OPTION_IMPLIED_PROB, V4_RULE_V4_EWMA_CHI2,
+           V4_RULE_V5_EWMA_LOGNORMAL, V4_BASELINE_PREMIUM_ADJUSTED_INTRADAY}  # fmt: skip
+    assert {BOOK2_HYBRID, BOOK3_AI} | g7b == PACK_READERS and V4_BASELINE_BASE_RATE not in PACK_READERS
 
 
 @pytest.mark.parametrize("book", sorted(PACK_READERS))

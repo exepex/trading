@@ -12,6 +12,7 @@ import json
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
+from ..models import now_utc
 from ..storage.index_store import IndexFileStore
 from .librarian import FilingsReport
 
@@ -88,5 +89,5 @@ class ProgressRecord:
 
     def save(self, totals: dict) -> None:
         self.state["totals"] = totals
-        self.state["updated"] = datetime.now().astimezone().isoformat(timespec="seconds")
+        self.state["updated"] = now_utc().astimezone().isoformat(timespec="seconds")
         self.store.replace(PROGRESS_PATH, json.dumps(self.state, indent=1, sort_keys=True).encode())

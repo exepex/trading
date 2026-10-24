@@ -1,0 +1,54 @@
+{
+ "attempted": {
+  "q1_nifty_up_20d": {
+   "probability": 0.55,
+   "reason": "Book 1 value 0.555; spot -1.19% today, no strong reason to move."
+  },
+  "q2_nifty_move_3pct_20d": {
+   "probability": 0.42,
+   "reason": "Book 1 0.404; trailing RV20 16.2 above IV30 14.0, slight nudge up."
+  },
+  "q3_rv20_above_trailing": {
+   "probability": 0.37,
+   "reason": "Book 1 0.366; trailing RV20 16.2 is elevated vs IV30 14.0, mean reversion favours no."
+  },
+  "q4_vix_up_10d": {
+   "probability": 0.43,
+   "reason": "Book 1 0.43; VIX 14.86 mid-range, no reason to move."
+  },
+  "q5_rv20_below_atm_iv30": {
+   "probability": 0.61,
+   "reason": "Book 1 0.662; trailing RV20 16.2 already above IV30 14.0, so lowered."
+  }
+ },
+ "book": "book2_hybrid",
+ "commitment_received_at": "2026-10-19T09:41:23+00:00",
+ "counted": {
+  "q1_nifty_up_20d": 0.55,
+  "q2_nifty_move_3pct_20d": 0.42,
+  "q3_rv20_above_trailing": 0.37,
+  "q4_vix_up_10d": 0.43,
+  "q5_rv20_below_atm_iv30": 0.61
+ },
+ "day": "2026-10-19",
+ "fire": {
+  "fired": true,
+  "fired_at": "2026-10-19T15:10:24.153101+05:30",
+  "session": "https://claude.ai/code/cse_01HFpRsZfaLf1ut6MYkb2irq",
+  "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+ },
+ "isolation": "sealed_same_day",
+ "model_check": "unverified",
+ "model_reported": "unknown",
+ "notes": [],
+ "problems": {
+  "q1_nifty_up_20d": "",
+  "q2_nifty_move_3pct_20d": "",
+  "q3_rv20_above_trailing": "",
+  "q4_vix_up_10d": "",
+  "q5_rv20_below_atm_iv30": ""
+ },
+ "reveal_received_at": "2026-10-19T09:45:18+00:00",
+ "status": "on_time",
+ "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+}

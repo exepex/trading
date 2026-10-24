@@ -12,11 +12,13 @@ import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fno.numbering.categories import ADDENDUM_OF, SLUG, WHOLE, Category
 from fno.numbering.git_main import GitMain, MainCopy
 from fno.numbering.registry import SEEDED, Row, append_row, next_number, utc_stamp
+
+from ..models import now_utc
 
 TRIES = 8
 PAUSE_SECONDS = (0.5, 3.0)
@@ -51,7 +53,7 @@ class NumberClaimer:
     def __init__(
         self,
         git: GitMain,
-        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        clock: Callable[[], datetime] = lambda: now_utc(),
         pause: Callable[[float], None] = time.sleep,
         tries: int = TRIES,
     ):

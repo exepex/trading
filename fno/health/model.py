@@ -16,6 +16,18 @@ class EvidenceUnknown(RuntimeError):
     """A file could not be read or its push time could not be established: the check's status is `unknown`."""
 
 
+class EvidenceNotCommitted(EvidenceUnknown):
+    """No commit in this checkout adds the file."""
+
+
+class EvidenceNotPushed(EvidenceUnknown):
+    """GitHub's log covers every moment the file's commit could have been pushed, and holds no push of it."""
+
+
+class EvidenceOutsideLog(EvidenceUnknown):
+    """GitHub's log no longer reaches back to when the file's commit could have been pushed."""
+
+
 @dataclass(frozen=True)
 class Deadline:
     at: time
