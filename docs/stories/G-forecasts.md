@@ -1299,7 +1299,10 @@ the card's content or any order (none exist); count anything (no `FREEZE_v4.md`:
 #fno-forecast or #fno-intraday; change A16's marks, the 14:55 NIFTY, NSE or indices parts, or any 3 pm reader (the
 `v4` dataset is apart; criterion 2 keeps the commits apart).
 
-**Depends:** A4e (merged), O9's data store and Drive cache (merged), F1's push receipts (merged), O1 (merged).
+**Depends:** A4e (merged), O9's data store and Drive cache (merged), F1's push receipts (merged), O1 (merged);
+**G7b's first commit, `first_v4_expiry(day, listed_expiries, calendar)` in `fno/forecast_v4_rules/v4_expiry.py`, not yet
+on any branch (judge 580's re-read at d4e72f20d): it must be pushed, judged and merged before criterion 3a's code; until
+then criterion 3a cannot be built, and the other criteria do not wait for it.**
 **Touches:** `fno/daily/` (quote_parts, wiring, reason_codes), `fno/constants_operations.py`, `fno/v4_pack/`,
 `fno/forecast_scoring/v4/` (days, wiring, a new verdict reader), `fno/forecast_v4/terms.py` (one constant),
 `fno/config.py`, `config.yaml`, `CLAUDE.md` (daily routine lines), `.github/workflows/postmortem-weekly.yml`,
@@ -1317,6 +1320,7 @@ orchestrator's assignment (G8's builder is out of reach). **Size:** L, built in 
 | Minor 1: 14:45 with the part running | **Yes** | step table: a part still running at 14:45 is stopped (it is hung: no request after 14:40), its files not committed, the day `system_late`; criterion 4 adds the plant |
 | Minor 2: build with D1 and D3 recommended | **Yes** (orchestrator's answer, 24 Oct) | Decisions: built and judged with the recommended values; only the merge waits for the owner |
 | Minor 3: criterion 4's 14:33 | **Yes** | criterion 4: `A` released at about 14:35 from a capture ended about 14:34 |
+| Minor (re-read at d4e72f20d): `first_v4_expiry` defined on no branch yet | **Yes**, checked: no `def first_v4_expiry` on `story/g7b-completion` | "Depends" names it as G7b's first commit, merged before criterion 3a's code |
 | Plants to add | **Yes** | criterion 9 (NIFTY glob widened in CLAUDE.md only), criterion 12 (rehearsal) |
 
 **Covered by my commits after c876ede53 (not read by judge 580):** 2f508ae15 (the `v4`-window changes in `fno/quotes`
