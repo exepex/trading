@@ -29,7 +29,9 @@ first commits that failed commit's files exactly as they were recorded, and neve
 (`PendingCommitter`, decision 47). Any other error in a step fails that step only (DRY2 R2, 24 Oct): logged with its
 type and one line, alerted, and the run goes on; a step that reads a failed step's result (`NEEDS`) is refused. A
 rerun on the same day runs such a failed step again when it is safe and useful to repeat (`RETRIED_ON_RERUN`, DRY2
-SF1); the others stay failed for the day, and the alert says which.
+SF1); the others stay failed for the day, and the alert says which. The fills are never retried and never start after
+`fills_by` (owner, 24 Oct, DESK_DECISIONS "a failed fills step is never retried"): a rerun chosen after the price is
+known must not decide whether a paper trade exists (judges 569.2 SF3 and 570.2 finding 1).
 """
 
 from __future__ import annotations
@@ -76,10 +78,12 @@ WRITTEN = " after {count} trades were recorded in their accounts; those records 
 RERUN_RETRIES = "a rerun today retries it (nothing it wrote is done twice)"
 RERUN_FINAL = "a rerun today will not retry it: {why}"
 # DRY2 SF1 (orchestrator, 24 Oct 06:24): the desk steps a rerun on the same day runs again after an unexpected error,
-# each idempotent by its trade, fill and event IDs, or replacing the day's own rows (O1's claims, "Round 2"); the rest
-# stay failed for the day, with why
-RETRIED_ON_RERUN = ("fills", "exits", RUN_LOG_TRADE_MARKS_STEP)
+# each idempotent by its event IDs, or replacing the day's own rows (O1's claims, "Round 2"); the rest stay failed for
+# the day, with why. The fills are final (owner, 24 Oct: "1 - A"): risk-reducing exits and marks may come late, a new
+# trade never does
+RETRIED_ON_RERUN = ("exits", RUN_LOG_TRADE_MARKS_STEP)
 NOT_RETRIED = {
+    "fills": "failed fills are final for the day: no other new trade opens today (fail closed)",
     "versions": "a version registered after the day's decision cannot count for it (D6)",
     "pack": "the decisions and the snapshot's checks already ran without it",
     RUN_LOG_DECISIONS_STEP: "what was visible at the deadline cannot be observed later",
@@ -93,6 +97,11 @@ NEEDS_PROBLEM = {STEP_FAILED: NEEDS_FAILED, STEP_REFUSED: NEEDS_REFUSED}  # each
 # DRY2 R2 (24 Oct): the steps that read another step's logged result, and which; the rest read their own inputs (the
 # exits and the marks check the snapshot through the gate themselves, so risk-reducing exits always run)
 NEEDS = {"fills": ("snapshot", RUN_LOG_DECISIONS_STEP)}
+# The owner's ruling (24 Oct) and decision 47's rerun: a fills step that would start after `fills_by` (a rerun after a
+# stopped run) is refused, never run with hindsight
+FILLS_MINUTE = timedelta(minutes=1)  # `fills_by` is a minute: a start inside 15:20 is in time
+FILLS_LATE = "it is {now:%H:%M:%S}, past fills_by {by:%H:%M}: no new trades today (fail closed)"
+FILLS_REFUSED = "F&O paper desk {day}: step fills REFUSED: {reason}"
 NO_LOG = "the run of {day} stopped before any step"
 BEFORE_EXITS = "the run of {day} stopped before its exits"
 NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
@@ -129,12 +138,16 @@ class DailyRun:
             return log
         plan = self._plan(day, log)
         for name in DAILY_RUN_STEPS:  # a failed step is retried on its own day only: a later session read its log
-            if name in plan and not log.done(name) and (name not in log.steps or self.clock().date() == day):
+            if name in plan and not log.done(name) and (name not in log.steps or self.on_its_day(day)):
                 moment, action = plan[name]
                 if moment is not None:
                     self.waiter.until(self.steps.timetable.at(day, moment))
                 self._step(log, name, action)
         return log
+
+    def on_its_day(self, day: date) -> bool:
+        """Whether this run is on `day` itself, the only day a failed step is retried."""
+        return self.clock().date() == day
 
     def _plan(self, day: date, log: RunLog) -> dict[str, tuple[time | None, Callable[[], StepOutcome]]]:
         """Each step by name: when it may start (None: at once, in its turn) and what it does."""
@@ -213,7 +226,7 @@ class DailyRun:
     def _step(self, log: RunLog, name: str, action: Callable[[], StepOutcome]) -> None:
         def step() -> None:
             started = self.clock()
-            outcome = self._refused(log, name) or self._run_step(log.day, name, action)
+            outcome = self._refused(log, name) or self._too_late(log.day, name) or self._run_step(log.day, name, action)
             self.recorder.record(log, name, started, self.clock(), outcome.inputs, outcome.result)
             paths: tuple[Path, ...] = (log.path, *outcome.paths)
             self.committer.commit(paths, f"Desk run {log.day} step {name}")
@@ -233,6 +246,16 @@ class DailyRun:
             names = [needed for needed, problem in problems if problem == status]
             reasons += [template.format(needed=", ".join(names))] if names else []
         return StepOutcome({}, {"status": STEP_REFUSED, "reason": "; ".join(reasons)})
+
+    def _too_late(self, day: date, name: str) -> StepOutcome | None:
+        """The fills start no later than `fills_by` (its minute included); after it they are refused with one alert."""
+        by = self.steps.timetable.at(day, self.steps.timetable.fills_by)
+        now = self.clock()
+        if name != "fills" or now < by + FILLS_MINUTE:
+            return None
+        reason = FILLS_LATE.format(now=now, by=by)
+        self.steps.alerts.send(FILLS_REFUSED.format(day=day, reason=reason))
+        return StepOutcome({}, {"status": STEP_REFUSED, "reason": reason})
 
     def _run_step(self, day: date, name: str, action: Callable[[], StepOutcome]) -> StepOutcome:
         """An unexpected error in one step fails that step only (DRY2 R2): it is logged with its type and one line,
