@@ -44,7 +44,6 @@ def test_every_last_line_of_the_command_has_its_own_public_code():
         "recommend:INPUT_PROBLEM": "recommendation for 2026-11-02, input problem: the day's conditions could not be "
         "read: log gone",
         "recommend:NOT_POSTED": "recommendation NOT posted for 2026-11-02: recommend/x.json: RuntimeError",
-        "recommend:ALREADY": "recommendation for 2026-11-02 already recorded (receipt abc): not posted again",
         "recommend:NOT_A_SESSION": "recommend 2026-11-01: not a trading day, nothing recorded",
     }
     assert {code: registry.matching("recommend", text) for code, text in last_lines.items()} == {

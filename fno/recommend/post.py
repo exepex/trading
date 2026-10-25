@@ -5,7 +5,7 @@ strike, price or strategy internal: only answers, codes, counts, version IDs and
 
 from __future__ import annotations
 
-from .constants import REASON_TEXT, EvidenceRung, PaperAnswer, RealMoneyAnswer, SourceState
+from .constants import BLOCKS_REAL_MONEY, REASON_TEXT, EvidenceRung, PaperAnswer, RealMoneyAnswer, SourceState
 from .contracts import Recommendation, source_of
 from .store import Saved
 
@@ -35,6 +35,8 @@ def _real_money(record: Recommendation) -> str:
         return ELIGIBLE.format(version=record.eligible_version)
     if not any(v.rung is EvidenceRung.ESTABLISHED for v in record.versions):
         return DO_NOT.format(why=NO_PROVEN)
+    if record.reason in BLOCKS_REAL_MONEY:  # the day itself stops real money too, named (judge 654 m2)
+        return DO_NOT.format(why=REASON_TEXT[record.reason])
     return DO_NOT.format(why=NOT_ELIGIBLE)
 
 

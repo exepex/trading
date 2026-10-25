@@ -103,9 +103,8 @@ STEP_TEMPLATES = {
         ("v4_release:REFUSED", release_run.REFUSED),
         ("v4_release:NOT_LIVE", release_run.NOT_LIVE),
     ),
-    "recommend": (  # REC1b: posted, already recorded, an input problem, not posted, a changed rung rule, no session
+    "recommend": (  # REC1b: posted (or re-sent), an input problem, not posted, a changed rung rule, no session
         ("recommend:POSTED", recommend_post.HEAD),
-        ("recommend:ALREADY", recommend_run.ALREADY),
         ("recommend:INPUT_PROBLEM", recommend_run.INPUT_PROBLEM),
         ("recommend:NOT_POSTED", recommend_run.NOT_SAVED),
         ("recommend:RULE_CHANGED", recommend_run.RULE_CHANGED),

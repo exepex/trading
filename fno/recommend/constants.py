@@ -44,6 +44,11 @@ REASON_TEXT = {
 }
 
 
+# A day stopped by one of these is DO NOT TRADE for real money too, never ELIGIBLE (orchestrator, judge 654 m2)
+BLOCKS_REAL_MONEY = frozenset({NoTradeReason.DATA_CHECK_FAILED, NoTradeReason.STEP_PROBLEMS,
+                               NoTradeReason.QUOTE_GATE_FAILED, NoTradeReason.WEATHER_RED})  # fmt: skip
+
+
 class EvidenceRung(IntEnum):
     """Confidence as a stated rule (story section 2), never a free number. Only ESTABLISHED is "proven"."""
 

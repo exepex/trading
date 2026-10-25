@@ -127,3 +127,11 @@ def test_a_run_log_that_does_not_read_is_an_input_failure(tmp_path):
     log.write_text("{not json")
     with pytest.raises(InputFailed, match="does not read"):
         source(tmp_path).read(DAY)
+
+
+def test_a_book_entry_without_a_run_is_unavailable(tmp_path):
+    """Judge 653 m2: a failed book's entry names no run; it is never complete and never a crash."""
+    write_run(tmp_path, {"no_trade.json": record("no trade")})
+    log_step(tmp_path, {"book1_rules": {"status": "failed", "reason": "book1:STOPPED"}})
+    reading = source(tmp_path).read(DAY)
+    assert (reading.source.state, reading.decisions) == (SourceState.UNAVAILABLE, ())

@@ -19,7 +19,10 @@ from .store import DriveRecommendations, NotSaved
 
 RULE_CHANGED = "recommendation NOT made for {day}: {path} is not the pinned rung rule (a new version needs a new pin)"
 NOT_SAVED = "recommendation NOT posted for {day}: {why}"
-ALREADY = "recommendation for {day} already recorded (receipt {commit}): not posted again"
+RESENT = (
+    "Re-sent: this day was already recorded (receipt {commit}); an earlier run may have stopped after its "
+    "receipt and before its line."
+)  # judge 654 m1: a line never lost silently
 ADOPTED = "This is the record made at {made_at:%H:%M} UTC, whose save stopped before its push, now receipted."
 INPUT_PROBLEM = "recommendation for {day}, input problem: {line}"
 
@@ -45,11 +48,12 @@ class RecommendRun:
             stored = self.store.save(record)
         except NotSaved as failed:
             return self._fail(NOT_SAVED.format(day=day, why=failed))
-        if stored.already:
-            return DayResult((ALREADY.format(day=day, commit=stored.saved.receipt_commit[:12]),), ok=True)
         note = ADOPTED.format(made_at=stored.record.made_at) if stored.adopted else ""
+        if stored.already:
+            note = RESENT.format(commit=stored.saved.receipt_commit[:12])
         line = recommendation_line(stored.record, stored.saved, note)
-        problems = [INPUT_PROBLEM.format(day=day, line=p) for p in gathered.problems]
+        made_now = not (stored.already or stored.adopted)  # an earlier record stands: this run's answer was dropped
+        problems = [INPUT_PROBLEM.format(day=day, line=p) for p in gathered.problems] if made_now else []
         sent = [self.alerts.send(text) for text in (line, *problems)]
         return DayResult((*sent, line, *problems), ok=not problems)  # the last line names the outcome (O1's code)
 

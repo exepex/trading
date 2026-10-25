@@ -12,6 +12,7 @@ from datetime import date, datetime, timedelta
 from ..books.version_registry import SCHOOL_BOOK_PREFIX
 from ..school.contracts.codec import CanonicalRecord
 from .constants import (
+    BLOCKS_REAL_MONEY,
     RECORD_KIND,
     RECORD_SCHEMA_VERSION,
     CandidateSourceName,
@@ -114,7 +115,8 @@ def _real_money_consistent(rec: Recommendation, rungs: dict[str, EvidenceRung]) 
     if rec.real_money is RealMoneyAnswer.DO_NOT_TRADE_REAL_MONEY:
         return rec.eligible_version is None
     proven = rungs.get(rec.eligible_version) is EvidenceRung.ESTABLISHED  # only a proven version, judge 620 S1
-    return proven and source_of(rec.eligible_version) not in _unavailable(rec)
+    clear_day = rec.reason not in BLOCKS_REAL_MONEY  # never on a day the paper answer is stopped by the day itself
+    return proven and clear_day and source_of(rec.eligible_version) not in _unavailable(rec)
 
 
 def _paper_consistent(rec: Recommendation, rungs: dict[str, EvidenceRung]) -> bool:

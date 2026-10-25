@@ -126,3 +126,21 @@ def test_an_unread_school_changes_nothing_while_nothing_is_established():
 def test_the_decision_time_is_the_evidence_cutoff_and_the_pinned_rule_is_named():
     record = decided()
     assert (record.evidence_cutoff, record.rung_rule_sha256) == (MADE_AT, RUNG_RULE_SHA256)
+
+
+@pytest.mark.parametrize("rung", [EvidenceRung.UNPROVEN, EvidenceRung.EXPLORATORY, EvidenceRung.WATCHING])
+def test_rm1_naming_a_version_below_rung_3_is_a_failed_data_check(rung):
+    """Judge 654 S1: the two gates disagree, so nothing is trusted and nothing is eligible."""
+    record = decided(rung, rm1_eligible={V})
+    assert (record.real_money, record.reason, record.eligible_version) == (
+        RealMoneyAnswer.DO_NOT_TRADE_REAL_MONEY,
+        NoTradeReason.DATA_CHECK_FAILED,
+        None,
+    )
+
+
+@pytest.mark.parametrize("changes", [{"step_problems": True}, {"weather_red": True}, {"quote_gate_failed": True}])
+def test_a_day_condition_stops_real_money_too(changes):
+    """The orchestrator's ruling on judge 654 m2: never ELIGIBLE on a day the day itself stops."""
+    record = decided(EvidenceRung.ESTABLISHED, traded=True, rm1_eligible={V}, **changes)
+    assert (record.real_money, record.eligible_version) == (RealMoneyAnswer.DO_NOT_TRADE_REAL_MONEY, None)

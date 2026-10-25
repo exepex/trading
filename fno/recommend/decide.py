@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from .constants import (
+    BLOCKS_REAL_MONEY,
     RECORD_KIND,
     RECORD_SCHEMA_VERSION,
     EvidenceRung,
@@ -50,7 +51,7 @@ def decide(facts: DayFacts) -> Recommendation:
     trade = None if reason else _first_trade(facts)
     if trade is None and reason is None:
         reason = _without_trade(facts, established)
-    eligible = None if reason is NoTradeReason.DATA_CHECK_FAILED else _eligible(facts, established)
+    eligible = None if reason in BLOCKS_REAL_MONEY else _eligible(facts, established)
     real_money = RealMoneyAnswer.ELIGIBLE_FOR_YOUR_OWN_REVIEW if eligible else RealMoneyAnswer.DO_NOT_TRADE_REAL_MONEY
     return Recommendation(
         schema_version=RECORD_SCHEMA_VERSION, kind=RECORD_KIND, session=facts.session, made_at=facts.made_at,
@@ -64,7 +65,7 @@ def decide(facts: DayFacts) -> Recommendation:
 def _reason(facts: DayFacts, established: list[str]) -> NoTradeReason | None:
     """The reasons that hold whatever was traded, in the closed order."""
     unread = {s.name for s in facts.sources if s.state is SourceState.UNAVAILABLE}
-    if not facts.data_ok or any(source_of(v) in unread for v in established):
+    if not facts.data_ok or any(source_of(v) in unread for v in established) or disagreeing(facts, established):
         return NoTradeReason.DATA_CHECK_FAILED
     if facts.step_problems:
         return NoTradeReason.STEP_PROBLEMS
@@ -73,6 +74,11 @@ def _reason(facts: DayFacts, established: list[str]) -> NoTradeReason | None:
     if facts.quote_gate_failed:
         return NoTradeReason.QUOTE_GATE_FAILED
     return NoTradeReason.WEATHER_RED if facts.weather_red else None
+
+
+def disagreeing(facts: DayFacts, established: list[str]) -> list[str]:
+    """Versions RM1 names eligible below rung 3: the two gates contradict, so nothing is trusted (judge 654 S1)."""
+    return sorted(set(facts.rm1_eligible) - set(established))
 
 
 def _first_trade(facts: DayFacts) -> Candidate | None:

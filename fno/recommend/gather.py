@@ -8,7 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from .constants import CandidateSourceName, SourceState
+from .constants import CandidateSourceName, EvidenceRung, SourceState
 from .contracts import Candidate, CandidateSource
 from .decide import DayFacts
 from .ports import CandidateSourcePort, ConditionsPort, EligibilityPort, EvidencePort, InputFailed, SourceReading
@@ -16,6 +16,7 @@ from .rungs import VersionEvidence, evidence
 
 FAILED = "{what} could not be read: {why}"
 UNREAD_STATUS = "input_failed"  # a source whose own reading failed: unavailable, with this as its status
+DISAGREE = "RM1 names {version} eligible, but its rung is {rung}: the two gates disagree (judge 654 S1)"
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,8 @@ def gather(day: date, made_at: datetime, header: Header, ports: Ports) -> Gather
     candidates = [Candidate(d.version, rungs[d.version], d.decision, d.traded) for r in readings for d in r.decisions
                   if _rated(problems, rungs, d.version)]  # fmt: skip
     used = {ref for r in readings for ref in r.used} | set(conditions.used if conditions else ())
+    problems += [DISAGREE.format(version=v, rung=rungs.get(v, "not rated")) for v in sorted(eligible)
+                 if rungs.get(v) is not EvidenceRung.ESTABLISHED]  # fmt: skip
     facts = DayFacts(
         session=day, made_at=made_at, code_commit=header.code_commit, config_sha256=header.config_sha256,
         inputs=tuple(sorted(used, key=lambda ref: ref.path)), versions=tuple(sorted(versions, key=_version)),

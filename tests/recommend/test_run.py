@@ -87,14 +87,19 @@ def test_the_same_day_again_with_the_same_answer_changes_nothing():
     assert run.run(DAY).ok and data.files == before
 
 
-def test_a_recorded_day_is_never_written_or_posted_again():
+def test_a_recorded_day_is_never_written_again_and_its_own_line_is_re_sent():
+    """Judge 654 m1: a run that pushed the receipt and stopped before its post loses no line; the rerun re-sends the
+    stored record's own line, labelled, and never the new answer."""
     run, data, publisher, alerts = runner()
     run.run(DAY)
-    before = dict(data.files)
+    before, first_line = dict(data.files), alerts.lines[0]
     run.ports = replace(PORTS, conditions=FakeConditions(fails="log gone"))  # another answer now: it must not land
     result = run.run(DAY)
-    assert result.ok and data.files == before and len(alerts.lines) == 1
-    assert result.lines == (f"recommendation for {DAY} already recorded (receipt eeeeeeeeeeee): not posted again",)
+    assert result.ok and data.files == before and len(alerts.lines) == 2
+    resent = alerts.lines[1]
+    assert "Re-sent: this day was already recorded (receipt eeeeeeeeeeee)" in resent
+    assert "no_established_version" in resent and "data_check_failed" not in resent
+    assert resent.split(" Re-sent:")[0] == first_line.split(" Record ")[0]
 
 
 def test_a_save_stopped_before_its_push_is_adopted_by_the_next_run():

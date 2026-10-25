@@ -1,8 +1,9 @@
 """Where recommendations go (story REC1b, section 5): Drive, written once through O9's `DataStore`, with the receipt
 committed and pushed to `main` before anything is posted (the school dashcam's pattern). A day already receipted is
-never written or posted again. A record on Drive with no receipt (a save stopped before its push) is adopted, as the
-dashcam's `recover` does: its bytes must read strictly as that day's recommendation, its receipt is then pushed, and
-the first-made record stands; a later run never writes other bytes over it."""
+never written again; its own stored record is what a later run re-sends. A record on Drive with no receipt (a save
+stopped before its push) is adopted, as the dashcam's `recover` does: its bytes must read strictly as that day's
+recommendation, its receipt is then pushed, and the first-made record stands; a later run never writes other bytes
+over it."""
 
 from __future__ import annotations
 
@@ -37,7 +38,7 @@ class Saved:
 class Stored:
     record: Recommendation  # the day's record as it stands: an adopted earlier one wins over a new one
     saved: Saved
-    already: bool  # receipted before this run: not posted again
+    already: bool  # receipted before this run: its line is re-sent, labelled, never lost silently
     adopted: bool  # found on Drive without a receipt and receipted now
 
 

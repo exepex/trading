@@ -93,3 +93,11 @@ def test_the_day_s_conditions_reach_the_decision():
     found = DayConditions(step_problems=True, quote_gate_failed=False, weather_red=False, used=())
     _, record = recorded(conditions=FakeConditions(found))
     assert record.reason is NoTradeReason.STEP_PROBLEMS
+
+
+def test_rm1_and_the_rung_disagreeing_is_alerted_by_name():
+    gathered, record = recorded(eligibility=FakeEligibility(frozenset({CS1})))
+    assert record.reason is NoTradeReason.DATA_CHECK_FAILED
+    assert gathered.problems == (
+        "RM1 names school:CS1@1 eligible, but its rung is 0: the two gates disagree (judge 654 S1)",
+    )

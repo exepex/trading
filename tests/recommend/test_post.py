@@ -38,3 +38,19 @@ def test_a_rung_3_trade_is_named_and_not_counted_as_unrecommended():
 def test_a_failed_check_says_so():
     line = recommendation_line(no_trade(reason=NoTradeReason.DATA_CHECK_FAILED), SAVED)
     assert "Paper: NO TRADE (data_check_failed: " in line
+
+
+def test_a_day_condition_names_itself_in_the_real_money_answer():
+    line = recommendation_line(established_day(reason=NoTradeReason.WEATHER_RED), SAVED)
+    assert "Real money: DO NOT TRADE (the market weather is red)." in line
+
+
+def test_eligible_is_refused_on_a_day_the_day_itself_stops():
+    import pytest
+
+    from fno.recommend.contracts import RecordRefused
+
+    for reason in (NoTradeReason.STEP_PROBLEMS, NoTradeReason.WEATHER_RED, NoTradeReason.QUOTE_GATE_FAILED):
+        with pytest.raises(RecordRefused, match="real-money"):
+            established_day(reason=reason, real_money=RealMoneyAnswer.ELIGIBLE_FOR_YOUR_OWN_REVIEW,
+                            eligible_version="school:CS1@1")  # fmt: skip
