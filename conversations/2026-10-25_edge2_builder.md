@@ -64,3 +64,71 @@ Owner, 25 Oct 2026 (relayed in this session's task): "no proven edge: let's try 
   plants, the minor notes. Full suite 16,900 passed.
 - Orchestrator: F9 (event IV crush, block edge2-f9, trials 127-132) next, registered only after J passes; calendars wait
   for a verified payoff and margin model; the wide-wing condor declined.
+
+## F9 (later)
+
+- EDGE2 F1+F6+F8 merged to main (judge J pass, 56031075 + 90becf94); plant tests on a lane-2 branch.
+- F9 event IV crush registered as trials 124-127 (orchestrator: the factory needs consecutive trials; 128-132
+  released), 58 scheduled A6 events fixed, entry at the prior close exposed to the gap; frozen at effae511; run once:
+  no edge (net -Rs 388 to -467 a trade, gross Rs 175-216 against the Rs 820 bar), event days about Rs 150 better than
+  ordinary days; nothing nominated, held-out unread (`research/edge2/F9_RESULTS.md`).
+- Open: a judge on e3ec093a; the next step after four no-edge families (orchestrator, then the owner).
+
+## Slippage note (later)
+
+- Orchestrator: a descriptive slippage study, no trials. Reused MS-SIM-b's reader and spread functions read-only
+  (its owner out of reach). Finding: for NIFTY and BANKNIFTY near-month and NIFTY weekly OTM strikes, half the 15:00
+  spread is about Rs 0.03-0.65 a unit, under C1's Rs 1 pad; next-month and FINNIFTY/MIDCPNIFTY next-month quotes are
+  much wider or missing (`research/edge2/SLIPPAGE_NOTE.md`). No EDGE result is re-read with new pads.
+- Open: an owner question on a measured, per-bucket pad in C1 (lane 1); the fills-against-mid section from Monday.
+
+## Close of the day's work
+
+- F9 passed judge 668 (round 2 plus a text minor) and is merged (2391b8bd). Four families, 19 trials, no edge; every
+  held-out set unread.
+
+## Decisions so far
+
+- Owner, 25 Oct 2026: "no proven edge: let's try to find them using dry runs". Searched F1 (weekly VRP gate), F6
+  (participant OI on futures, research only), F8 (FII-side credit spreads; held-out waived by the orchestrator) and F9
+  (event IV crush): no edge after costs in any; nothing nominated.
+- F7 parked; calendars wait for a verified payoff and margin model; the wide-wing condor declined (orchestrator).
+- A descriptive slippage note: C1's Rs 1 pad looks conservative for NIFTY/BANKNIFTY near-month OTM legs.
+
+## Open questions
+
+- Q13 to the owner: keep searching option rules at one lot, or pause (no new family until answered).
+- Owner: should C1's pad become a measured, per-bucket figure (lane 1)?
+- R1's owner: the inputs sidecar for result-derived G1 inputs and a dependence-corrected G1 bound.
+
+## Owner decisions relayed (25 Oct, DESK_DECISIONS "DOC1 approved; four third rounds; A14c merge; one-lot searches paused; measured cost pads")
+
+- Q13: "New option-strategy searches at one lot are paused" (item 4): EDGE2 starts no new family.
+- Q14: "Future studies use measured per-bucket half-spread pads instead of C1's flat Rs 1, as a new registered study;
+  past results are never re-read" (item 5): story CP1 written, text first (`docs/stories/CP1-measured-cost-pads.md`,
+  story/cp1-measured-pads 5348d501), lane 1 with two judges; the flat pad is B2's (frozen file), so CP1 adds a pad
+  source beside it and reuses MS-SIM-b's spread functions.
+- New document rules (owner, 25 Oct): documents judged like code, one owning document per functionality, 500 lines.
+
+## Open questions (updated)
+
+- CP1's three owner questions (30 or 20 sessions; median decided with p75 reported; the 15:00 bucket for
+  close-to-close studies) and its two judges.
+
+## CP1 text round 2 (after judges 679 J and 681 B, both FAIL, nothing blocking)
+
+No owner message this round; the orchestrator relayed both judges' findings.
+- Decision (some evidence, data check on 3,768 quotes from 13-23 Oct): the pad's unit is relative × the leg's own price.
+  Leave-one-session-out median error: out-of-the-money Rs 0.113 vs Rs 0.137 for a rupee median; in-the-money Rs 2.46
+  vs Rs 2.92. The otm/itm split is kept: in-the-money paid more in 26 of 33 buckets beyond 1%; the mean error is 8% lower.
+- MeasuredPad is built per trial in the composition root and refuses at construction (three named errors). Q1 now
+  gives dates per band (most non-NIFTY buckets stay provisional into 2027). New Q4: trades before the table's first
+  session pay max(Rs 1, measured). A16 is out of scope.
+- CP1 is at 1fd94daf. slippage.py's duplicate tick floor is removed on story/edge2-slippage-floor a77e9f78 (lane 2;
+  full suite 17570 passed).
+
+## Decisions so far
+- No new EDGE2 search family (Q13 pause). CP1: no code until both judges PASS and the owner answers Q1-Q4.
+
+## Open questions
+- CP1 Q1-Q4 for the owner (in the story file).

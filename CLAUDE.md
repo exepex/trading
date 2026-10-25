@@ -32,6 +32,16 @@ cost real money later, so:
   that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to
   questions and clarifications: ask them plainly and directly.
 - The hard lines stay: no real orders, nothing illegal (no market manipulation), secrets never in files or chat.
+- **No hand-run Groww command from 09:15 to 15:35 IST (owner, 25 Oct 2026: "no human or AI session should run it
+  during 09:15–15:35 IST").** In market hours only the scheduled routines and their own steps call Groww; no live
+  Groww test, probe, download, backfill or check is run by hand then (pytest never calls Groww live), so the routines'
+  reads never meet Groww's limits (10 a second, 300 a minute, 150 sign-ins a day). Hand-run Groww reads wait until
+  after 15:35 IST. **Failed commands (owner, 25 Oct 2026):** a failed scheduled command is retried with exponential
+  backoff, at most 5 retries, then escalated to a human in #fno-desk (story O14, `DESK_DECISIONS` "Failed commands:
+  automatic retry"). Until O14 is live, and after an escalation, the failed routine's own command may be run again by
+  hand, in market hours too, so no data is lost; never a different or extra Groww command, and the command's own rules
+  still hold (the day lock, completed steps skipped, a failed fills step never retried), and for the daily run step
+  2b's once-only rerun holds until O14 replaces it.
 - **One builder per function (owner, 15 Oct 2026).** Before starting any story, fix or design change, read
   `docs/WORK_REGISTER.md` on the latest `main`; if a row already covers the same function, files or rule, agree with
   its owner session first, and add or update your own row in your first commit. Never build a second version.
@@ -159,6 +169,11 @@ modifies or cancels orders, and neither uses Groww.
    receipts/data/forecast_lab/v1/<morning|evening>/` (the evening also `research/data/forecast_lab/release/`), commit and `git push origin HEAD:main` (record scan on, never
    `--no-verify`). If the push is refused, pull and push once more; if it fails again, post "receipt NOT pushed" with
    the edition and day to #fno-desk (`C0C89E8QCCD`) with the Slack connector: the Drive copy is the record.
+3b. The evening only, after step 3's commit: `python -m fno recommend check` (story REC1c: the recommender's check of
+   its recorded days against their sealed outcomes). It reads no price and changes no edition: `lab close` has already
+   posted and step 3 has committed its receipts. It writes and pushes its own receipts (`receipts/data/recommend/`)
+   itself and posts one #fno-desk line per day that becomes final. Exit 1: it has alerted #fno-desk itself; note its
+   lines in `conversations/<date>.md` and post the text of any "alert NOT sent" line.
 4. If it printed "alert NOT sent", post those lines to #fno-desk with the Slack connector. Note any failure in
    `conversations/<date>.md`, then commit and push it (`git pull --no-rebase origin main` first, then `git push origin
    HEAD:main`).
@@ -225,6 +240,17 @@ commit with `--no-verify`.
   `python tools/check_imports.py` must pass before pushing code changes; format with `ruff format`. On `main` (after
   `git pull --no-rebase origin main`, never on a story branch alone: claim rows live on `main`),
   `python tools/check_numbers.py` must pass too. When the gates run: `docs/JUDGE.md`, "Merge procedure".
+- **Functional documents are reviewed like code (owner, 25 Oct 2026: "let us make our documentation review strong
+  like we have for code").** A change to a document that describes how something works (a design, a story, a rule, a
+  roadmap or status page) takes the lane of the functionality it describes, never a lower one: lane 1 needs a judge
+  PASS before `main`, lane 2 the orchestrator's check and the auditor. The Rule-document guard still applies. Lane 3
+  stays lane 3: conversation logs, judge files, number claims, register rows, and the owner's dated rows in
+  `docs/DESK_DECISIONS.md` (the verbatim record of the owner's words; append-only). **One functionality, one owning
+  document:** describe a functionality in exactly one document and, everywhere else, give one line and a link to it.
+  **No document over 500 lines** (a new document never; an existing one already over 500 may still be edited until DOC1
+  splits it, per the plan's section 7). Update the owning document in place; never write a new dated summary or handover as
+  the place a decision lives (the daily conversation log stays a log, not a source of rules). The full clean-up:
+  `docs/stories/DOC1-clean-docs-plan.md` (story DOC1).
 - **Text-only changes skip the full suite (owner, 23 Oct 2026: "for doc or text file changes, we don't need to run
   tests").** When every changed file is Markdown (`git diff --name-only <base> | grep -v '\.md$'` prints nothing),
   the gates are the commit hook's record scan, `python tools/check_numbers.py` on `main` and, unless every file is a

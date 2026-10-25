@@ -1,8 +1,9 @@
 """Groww's candles in a rehearsal (story REH1b), behind A16b's `IntradayCandleSource`: the answer Groww gave the day
 for the same window, read back from the real record (the manifest of the record checkout, the bytes from the real
-Drive, checked against the row's SHA-256). As for A4h's read, the answer served is the one fetched near now
-(`serving.is_near`), once the replay clock reaches its fetch time. A window the day never asked for is not
-recorded: `CandleCallFailed`, the back-fill's own failure, so it is recorded and alerted as any failed call."""
+Drive, checked against the row's SHA-256). As for A4h's read, the answer served is the one fetched near now, else the
+latest fetched before now that day (`serving.scheduled_pick`, REH1q), once the replay clock reaches its fetch time. A
+window the day never asked for, or asked only later, is not recorded: `CandleCallFailed`, the back-fill's own
+failure, so it is recorded and alerted as any failed call."""
 
 from __future__ import annotations
 
@@ -16,10 +17,10 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..intraday.candle_source import FIFTEEN_MINUTES, ONE_MINUTE, CandleAnswer, CandleCallFailed, IntradayCandleSource
-from .serving import is_near
+from .serving import scheduled_pick
 
 MANIFEST = "nifty-{kind}.csv"
-NOT_RECORDED = "rehearsal:NOT_RECORDED Groww {kind} {start}..{end} at {at}: the day fetched no such answer near then"
+NOT_RECORDED = "rehearsal:NOT_RECORDED Groww {kind} {start}..{end} at {at}: the day fetched no such answer by then"
 DAMAGED = "rehearsal: the recorded Groww answer {path} is missing from Drive or differs from its manifest row"
 
 
@@ -51,6 +52,7 @@ class RecordedCandles(IntradayCandleSource):
     def _row(self, kind: str, start: date, end: date, now: datetime) -> dict | None:
         manifest = self.manifests / MANIFEST.format(kind=kind)
         rows = list(csv.DictReader(io.StringIO(manifest.read_text(encoding="utf-8")))) if manifest.is_file() else []
-        near = [r for r in rows if (r["kind"], r["start"], r["end"]) == (kind, start.isoformat(), end.isoformat())
-                and is_near(now, datetime.fromisoformat(r["fetched_at"]))]  # fmt: skip
-        return min(near, key=lambda r: r["fetched_at"], default=None)
+        same = [(datetime.fromisoformat(r["fetched_at"]), r) for r in rows
+                if (r["kind"], r["start"], r["end"]) == (kind, start.isoformat(), end.isoformat())]  # fmt: skip
+        picked = scheduled_pick(now, same)
+        return picked[1] if picked else None

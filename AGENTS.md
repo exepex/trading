@@ -115,6 +115,22 @@ part of the same goal. Say which role a point comes from when it matters, and sa
 5. When reviewing someone else's work (the owner's, Claude's, yours), list agreements, disagreements with reasons, and
    what is wrong or missing.
 
+## Groww in market hours
+
+No person and no AI session runs a Groww command by hand from 09:15 to 15:35 IST (owner, 25 Oct 2026); only the
+scheduled routines call Groww then. Exception: a failed scheduled command is retried with
+exponential backoff (at most 5), then escalated; it may then be run again by hand, so no data is lost (for the daily
+run, step 2b's once-only rerun holds until story O14 replaces it). The rule is owned by CLAUDE.md, "How to work".
+
+## Documents (when an agent changes a document)
+
+Owner, 25 Oct 2026: a document that describes how something works is reviewed like code, in the lane of the
+functionality it describes (lane 1: a judge PASS before `main`; lane 2: the orchestrator's check and the auditor).
+Conversation logs, judge files, register rows and the owner's dated rows in `docs/DESK_DECISIONS.md` stay lane 3. One
+functionality has one owning document; other documents give one line and a link to it, never a second description. No
+document over 500 lines (an existing one already over 500 may be edited until DOC1 splits it). Update the owning document in place; never a new dated summary or handover as the place a
+decision lives. Details: CLAUDE.md "Code" and `docs/stories/DOC1-clean-docs-plan.md`.
+
 ## Code (when an agent changes code)
 
 Follow the code rules in `CLAUDE.md` ("Code" section), mandatory for every agent: SOLID, DRY, KISS and clean code

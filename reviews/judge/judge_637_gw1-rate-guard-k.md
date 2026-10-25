@@ -87,3 +87,60 @@ with the Slack token set:
 - unclaimed taken; no claim retry; `publish` skipped;
 - always fast; 1/s made 4/s; calls unpaced; window 90 s;
 - 4 sign-in tries; `groww-check` and the feed probe built directly.
+
+## Addendum 2: round 3 (granted by the owner, 25 Oct), `story/gw1-round3` at f21269ea9 (judge K)
+
+**FAIL, lane 1: the code passes, the text does not.** 1 should-fix (text only, under the owner's 25 Oct documents
+rule), 1 minor. I did not read judge I's verdict.
+
+**Gates.** A trial merge of f21269ea9d21bc3933894d75071c65d70ee17fcc into origin/main 4ac8b39cf is clean (f52251c34). On it,
+with the Slack token set:
+- `pytest -n auto`: 17,613 passed, 1 skipped, 13 xfailed, exit 0.
+- ruff check and format are clean. `check_imports` (2,912 files), `check_records` (9,543 files) and `check_numbers` are clean.
+- No test posted to Slack: all three channels are empty for 08:21:47-08:32:33 UTC.
+
+| Item | Verdict | Own evidence |
+|---|---|---|
+| One taker a mark | MET | `take` is `outcome == WON`. An unclaimed run retries once and then records `missed`. `publish()` counts only a push that landed |
+| A16 asks nothing after mark + 120 s | MET | `_call` stamps after the pacer and returns `QuietWindowEnded` unasked at or after the window's end. A late mark is bounded from the mark itself |
+| Every A16 call paced at 4/s before its stamp | MET | `self.pacer.wait()` comes first in `_call`, so the chains, future and index are paced too. `PER_SECOND` 4, which is 240 a minute |
+| `fills_by` 15:23 and the school | MET | 15:17:00 + 2m57s + 60 s pause + 60 s = 15:22:57 ≤ 15:23; school start 15:22:30 ≤ `SCHOOL_STARTS_BY` 15:25. Both are pinned by tests. C3's window, `FILLS_LATE` and the runner's end wait all read `fills_by`, and the timetable tests now take it from config. E3's retry is stated as not covered, as before GW1 (22 Oct) |
+| Overlaps | MET | inside a window: A16 alone at 4/s, and every `get_provider` reader refused. Outside: the readers' orderings are pinned in code (A4c after NIFTY, v4 ends before NIFTY, E3's first call after both). In the window's last second, at most 4 in-flight A16 calls plus one other reader, under 10/s |
+| `groww-check` and the feed probe | MET | both are built through `get_provider` |
+| Frozen files | MET | none of the changed `fno/` files is in `FREEZE_v4.md` |
+
+**SF1 (should fix, text): three statements no longer match the code.**
+- `docs/stories/GW1-groww-rate-guard.md:13` says "A16 alone paces at 5 a second (`groww_source.py:26`)". It now paces at 4 (`groww_source.py:30`).
+- `fno/providers/groww_quiet_windows.py:3`'s docstring says "A16 asks at 5 a second, which is 300 a minute". It is 4.
+- Story line 160 says "Groww's limit is 5 a second". Groww's limits are 10 a second and 300 a minute; 5 a second is the minute cap averaged. Say so.
+- Two one-line text fixes and one docstring; no code behaviour changes.
+
+**m1 (documents rule: no part described twice):** the story's round-1 Claims (lines about 245-275) still describe parts 1-4, the sign-in sample output and its mutations, which GW1a's document owns. Replace them with a link to GW1a.
+
+**Document lengths:** `GW1-groww-rate-guard.md` has 279 lines and `GW1a-groww-guard-core.md` 84, both under 500. The parts 1-4 rule text links to GW1a (lines 22 and 40).
+
+**Plants:** 14 of mine, 14 caught:
+- asking after the window; 5/s; stamp before the wait;
+- unclaimed taken; publish skipped; window 90 s;
+- `get_provider` without the windows; no wait; `fills_by` back to 15:20;
+- `groww-check` and the feed probe built directly.
+- Three of them first "survived" only because my own plant script left out `test_groww_quiet_windows.py`; all three are caught with it included.
+
+## Addendum 3: GW1 round 3's text fixes, c182a3aa2 on `story/gw1-round3` (judge K, narrow re-check approved by the owner)
+
+**PASS, lane 1.** 1 note. I checked only the c182a3aa2 diff, on top of f21269ea9 (637.2). I did not read judge I's verdict.
+
+**Gates.** The commit changes a `.py` docstring, so I ran the full gates. A trial merge into origin/main 8861e50d4 (c7258d3a8), Slack token set:
+- `pytest -n auto`: 17,613 passed, 1 skipped, 13 xfailed.
+- ruff check and format are clean. `check_imports` (2,912 files), `check_records` (9,550 files) and `check_numbers` are clean.
+- No test posted to Slack: all three channels are empty for 09:12:45-09:22:55 UTC.
+
+| 637.2 item | Verdict | Evidence (read) |
+|---|---|---|
+| SF1: line 13 | fixed | "Before GW1, A16 alone paced at 5 a second ... GW1 paces it at 4 (`groww_source.py:30`)". Line 30 is `WORKERS, PER_SECOND = 4, 4` |
+| SF1: the `groww_quiet_windows.py` docstring | fixed | "A16 asks at 4 a second ..., close to Groww's 300 a minute Live Data cap (5 a second averaged)". `QUIET_SECONDS`' comment ("83 s at most at 5 a second; about 95 s expected at A16's 4") is true as history |
+| SF1: line 160 | fixed | "Groww's Live Data limits are 10 a second and 300 a minute. Over a minute, 300 averages 5 a second, so every row must stay at or under 5 a second" |
+| m1: parts 1-4 claims | fixed | the round-1 claims and the sign-in sample are gone, with one link to GW1a's `#claims`. The sign-in cap is a link to GW1a's `#known-limits`. Both anchors exist in GW1a (lines 47 and 68) |
+| The other files | true | `O1-daily-run.md`'s limit is `fills_by` itself, 15:23:00 (start at 15:23:00 fills, 15:23:01 refused), and `SnapshotInWindow` is now by `fills_by`. Both match `config.yaml` and `test_fills_final.py`. `PROTOCOL.md` (a draft) says 15:23 with the reason. A16's story links GW1's rule 6 for the pace instead of restating "about 5 a second" |
+
+**Note (documents rule):** this commit touches three documents that are over 500 lines on main: `A16-intraday-quote-recorder.md` (826), `O1-daily-run.md` (697) and `research/evaluation/PROTOCOL.md` (512). The commit adds only a few lines to each, so this is DOC1's item, not GW1's. `GW1-groww-rate-guard.md` is now 253 lines.

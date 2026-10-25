@@ -50,3 +50,26 @@ research_engine, evaluation and factory. Run with PYTHONDONTWRITEBYTECODE=1 in a
 - EDGE2's S1 (judge 642) changes trials 109-120's `protocol_path` or B4. Whichever way it is fixed, those rows still
   sit in this story's blocks `edge2-f1-weekly-vrp-gate` and `edge2-f6`: the experiment column needs no change.
 - I did not coordinate with judge 636.
+
+## Addendum 1: round 3 (granted by the owner, 25 Oct), story/o12e-ledger-trials at 1f680b2c1
+**PASS**, lane 1: S1 and m1 closed. Trial merge with main e3f975d6 (a95db046): 17,624 passed, 1 skipped, 13 xfailed;
+ruff, format, check_imports (2,912 files), check_records (9,546) and check_numbers clean.
+- **S1 closed.** `TrialClaims` now reads `numbers/ledger-trial.csv` through `Git.committed_text` (HEAD). `problem` and
+  `next_free` refuse while `git status --porcelain` shows any local change to it, so `register`, `require_committed`,
+  the factory and the freeze all refuse.
+  - My round-2 probe, re-run unchanged on the branch: the uncommitted block 4-6 now gives "numbers/ledger-trial.csv
+    has uncommitted changes" for both `require_committed("5")` and `register("6")`. Every other case answers as in
+    round 2.
+  - My plants are caught: V1 (refusal removed), V3 (`git diff` only: it misses a registry never committed, caught by
+    `test_a_registry_that_exists_only_in_the_working_tree_is_refused`) and V4 (`next_free` unchecked). U1, U10, U13
+    and U14 are caught again.
+  - V2 (reading the working tree instead of HEAD) survives as an equivalent mutant: the clean-tree guard makes the
+    two identical whenever reading is allowed.
+- **m1 closed.** Known limits now say a block committed only on a branch passes that branch's guard, and that
+  `main`'s `check_numbers` sees it only at the merge. They name the claim tool (it pushes to `main` first) as the one
+  safe way to get a block.
+- **Seeds:** `edge2-f8` 121-123 and `edge2-f9` 124-127. On the trial merge, `check_numbers` is clean against main's
+  ledger, which now runs to 127.
+- **Document rules:** `numbers/README.md` gives the command and links the O12e section instead of restating its rules
+  (45 lines); `O12-number-claims.md` is 281 lines.
+- Slack, with the token set (1792917290-1792917911): nothing in any channel. I did not coordinate with judge 636.

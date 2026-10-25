@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Protocol
 
 from ..books.version_registry import SCHOOL_BOOK_PREFIX
-from ..constants import STEP_OK
+from ..constants import SCHOOL_STEP, STEP_OK
 from ..school.constants import SLOT_1500, Outcome, RecordKind
 from ..school.contracts.records import DecisionRecord
 from ..school.contracts.seal import Seal, StaleSeal
@@ -19,7 +19,6 @@ from .contracts import CandidateSource
 from .ports import CandidateSourcePort, InputFailed, SeenDecision, SourceReading, open_run_log
 from .refs import RecordRef
 
-SCHOOL_STEP = "school"
 NOT_RUN = frozenset({"school:OFF", "school:NOT_A_SESSION"})  # `ok`, yet the school ran nothing (judge 641 SF1)
 STATUS = "{status}, {reason}"  # criterion 10: (<status>, <reason code>)
 MISSING = "missing, the school step is not in the run log"

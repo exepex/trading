@@ -12,6 +12,7 @@ from fno.checks.validity_envelope import EnvelopeMode
 from fno.checks.wiring import build_trade_validator, validity_modes
 from fno.config import load_app_config
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, DAILY_RUN_STEPS, OUTCOME_OPENED, REVIEWS_STEP
+from fno.desk.fill_results import trade_fills
 from fno.desk.records import DeskRecords
 from fno.forecast_v4_rules import records as v4
 from fno.forecast_v4_rules.records import LIVE
@@ -93,8 +94,16 @@ def test_the_daily_run_collects_checks_fills_reviews_and_marks_the_same_trade(da
     snapshot = log.result("snapshot")
     assert snapshot["valid"] is True and snapshot["snapshot_id"] == EXECUTION_ID
     trade_id = f"2026-10-16-{record['opportunity_id']}"
-    fill = log.result("fills")[trade_id]
+    fill = trade_fills(log.result("fills"))[trade_id]
     assert (fill["outcome"], fill["reason"], fill["sha256"]) == (OUTCOME_OPENED, "4 legs filled", snapshot["sha256"])
+    # E3 fills by book: Book 1's line changes only in its key (the book), never in its values
+    line = {
+        "outcome": OUTCOME_OPENED,
+        "reason": "4 legs filled",
+        "snapshot_id": EXECUTION_ID,
+        "sha256": snapshot["sha256"],
+    }
+    assert log.result("fills") == {BOOK1_RULES: {"trades": {trade_id: line}}}
     legs = DeskRecords(PaperAccount(root, BOOK1_RULES)).fill_rows()
     assert len(legs) == 4 and {leg["trade_id"] for leg in legs} == {trade_id}
     assert log.result("exits")[BOOK1_RULES]["results"] == [

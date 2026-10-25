@@ -73,3 +73,18 @@ non-`book3:` non-numeric id accepted (2); the run gate without the block check (
   claimed on `main`, passes there until the merge, where an overlap is flagged or git conflicts on the registry. This
   is the same residual as O12's review numbers.
 - The 121-126 `edge2-f8` reservation sits after 115-120 with no overlap.
+
+## Addendum 2: round 3 (granted by the owner, 25 Oct), head `1f680b2c1` (judge 1 of 2)
+
+**PASS, lane 1.** This round answers judge 644's S1 and m1. I judged the code and text myself and did not read 644.
+
+| Item | Verdict | Evidence |
+|---|---|---|
+| Claims read as git holds them | MET | `TrialClaims` takes `Git.committed_text` (HEAD) and `Git.is_clean`. Every `problem` and `next_free` refuses while `numbers/ledger-trial.csv` has a local change, untracked included (`git status --porcelain`). Plants: never dirty (2 tests), `git diff` in place of status, which misses untracked (1 test), the dirty check dropped from `problem` (2) and from `next_free` (1): all caught. The registry read from the working tree breaks 66 tests (caught, if crudely) |
+| m1, a block committed only on a branch | MET (text) | Known limits now say plainly that such a block passes that branch's guard until `main`'s check at the merge, so the claim tool is the only safe way to get a block |
+| Seeds and claims against main's ledger | MET | main's `ledger.csv` now runs 1-127. Blocks: 16 seeds (1-108) plus 109-114 `edge2-f1-weekly-vrp-gate`, 115-120 `edge2-f6`, 121-123 `edge2-f8`, 124-127 `edge2-f9`; every trial on main sits in its own block. `check_numbers` on the trial merge: clean |
+| No write-once record edited | MET | the narrowed f8 row and the moved f9 row exist only on this branch (no `numbers/ledger-trial.csv` on main yet); `research/ledger.csv` has no diff against main |
+| One owning document (owner, 25 Oct) | MET | `numbers/README.md` gives the command and links the O12e section; `research/LEDGER.md` points to the story. `O12-number-claims.md` is 281 lines (under 500) |
+
+**Gates (trial merge with main, clean):** ruff, format, imports, check_records and check_numbers clean; full suite
+17625 passed, 13 xfailed, 0 failed. **Plants:** 5, all caught.

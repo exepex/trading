@@ -8,6 +8,7 @@ import pytest
 from fno.alerts.sender import NoAlertSender
 from fno.constants import BOOK1_RULES, OPTION_CALL, OUTCOME_NOT_OPENED
 from fno.daily.alerts import ReportedAlerts
+from fno.desk.fill_results import trade_fills
 from tests.desk.builders import FLY_QUOTES, contract
 
 from . import fakes
@@ -34,7 +35,7 @@ def refused_day(root, tmp_path, alerts):
 def test_one_information_alert_with_no_quote_figure(root, tmp_path, alerts, thin_wing):
     run, clock = refused_day(root, tmp_path, alerts)
     log = run_day(run, clock, NORMAL)
-    assert log.result("fills")["t1"]["outcome"] == OUTCOME_NOT_OPENED
+    assert trade_fills(log.result("fills"))["t1"]["outcome"] == OUTCOME_NOT_OPENED
     (alert,) = [a for a in alerts.sent if "not opened" in a]
     assert alert == (f"F&O paper desk {NORMAL} {BOOK1_RULES}: trade t1 not opened: protection_not_sellable "
                      f"({contract(*WING)}, 65 units): information, no action")  # fmt: skip
@@ -69,5 +70,5 @@ def test_an_entry_refused_by_the_entry_limit_sends_no_e4c_alert(root, tmp_path, 
     decisions.add(decision, (replace(order, risk=replace(order.risk, entry_cash_rs=10_000_000.0)),), NORMAL)
     run, clock, *_ = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
     log = run_day(run, clock, NORMAL)
-    assert log.result("fills")["t1"]["reason"].startswith("entry_worse_than_approved")
+    assert trade_fills(log.result("fills"))["t1"]["reason"].startswith("entry_worse_than_approved")
     assert not [a for a in alerts.sent if "not opened" in a]

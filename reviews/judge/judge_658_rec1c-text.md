@@ -50,3 +50,60 @@ as a trade; a candidate not listed but matched; the abstention line before compl
 
 ## Notes
 - I did not coordinate with any other judge.
+
+## Addendum 1: text round 2 (the last) and code round 1, story/rec1c-evening-check at ae07ae8d8
+**Text: PASS. Code: FAIL**, lane 1: 1 should-fix, 1 minor. Trial merge with main 9b511a70 (97d678c9): 17,243 passed,
+1 skipped, 13 xfailed; ruff, format, check_imports (2,856 files), check_records (9,443) and check_numbers clean.
+- **Text.**
+  - S1 closed: step 3b runs after step 3's push and makes its own commit; the CLAUDE.md line matches, with exit 1
+    covered by step 4.
+  - S2 closed: corrections resolve to one live outcome.
+  - **The rejected half of S2 is right; I withdraw it.** One sealed decisions file holds every driver and road of
+    the session, so other candidates' outcomes rightly share its `decision_sha256`. The match is seal, driver and
+    road. My Z5 (road ignored) and Z6 (seal ignored) are each caught.
+  - S3 is closed in the text. m1 and m2 are closed.
+- **Code: the orchestrator's questions, each with my evidence.**
+  - Only listed candidates are checked: `check` iterates `record.candidates` only.
+  - A ticket is never a trade: Z1 and Z17 are caught, and an open ticket keeps the day open (Z8).
+  - The abstention line appears only for a final day: `answer_text` runs only on FINAL, `closed_so_far` is in no
+    other line, and the sign flip Z11 is caught.
+  - The brake: Z14 is caught.
+  - Corrections, an orphan, two live outcomes and an untraded mismatch fail the day: Z2, Z3, Z4 and Z7 are caught.
+- **S1 (should fix) A missed evening still lets a day leave the window silently.**
+  - `CheckRun._recorded_days` takes only the last 60 sessions, and `last` is true only while the day is the oldest
+    of them.
+  - If the check does not run on that one evening (a routine failure, a refused push), the day is 61 sessions back
+    on the next run and is never looked at again. Its latest check stays `not_known_yet`, and nothing is alerted.
+  - My probe, with the builder's harness and the window shrunk to 5: checks on sessions 1, 2 and 3 say
+    `not_known_yet`; the 5th session's evening is missed; sessions 5 and 6 print "no recorded day waits for a
+    check". There is no final file and no alert.
+  - That contradicts the text's "no day leaves the window silently".
+  - Fix: pick every receipted day whose latest check is not final, from a lookback longer than the window, and treat
+    any day 60 or more sessions back as `last`. Add the plant "the last evening missed".
+- **m1 (minor)** A day failing for a data reason (`TWO_LIVE`, `ORPHAN`, an untraded mismatch) is not transient, yet
+  it is retried and alerted every evening until the 60th session. Consider writing it final at once; a read error
+  stays retried.
+- **Plants: 17 of 17 caught (Z1-Z17).** Run in their own worktree with PYTHONDONTWRITEBYTECODE=1.
+- Slack, with the token set (1792894919-1792895449): only REH1 "DRY RUN ... replay" posts in #fno-desk, as before.
+  None comes from `tests/recommend`.
+
+## Addendum 2: code round 2 (the last), story/rec1c-evening-check at 33f0252db
+**PASS**, lane 1: S1 and m1 closed; 1 minor. Trial merge with main 48acc7d3 (1158d830): 17,431 passed, 1 skipped,
+13 xfailed; ruff, format, check_imports (2,884 files), check_records (9,473) and check_numbers clean.
+- **S1 closed.** `_recorded_days` now reads every receipted recommendation up to the check day, however old. A day 60
+  or more sessions back gets `last` on the next evening that runs.
+  - My probe again (window shrunk to 5, the 5th session's evening missed): the next run writes final
+    `data_check_failed` "never closed in 5 sessions" and alerts it; the evening after says nothing waits.
+  - My plant M1b (old days dropped by session count) is caught by `test_the_last_evening_missed_still_ends_the_day_final`.
+- **m1 closed.** `DataDisagrees` (two live outcomes, an orphan correction, an untraded mismatch) is final at once;
+  read errors stay retried. My M2 is caught.
+- **K's m1** holds as well: a past-day `--on` counts only check files made by then. My M3 is caught.
+- **Plants: 20 of 21 caught.** Z1-Z17 are caught again on the new code, as are M1b, M2 and M3.
+  - M1 survives: it keeps only the last 60 *recorded* days. In live use every session is recorded, so that would
+    bring the round-1 bug back, but no test has more than 60 recorded days.
+  - **m2 (minor, test only):** add one test with more than 60 receipted days, each with a final check or with an old
+    open day.
+- Note: each evening reads the latest check file of every recorded day through the verified Drive cache, so the reads
+  grow by about 250 a year. Cheap now; worth a "final" index once it matters.
+- Slack, with the token set (1792896399-1792896956): only REH1 "DRY RUN ... replay" posts in #fno-desk and
+  #fno-forecast, as before.
