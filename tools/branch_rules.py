@@ -1,0 +1,140 @@
+"""Story GB1: which remote branches may go. Pure rules, no git and no network (`branch_git.py` reads,
+`branch_cleanup.py` acts). A branch is deleted only when nothing says it is in use; every doubt keeps it
+(docs/stories/GB1-branch-cleanup.md)."""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+
+DEFAULT_BRANCH = "main"
+GRACE = timedelta(hours=24)  # a merged branch stays this long after it landed on main (a builder may still push)
+RECENT = timedelta(hours=48)  # an unmerged branch with a newer commit is treated as being worked on
+REHEARSAL_KEEP = timedelta(days=7)  # a rehearsal run's branch is for inspection only (REH1 Q3), so it goes after a week
+REHEARSAL_FRESH = timedelta(hours=24)  # the one-off clean-up keeps runs this new: a judge may be reading them
+REHEARSAL_PREFIX = "rehearsal/"
+RUN_STAMP = re.compile(
+    r"-(\d{8}T\d{6}Z)-[0-9a-f]+$"
+)  # `rehearsal/<day>-<run_id>`: the run id starts with its UTC start
+BRANCH_TOKEN = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+")  # the shape of every branch name in the repository
+
+KEEP, KEEP_UNSURE, DELETE = "keep", "keep-unsure", "delete"
+
+
+@dataclass(frozen=True)
+class Branch:
+    name: str
+    sha: str
+    tip_time: datetime  # the tip commit's committer time, UTC
+    merged: bool  # the tip is an ancestor of origin/main
+    ahead: int  # commits on the branch that are not on origin/main
+    landed_at: datetime | None = None  # the main commit that first held the tip; None when not merged
+    code_files: int = 0  # code files only this branch changes (inventory only; 0 = nothing of value would be lost)
+
+
+@dataclass(frozen=True)
+class Evidence:
+    """Everything outside the branch itself that says it is in use."""
+
+    keep_list: dict[str, str]  # name -> why, from .github/branch-keep.txt
+    register: frozenset[str]  # names in docs/WORK_REGISTER.md's Branch column
+    open_prs: frozenset[str]  # head branches of open pull requests
+    recent_mentions: frozenset[str] = frozenset()  # names in files written in the last 48 h (inventory only)
+
+
+def parse_keep_list(text: str) -> dict[str, str]:
+    kept = {}
+    for line in text.splitlines():
+        name, _, why = line.partition("#")
+        if name.strip():
+            kept[name.strip()] = why.strip() or "keep list"
+    return kept
+
+
+def names_in(text: str) -> set[str]:
+    return {token.rstrip(".") for token in BRANCH_TOKEN.findall(text)}  # a sentence's full stop is not part of a name
+
+
+def register_branches(text: str) -> frozenset[str]:
+    """Branch names in the Branch column (the 4th) of the register's tables, with any trailing prose around them."""
+    names = set()
+    for line in text.splitlines():
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if line.startswith("|") and len(cells) >= 6:
+            names.update(names_in(cells[3]))
+    return frozenset(names)
+
+
+def mentioned(names: list[str], text: str) -> frozenset[str]:
+    found = names_in(text)
+    return frozenset(name for name in names if name in found)
+
+
+def rehearsal_started(name: str) -> datetime | None:
+    stamp = RUN_STAMP.search(name)
+    return datetime.strptime(stamp.group(1), "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC) if stamp else None
+
+
+def protection(branch: Branch, evidence: Evidence) -> str | None:
+    """Why the branch must stay whatever else is true (checks shared by both rules); None when nothing protects it."""
+    if branch.name == DEFAULT_BRANCH:
+        return "the default branch"
+    if branch.name in evidence.keep_list:
+        return f"keep list: {evidence.keep_list[branch.name]}"
+    if branch.name in evidence.open_prs:
+        return "an open pull request has it as its head"
+    if (
+        branch.name in evidence.register and not branch.merged
+    ):  # a merged branch's row may be stale: the keep list holds it
+        return "not merged, and named in docs/WORK_REGISTER.md's Branch column"
+    return None
+
+
+def merged_branch(branch: Branch, now: datetime) -> tuple[str, str]:
+    landed = branch.landed_at or branch.tip_time
+    if now - max(landed, branch.tip_time) < GRACE:
+        return KEEP_UNSURE, "merged into main less than 24 h ago (grace for a late push)"
+    return DELETE, "merged into main"
+
+
+def rehearsal_branch(branch: Branch, now: datetime, keep: timedelta) -> tuple[str, str]:
+    started = rehearsal_started(branch.name)
+    if started is None:
+        return KEEP_UNSURE, "a rehearsal branch whose run id has no start time"
+    if now - started < keep:
+        return KEEP_UNSURE, f"rehearsal run started {started:%d %b %H:%M} UTC, newer than {keep}"
+    return DELETE, "rehearsal run branch: written by `daily run --rehearse`, read by nothing"
+
+
+def ongoing_decision(branch: Branch, evidence: Evidence, now: datetime) -> tuple[str, str]:
+    """The standing rule: merged branches (after the grace) and week-old rehearsal runs go; everything else stays."""
+    held = protection(branch, evidence)
+    if held:
+        return KEEP, held
+    if branch.merged:
+        return merged_branch(branch, now)
+    if branch.name.startswith(REHEARSAL_PREFIX):
+        return rehearsal_branch(branch, now, REHEARSAL_KEEP)
+    return KEEP, "not merged into main"
+
+
+def inventory_decision(branch: Branch, evidence: Evidence, now: datetime) -> tuple[str, str]:
+    """The one-off clean-up: the standing rule, plus idle unmerged branches (the owner accepts losing their commits)."""
+    held = protection(branch, evidence)
+    if held:
+        return KEEP, held
+    if branch.merged:
+        return merged_branch(branch, now)
+    if branch.name.startswith(REHEARSAL_PREFIX):
+        return rehearsal_branch(branch, now, REHEARSAL_FRESH)
+    if now - branch.tip_time < RECENT:
+        return KEEP_UNSURE, "not merged, last commit within 48 h, in no register row"
+    if branch.name in evidence.recent_mentions:
+        return KEEP_UNSURE, "not merged; named in a file written in the last 48 h"
+    if branch.code_files:
+        return (
+            KEEP_UNSURE,
+            f"not merged; {branch.code_files} code files changed only here (unfinished work, owner decides)",
+        )
+    return DELETE, f"not merged ({branch.ahead} commits only here), idle over 48 h, no open PR, in no register row"

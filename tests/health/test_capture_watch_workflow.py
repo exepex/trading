@@ -11,8 +11,9 @@ import yaml
 WORKFLOWS = Path(__file__).resolve().parents[2] / ".github" / "workflows"
 WATCHER = WORKFLOWS / "capture-watch.yml"
 # CI on pushes, the watcher itself, O12b's number alert (a red run is main's number check, which it posts itself;
-# it is no data capture) and G11's hand-run fire probe (a refusal is the probe's answer, never a failed capture)
-NOT_WATCHED = {"checks", "capture-watch", "number-alert", "routine-fire-probe"}
+# it is no data capture), G11's hand-run fire probe (a refusal is the probe's answer, never a failed capture) and
+# GB1's branch clean-up (it captures nothing: a failed run shows in Actions and is retried by the next night's run)
+NOT_WATCHED = {"checks", "capture-watch", "number-alert", "routine-fire-probe", "branch-cleanup"}
 
 
 def load(path: Path) -> dict:

@@ -1,0 +1,58 @@
+# Story GB1 (owner, 25 Oct 2026: "anything that merges into the main branch, we delete"): deletes remote branches with
+# the workflow's own token, because a session's git proxy cannot delete a ref. Two rules, one tool (tools/branch_cleanup.py):
+#   mode inventory: the rows of docs/branch_inventory.csv marked `delete`, read from main, each only while its head is
+#                   still the SHA the judges reviewed (the one-off clean-up, run by hand once both judges passed);
+#   mode merged:    the standing rule: merged into main more than 24 h ago, or a rehearsal run over a week old.
+# Manual runs are DRY RUNS unless `apply` is ticked. The schedule applies the standing rule, and only while the
+# repository variable BRANCH_CLEANUP_SCHEDULE is `on` (the orchestrator sets it after the first real run).
+# Never deletes main, a branch on .github/branch-keep.txt, one that heads an open pull request, or (while it is not
+# merged) one named in docs/WORK_REGISTER.md's Branch column. Touches no data, no Drive, no Slack, no Groww.
+name: branch-cleanup
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "inventory = the reviewed list; merged = the standing rule"
+        type: choice
+        options: [inventory, merged]
+        default: inventory
+      apply:
+        description: "Delete for real (leave off for a dry run)"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "10 21 * * *" # 02:40 IST, outside every routine window
+
+permissions:
+  contents: write # deleting a ref
+  pull-requests: read # the open pull requests whose heads must stay
+
+concurrency:
+  group: branch-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    if: github.event_name != 'schedule' || vars.BRANCH_CLEANUP_SCHEDULE == 'on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main # the inventory, the keep list and the register are always main's
+          fetch-depth: 0 # every branch and the whole history, for "merged" and "when it landed"
+      - name: Open pull request heads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr list --state open --limit 1000 --json headRefName -q '.[].headRefName' > "$RUNNER_TEMP/open_prs.txt"
+      - name: Delete the branches the rule names
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.mode || 'merged' }}
+          APPLY: ${{ github.event_name == 'schedule' && 'true' || inputs.apply }}
+        run: |
+          args=(--mode "$MODE" --open-prs "$RUNNER_TEMP/open_prs.txt")
+          if [ "$APPLY" = "true" ]; then args+=(--apply); fi
+          python3 tools/branch_cleanup.py "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash -o pipefail {0}
