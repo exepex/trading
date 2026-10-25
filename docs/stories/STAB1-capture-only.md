@@ -67,4 +67,39 @@ and 3 stay"): nothing working is removed, and none of these forecasts or reads a
 
 ## Claims
 
-(filled in at the pushed SHA)
+Tip: the pushed SHA in the judges' message. Main merged in (no code or workflow change on main since the base).
+
+1. **Forecasting steps off.** `tests/daily/test_capture_only.py::test_every_forecasting_step_of_the_daily_run_is_not_live_on_the_first_session_and_after`
+   builds the real wiring per session (26, 27 Oct, 2 Nov) and runs all 15 forecasting steps: each records `not_live`.
+   Sample from the built wiring, 26 Oct: `weather`, `forecasts_v4`, `v4_release`, `v4_deadline`, `forecasts_v4_pack`,
+   `card`, `price_distribution(+scores)`, `price_ranges(+scores)`, `premium_ranges(+scores)`, `recommend`: "not_live: no
+   live date set (config.yaml daily.live_from)"; `ai_fire`, `ai_collect`: "not_live: no AI book is live today".
+   School: `python -m fno school run --session 2026-10-26` prints `school off`, exit 0 (code `school:OFF` is registered).
+2. **Captures kept.** Same file: steps `quotes`, `quotes_done`, `candles`, `close_read`, `close_recheck`, `margin_check`
+   are unchanged; `close_read`/`close_recheck` keep 2026-10-23; the `v4` part is a part of 26, 27 Oct and 2 Nov
+   (started with nifty, nse, indices). No capture code or capture workflow is edited.
+3. **Keys apart.** `fno/daily/wiring.py:262` gives the release/deadline `live[v4_release]`; `fno/daily/v4_part.py:35`
+   keeps `v4_pack`. `test_the_built_run_gives_its_quote_parts_the_capture_key_not_the_release_key` checks the built run.
+4. **Workflows.** `forecast-capture`, `forecast-scores`, `v4-fire`, `postmortem-weekly` are `workflow_dispatch` only; the
+   set of manual-only workflows is pinned to those four plus `routine-fire-probe`, so no capture lost a trigger.
+5. **Lab and recommender.** `python -m fno lab open --day 2026-10-26` and `lab close`: "not live (config
+   forecast_lab.live_from.<edition>: None); nothing posted", exit 0, also with no Drive settings or with invalid ones (before:
+   `DriveSignInRefused`, exit 1). `recommend check`: "not live ...; nothing checked", exit 0. Tests: `test_a_lab_edition_without_a_live_date_builds_...`,
+   `tests/forecast_lab/test_lazy_edition_parts.py`, `tests/recommend/test_cli.py`.
+6. **Health.** `FORECASTS_FROM = None` for the three forecast expectations; every capture expectation keeps its date
+   (`tests/health/test_expectations_and_cli.py`).
+7. **AI trap.** `ai_books_v4` stays dated (null restarts the v2 AI fire); pinned in `test_the_repository_config_holds_exactly_...`.
+8. **Plants.** 11 planted breakages (card on, v4 capture on the release key, release on the capture key, scores schedule back,
+   eager lab build, forecast health on, school on, recommend check ungated, `ai_books_v4` null, v4 capture off, post-mortem
+   schedule back): all 11 made a test fail.
+9. **Self-review.** One independent read-only review agent on the diff: no blocking finding; its should-fix (AI-step cases
+   ran with no session day) and a wiring check were fixed. Not fixed, by choice: the stale step list in CLAUDE.md's daily
+   section (the new note above it covers it), two leftover imports in the health table, a substring match in the workflow
+   test.
+10. **Gates (tree before the last two test-only commits).** `ruff check`, `ruff format --check`, `check_imports`,
+   `check_records`, `check_numbers` clean; `python -m pytest -q -n auto`: 18,076 passed, 1 skipped, 13 xfailed.
+   The final tip is re-checked with the fast gates and the changed test files.
+
+Known limits: the `v4-pack release/deadline` commands still read `v4_pack` themselves (frozen `fno/v4_pack/wiring.py`
+untouched), so only a hand run could start them; owner-side scheduled sessions and connectors outside the repository
+were not checked; market-publish was not run (needs the database).
