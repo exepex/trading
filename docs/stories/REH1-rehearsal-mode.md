@@ -853,7 +853,7 @@ unpinned (now tested); the kept-real case. Not changed: a test that the key matc
 KEPT_REAL the result does not depend on the key, so such a test cannot catch a wrong key); the three identical
 `live_from` parsers (older than REH1o; a follow-up for their owners).
 
-**Gates** (main merged in, the token kept): 16553 passed, 14 xfailed, 0 failed; ruff, format, imports, record scan
+**Gates** (main merged in at the final head, the token kept): 16598 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
 clean.
 
 **Real output sample** (a full clone of this branch at 33de61355, the token kept): `daily run --rehearse --day
