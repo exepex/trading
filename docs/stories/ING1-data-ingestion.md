@@ -178,7 +178,6 @@ Not captures: `forecast-capture.yml` (the v2 forecast, despite the name), `v4-fi
   (`omenix-quote-recorder`); since 16 Oct the NSE files come from the daily run's `nse` part. So I4 removes a schedule.
 
 ## 4. The target
-
 ### 4.0 In ten lines
 1. **Ingestion job** = one source, one window, one owner of one dataset-day. Its own host, schedule, day lock,
    retry (O14), failure policy, alerts, commits and status file.
@@ -200,7 +199,6 @@ Not captures: `forecast-capture.yml` (the v2 forecast, despite the name), `v4-fi
    dataset, with a rollback key.
 10. **Health:** one status file per job-day, O10 rows for failures, DR1's ledger for presence, O8 rows for ingestion
     kept apart from system rows.
-
 ### 4.1 The pieces (interfaces in the repo's style; a new package `fno/ingest/` for the job layer only)
 
 The existing capture code stays where it is. `fno/ingest/` adds only the job layer (no code moves first).
@@ -230,7 +228,6 @@ The existing capture code stays where it is. `fno/ingest/` adds only the job lay
 - Composition root: `fno/ingest/wiring.py` builds the job table; the routines call `python -m fno ingest run <job>`
   (or `ingest day <routine>` for a routine hosting several children).
 - Alerts: `ReportedAlerts` moves into the existing `fno/alerts/` as `reported.py` (22 lines): no `fno.daily` import (M10).
-
 ### 4.2 The jobs (target table)
 
 | Job | Captures | Host | Schedule | Retry | Failure policy |
@@ -497,5 +494,4 @@ design judgement.
 | 18 | The target split is stable under O14's classes (windowed captures not wrapped) | strong | `O14` section 4 |
 | 19 | Smallest-change job layer; 5 sessions before a flip; a per-job-day status file; a missed start counts as a failed job; budget limits 60 and 140 | reasoning only | 4.1, 4.7, 6.1 |
 | 24 | `fno.composition` pulls system packages into the 3 pm recorders, A16 and A22 (judge R, verified with `python -I`) | strong | `quotes/cli.py:53`; `intraday/wiring.py:13` |
-
 **Self-review:** none (design text). **Real output sample:** not applicable (no code).
