@@ -175,9 +175,8 @@ def test_a_401_from_nse_s_first_request_stops_it_before_any_other(tmp_path):
 
 
 def test_the_live_wiring_reads_a_429_only_through_gw1_s_one_detector():
-    from fno.providers.groww_rate_guard import GrowwRateLimitPaused
-
     from fno.capture_probes.wiring import groww_rate_limited
+    from fno.providers.groww_rate_guard import GrowwRateLimitPaused
 
     class GrowwAPIException(Exception):
         code = "429"
