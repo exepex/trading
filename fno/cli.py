@@ -10,6 +10,7 @@ from .ai.cli import add_ai_parser
 from .books.cli import add_account_parser
 from .books.versions_cli import add_versions_parser
 from .budget.cli import add_budget_parser
+from .capture_probes.command import add_probe_parser
 from .cards.cli import add_card_parser
 from .circulars.cli import add_circulars_parser
 from .close_read.cli import add_closes_parser
@@ -273,6 +274,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_preopen_parser(sub)
     add_school_parser(sub)
     add_recommend_parser(sub)
+    add_probe_parser(sub)
     return p
 
 
