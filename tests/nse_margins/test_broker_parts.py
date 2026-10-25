@@ -177,9 +177,19 @@ def test_the_wiring_reaches_groww_through_get_provider_with_only_this_caller_s_l
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv(ENV_GROWW_ACCESS_TOKEN, "planted")
     monkeypatch.setattr(broker_wiring, "build_drive_cache", lambda env: "cache")
+    from fno.providers import groww_quiet_windows as quiet
+
+    now = [at(10, 5)]  # GW1's quiet windows on a fixed clock: 10:05 is outside every A16 mark
+    real_windows = quiet.MarkQuietWindows
+    monkeypatch.setattr(quiet, "MarkQuietWindows", lambda: real_windows(clock=lambda: now[0]))
     check = broker_wiring.build_broker_check(load_app_config(), env={})
     broker = check.parts.broker
     assert broker.basket(BASKETS[("SF", 100.0)].orders(65)) and asked == ["margin"]
+    now[0] = at(14, 15, 30)  # inside the 14:15 mark's window: refused unsent (GW1), so the basket is an `error`
+    with pytest.raises(quiet.GrowwQuietWindow):
+        broker.basket(BASKETS[("SF", 100.0)].orders(65))
+    assert asked == ["margin"]
+    now[0] = at(10, 5)
     assert broker.index_level() > 0
     for name in ("place_order", "get_positions_for_user", "get_order_list"):
         with pytest.raises(ReadOnlyViolation):

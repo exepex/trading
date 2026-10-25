@@ -11,6 +11,8 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 
+from .groww_quiet_windows import NoQuietWindows, QuietWindows
+
 RATE_LIMIT_CODE = "429"
 PAUSE_SECONDS = 60
 LIMITED = "Groww answered 429 (rate limit)"
@@ -46,12 +48,14 @@ class RateLimitPause:
 
 
 class RateGuardedGroww:
-    """Every callable the client gives goes through the pause and the 429 translation; constants pass as they are."""
+    """Every callable the client gives is refused unsent inside A16's quiet windows (when its provider has them), then
+    goes through the pause and the 429 translation; constants pass as they are."""
 
-    __slots__ = ("_client", "_pause")
+    __slots__ = ("_client", "_pause", "_quiet")
 
-    def __init__(self, client: Callable[[], object], pause: RateLimitPause):
+    def __init__(self, client: Callable[[], object], pause: RateLimitPause, quiet: QuietWindows | None = None):
         self._client, self._pause = client, pause  # called on each use: the sign-in decides the client
+        self._quiet = quiet or NoQuietWindows()
 
     def __getattr__(self, name: str):
         value = getattr(self._client(), name)
@@ -59,6 +63,7 @@ class RateGuardedGroww:
 
     def _guarded(self, call):
         def guarded(*args, **kwargs):
+            self._quiet.check()
             self._pause.check()
             try:
                 return call(*args, **kwargs)

@@ -86,3 +86,27 @@ assert `nifty_before`/`nifty_after` in the record test.
   That cost is chosen on purpose (fail closed), and it is the owner's to weigh.
 - Response 291's lot paragraph still says "a same-day rerun retries"; the story and the code say by hand only.
 - Gates on the trial merge: ruff, format, `check_imports` and `check_records` clean.
+
+## Addendum 2: the follow-up `c2ed049e6..df106dc73` (judge 2 of 2; owner's yes to merge, 25 Oct)
+
+**PASS**, lane 1, with 1 minor. The builder's commits: 3dfaa02f4, 99d0a211f, 5748ff107, 371f308ed (reverted by
+9e2c535e2), b195ad9a4 and df106dc73. The rest of the range is main's own commits (GW1a, judged on their own).
+
+| Item | Verdict | Evidence |
+|---|---|---|
+| **The blocking fix:** GW1a's inner list refused `get_order_margin_details` | FIXED | `broker_wiring.py` builds through `get_provider("groww", cfg, BROKER_CHECK_CALLS)`; `GrowwProvider` passes the list to its own `ReadOnlyGroww` (`groww.py`, b195ad9a4), which still applies both rules; the default is unchanged. The real-chain test passes a fake SDK through GW1a's sign-in and 429 guards: one margin call made, order calls refused, the default list still refusing the margin call. Plants caught: `get_provider` dropping the list, the provider ignoring it, the wiring passing none, the default list widened |
+| My 630.1 minors (charged at the first reading; the NIFTY columns) | FIXED | 3dfaa02f4 tests |
+| By-hand line (owner's rows 348-349) | MET | "rerun this same ... by hand before 14:50 and its receipts (`receipts/data/margins/broker_checks/`) committed", and "lost" alone at or after 14:50 by the clock or the deadline. Plants caught: the clock check removed, the receipts not named. Dropping the deadline-reason condition survives but is equivalent: a deadline error exists only once the clock has passed 14:50. Row 349 allows the failed command itself to be rerun, in market hours too |
+| Lazy Groww | MET | `GrowwBrokerMargins` takes a callable; plant "eager provider" caught |
+| Lot timing claims | MET (2 of 3 checked) | A20a's manifest commits at 13:03 (22 Oct) and 13:00 IST (23 Oct); 24 Oct, a Saturday, has no manifest row to check |
+| O1 paragraph → link (one owning document) | MET | `O1-daily-run.md` keeps one line and a link to A-data-foundation's A14c section |
+
+**Minor (document rule, owner's intent):** the story still says "Adding a retry is the owner's call, not this story's",
+but the owner decided it on 25 Oct (DESK_DECISIONS row 350: automatic retry with exponential backoff, at most 5, then
+escalate; to be built as O14). Expected: point to row 350 and O14.
+
+**Gates:** trial merge with main `a351de626` (clean), with the SDK: 18,063 passed, 13 xfailed, 0 failed; ruff, format,
+`check_imports`, `check_records` clean. My CI-like run without the SDK (a `ModuleNotFoundError` shadow) of
+`tests/nse_margins`, `tests/intraday` and the provider tests: 554 passed, 1 skipped. **Plants:** 8, of which 7 were
+caught; the survivor is equivalent. **Note:** A-data-foundation.md is 2,855 lines and O1-daily-run.md 687, both over
+500; this is DOC1's work, not this change's.

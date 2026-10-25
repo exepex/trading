@@ -85,3 +85,79 @@ equivalent, since `publish()` never returns that outcome. Two survived, both min
 
 33f34e571 merged with main d6438bafa as 56877c005: ruff, format, `check_imports` and `check_records` clean. pytest -n
 auto (FNO_SLACK_BOT_TOKEN kept): **16796 passed, 13 xfailed, 0 failed** (564 s). No post on #fno-desk in the window.
+
+## Addendum 2: round 3 at f21269ea9 (owner's third round, DESK_DECISIONS line 347)
+
+**FAIL, lane 1: the code is clean on every item; one should-fix finding, in the documents only.** Judge I, own
+session, independent of K. Judged: GW1's diff against main (merge base c8b56ce96), 19 files.
+
+| Item | Verdict | My evidence |
+|---|---|---|
+| 638.1 E3 and `fills_by` | FIXED in code | `fills_by: "15:23"`. Longest capture from 15:17:00 + 2m57s + 60 s pause + 60 s = 15:21:57, inside 15:23. Readers I found: `execution_capture.py:78`, `daily_run.py:256`, `runner._finish_parts`, the timetable's order. The school: 15:22:30 at worst, under `SLOT_LAST_START` 15:25. Both pinned by tests (K7 15:20 and K8 15:21 caught). E3's retry case is stated as not covered |
+| 638.2 A16 after its window | FIXED as asked | `_call` waits on the pacer, stamps, then refuses at or after mark + `QUIET_SECONDS` (`QuietWindowEnded`, unasked); the window runs from the mark. `_retry_failed` goes through the same call. K1-K5 caught |
+| Pace 4/s before the send stamp | MET | Index, future, chains, candle and quotes are all paced in `_call` (J3's survivor now caught as K5). At most 4 workers' calls are still in flight at window end (10 s timeout): they add no new requests |
+| One taker; retry counts a landed push | MET | `take` is `won` only; `publish()` pulls and pushes, `_published` needs `count` 1 or 0. K9, K10, K12, K13, K19, K20 caught. K11 (also accept "nothing new") is equivalent: `publish()` always replaces that result |
+| `get_provider` for `groww-check` and the feed probe | MET | K14-K18 caught. Readers that build `GrowwProvider` directly: A16, pre-open (ends 09:11), A16b (15:33), all outside the windows |
+| Doc rule (GW1's own files) | MET, one minor | GW1 279 lines, GW1a 84. Parts 1-4 point to GW1a. Minor: "The sign-in cap is per process..." repeats GW1a:49 |
+
+## Finding (round 3)
+
+1. **Should-fix (owner's 25 Oct document rule, DESK_DECISIONS line 346): three lane-1 documents now say what the code
+   no longer does.**
+   - `research/evaluation/PROTOCOL.md:65` and `:497` say "Fills and exits finished by 15:20" and fills_by `15:20`.
+     Line 72 adds: "These are the values in `config.yaml` `desk.timetable` today". That is false at 15:23.
+   - `docs/stories/O1-daily-run.md:554-557` is the owning text of the owner's 24 Oct rerun rule. It says "The limit
+     is 15:20:00 itself" and quotes the alert as "past fills_by 15:20". The code now refuses only after 15:23:00.
+   - `docs/stories/A16-intraday-quote-recorder.md:212` says "about 5 a second". A16 now asks at 4 a second, only
+     inside the mark's window, and an unclaimed run takes nothing. Today A16's pace and claim rule are described in
+     two documents that disagree.
+   - Fix expected (text only, about 5 lines): state 15:23 with the owner's 25 Oct decision. In A16's story, replace
+     the pace and claim lines with a link to GW1 rule 6, so one document owns them.
+
+## Plants (round 3)
+
+20 on the trial merge, one at a time, each restored, caches cleared, tree clean: 19 caught, K11 equivalent (above).
+
+## Gates
+
+f21269ea9 merged with main 4ac8b39cf as a scratch merge (never pushed). Results:
+- ruff check clean; 2749 files formatted; `check_imports` clean; `check_records` clean (9543 files).
+- pytest -n auto with FNO_SLACK_BOT_TOKEN kept: **17614 passed, 13 xfailed, 0 failed** (644 s).
+- No post on #fno-desk, #fno-forecast or #fno-intraday in that window.
+
+## Notes (not findings)
+
+- O1 (696 lines), A16 (826 lines) and PROTOCOL.md (511 lines) are each over 500 lines. This was true before GW1; it
+  is DOC1's work.
+- A14c part 2's `margins stress-broker-check` (daily step from 14:05, read-only Groww) is not on main yet. It must
+  build its provider through `get_provider`, or it can meet the 14:15 mark at A16's 4 a second.
+- The rate-table test is arithmetic over constants. Its teeth are the orderings test and the window tests.
+
+## Addendum 3: narrow re-check of the text fixes at c182a3aa2 (owner, DESK_DECISIONS line 351)
+
+**PASS, lane 1, with 2 minors.** Judge I, own session, independent of K. Scope: only the c182a3aa2 diff on f21269ea9.
+It changes 4 Markdown files and one docstring.
+
+| 638.2 item | Verdict | My evidence |
+|---|---|---|
+| PROTOCOL.md 15:20 | FIXED | Lines 65 and 498 say 15:23 with the owner's reason. Line 76 now says "before `fills_by` (15:23)". Not frozen: its status line is "DRAFT, not frozen", `research/evaluation/` holds no freeze record, and no freeze file names it. The book-3 constitution names it by path; it hashes only its own bytes |
+| O1's rerun limit | FIXED | "The limit is `fills_by` itself: 15:23:00", with 15:23:00 filling and 15:23:01 refused. That matches `daily_run.py:256` with the config at 15:23. The alert text matches the template (`{by:%H:%M}`) |
+| A16's pace in two documents | FIXED | A16:212 now links GW1 rule 6; `groww_source.py:30` is `PER_SECOND = 4` as GW1 says |
+| Sign-in-cap repeat (minor) | FIXED | It is a link to GW1a `#known-limits`; the heading exists. Round 1's parts 1-4 claims link to GW1a `#claims`, which also exists |
+| `groww_quiet_windows.py` docstring | MET | Text only: "4 a second, close to 300 a minute"; no code changed |
+
+Minors (do not block):
+- `O1-daily-run.md:596-599` still say "a rerun after 15:20" and "at most 15:20:00 less the snapshot ... about 5
+  minutes". These lines fall under the new "15:20 times below are the values when this was built" marker. But the
+  hindsight they describe is now about 8 minutes, a fact for the owner; one line would state it.
+- `E-paper-desk.md:493` "fills by 15:20" is E3's build-time design text ("proposed" times); a link to the config
+  would remove the drift.
+
+## Gates (addendum 3)
+
+c182a3aa2 merged with main as a scratch merge (never pushed), because a `.py` file changed. Results:
+- ruff check clean; 2749 files formatted; `check_imports` clean; `check_records` clean (9550 files).
+- pytest -n auto with FNO_SLACK_BOT_TOKEN kept: **17614 passed, 13 xfailed, 0 failed** (633 s).
+- No post on #fno-desk, #fno-forecast or #fno-intraday in that window.
+
+With 638.2's code verdict (every item MET), GW1 parts 5-6 pass judge I.

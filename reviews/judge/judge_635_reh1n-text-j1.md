@@ -59,3 +59,23 @@ is text only (`git diff --name-only 82a26c344 5fa97694c`: `docs/stories/REH1-reh
 | m3. Register row | FIXED | `main`'s `WORK_REGISTER.md` REH1 row names REH1n, `story/reh1n-new-quote-parts`, `fno/quotes/indices.py` and `fno/quotes/cli.py` |
 
 Gates: doc-reading tests on `5fa97694c`, 932 passed, 13 xfailed.
+
+## Addendum 2: round 3, the owner's grant (`80b522bf6`, text only)
+
+**PASS**, lane 1, judge 1 of 2, with 1 minor. The change is `docs/stories/REH1-rehearsal-mode.md` only, answering
+judge 639's SF1. I checked every new claim against the code and the record:
+
+| Claim | Evidence |
+|---|---|
+| The run log lists the day's parts | `journal/runs/2026-10-21.json` and `2026-10-23.json`: `steps.quotes.inputs = {"parts": ["nifty", "nse", "indices"]}` |
+| The plan is committed before any capture | main: "Desk run 2026-10-23 step quotes" at 08:37:14 UTC = 14:07:14 IST |
+| Single and multi-stem parts | `quote_parts.py:81,83` (nifty, nse) and `v4_part.py:33` (v4) each hold one stem; `indices` holds 4 (`quote_parts.py:86`) |
+| A recorded step's entry is never replaced | `run_log.py:48-51`: a done step raises; only a failed entry with `retry` is replaced |
+| A part's sidecars reach the record at its end | `QuoteParts._finish` (`quote_parts.py:270-280`) commits the part's files |
+
+The 3 paths (hung, not pushed, container lost) are each closed for nifty, nse and v4 by the 14:07 plan. Residuals 1 (a
+day with no run log in the record) and 2 (a new `indices` stem's first day) are named honestly. N3's new case
+has its 3 plants. Doc-reading tests: 963 passed, 13 xfailed; record scan clean.
+
+**Minor:** the gap list's row "state the one wrong case plainly" still points to "The one wrong case"; the section
+is now "The wrong cases".

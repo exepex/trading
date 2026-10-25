@@ -5,13 +5,14 @@ Prints the field names Groww returns for a chain leg and a quote, so the parsers
 
 from __future__ import annotations
 
-from .groww import GrowwProvider, _payload
+from . import get_provider
+from .groww import _payload
 
 CHECK_UNDERLYING = "NIFTY"
 
 
 def groww_check_lines(cfg: dict, underlying: str = CHECK_UNDERLYING) -> list[str]:
-    provider = GrowwProvider(cfg)
+    provider = get_provider("groww", cfg)  # GW1: the sign-in alert and A16's quiet windows, as every reader by hand
     api = provider.api
     lines = ["signed in to Groww (token obtained)"]
     expiries = provider.expiries(underlying)

@@ -5,10 +5,13 @@ and every other book's pack is still written and kept."""
 import json
 from datetime import time
 
+import pytest
+
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI
 from fno.desk.book_sheet import BookSheet
+from fno.desk.pack_items import PackError
 from fno.desk.pack_store import PackStore
-from fno.desk.packs import SHEET_REFUSED, WrittenPacks
+from fno.desk.packs import BUILD_REFUSED, SHEET_REFUSED, WrittenPacks
 from fno.desk.private_pack import EVALUATION, PrivatePackBuilder
 from tests.timetable.fakes import pack_for
 
@@ -84,3 +87,50 @@ def test_without_an_alert_sender_the_refusal_is_printed_never_silent(tmp_path, c
     plant(tmp_path)
     packs(tmp_path, {BOOK3_AI: Sheet(fail=True)}).build(DAY)
     assert f"{BOOK3_AI}: private pack NOT built" in capsys.readouterr().out
+
+
+class FailingBuilder(PrivatePackBuilder):
+    """A private pack that cannot be built for one book (a file its builder refuses: non-UTF-8, a link out)."""
+
+    def __init__(self, root, failing):
+        super().__init__(root)
+        self.failing = failing
+
+    def build(self, book, day, evaluation=None):
+        if book == self.failing:
+            raise PackError(f"journal/{book}/bad.bin is not UTF-8 text")
+        return super().build(book, day, evaluation)
+
+
+def isolated_packs(root, failing, alerts):
+    return WrittenPacks(Common(), FailingBuilder(root, failing), PackStore(root), time(15, 0),
+                        (BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI), alerts=alerts,
+                        isolated=(BOOK2_HYBRID, BOOK3_AI))  # fmt: skip
+
+
+def test_story_f1t_an_ai_books_unbuildable_pack_refuses_that_book_alone(tmp_path):
+    plant(tmp_path)
+    alerts = Alerts()
+    isolated_packs(tmp_path, BOOK3_AI, alerts).build(DAY)
+    store = PackStore(tmp_path)
+    assert store.private_path(BOOK1_RULES, DAY).is_file() and store.private_path(BOOK2_HYBRID, DAY).is_file()
+    assert not store.private_path(BOOK3_AI, DAY).exists()
+    assert alerts.sent == [BUILD_REFUSED.format(day=DAY, book=BOOK3_AI, error="PackError")]  # no path in the alert
+
+
+def test_story_f1t_book1s_unbuildable_pack_still_stops_the_step(tmp_path):
+    plant(tmp_path)
+    with pytest.raises(PackError):
+        isolated_packs(tmp_path, BOOK1_RULES, Alerts()).build(DAY)
+
+
+def test_story_f1t_the_wired_packs_isolate_the_ai_books_and_never_book1(tmp_path):
+    """Judge 651 minor 4: the real wiring's isolated set, so Book 1's pack failure still stops the step."""
+    from types import SimpleNamespace
+
+    from fno.desk.pack_wiring import build_packs
+
+    files = SimpleNamespace(push=lambda paths: None)
+    wired = build_packs(tmp_path, files=files, alerts=Alerts(), books=(BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI))
+    assert wired.isolated == {BOOK2_HYBRID, BOOK3_AI}
+    assert build_packs(tmp_path, files=files, alerts=Alerts()).isolated == frozenset()

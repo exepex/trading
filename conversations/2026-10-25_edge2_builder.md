@@ -100,3 +100,35 @@ Owner, 25 Oct 2026 (relayed in this session's task): "no proven edge: let's try 
 - Q13 to the owner: keep searching option rules at one lot, or pause (no new family until answered).
 - Owner: should C1's pad become a measured, per-bucket figure (lane 1)?
 - R1's owner: the inputs sidecar for result-derived G1 inputs and a dependence-corrected G1 bound.
+
+## Owner decisions relayed (25 Oct, DESK_DECISIONS "DOC1 approved; four third rounds; A14c merge; one-lot searches paused; measured cost pads")
+
+- Q13: "New option-strategy searches at one lot are paused" (item 4): EDGE2 starts no new family.
+- Q14: "Future studies use measured per-bucket half-spread pads instead of C1's flat Rs 1, as a new registered study;
+  past results are never re-read" (item 5): story CP1 written, text first (`docs/stories/CP1-measured-cost-pads.md`,
+  story/cp1-measured-pads 5348d501), lane 1 with two judges; the flat pad is B2's (frozen file), so CP1 adds a pad
+  source beside it and reuses MS-SIM-b's spread functions.
+- New document rules (owner, 25 Oct): documents judged like code, one owning document per functionality, 500 lines.
+
+## Open questions (updated)
+
+- CP1's three owner questions (30 or 20 sessions; median decided with p75 reported; the 15:00 bucket for
+  close-to-close studies) and its two judges.
+
+## CP1 text round 2 (after judges 679 J and 681 B, both FAIL, nothing blocking)
+
+No owner message this round; the orchestrator relayed both judges' findings.
+- Decision (some evidence, data check on 3,768 quotes from 13-23 Oct): the pad's unit is relative × the leg's own price.
+  Leave-one-session-out median error: out-of-the-money Rs 0.113 vs Rs 0.137 for a rupee median; in-the-money Rs 2.46
+  vs Rs 2.92. The otm/itm split is kept: in-the-money paid more in 26 of 33 buckets beyond 1%; the mean error is 8% lower.
+- MeasuredPad is built per trial in the composition root and refuses at construction (three named errors). Q1 now
+  gives dates per band (most non-NIFTY buckets stay provisional into 2027). New Q4: trades before the table's first
+  session pay max(Rs 1, measured). A16 is out of scope.
+- CP1 is at 1fd94daf. slippage.py's duplicate tick floor is removed on story/edge2-slippage-floor a77e9f78 (lane 2;
+  full suite 17570 passed).
+
+## Decisions so far
+- No new EDGE2 search family (Q13 pause). CP1: no code until both judges PASS and the owner answers Q1-Q4.
+
+## Open questions
+- CP1 Q1-Q4 for the owner (in the story file).

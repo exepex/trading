@@ -2096,9 +2096,9 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
       `get_provider("groww", cfg, BROKER_CHECK_CALLS)`: GW1a's sign-in guard and its alert, and the 60 s stop after a
       429, all apply, behind this caller's list alone. The recorder's default list (every other caller) keeps no
       margin call, and a test proves it.
-    - **Once GW1's quiet windows land** (A16's marks every 15 minutes, 120 s each): the check starts about 14:06 and
-      runs about a minute, between the 14:00 and 14:15 windows. A run that reaches a window has its later baskets
-      `error` (fail closed) [reasoning only until GW1 parts 5-6 merge].
+    - **GW1's quiet windows** (A16's marks every 15 minutes, 120 s each, on main since GW1 parts 5-6): the check
+      starts about 14:06 and runs about a minute, between the 14:00 and 14:15 windows. A call inside a window is
+      refused unsent, so a run that reaches one has its later baskets `error` (fail closed; tested at 14:15:30).
     - A list may hold only public reads named `get_<lower_snake_case>` and UPPER_CASE constants; never a name starting
       with `_`, never a token or session call (`get_access_token`, `generate_socket_token`, `session`).
     - As a second line, never a name starting with an order verb (`place_`, `modify_`, `cancel_`, `create_`; the SDK's
@@ -2129,7 +2129,9 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     O1 commits them only for its own step): that run asks only the baskets not `ok` or `mismatch`. The failure and
     not-saved lines say exactly this, never "a rerun today retries". When the 14:50 stop is among the reasons, or the
     line is printed at or after 14:50, they say only "today's broker figure is lost", since no run can ask again.
-    Adding a retry is the owner's call, not this story's.
+    Automatic retries are decided by the owner (`docs/DESK_DECISIONS.md`, 25 Oct 2026, "Failed commands: automatic
+    retry with exponential backoff, at most 5 retries, then escalate") and built by
+    [O14](O14-retry-policy.md); until O14 is live, the by-hand rerun above is the only one.
   - **Exit and lines (O1's rules, agreed 16 Oct):** a failure never alerts twice, and a finding is not a failure.
     O1's `daily run` records every step in `journal/runs/<date>.json` and sends the one #fno-desk line for a failed
     step, so the check writes no O10 `capture_errors.csv` row (O10 covers jobs outside the daily run) and sends no

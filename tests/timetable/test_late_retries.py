@@ -1,5 +1,5 @@
 """Judge 569.3 M1 (O1 R2 follow-up): the routine's immediate rerun (CLAUDE.md step 2b) comes after the first run ends,
-so after 15:20. A retried exits or trade_marks step then runs and does its work, never refused by the fills' own
+so after `fills_by`. A retried exits or trade_marks step then runs and does its work, never refused by the fills' own
 `fills_by` limit (`DailyRun._too_late`), and writes nothing twice. The same holds for decision 47's rerun after a stop
 at the fills: its fills are refused late, its exits and marks run (the self-review's finding 2)."""
 
@@ -14,12 +14,11 @@ from fno.desk.daily_run import RunStopped
 from fno.desk.exit_rules import TimeExit
 from fno.desk.records import DeskRecords
 from fno.desk.run_log import RETRY
-from tests.desk.builders import at
 
 from .fakes import C4, Decisions, LocalSync, Rules, daily_run
 from .test_daily_run import NORMAL, decided, events, fills, run_day
 from .test_failed_step_retry import DUE, Flaky, ledger, trade_open_on_normal
-from .test_fills_final import WrittenThenCommitFailing
+from .test_fills_final import WrittenThenCommitFailing, fills_by_at
 
 # boundary: one second past fills_by; the routine's usual rerun after the run's end; a late evening rerun
 LATE = [timedelta(seconds=1), timedelta(minutes=50), timedelta(hours=8, minutes=30)]
@@ -41,7 +40,7 @@ def test_an_exits_retry_after_fills_by_reviews_the_exits_and_closes_each_leg_onc
     assert log.result("exits")[RETRY] is True and (("t1", OUTCOME_CLOSED) in events(root, BOOK1_RULES)) is written
     before = written_rows(root)
 
-    clock.now = at(15, 20, day=DUE) + after
+    clock.now = fills_by_at(DUE) + after
     log = run.run(DUE)
     assert flaky.calls == 2 and log.result("exits").get("status") not in (STEP_FAILED, STEP_REFUSED)
     assert log.result("exits")[BOOK1_RULES]["reviewed"] is True
@@ -64,7 +63,7 @@ def assert_closed_once_at_the_snapshot(root, snapshot_id):
     closes = [r for r in rows if r["action"] == "close"]
     assert [(e["trade_id"], e["outcome"]) for e in event_rows(root)].count(("t1", OUTCOME_CLOSED)) == 1
     assert len(closes) == len({r["contract"] for r in rows}) and len({r["fill_id"] for r in rows}) == len(rows)
-    assert {r["snapshot_id"] for r in closes} == {snapshot_id}  # never a price taken after 15:20
+    assert {r["snapshot_id"] for r in closes} == {snapshot_id}  # never a price taken after fills_by
     entries = [r["entry_id"] for r in ledger(root, BOOK1_RULES)]
     assert len(entries) == len(set(entries)) and set(entries) >= {r["fill_id"] for r in rows}
 
@@ -77,7 +76,7 @@ def test_a_marks_retry_after_fills_by_marks_the_day_and_writes_each_row_once(roo
     log = run_day(run, clock, NORMAL)
     assert log.result("trade_marks")[RETRY] is True
 
-    clock.now = at(15, 20, day=NORMAL) + after
+    clock.now = fills_by_at(NORMAL) + after
     log = run.run(NORMAL)
     assert flaky.calls == 2 and log.result("trade_marks").get("status") not in (STEP_FAILED, STEP_REFUSED)
     assert log.result("trade_marks")[BOOK1_RULES]["marked"] is True
@@ -92,7 +91,8 @@ def test_a_marks_retry_after_fills_by_marks_the_day_and_writes_each_row_once(roo
 def test_a_rerun_after_a_stop_past_fills_by_refuses_the_fills_but_runs_the_exits_and_the_marks(root, tmp_path, alerts,
                                                                                                after):  # fmt: skip
     """Decision 47's rerun on a day t1's exit is due: book 2's commit fails inside the fills, so neither the exits nor
-    the marks ran. The rerun past 15:20 refuses the fills (`FILLS_LATE`), then reviews the exits and marks the day."""
+    the marks ran. The rerun past `fills_by` refuses the fills (`FILLS_LATE`), then reviews the exits and marks the
+    day."""
     decisions = Decisions()
     decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
     decisions.add(*decided(BOOK2_HYBRID, "d1", DUE), DUE)
@@ -107,7 +107,7 @@ def test_a_rerun_after_a_stop_past_fills_by_refuses_the_fills_but_runs_the_exits
     assert ("t1", OUTCOME_CLOSED) not in events(root, BOOK1_RULES) and fills(root, BOOK2_HYBRID)  # d1 written
     opened = fills(root, BOOK2_HYBRID)
 
-    clock.now = at(15, 20, day=DUE) + after
+    clock.now = fills_by_at(DUE) + after
     log = run.run(DUE)
     assert log.result("fills")["status"] == STEP_REFUSED and fills(root, BOOK2_HYBRID) == opened
     assert log.result("exits")[BOOK1_RULES]["reviewed"] is True

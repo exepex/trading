@@ -28,6 +28,7 @@ ALLOWED_APP_KEYS = frozenset(
         "forecast_lab",
         "budget",
         "health",
+        "ai_books",
         "school",
     }  # fmt: skip
 )

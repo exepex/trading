@@ -8,6 +8,12 @@ One file per numbered series; each series has its own numbers, so series never c
 | `chatgpt-review.csv` | `reviews/chatgpt/review_<n>_<slug>.md` | the file name |
 | `judge-report.csv` | `reviews/judge/judge_<n>_<slug>.md` | the file name |
 | `judge-addendum.csv` | `## Addendum <k>` in `judge_<n>_*.md`, numbered `<n>.<k>` | a short label |
+| `ledger-trial.csv` | blocks of trial ids in `research/ledger.csv`, numbered `<a>-<b>` (or `<n>`) | the experiment prefix |
+
+**Ledger trials:** claim a block before registering trials,
+`python tools/claim_number.py ledger-trial <experiment-prefix> --session <id> --count <k>`, then merge `main` into your
+branch. The rules (what a block covers, what is refused, Book 3's exception) live in
+[`docs/stories/O12-number-claims.md`, section O12e](../docs/stories/O12-number-claims.md).
 
 Columns: `number,name,session,claimed_at_utc`. Rows with session `existing` are the files that were on `main` when
 O12 merged (history, kept as it is, duplicates included); their SHA-256 is pinned in `fno/numbering/seed_pins.json`,

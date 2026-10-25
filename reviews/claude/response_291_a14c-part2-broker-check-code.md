@@ -288,3 +288,13 @@ the orchestrator for that owner's agreement.
   still refuses the margin call. It is added; the plant "default list widened with the margin call" is caught (1 failed).
   Their unmerged parts 5-6 add quiet windows at A16's marks; the story states what that means for the check's
   14:06 run.
+
+### Merge with GW1 parts 5-6, and judge M's minor (630.2)
+
+- **The merge:** both parameters are kept, `GrowwProvider(config, on_sign_in_failure=None, quiet=None, allowed=None)`,
+  and `_groww_provider` passes `MarkQuietWindows()` and the caller's `allowed`. The margin call now meets GW1's quiet
+  windows.
+- **The real-chain test:** it pins the windows' clock (10:05, outside every mark), so it never depends on the time it
+  runs. At 14:15:30 the margin call is refused unsent (`GrowwQuietWindow`) and nothing reaches the fake SDK.
+- **M's minor:** the story's retry sentence now points to DESK_DECISIONS 25 Oct, "Failed commands: automatic retry
+  with exponential backoff, at most 5 retries, then escalate", and to O14.

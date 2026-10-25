@@ -15,6 +15,7 @@ from fno.research_engine.ledger import Ledger, write_ledger
 from fno.research_engine.research_cli import record_run
 from tests.factory.helpers import commit, git, init_repo, write_card
 from tests.factory.shadow_helpers import DAY, freezer, parts, planned_repo
+from tests.numbering.helpers import claim_block
 from tests.playbook.builders import changer, commit_all, document, filled_evidence, repository, write
 from tests.research_engine.git_failures import require_nothing_written_on_any_git_failure
 
@@ -52,13 +53,15 @@ def with_trial(path: Path) -> Path:
     git(root, "config", "user.email", "t@example.invalid")
     git(root, "config", "user.name", "test")
     (root / "research" / "exp").mkdir(parents=True)
-    Ledger(root).register("P1", "exp", "policy one", "prospective", True, today=RUN_DAY)
+    claim_block(root)
+    commit(root, "claims")  # the ledger reads claims as committed (story O12e)
+    Ledger(root).register("1", "exp", "policy one", "prospective", True, today=RUN_DAY)
     commit(root, "ledger")
     return root
 
 
 def run(root: Path):
-    return record_run(Ledger(root), root / "research" / "exp", RESULTS, ("P1",), decisive=True)
+    return record_run(Ledger(root), root / "research" / "exp", RESULTS, ("1",), decisive=True)
 
 
 def candidate(path: Path) -> Path:

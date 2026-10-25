@@ -17,7 +17,7 @@ SCHOOL = "research/school/MEAS.md"
 MEASUREMENT = """id: MEAS
 version: 1
 trial: 3
-experiment: meas-test
+experiment: x1-test-meas
 description: "MEAS: a planted measurement kept beside its story"
 question: planted-measurement
 hypothesis: no
@@ -30,11 +30,12 @@ def repo_with_a_card_elsewhere(tmp_path):
     write_card(root, BLOCK.replace("trial: 3", "trial: 4"), CARD)
     write_card(root, MEASUREMENT, SCHOOL)
     ledger = Ledger(root)
-    ledger.register("3", "meas-test", "MEAS: a planted measurement kept beside its story", "prospective", False, SCHOOL)
+    meas = "MEAS: a planted measurement kept beside its story"
+    ledger.register("3", "x1-test-meas", meas, "prospective", False, SCHOOL)
     ledger.register("4", "x1-test", "X1: a planted idea", "prospective", True, CARD)
     (root / "research/exp").mkdir()
     (root / "research/exp/PROTOCOL.md").write_text("# a protocol: no factory block here\n")
-    ledger.register("5", "exp", "a protocol trial", "prospective", True, "research/exp/PROTOCOL.md")
+    ledger.register("5", "x1-test-exp", "a protocol trial", "prospective", True, "research/exp/PROTOCOL.md")
     commit(root, "cards")
     return root
 
@@ -67,7 +68,8 @@ def test_a_card_outside_the_ideas_folder_that_cannot_be_read_is_an_error_not_ski
 
 def test_a_card_the_ledger_names_that_is_missing_raises_by_name_and_is_never_skipped(tmp_path):
     root = init_repo(tmp_path)
-    Ledger(root).register("3", "gone", "a card that was never written", "prospective", False, "research/gone/CARD.md")
+    gone = "research/gone/CARD.md"
+    Ledger(root).register("3", "x1-test-gone", "a card that was never written", "prospective", False, gone)
     with pytest.raises(CardError, match=r"research/gone/CARD\.md: named by the ledger but not in the repository"):
         all_card_paths(root)
     with pytest.raises(CardError, match="not in the repository"):
@@ -76,7 +78,7 @@ def test_a_card_the_ledger_names_that_is_missing_raises_by_name_and_is_never_ski
 
 def test_a_missing_card_in_the_ideas_folder_is_named_too(tmp_path):
     root = init_repo(tmp_path)
-    Ledger(root).register("3", "gone", "a card removed from the ideas folder", "prospective", False, f"{CARD}")
+    Ledger(root).register("3", "x1-test-gone", "a card removed from the ideas folder", "prospective", False, f"{CARD}")
     with pytest.raises(CardError, match="X1.md: named by the ledger but not in the repository"):
         all_card_paths(root)
 
@@ -104,7 +106,7 @@ def test_two_cards_elsewhere_with_one_id_are_ambiguous_and_raise(tmp_path):
     root = repo_with_a_card_elsewhere(tmp_path)
     other = "research/other/MEAS.md"
     write_card(root, MEASUREMENT.replace("trial: 3", "trial: 6"), other)
-    Ledger(root).register("6", "meas-test", "MEAS twin", "prospective", False, other)
+    Ledger(root).register("6", "x1-test-meas", "MEAS twin", "prospective", False, other)
     commit(root, "a second MEAS")
     with pytest.raises(CardError, match="the id 'MEAS' is also"):
         all_card_paths(root)
