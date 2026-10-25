@@ -265,3 +265,14 @@ p0b 2026-10-29: done, 206 Groww and 44 NSE requests
 Counts file entry (no price): `{"nse 10:07": {"drive": "ok", "quality": {"lot_unknown": 11, "ok": 20, "one_sided":
 20}, "refusals": {}, "reserved": 11, "rows": 46, "stop": "", "used": 11}}`. The made-up puts carry no bid
 (`one_sided`) and SBIN no lot (`lot_unknown`), so both flags show. No live run yet: the first is Thu 29 Oct.
+
+### Code round 2 (judge 657 at d4a00822f: FAIL, 1 should-fix, 1 minor; both accepted)
+
+1. **Should-fix, fixed:** the blackout test was parametrized over `BLACKOUT_DAYS` itself, so it could not fail. It now
+   names 26, 27 and 28 Oct in the test (`KEPT_CLEAR`), checks each is refused, checks the constant equals exactly
+   those three, and checks 25 and 29 Oct run past the check. Plants: dropping 27 and 28 Oct fails 3 tests; adding 29
+   Oct fails 8.
+2. **Minor, fixed:** the Claims' status block was already rewritten at 5a2024439 (GW1a on `main`, no quiet windows
+   on `main`); the comment at `wiring.py` now names only what GW1a gives (the sign-in guard and the 60 s pause). P0b
+   keeps clear of A16's marks by its own slots (:07-:13 and :37-:43, a 6-minute hard stop).
+

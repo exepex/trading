@@ -27,11 +27,26 @@ def test_a_non_trading_day_reads_nothing(tmp_path):
     assert rig.run() == (0, ["p0b: not a trading day; nothing read"]) and rig.groww.calls == 0
 
 
-@pytest.mark.parametrize("day", sorted(BLACKOUT_DAYS))
+KEPT_CLEAR = (date(2026, 10, 26), date(2026, 10, 27), date(2026, 10, 28))  # v4's clean day; A16h's day and its spare
+
+
+@pytest.mark.parametrize("day", KEPT_CLEAR)
 def test_each_kept_clear_day_reads_nothing(tmp_path, day):
     rig = Rig(tmp_path)
     code, lines = rig.run(day)
     assert lines == [f"p0b: {day} is kept clear for v4 and A16h; nothing read"] and rig.nse.calls == 0
+
+
+def test_the_kept_clear_days_are_exactly_those_three():
+    assert frozenset(KEPT_CLEAR) == BLACKOUT_DAYS
+
+
+@pytest.mark.parametrize("day", [date(2026, 10, 25), date(2026, 10, 29)])
+def test_the_days_either_side_are_not_kept_clear(tmp_path, day):
+    rig = Rig(tmp_path)
+    code, lines = rig.run(day)
+    assert not any("kept clear" in line for line in lines)
+    assert lines[-1].startswith(f"p0b {day}: done")  # it went past the check to its slots
 
 
 def test_a_sixth_session_is_refused_but_a_rerun_of_a_fifth_is_not(tmp_path):

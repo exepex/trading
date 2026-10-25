@@ -42,7 +42,7 @@ def build_probe_day(cfg: dict) -> ProbeDay:
     from ..storage.trading_days import is_trading_day
     from ..storage.wiring import build_session_calendar
 
-    provider = get_provider("groww", cfg)  # GW1: sign-in guard, quiet windows and the 60 s pause come with it
+    provider = get_provider("groww", cfg)  # GW1a: the sign-in guard and the 60 s pause after a 429 come with it
     client = ReadOnlyGroww(lambda: provider.api)
     lot = _archived_lot()
     groww = GrowwReader(client, GrowwAnswers(groww_rate_limited), lot, now_ist)
