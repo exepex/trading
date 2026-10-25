@@ -39,3 +39,11 @@ on 6460a4ce3, Slack token set: 922 passed, 14 xfailed. The three channels have n
 ## For round 2
 
 All four are text only: the definition of `complete` (with its plant), the timing line, and two sentences.
+
+## Addendum 1: T1g read alongside (main at 8ebb0c3f4, judge K)
+
+**Not yet in agreement: the footer is fixed, two lines are not.**
+- **Fixed:** T1g's closing `**Depends:**` (`docs/stories/T-cards.md:1528`) now reads "the card-side REC1 step (deferred, 25 Oct; REC1b posts its own #fno-desk line instead)", which matches the REC1b amendment.
+- **Still old (line 1341):** T1g's header still says "Depends on: REC1b (the recommendation record and `RecommendationStatus`), T1e, T1f".
+- **Still old (line 1358):** its context still says "REC1b replaces T1's `RegistryStatus` with `RecommendationStatus` inside `RuledStatus`".
+- **Fix (lane 3 for the owner of T1g; no judge needed for the wording):** both lines name the deferred card-side REC1 step, as the footer does. The two texts then agree. Nothing else in T1g depends on REC1b's card change.
