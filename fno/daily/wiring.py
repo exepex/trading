@@ -1,6 +1,8 @@
 """Composition root of the daily run (story O1): E3's desk run (Book 1's orders and exit rules) with O1's steps
 around it: A14c's margin check, the weather, the v4 forecasts and the card as their own commands, each from its
-`daily.live_from` date; Book 1's decision (E5) right after the pack; the market school's slot (MS-P1j, its own
+`daily.live_from` date; Book 1's decision (E5) right after the pack, the AI books' fire just before it and their
+collection after it, each AI book from its own `daily.live_from` date with its own orders and exit rules (story F1t);
+the market school's slot (MS-P1j, its own
 `school.enabled` switch); and A4c's quote parts beside the desk, committed through E3's committer in the run's one
 thread."""
 
@@ -13,6 +15,9 @@ from pathlib import Path
 
 from ..config import ROOT
 from ..constants import (
+    BOOK1_RULES,
+    BOOK2_HYBRID,
+    BOOK3_AI,
     CARD_DELIVERIES_FOLDER,
     OWNER_TIMING_STEP,
     PLAYBOOK_FOLDER,
@@ -41,6 +46,8 @@ FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Dr
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, V4_PACK_FORECASTS_STEP, "card",
               OWNER_TIMING_STEP, "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges",
               "price_range_scores", "premium_range_scores", "close_read", "close_recheck", "recommend")  # fmt: skip
+LIVE_BOOKS = (BOOK2_HYBRID, BOOK3_AI)  # story F1t: each AI book's first trading day; null: not in the desk at all
+OTHER_LIVE_KEYS = ("ai_books_v4",)  # G11's key, read by `fno/ai/wiring.py`
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
 PREMIUM_SCORES = ("premrange", "score")  # G13d: every issue whose next session has passed, and the seals
 
@@ -71,8 +78,23 @@ def live_dates(cfg: dict) -> dict[str, date | None]:
     return {name: date.fromisoformat(str(raw[name])) if raw.get(name) else None for name in LIVE_STEPS}
 
 
-def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None] = time.sleep) -> DayRunner:
-    """`sleep` is how the run waits (story O2: the end-to-end suite drives the whole day on a fake clock)."""
+def live_ai_books(cfg: dict, day: date) -> tuple[str, ...]:
+    """The AI books live on `day` (`daily.live_from.<book>` on or before it); a key `daily.live_from` does not know is
+    refused, so a typo can never leave a book silently off (O1 builder, 16 Oct)."""
+    raw = cfg.get("daily", {}).get("live_from", {}) or {}
+    known = (*LIVE_STEPS, *LIVE_BOOKS, *OTHER_LIVE_KEYS)
+    unknown = sorted(set(raw) - set(known))
+    if unknown:
+        raise ValueError(f"config.yaml daily.live_from: unknown {', '.join(unknown)}; known: {', '.join(known)}")
+    return tuple(b for b in LIVE_BOOKS if raw.get(b) and date.fromisoformat(str(raw[b])) <= day)
+
+
+def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None] = time.sleep,
+                     day: date | None = None) -> DayRunner:  # fmt: skip
+    """`sleep` is how the run waits (story O2: the end-to-end suite drives the whole day on a fake clock); `day`: the
+    session the run is for (its AI books are those live that day; none when not given, story F1t)."""
+    from ..ai_trading.book_dispatch import ExitRulesByBook, OrdersByBook
+    from ..ai_trading.wiring import ai_day_steps
     from ..books.book1_wiring import build_book1_exit_rules, build_book1_orders
     from ..close_read.constants import CLOSE_READ_FROM, CLOSE_RECHECK_FROM
     from ..close_read.wiring import receipt_pathspecs as close_receipts
@@ -145,6 +167,8 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         step = CommandStep(processes, lambda day: arguments, pathspecs, git.changed, waiting, locks)
         return Alerted(name, LiveFrom(step, live[name]), alerts)
 
+    ai_books, ai_steps, book_parts = ai_day_steps(cfg, root, day, alerts, processes, waiter, git, committer,
+                                                   now_ist)  # fmt: skip
     finish_parts = rehearsed_quotes_done(FinishQuoteParts(parts, waiter), quote_parts, not_live)  # REH1j: live parts
     steps = {
         "margin_check": Alerted(
@@ -170,6 +194,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             alerts,
         ),  # G7b completion: its own receipts only  # fmt: skip
         "quotes": Alerted("quotes", StartQuoteParts(parts), alerts),
+        **{name: Alerted(name, step, alerts) for name, step in ai_steps.items()},  # story F1t
         "book1": Alerted(
             "book1",
             CommandStep(
@@ -222,14 +247,20 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         "close_read": close_step("close_read", ("closes", "read"), CLOSE_READ_FROM),  # A4h
         "close_recheck": close_step("close_recheck", ("closes", "read", "--recheck"), CLOSE_RECHECK_FROM),
     }
-    cfg_orders, exit_rules = build_book1_orders(cfg, root), build_book1_exit_rules(root, alerts)
+    cfg_orders = OrdersByBook(
+        {BOOK1_RULES: build_book1_orders(cfg, root), **{b: p.orders for b, p in book_parts.items()}}
+    )
+    exit_rules = ExitRulesByBook(
+        {BOOK1_RULES: build_book1_exit_rules(root, alerts), **{b: p.exits for b, p in book_parts.items()}}
+    )
     entry_desk, exit_timing = build_owner_timing_desks(cfg, live[OWNER_TIMING_STEP], build_entry_desk(cfg))
     fills = build_owner_timing_step(cfg, alerts, exit_timing, live[OWNER_TIMING_STEP], root=root)
     steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, fills, alerts)  # E8: seals only before its live date
     steps |= v4_steps(lambda arguments, specs: CommandStep(processes, arguments, specs, git.changed, waiting, locks),
                       parts, waiter, live[V4_PACK_LIVE_KEY], alerts)  # G10 completion  # fmt: skip
     steps = rehearsed_not_live(steps, step_notes(not_live))
-    daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
+    daily_run = build_daily_run(cfg, cfg_orders, exit_rules, books=(BOOK1_RULES, *ai_books), root=root,
+                                waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts, entry_desk=entry_desk, exit_timing=exit_timing,
                                 git_committer=committer, recorder=public_recorder(root))  # fmt: skip
     archive = full_log_archive(root, committer, alerts)

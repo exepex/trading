@@ -15,14 +15,16 @@
 - `register-v4-slots`: appends the AI books' 10 v4 slot registrations after the freeze (`--print`: only print them,
   for the freeze commit; G11 C13). Exit 1 when refused;
 - `fire-probe`: fires Book 3's routine once with a harmless text the size of a v4 pointer, to prove the routine API
-  takes it (run only by hand, by routine-fire-probe.yml; writes nothing). Exit 1 when not fired.
+  takes it (run only by hand, by routine-fire-probe.yml; writes nothing). Exit 1 when not fired;
+- `observe-remote`: reads the remote branch's head at each deadline into an observation file (story F1t's receipts).
 The routine side is `python -m fno.ai` (standard library only).
 """
 
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import date, datetime
+from pathlib import Path
 
 from ..constants import AI_BOOKS, BOOK3_AI
 from .run_terms import FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4
@@ -55,6 +57,9 @@ def add_ai_parser(subparsers) -> None:
     record.add_argument("--session", default="", help="the session, when the fire log has no link")
     protocols = (FORECAST_PROTOCOL_V2, FORECAST_PROTOCOL_V4)
     record.add_argument("--protocol", choices=protocols, default=FORECAST_PROTOCOL_V2, help="v4: a run of the v4 fire")
+    observe = actions.add_parser("observe-remote", help="read the remote's head at each deadline (F1t receipts)")
+    observe.add_argument("--out", type=Path, required=True, help="the observation file (git-ignored)")
+    observe.add_argument("--deadline", type=datetime.fromisoformat, action="append", required=True)
     ai.set_defaults(func=cmd_ai)
 
 
@@ -64,6 +69,8 @@ def cmd_ai(args) -> int:
     day = getattr(args, "day", None) or now_ist().date()
     if args.ai_cmd == "audit-record":
         return _audit_record(args)
+    if args.ai_cmd == "observe-remote":
+        return _observe_remote(args)
     if args.ai_cmd == "register-v4-slots":
         return _register_v4_slots(args)
     if args.ai_cmd == "fire-probe":
@@ -181,3 +188,19 @@ def _register_v4_slots(args) -> int:
     lines = build_slot_registrar().register(write=not args.print_only)
     print("\n".join(lines))
     return 1 if any("refused" in line for line in lines) else 0
+
+
+def _observe_remote(args) -> int:
+    import time
+
+    from ..config import ROOT
+    from ..models import now_ist
+    from .observed_receipts import ObservationFile
+    from .remote_observer import GitLsRemote, RemoteObserver
+
+    if any(deadline.tzinfo is None for deadline in args.deadline):
+        print("refused: every deadline needs its time zone")
+        return 1
+    RemoteObserver(GitLsRemote(ROOT), ObservationFile(args.out), now_ist, time.sleep).run(args.deadline)
+    print(f"observed the remote at {len(args.deadline)} deadline(s): {args.out}")
+    return 0

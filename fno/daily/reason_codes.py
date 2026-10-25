@@ -4,6 +4,7 @@ shows the code; the full text goes only to the #fno-desk alert and the private f
 
 from __future__ import annotations
 
+from ..ai_trading import steps as ai_steps
 from ..constants import SCHOOL_STEP
 from ..desk import book_versions, daily_run, daily_steps, exits, recorded_c4, trade_marking
 from ..desk.owner_timing import entry_fills, exit_fills, outcomes, pending_entries
@@ -78,7 +79,19 @@ QUOTE_PARTS = (
     ("parts:NO_RECORD", earlier_run.NO_RECORD),
     ("parts:ENDED_NONE", earlier_run.ENDED_NONE),
 )
+AI_STEPS = (  # story F1t: the AI books' two steps (criterion 17)
+    ("ai:DONE", ai_steps.DONE),
+    ("ai:NOT_LIVE_BOOKS", ai_steps.NO_LIVE_BOOK),
+    ("ai:NOT_FIRED", ai_steps.NOT_FIRED),
+    ("ai:NOT_PROMOTED", ai_steps.NOT_PROMOTED),
+    ("ai:OBSERVER_LOST", ai_steps.OBSERVER_LOST),
+    ("ai:BUDGET_UNREAD", ai_steps.BUDGET_UNREAD),
+    ("ai:REHEARSAL_NO_FIRE", ai_steps.REHEARSAL_NO_FIRE),
+    ("ai:CONFIG", ai_steps.CONFIG_WRONG),
+)
 STEP_TEMPLATES = {
+    "ai_fire": AI_STEPS,
+    "ai_collect": AI_STEPS,
     "versions": (
         ("versions:NONE_YET", book_versions.NONE_YET),
         ("versions:UNCHANGED", book_versions.UNCHANGED),

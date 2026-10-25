@@ -35,7 +35,7 @@ from .history import RepoHistory
 from .paths import CLOSES_FILE
 from .receipts import GitHubActivityReceipts, PushReceipts
 from .record_writer import AiRecordWriter
-from .run_terms import V4_TERMS
+from .run_terms import V2_TERMS, V4_TERMS
 from .stop_rule import WINDOW_SESSION_DAYS
 from .usage_gaps import alert_usage_gaps
 from .usage_record import BookUsageRecorder
@@ -168,9 +168,10 @@ def record_book_usage(day) -> list[str]:
     return recorded + alert_usage_gaps(ROOT, ledger, day, build_alert_sender())
 
 
-def build_audit_seeds(root=ROOT, env=os.environ) -> tuple[dict, list[str]]:
-    """The weekly audit draws' seeds, each close confirmed in the Drive archive, and one line per refused week."""
+def build_audit_seeds(root=ROOT, env=os.environ, more: tuple = ()) -> tuple[dict, list[str]]:
+    """The weekly audit draws' seeds, each close confirmed in the Drive archive, and one line per refused week; the
+    weeks of v2's and v4's fired sessions and of each `RunTerms` in `more` (story F1t: the decision run's)."""
     drive = storage.build_owner_drive(env)
     archive = DriveIndexCloseArchive(AreaStore(drive, storage.RAW_AREA)) if drive else NoCloseArchive()
-    weeks = weeks_to_draw(fired_sessions(root)) | weeks_to_draw(fired_sessions(root, V4_TERMS))
+    weeks = set().union(*(weeks_to_draw(fired_sessions(root, terms)) for terms in (V2_TERMS, V4_TERMS, *more)))
     return verified_seeds(root / CLOSES_FILE, archive, weeks)

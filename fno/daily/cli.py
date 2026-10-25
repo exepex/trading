@@ -37,6 +37,6 @@ def cmd_daily_run(args, out=print, root=None) -> int:
         if running_since is not None:
             out(ALREADY_RUNNING.format(day=day, since=running_since))
             return 1
-        code, line = build_day_runner(load_app_config(), root).run(day)
+        code, line = build_day_runner(load_app_config(), root, day=day).run(day)
     out(line)
     return code

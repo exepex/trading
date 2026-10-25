@@ -4,7 +4,7 @@ closes, events), D2's opportunity code with the playbook, and the private pack's
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from ..config import ROOT
@@ -13,7 +13,7 @@ from .common_pack import CommonPackBuilder
 from .packs import WrittenPacks
 from .private_pack import PrivatePackBuilder
 
-PACKED_BOOKS = (BOOK1_RULES,)  # books 2 and 3 get private packs when D4 and D5 exist
+PACKED_BOOKS = (BOOK1_RULES,)  # the daily run also packs each live AI book (story F1t)
 SHEETS: dict = {}  # story E2e: book -> its BookSheet (F5's Book 2, F6's Book 3 add their lines)
 
 
@@ -47,14 +47,16 @@ def build_private_pack_builder(root: Path = ROOT) -> PrivatePackBuilder:
     return PrivatePackBuilder(root)
 
 
-def build_packs(root: Path = ROOT, refresh: Callable[[], None] = lambda: None, files=None, alerts=None) -> WrittenPacks:
+def build_packs(root: Path = ROOT, refresh: Callable[[], None] = lambda: None, files=None, alerts=None,
+                books: Sequence[str] = PACKED_BOOKS) -> WrittenPacks:  # fmt: skip
     """The day's common pack and each packed book's private pack, written once under `journal/`; the private packs are
     kept in Drive (story E2c), with only their `.sha256` committed. `alerts`: the caller's one sender (the daily run's
-    reported sender, story O1); a command run alone gets the app's."""
+    reported sender, story O1); a command run alone gets the app's. `books`: the run's books (story F1t)."""
     from ..composition import DESK_DECISION_TIME, build_alert_sender
     from .pack_store import PackStore
     from .wiring import build_private_files
 
     keep, alerts = (files or build_private_files(root)).push, alerts or build_alert_sender()
     return WrittenPacks(build_common_pack_builder(root), build_private_pack_builder(root), PackStore(root),
-                        DESK_DECISION_TIME, PACKED_BOOKS, refresh, keep, SHEETS, alerts)  # fmt: skip
+                        DESK_DECISION_TIME, tuple(books), refresh, keep, SHEETS, alerts,
+                        tuple(b for b in books if b != BOOK1_RULES))  # fmt: skip  # F1t: AI books refused alone
