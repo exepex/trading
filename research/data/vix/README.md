@@ -1,11 +1,5 @@
 # India VIX daily history (story A15)
 
-**Since story O9b (step 1), the table and its checks are in Drive, not in this folder.** They are write-once files in
-Drive's `data/vix/` area (`india_vix_daily/` parts, `checks/<name>/` snapshots), with one SHA-256 receipt each under
-`receipts/data/vix/`. Read them through the verified cache (`python -m fno data-cache sync data/vix`). The files named
-below kept their names and columns as moved (22 Oct 2026); git history keeps the old copies. The record scan refuses a
-`.csv` committed here.
-
 `india_vix_daily.csv`: India VIX daily open, high, low and close for every day NSE's history serves, **19 Jul 2010 to
 30 Sep 2026** at the first fill (4,019 days). Derived data: the raw files stay in Google Drive.
 
@@ -102,7 +96,7 @@ muhurat session counted as a full day would distort any daily-change statistic.
 ```
 python -m fno vix-history fill     # archive missing ended months to Drive, extend the table, write the checks
 python -m fno vix-history sweep    # look for later NSE versions (A11)
-python -m fno vix-history check    # write new check snapshots in Drive from the table in Drive (Drive settings)
+python -m fno vix-history check    # rewrite checks/ from the committed table (no network)
 python -m fno vix-history verify   # recompute the table from Drive and list any difference
 ```
 
