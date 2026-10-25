@@ -73,3 +73,11 @@ Owner, 25 Oct 2026 (relayed in this session's task): "no proven edge: let's try 
   no edge (net -Rs 388 to -467 a trade, gross Rs 175-216 against the Rs 820 bar), event days about Rs 150 better than
   ordinary days; nothing nominated, held-out unread (`research/edge2/F9_RESULTS.md`).
 - Open: a judge on e3ec093a; the next step after four no-edge families (orchestrator, then the owner).
+
+## Slippage note (later)
+
+- Orchestrator: a descriptive slippage study, no trials. Reused MS-SIM-b's reader and spread functions read-only
+  (its owner out of reach). Finding: for NIFTY and BANKNIFTY near-month and NIFTY weekly OTM strikes, half the 15:00
+  spread is about Rs 0.03-0.65 a unit, under C1's Rs 1 pad; next-month and FINNIFTY/MIDCPNIFTY next-month quotes are
+  much wider or missing (`research/edge2/SLIPPAGE_NOTE.md`). No EDGE result is re-read with new pads.
+- Open: an owner question on a measured, per-bucket pad in C1 (lane 1); the fills-against-mid section from Monday.
