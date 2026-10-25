@@ -789,3 +789,7 @@ under 350 lines.
    - The code already refused it (`run_check.py`, `status.strip()`); the test was missing.
    - An empty string is refused earlier, by D3's own record check (non-empty `served` text). Whitespace passes D3 and
      is refused by F1t's run check. The test pins both.
+3. **Judge 661.1's note for F1t (from F5's judge B), accepted:** dropping a step's reason templates passed the targeted
+   suites. A new test fills every `ai:` template of each of the two steps with a book's private text and checks that it
+   reads as its own code, never the text and never `unlisted`. Plants: dropping `ai_collect`'s templates fails it, and
+   so does dropping `ai_fire`'s.

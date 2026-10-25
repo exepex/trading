@@ -95,3 +95,21 @@ def test_the_strategy_label_of_a_promoted_book_stays_in_the_public_run_log(tmp_p
                          ObserverHandle()).run(DAY)  # fmt: skip
     shown = PublicResult(ReasonRegistry(COMMON, STEP_TEMPLATES)).public("ai_collect", done.inputs)
     assert shown["strategy_labels"] == {"book2_hybrid": "strategy_not_yet_passed"}
+
+
+@pytest.mark.parametrize("step", ["ai_fire", "ai_collect"])
+def test_each_of_the_two_steps_maps_every_one_of_its_reasons_to_its_own_code(step):
+    """Judge 661.1's note for F1t: dropping a step's templates passed the targeted suites. Every template of each
+    step, filled with a book's private text, reads as its own `ai:` code, never the text and never `unlisted`."""
+    import string
+
+    from fno.daily.public_log import PublicResult, ReasonRegistry
+    from fno.daily.reason_codes import AI_STEPS, COMMON, STEP_TEMPLATES
+
+    registry = PublicResult(ReasonRegistry(COMMON, STEP_TEMPLATES))
+    for code, template in AI_STEPS:
+        fields = {
+            name: "book2_hybrid: cash 3,40,500 short" for _, name, _, _ in string.Formatter().parse(template) if name
+        }
+        shown = registry.public(step, {"status": STEP_REFUSED, "reason": template.format(**fields)})
+        assert shown["reason"] == code, (step, code)
