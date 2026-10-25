@@ -30,3 +30,16 @@ The owner's words it acted on, as the orchestrator relayed them:
 - The decision phase's cold Drive reads (4 min 28 s of the 6 min 13 s): worth a look after 26 Oct (orchestrator).
 - A rehearsed evening never sees the daily rehearsal's sealed files (separate `dryrun/<run_id>/` per routine): by
   design today; the first true evening check is Mon 26 Oct 20:05, once reports are on.
+
+## Later on 25 Oct
+
+- MS-P1j4 passed both judges in round 2 (645.1, 648.1). Two judges each found a hole in round 1, both accepted:
+  - a day that sealed its decisions but never finished, or whose step failed, read as quiet;
+  - before that, the 08:50 plan was always empty while NIFTY-W was open.
+  `school.reports: true` is on main (9b9039eb6) with j4.
+- Second dry run of 23 Oct from main a9be9c8e3, with both switches on:
+  - 08:50: all 5 roads open; 6 rule-driver trades planned (PS2, PS3 and PS4 on NIFTY-M and BANKNIFTY-M), AMBER.
+  - Daily: ok, 42 decisions, 16 fills; start 15:19:18, seal 15:23:32, fills 15:24:49, done 15:25:12 (5 min 54 s).
+  - 20:05: "No school record for 2026-10-23", correct for the real record of that day.
+- Monday 26 Oct: the first real session. Its 08:50 and 20:05 editions carry the school sections. 16:35 IST check-in:
+  read the 15:00 slot (times, refusals, the watch rule).
