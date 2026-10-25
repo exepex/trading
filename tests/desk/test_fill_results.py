@@ -21,7 +21,8 @@ def test_an_old_flat_book1_log_reads_the_same_as_its_new_shape():
     old = {"t1": OPENED, BOOK2_HYBRID: REFUSED}  # before the change: trade IDs beside the books' own refusals
     new = {BOOK1_RULES: {"trades": {"t1": OPENED}}, BOOK2_HYBRID: REFUSED}
     assert trade_fills(old) == trade_fills(new) == {"t1": OPENED}
-    assert trade_fills(old, BOOK1_RULES) == {"t1": OPENED}  # an old trade has no book: every book's view keeps it
+    assert trade_fills(old, BOOK1_RULES) == {"t1": OPENED}  # an old flat log is Book 1's (it predates the AI books)
+    assert trade_fills(old, BOOK2_HYBRID) == {}
     assert book_refusals(old) == book_refusals(new) == {BOOK2_HYBRID: REFUSED}
 
 

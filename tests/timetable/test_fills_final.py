@@ -91,7 +91,7 @@ def test_a_rerun_after_a_stop_at_fills_by_fills_the_rest_once(root, tmp_path, al
     written = fills(root, BOOK2_HYBRID)
     clock.now = at(15, 20, day=NORMAL)
     log = run.run(NORMAL)
-    assert trade_fills(log.result("fills"))["c1"]["outcome"] == OUTCOME_OPENED and fills(root, BOOK3_AI)
+    assert trade_fills(log.result("fills"), BOOK3_AI)["c1"]["outcome"] == OUTCOME_OPENED and fills(root, BOOK3_AI)
     assert fills(root, BOOK2_HYBRID) == written  # replayed, never doubled
     assert not [t for t in alerts.sent if "step fills REFUSED" in t]
 

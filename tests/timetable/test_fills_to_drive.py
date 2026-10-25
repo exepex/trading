@@ -195,7 +195,7 @@ def test_one_book_s_failed_exit_review_blocks_that_book_only(root, tmp_path, ale
     )
     assert (
         "t1" not in trade_fills(log.result("fills"))
-        and trade_fills(log.result("fills"))["b1"]["outcome"] == OUTCOME_OPENED
+        and trade_fills(log.result("fills"), BOOK2_HYBRID)["b1"]["outcome"] == OUTCOME_OPENED
     )
     assert len(alerts.sent) == 1 and BOOK1_RULES in alerts.sent[0] and BOOK2_HYBRID not in alerts.sent[0]
     assert list(log.steps)[-2:] == ["exits", "trade_marks"] and log.result("exits")[BOOK1_RULES]["reviewed"] is True
@@ -219,7 +219,7 @@ def test_no_snapshot_blocks_only_a_book_whose_due_exits_were_held_up(root, tmp_p
         log.result("fills")
     )
     assert BOOK2_HYBRID not in book_refusals(log.result("fills"))  # Book 2 is not blocked: it opens b5
-    assert trade_fills(log.result("fills"))["b5"]["outcome"] == OUTCOME_OPENED
+    assert trade_fills(log.result("fills"), BOOK2_HYBRID)["b5"]["outcome"] == OUTCOME_OPENED
 
 
 def test_drive_written_but_the_totals_push_rejected_reconciles_on_a_fresh_container_rerun(root, tmp_path, alerts):

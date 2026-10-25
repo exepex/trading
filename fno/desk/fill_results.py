@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 
-from ..constants import BOOKS
+from ..constants import BOOK1_RULES, BOOKS
 
 TRADES = "trades"
 
@@ -24,10 +24,11 @@ def trade_entries(result: Mapping) -> Iterator[tuple[str | None, str, dict]]:
 
 
 def trade_fills(result: Mapping, book: str | None = None) -> dict[str, dict]:
-    """Each trade's entry by trade ID, for one book when named (two books may share a trade ID: name the book)."""
-    return {
-        trade_id: entry for owner, trade_id, entry in trade_entries(result) if book is None or owner in (book, None)
-    }
+    """Each trade's entry by trade ID, for one book when named (two books may share a trade ID: name the book). An old
+    flat log holds Book 1's trades only (it predates the AI books), so its trades count as Book 1's: a named book other
+    than Book 1 finds none of them (judge 665)."""
+    entries = trade_entries(result)
+    return {trade_id: entry for owner, trade_id, entry in entries if book is None or (owner or BOOK1_RULES) == book}
 
 
 def book_refusals(result: Mapping) -> dict[str, dict]:

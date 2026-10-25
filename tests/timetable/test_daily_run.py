@@ -14,7 +14,7 @@ from fno.constants import BOOK1_RULES, BOOK2_HYBRID, NO_DECISION_LATE, OUTCOME_C
 from fno.desk.daily_ports import CommittedDecision
 from fno.desk.daily_steps import NO_SNAPSHOT
 from fno.desk.exit_rules import TimeExit
-from fno.desk.fill_results import trade_fills
+from fno.desk.fill_results import trade_entries, trade_fills
 from fno.desk.records import DeskRecords
 from tests.desk.builders import at, fly_order
 
@@ -73,7 +73,9 @@ def test_five_days(root, week):
     log = run_day(run, clock, SLOW)  # criterion 1: the slow book gets "no decision (late)"; the other fills on time
     assert log.result("decisions")[BOOK2_HYBRID]["decision"] == NO_DECISION_LATE
     late = root / "journal" / BOOK2_HYBRID / "decisions" / SLOW.isoformat() / "no_decision.json"
-    assert json.loads(late.read_text())["kind"] == NO_DECISION_LATE and "b2" not in trade_fills(log.result("fills"))
+    assert json.loads(late.read_text())["kind"] == NO_DECISION_LATE and "b2" not in trade_fills(
+        log.result("fills"), BOOK2_HYBRID
+    )
     assert trade_fills(log.result("fills"))["t2"]["outcome"] == OUTCOME_OPENED
     assert log.steps["snapshot"]["started_at"] == at(15, 15, day=SLOW).isoformat()  # not delayed by the slow book
 
@@ -143,7 +145,7 @@ def test_a_run_committed_before_the_deadline_but_pushed_after_it_never_fills(roo
     log = run_day(run, clock, NORMAL)
     assert log.result("decisions")[BOOK2_HYBRID]["decision"] == NO_DECISION_LATE
     assert log.steps["decisions"]["inputs"]["origin"] == "origin@151200"
-    assert "b1" not in trade_fills(log.result("fills")) and not fills(root, BOOK2_HYBRID)
+    assert "b1" not in trade_fills(log.result("fills"), BOOK2_HYBRID) and not fills(root, BOOK2_HYBRID)
     assert trade_fills(log.result("fills"))["t1"]["outcome"] == OUTCOME_OPENED
     assert log.result("decisions")[BOOK1_RULES]["commit"] == f"commit-{BOOK1_RULES}-t1"
 
@@ -266,6 +268,20 @@ def test_a_refused_account_write_fails_entries_closed_and_never_crashes_the_run(
     run.steps.sync = RefusingSync(root, BOOK1_RULES)
     log = run_day(run, clock, NORMAL)
     assert trade_fills(log.result("fills"))["t1"]["reason"].startswith("not filled: the account write was refused")
-    assert trade_fills(log.result("fills"))["b1"]["outcome"] == OUTCOME_OPENED
+    assert trade_fills(log.result("fills"), BOOK2_HYBRID)["b1"]["outcome"] == OUTCOME_OPENED
     assert list(log.steps)[-2:] == ["exits", "trade_marks"] and log.result("exits")[BOOK1_RULES]["reviewed"] is False
     assert any("account write was refused" in sent for sent in alerts.sent)
+
+
+def test_book1_and_book2_on_one_opportunity_both_keep_their_fill_line(root, tmp_path, alerts):
+    """Judge 665: the same trade ID in two books (both took the same opportunity) is filled in each account, and the
+    run log keeps each book's line under its own key with its own values."""
+    decisions = Decisions()
+    decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
+    decisions.add(*decided(BOOK2_HYBRID, "t1", NORMAL), NORMAL)
+    run, clock, *_ = daily_run(root, tmp_path, alerts, BOOKS, decisions, C4(), Rules())
+    result = run_day(run, clock, NORMAL).result("fills")
+    assert sorted(result) == [BOOK1_RULES, BOOK2_HYBRID]
+    for book in (BOOK1_RULES, BOOK2_HYBRID):
+        assert trade_fills(result, book)["t1"]["outcome"] == OUTCOME_OPENED and fills(root, book)
+    assert [(book, trade) for book, trade, _ in trade_entries(result)] == [(BOOK1_RULES, "t1"), (BOOK2_HYBRID, "t1")]

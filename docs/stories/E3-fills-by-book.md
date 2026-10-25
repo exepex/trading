@@ -31,3 +31,14 @@ one line. Account records and alerts were right; the run log and anything readin
    (fno-paper-books trades-view), not from run logs.
 6. Gates: the full suite on 814ef210 (from main of 25 Oct), in its own worktree: 17,354 passed, 1 skipped, 13 xfailed, 0
    failed; ruff, `ruff format`, `check_imports` and the record scan are clean.
+
+### Round 2 (judge 665)
+
+1. **Should-fix, accepted (its plant reproduced: the old collision put back into `DeskSteps._fill_books` passed the
+   full suite):** a step-level test on E3's real daily run (`tests/timetable/test_daily_run.py`,
+   `test_book1_and_book2_on_one_opportunity_both_keep_their_fill_line`). Book 1 and Book 2 decide the same trade ID; each
+   account fills it, and the result keeps both lines under their own book keys with their own values. Plant: a trade ID
+   already filled by another book is dropped, and the test fails. Tests with Book 2 trades (`b1`, `b5`) and Book 3's
+   (`c1`) now read through `trade_fills(result, <their book>)`.
+2. **Minor, accepted:** `trade_fills(old_flat, book)` now says, and does, what an old flat log means: Book 1's trades
+   (it predates the AI books). A named book other than Book 1 finds none of them (test).
