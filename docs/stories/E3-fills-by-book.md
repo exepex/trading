@@ -28,3 +28,5 @@ one line. Account records and alerts were right; the run log and anything readin
 4. The public run log needs no change: it recurses into the nested dicts, and book names are listed words.
 5. **Not checked (outside this session's repository scope):** whether the dashboard (`exepex/omenix-dashboard`) reads
    `fills` from the run logs. If it does, it must read both shapes; the reader here is the rule to copy.
+6. Gates: the full suite on 814ef210 (from main of 25 Oct), in its own worktree: 17,354 passed, 1 skipped, 13 xfailed, 0
+   failed; ruff, `ruff format`, `check_imports` and the record scan are clean.
