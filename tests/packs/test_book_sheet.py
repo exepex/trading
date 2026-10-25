@@ -122,3 +122,15 @@ def test_story_f1t_book1s_unbuildable_pack_still_stops_the_step(tmp_path):
     plant(tmp_path)
     with pytest.raises(PackError):
         isolated_packs(tmp_path, BOOK1_RULES, Alerts()).build(DAY)
+
+
+def test_story_f1t_the_wired_packs_isolate_the_ai_books_and_never_book1(tmp_path):
+    """Judge 651 minor 4: the real wiring's isolated set, so Book 1's pack failure still stops the step."""
+    from types import SimpleNamespace
+
+    from fno.desk.pack_wiring import build_packs
+
+    files = SimpleNamespace(push=lambda paths: None)
+    wired = build_packs(tmp_path, files=files, alerts=Alerts(), books=(BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI))
+    assert wired.isolated == {BOOK2_HYBRID, BOOK3_AI}
+    assert build_packs(tmp_path, files=files, alerts=Alerts()).isolated == frozenset()

@@ -8,8 +8,10 @@ import pytest
 from fno.ai_trading.no_judge import NOT_BUILT, NoJudge, VerdictRefused
 from fno.ai_trading.outcome import JUDGE_FAILED, PROMOTED, REFUSED
 from fno.ai_trading.ports import JudgeCase
+from fno.ai_trading.run_check import NOT_YET_PASSED, PASSED, strategy_label
+from fno.playbook.decision_store import DecisionStore
 
-from .builders import DAY, FakeDecider, FakeJudge, draft
+from .builders import DAY, FakeDecider, FakeJudge, accepted, draft, record
 from .day import BOOKS, DEADLINES, Day
 
 CHOSEN = {"action": "trade", "outcome": "chosen", "reason": "IV rich"}
@@ -106,3 +108,16 @@ def test_a_chosen_trade_without_its_strategy_status_is_refused_and_no_trade_has_
     )
     _, plain = collected(tmp_path / "plain")
     assert plain.outcomes["book2_hybrid"]["strategy_label"] == ""
+
+
+@pytest.mark.parametrize("statuses, label", [
+    (("research", "paper"), NOT_YET_PASSED), (("paper", "research"), NOT_YET_PASSED),
+    (("paper", "paper"), PASSED), (("research", "research"), NOT_YET_PASSED),
+])  # fmt: skip
+def test_a_run_s_label_reads_passed_only_when_every_traded_strategy_passed(tmp_path, statuses, label):
+    """Judge 651 minor 3: a run with a research and a paper trade is "strategy not yet passed" (all, never any)."""
+    store, decided = DecisionStore(tmp_path, "book2_hybrid"), accepted(tmp_path)
+    served = lambda status: {"ai_decision_version": decided.version, "strategy_status": status}  # noqa: E731
+    records = [record("book2_hybrid", f"{DAY}-r1", decided, decision=CHOSEN, served=served(status),
+                      opportunity_id=f"opp-{n}") for n, status in enumerate(statuses)]  # fmt: skip
+    assert strategy_label(store.write(DAY, f"{DAY}-r1", None, records)) == label

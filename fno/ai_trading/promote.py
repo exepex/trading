@@ -12,6 +12,7 @@ from pathlib import Path
 from ..playbook.decision_store import SUMS_FILE
 from .ports import AcceptedDecision, AiBookDecider, DecidedRun, DecisionRefused
 from .run_check import run_problems, strategy_label
+from .time_limit import DecisionTimedOut, time_limit
 from .write_snapshot import GitWorktree, OutsideSnapshot, Worktree, WriteSnapshot
 
 NO_DECIDER = "no decider is wired for {book} (its story, F5 or F6, has not landed)"
@@ -32,6 +33,7 @@ class Promotion:
     refused_run: dict = field(default_factory=dict)  # file -> SHA-256 of a run that failed the check (evidence)
     strategy_label: str = ""  # a promoted run's label, read inside the guard (criterion 17b)
     undo: Callable[[], tuple] = lambda: ()  # puts the write paths back, for a failure after promotion
+    timed_out: bool = False  # stopped by its time limit (judge 651): the book is `late`, never `refused`
 
 
 class Promoter:
@@ -39,7 +41,10 @@ class Promoter:
         self.root, self.deciders = Path(root), dict(deciders)
         self.worktree = worktree or GitWorktree(root)
 
-    def promote(self, accepted: AcceptedDecision, write_paths: tuple[str, ...]) -> Promotion:
+    def promote(
+        self, accepted: AcceptedDecision, write_paths: tuple[str, ...], seconds: float | None = None
+    ) -> Promotion:
+        """`seconds`: the decider's time limit (None: none); stopped by it, everything it wrote is put back."""
         decider = self.deciders.get(accepted.book)
         if decider is None:
             return Promotion(False, NO_DECIDER.format(book=accepted.book))
@@ -51,12 +56,15 @@ class Promoter:
                 False, f"the checkout could not be read before deciding: {type(failure).__name__}: {failure}"
             )
 
-        def refused(reason: str, evidence: dict | None = None) -> Promotion:
+        def refused(reason: str, evidence: dict | None = None, timed_out: bool = False) -> Promotion:
             restored = tuple(sorted(set(inside.restore()) | set(outside.restore())))
-            return Promotion(False, reason, restored=restored, refused_run=evidence or {})
+            return Promotion(False, reason, restored=restored, refused_run=evidence or {}, timed_out=timed_out)
 
         try:
-            decided = decider.decide(accepted)
+            with time_limit(seconds):
+                decided = decider.decide(accepted)
+        except DecisionTimedOut as stopped:
+            return refused(str(stopped), timed_out=True)
         except DecisionRefused as refusal:
             return refused(f"the decider refused: {refusal}")
         except Exception as failure:  # noqa: BLE001 - any decider failure is one refused book-day, never a lost run

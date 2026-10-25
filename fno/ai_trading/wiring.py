@@ -148,7 +148,8 @@ def build_ai_steps(
     except DecisionTimingError as wrong:
         return config_refused(str(wrong))
     terms, packs, cards = decision_terms(timing), build_day_packs(root), cards or NoAnalystCards()
-    triggers = {book: build_decision_trigger(book, env) for book in ROUTINES}
+    rehearsing = lambda: rehearsal() is not None  # noqa: E731 - REH1: a rehearsal never fires (read at each run too)
+    triggers = {} if rehearsing() else {book: build_decision_trigger(book, env) for book in ROUTINES}  # judge 651
     marker = PendingCommitter(committer, root, FIRE_LOG_MARKER)  # its own marker, never the run's (E5b's pattern)
     budget, commit = LevelBudgetStop(build_month_meter), marker.commit
     firer = DecisionFirer(root, REGISTRY, triggers, budget, packs, cards, build_record_scanner(), commit, clock, terms)
@@ -157,7 +158,7 @@ def build_ai_steps(
     judge_step = (JUDGE_STEP or NoJudge)(root)  # F4 sets JUDGE_STEP when its code lands; until then never a trade
     collector = DecisionCollector(root, RepoHistory(root), REGISTRY, Promoter(root, deciders), packs, cards, pull,
                                   terms, judge_step, clock)  # fmt: skip
-    observer, rehearsing = ObserverHandle(), lambda: rehearsal() is not None  # REH1: a rehearsal never fires
+    observer = ObserverHandle()
     return {
         AI_FIRE_STEP: AiFireStep(root, firer, timing, live, processes, observer, rehearsing),
         AI_COLLECT_STEP: AiCollectStep(root, collector, timing, live, waiter, clock, observer, rehearsing),
