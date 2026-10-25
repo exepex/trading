@@ -58,3 +58,22 @@ affected today.
 committed edit of an earlier row passes.
 
 Next round (2 of 2, the last): S1 with its test, m1, then the full gates and these plants again.
+
+## Addendum 2
+
+**Round 2 of 2 at story/f5-code `bc146b720`: PASS (no blocking, no should-fix, no minor left).** Lane 1. I did not
+read judge I.
+
+| Check | Result | My evidence |
+|---|---|---|
+| 661.1 S1: pauses in the real daily run | MET | `tests/book2/test_daily_wiring.py` builds the real `build_day_runner` with `book2_hybrid` live, then off. My plants fail it: review dropped (1 failed), path dropped (1 failed), review kept with Book 2 off (1 failed) |
+| 661 m1: whole history | MET | `rows()` checks each committed version is a prefix of the next and of the file now (`fno/book2/pauses.py`); `build_research_pauses` reads `Git.commits_touching` (oldest first) with `committed_text` per commit. The real-git test refuses a committed hand edit. Plants: last commit only (1 failed), check reduced to last plus now (2 failed), history newest first (1 failed) |
+| Rest of F5 | unchanged | Only `decision_wiring.py`, `pauses.py`, two tests and the story's Claims changed since `da5808026` |
+| Merge with main `2331b7a93` | 1 conflict, mechanical | `config.yaml` only: main's REC1b switch-on (`a0ab7a402`, after this head) sets `recommend: "2026-10-26"` on the line where F1t's keys follow. My trial kept main's date plus `book2_hybrid: null`, `book3_ai: null` and `ai_books.decision_timing` unchanged. The merge must equal that; any other resolution needs a re-check |
+| Full gates on that trial merge (token kept) | MET | Main has since moved to `d792efd92`, touching no F5 file (`research/edge2/`, `tests/test_routine_setup.py`, docs). ruff, format (2,846), imports (3,001), record scan (9,598), numbers clean; **18,190 passed, 1 skipped, 12 xfailed** |
+| Claims (round 2) | checked where I could | Items 1 and 2 match the code and my plants. I did not rerun the builder's 26-plant table (my own 6 plants above, and 13 in round 1); the replay sample matches `tests/e2e_acceptance/book2_replay.py`'s assertions as I read them |
+
+**Notes, not findings:**
+- The history check assumes one line of commits; the docstring says so (the daily run is the only writer).
+- A shallow clone checks fewer versions but never refuses falsely.
+- Q12 (`binds_paper`) is still the owner's call, as in round 1. The merge waits for the owner's row, not for me.
