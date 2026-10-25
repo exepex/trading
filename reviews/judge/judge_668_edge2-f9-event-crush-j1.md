@@ -74,3 +74,8 @@ and the year-matched range in the second.
 
 **Gates:** trial merge with main `b58ddecdb`, committed locally (never pushed): 17,538 passed, 13 xfailed, 0 failed;
 ruff, format, `check_imports`, `check_records` clean. **Plants:** 3, all caught.
+**Narrow check of the minor (orchestrator's request): `c48249edd` PASS, the last minor closed.** One commit on
+`9c7961346`, `F9_RESULTS.md` only (3 lines): the worst FLY-E0 trade is now -Rs 2,334, the incomplete 2024
+election-day exit (-Rs 2,147 among decided trades). The other variants' worst trades are unchanged; their incomplete
+losses, -2,275 and -1,514, are smaller. The label is now p_event 0.002-0.048, pooled and year-matched. Record scan
+clean; the doc-reading tests plus `test_f9.py`: 950 passed, 13 xfailed.
