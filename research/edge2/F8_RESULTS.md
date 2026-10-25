@@ -1,4 +1,4 @@
-# EDGE2 F8 discovery: the 2-leg NIFTY weekly credit spreads alone (2019-2024)
+# EDGE2 F8 results: the 2-leg NIFTY weekly credit spreads alone (2019-2024); the side filter untested
 
 Protocol `research/edge2/F8_PROTOCOL.md`, frozen in `F8_FREEZE.md` (commit `1f69681c`, code SHA-256 `f4fd512c`). One
 discovery run at `d38baa12` (`f8/discovery.json`). **No participant-OI file was read**: this step measures the
@@ -24,7 +24,16 @@ Side averages (the random-side baseline): P0W5 -Rs 282 (Rs 2 pad -395; entered a
 -274), P0W10 -Rs 388 (-505; -368, **futile**). Skips: 7-22 entries a variant at impossible opening prices (opening
 trades of two legs at different moments), 1 at the cap.
 
-## What it means for the held-out read [reasoning only]
+## Decision: F8 closed, the held-out step waived (orchestrator, 25 Oct 2026)
+
+**F8 ends as "the spread fails unfiltered; the filter is untested".** The orchestrator chose to keep participant OI
+2025-26 unread (option 2 of the builder's question): the filter would need about Rs 285-340 of extra gross a trade
+against an estimated Rs 100; about 90 held-out cycles with an SE near Rs 400 could pass only a very large effect; and
+it is the last fresh predictor history held. Trials 121-123's held-out step is **waived by the orchestrator**, not
+failed; trials 124-126 of the `edge2-f8` block are unused and stay in the block. No participant-OI file was read by
+F8.
+
+## What it meant for the held-out read [reasoning only]
 
 - The puts did better than the calls in every variant (2019-2024 was a rising market): the drift, not a skill.
 - To pass, the filtered spread's mean gross must clear Rs 260. The kept variants' side-average gross is about -Rs 77
