@@ -159,6 +159,11 @@ modifies or cancels orders, and neither uses Groww.
    receipts/data/forecast_lab/v1/<morning|evening>/` (the evening also `research/data/forecast_lab/release/`), commit and `git push origin HEAD:main` (record scan on, never
    `--no-verify`). If the push is refused, pull and push once more; if it fails again, post "receipt NOT pushed" with
    the edition and day to #fno-desk (`C0C89E8QCCD`) with the Slack connector: the Drive copy is the record.
+3b. The evening only, after step 3's commit: `python -m fno recommend check` (story REC1c: the recommender's check of
+   its recorded days against their sealed outcomes). It reads no price and changes no edition: `lab close` has already
+   posted and step 3 has committed its receipts. It writes and pushes its own receipts (`receipts/data/recommend/`)
+   itself and posts one #fno-desk line per day that becomes final. Exit 1: it has alerted #fno-desk itself; note its
+   lines in `conversations/<date>.md` and post the text of any "alert NOT sent" line.
 4. If it printed "alert NOT sent", post those lines to #fno-desk with the Slack connector. Note any failure in
    `conversations/<date>.md`, then commit and push it (`git pull --no-rebase origin main` first, then `git push origin
    HEAD:main`).
