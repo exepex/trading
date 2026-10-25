@@ -44,3 +44,30 @@ Labels: strong, some, reasoning only.
 Caught: chosen trade under a blocking verdict; NoJudge not blocking Book 2; a rehearsal firing; a late collection
 promoting; the run check skipped; a commitment seen at the reveal reading counted on time; changed packs accepted; live
 a day late; the D6 constitution check dropped; a blocking verdict promoted.
+
+## Addendum 1
+
+**Round 2 of 2 at story/f1t-code @ 7850269ed (code d7162890e; F1t's own commits a1ed229a4 and 1f14e057c), judge F,
+judge 2 of 2: PASS (2 minor). Lane 1.** Own session; I did not read 630's session or judge 651.
+
+| Item | Answer | My check | Result |
+|---|---|---|---|
+| SF1: Book 1's pack failure not pinned | a wiring test that the real `build_packs` isolates Books 2 and 3, never Book 1 | my plant (Book 1 in `isolated`) now **fails** (1 of 685) | **Accepted** |
+| m2: triggers built in a rehearsal | `triggers = {}` in a rehearsal (`wiring.py:151-152`); a wiring test | my plant (triggers built anyway) now fails | **Accepted** |
+| m1: an empty `strategy_status` | not addressed (round 2 pinned the mixed label instead) | my plant still survives; the code labels `""` "strategy not yet passed", the conservative label | **Carried as minor 1** |
+| 651's SF1: the hard decider time limit (new code) | `time_limit` (SIGALRM, ITIMER_REAL, main thread only, previous handler restored); limit = min(60 s, time to E3's 15:12 deadline - 10 s reserve); a timeout restores the write paths and is `late`; a run finishing at or after 15:12 is undone (`Promotion.undo`) and `late` | read; no other SIGALRM user in `fno/` (grep); plants (limit off; no reserve; late finish kept; a timeout recorded `refused`) all caught | **Sound** (minor 2) |
+
+v4 freeze: `freeze_check.check` on the trial merge: no problems, no drift. Gates on a trial merge with main ea79fe255
+(clean): **17,309 passed, 1 skipped, 13 xfailed** (token kept); ruff, format (2,720 files), `check_imports`,
+`check_records` (9,459 files) clean.
+
+## Minor
+
+1. (From round 1.) An empty or whitespace `strategy_status` on a chosen trade is promoted labelled "strategy not yet
+   passed" instead of refused as criterion 17b says; one test case would pin it.
+2. `DecisionTimedOut` subclasses `Exception`, so a decider with a broad `except Exception` (F5's, F6's) could swallow
+   the alarm and keep running. The after-check then catches a late finish, but not a decider that never returns.
+   Subclass `BaseException`, or have F5's and F6's judges check that their deciders never catch it.
+
+Plants (round 2): 7, **6 caught, 1 survived** (minor 1). Both rounds: 17 of 21 meaningful plants caught; no blocking
+or should-fix finding left.
