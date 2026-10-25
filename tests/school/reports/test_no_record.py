@@ -57,12 +57,29 @@ def test_outcomes_alone_without_a_sealed_decisions_file_are_no_record():
     assert f"No school record for {f.SESSION}" in evening([f.net_record()]).lines[1]
 
 
-def test_a_recorded_day_renders_the_same_whatever_the_run_log_says():
-    """The run log never changes a recorded day; that the render is as before is carried by g's tests in
-    `test_sections.py` (unchanged but for the counts line, criterion 3)."""
+@pytest.mark.parametrize("step", [None, ("ok", "command:ok")], ids=["no step (a manual run)", "step ok"])
+def test_a_recorded_day_is_unchanged_when_its_step_is_ok_or_missing(step):
+    """Criterion 5; that the render is as before is carried by g's tests in `test_sections.py`."""
     recorded = evening([trade_record(), f.net_record()], [f.counts()])
-    assert recorded == evening([trade_record(), f.net_record()], [f.counts()], step=("failed", "school:STOPPED"))
-    assert "CS1@1 BANKNIFTY-M: 3 / 2 / 1" in recorded.lines and "No school record" not in "\n".join(recorded.lines)
+    assert recorded == evening([trade_record(), f.net_record()], [f.counts()], step=step)
+    assert recorded.banner is Banner.AMBER and "may be incomplete" not in "\n".join(recorded.lines)
+
+
+def test_a_day_that_sealed_and_then_stopped_says_so_in_red_never_a_quiet_amber_day():
+    """Judge 645's case: one sealed trade decision, no outcome or counts (`_finish` stopped), the step failed."""
+    text = evening([trade_record()], step=("failed", "school:STOPPED"))
+    assert text.banner is Banner.RED
+    assert text.lines[:2] == (
+        "Banner: RED, do not trade real money today",
+        "the daily run's school step was failed (school:STOPPED): this record may be incomplete",
+    )
+
+
+@pytest.mark.parametrize("step", [("refused", "school:TOO_LATE"), ("failed", "o1:STOPPED_AT_LIMIT")])
+def test_any_step_that_is_not_ok_on_a_recorded_day_adds_its_line_and_the_red_banner(step):
+    text = evening([trade_record(), f.net_record()], [f.counts()], step=step)
+    line = f"the daily run's school step was {step[0]} ({step[1]}): this record may be incomplete"
+    assert text.banner is Banner.RED and line in text.lines and "CS1@1 BANKNIFTY-M: 3 / 2 / 1" in text.lines
 
 
 def test_a_recorded_day_with_no_counts_row_says_none_never_an_empty_line():

@@ -803,8 +803,10 @@ and new ones), this section.
 4. **The 08:50 rule.** When no road is open in the source session's data (every road closed, or no road listed), the
    "Today" section says "No plan can be made today: no road is open." instead of "No candidate today: nothing is
    planned." (which stays for a day with open roads and no proposal). Each line keeps its source note.
-5. **A recorded day is unchanged.** A session with a sealed decisions file renders exactly as before (g's tests stand),
-   whatever the run log says.
+5. **A recorded day is unchanged when its school step is ok or missing** (a manual run); g's tests stand. When the
+   step is anything else (judge 645: a run that sealed its decisions and then stopped in its finish, `failed
+   (school:STOPPED)`), the banner is RED and the line after it reads "the daily run's school step was <status>
+   (<code>): this record may be incomplete"; the recorded lines follow as recorded.
 6. **The 08:50 plan asks each driver about its own roads only** (found by the 23 Oct morning rehearsal after REH1p,
    and on main: the real plan for Mon 26 Oct from 23 Oct's captures was empty, while the 23 Oct slot itself had 6 rule
    trades). `PreviousSlotToday` asked every rule driver about every open road; the real drivers raise `OutOfScope` for
@@ -3594,3 +3596,22 @@ controls).
 **Gates at d28c279f3** (the code of round 1, main with MS-P1j3 merged in; this text is Markdown only on top): full
 suite 16610 passed, 1 skipped, 13 xfailed (FNO_SLACK_BOT_TOKEN kept set); ruff check and format clean; check_imports
 clean (2765 files); check_records clean (9296 files); check_numbers at the merge.
+
+### MS-P1j4 Claims, round 2 (judge 645 FAIL round 1: one should-fix, accepted by the orchestrator)
+
+- **Should-fix (judge E): a day that sealed and then stopped read as a quiet AMBER day.** Accepted: reproduced with g's
+  fakes (one sealed trade decision, no outcome or counts, the step `failed (school:STOPPED)` gave "Banner: AMBER ...
+  Trades closed: none ... Rs +0"). Fixed in `HowDidTodayGoSection._step_warning`: a recorded day whose step is not
+  `ok` gets the RED banner and "the daily run's school step was <status> (<code>): this record may be incomplete" right
+  after it; ok or missing (a manual run) is unchanged. Criterion 5 reworded as the judge asked.
+  Tests (`test_no_record.py`): `test_a_day_that_sealed_and_then_stopped_says_so_in_red_never_a_quiet_amber_day` (the
+  judge's case, exact first two lines), `test_any_step_that_is_not_ok_on_a_recorded_day_adds_its_line_and_the_red_banner`
+  (refused `school:TOO_LATE`, failed `o1:STOPPED_AT_LIMIT`; the recorded counts still shown),
+  `test_a_recorded_day_is_unchanged_when_its_step_is_ok_or_missing` (replaces round 1's "whatever the run log says").
+  Plants, each caught: the warning removed (3 failed), the banner left to `banner_for` (3), a missing step warned (36),
+  an ok step warned (1).
+- **The orchestrator's 08:50 question (can a stopped run feed the next morning's plan?): no.** `PreviousSlotToday`
+  plans from the roads' catalogue and the 15:00 capture snapshots of the previous session
+  (`fno/school/fleet/report_inputs.py`: `plan_slot(previous, self.catalogue, self.snapshots, self.gate)`), never from
+  the dashcam or the accounts, so what a run sealed or failed to seal does not reach it; the 08:50 section's banner
+  and lines come from those captures alone. No change.

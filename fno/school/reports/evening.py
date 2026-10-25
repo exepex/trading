@@ -8,6 +8,7 @@ from collections import Counter
 from collections.abc import Iterable
 from datetime import date
 
+from ...constants import STEP_OK
 from ..constants import FLEET_TOTAL_LABEL, DriverRole, Outcome
 from ..contracts.records import DecisionRecord, OutcomeRecord
 from ..contracts.reports import Banner, SectionText
@@ -31,6 +32,7 @@ WHY_HEADER = "Why (the instructor's words):"
 NO_RECORD = "No school record for {day}: {why}."
 STEP_WAS = "the daily run's school step was {status} ({code})"
 NO_STEP = "the daily run recorded no school step"
+INCOMPLETE = STEP_WAS + ": this record may be incomplete"  # a recorded day whose step failed (judge 645)
 COUNTS = "Counts (eligible / fillable / executed):"
 CANDIDATE_OUTCOMES = (Outcome.TRADE, Outcome.TICKET)
 OTHER_ROLES = (
@@ -53,9 +55,11 @@ class HowDidTodayGoSection:
         rule = [r for r in money if self._role(r) is DriverRole.RULE]
         closed_roads = {(d.road, d.decision.reason) for d in decisions if d.decision.outcome is Outcome.ROAD_CLOSED}
         candidates = sum(self._is_candidate(d) for d in decisions)
-        banner = banner_for(len(closed_roads), candidates)
+        warning = self._step_warning(session)
+        banner = Banner.RED if warning else banner_for(len(closed_roads), candidates)
         lines = (
             banner_line(banner),
+            *warning,
             *self.inputs.marks(session),
             *self._trades(rule),
             *self._counts(session),
@@ -67,6 +71,14 @@ class HowDidTodayGoSection:
             *footer(),
         )
         return SectionText(paper_title(TITLE), lines, banner)
+
+    def _step_warning(self, session: date) -> tuple[str, ...]:
+        """A recorded day whose school step is not ok (it sealed, then stopped): said so, red. Ok or missing (a manual
+        run) leaves the day as recorded."""
+        step = self.inputs.school_step(session)
+        if step is None or step[0] == STEP_OK:
+            return ()
+        return (INCOMPLETE.format(status=step[0], code=step[1]),)
 
     def _no_record(self, session: date) -> SectionText:
         step = self.inputs.school_step(session)
