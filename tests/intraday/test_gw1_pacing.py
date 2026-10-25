@@ -155,3 +155,24 @@ def test_the_school_still_starts_by_its_limit_after_that_capture():
     first_call = start + timedelta(seconds=QUIET_SECONDS)
     school = first_call + LONGEST_E3_CAPTURE + timedelta(seconds=PAUSE_SECONDS) + SNAPSHOT_COMMIT + TO_THE_SCHOOL
     assert school.time() <= SCHOOL_STARTS_BY
+
+
+class SleepingPacer:
+    """A pacer whose wait takes a second of the clock, as a real one does when it holds a call back."""
+
+    def __init__(self, clock):
+        self.clock = clock
+
+    def wait(self):
+        self.clock.at += timedelta(seconds=1)
+
+
+def test_a_calls_send_time_is_taken_after_its_pacer_wait():
+    """Judge 638 addendum 1, plant J3: stamped before the wait, A16's send times would be early by the wait."""
+    mark = ist(DAY, 10, 0)
+    clock = TickingClock(mark, 0.0)
+    provider = FakeGrowwProvider(FakeGrowwApi())
+    source = GrowwIntradaySource(ReadOnlyGroww(lambda: provider.api), ExpiryPlan(lambda: LISTED), 75, clock,
+                                 SleepingPacer(clock))  # fmt: skip
+    doc = source.take(DAY, mark)
+    assert doc.index.request_sent_at == mark + timedelta(seconds=1)  # the first call: one wait, then its stamp

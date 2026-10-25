@@ -235,6 +235,9 @@ leaves A16 at 240 a minute, so its few unpaced calls (index, future, chains, can
 
 ### Round 2 (judges 637 K and 638 I; the orchestrator accepted every finding)
 
+- Head be5ec337e plus a test: pytest -n auto on the merge with main (795588136) 16824 passed, 1 skipped, 13 xfailed;
+  ruff check and format, check_imports, check_records and check_numbers clean.
+
 - Parts 1-4 merge alone as GW1a (`story/gw1a-groww-guard-core`, `docs/stories/GW1a-groww-guard-core.md`; the
   orchestrator's split, 25 Oct). This branch keeps them unchanged.
 
@@ -280,6 +283,8 @@ leaves A16 at 240 a minute, so its few unpaced calls (index, future, chains, can
     - no stop at the window's end;
     - the stop at one second past it (`>` for `>=`);
     - an unpaced call;
+    - the send time stamped before the pacer's wait (judge 638 addendum 1's survivor J3; now caught by
+      `test_a_calls_send_time_is_taken_after_its_pacer_wait`);
     - `fills_by` back at 15:20;
     - `execution_snapshot` at 15:18 (no room left).
   - Wiring:
