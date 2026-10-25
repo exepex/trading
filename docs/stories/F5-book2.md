@@ -481,7 +481,12 @@ branch yet: it merges in once that fix is pushed.
    - Tests: a committed hand edit is refused and a clean chain passes; through real git with the wired builder, two
      appends read and a third, edited commit is refused.
    - Plant: wiring back to the last commit only fails the git test.
-2. **Judge 662, accepted: a plant list per criterion, with results.** Each plant was applied alone and the
+2. **Judge 661.1 S1, accepted (its two plants reproduced: each passed the full suite before):** Book 2's research-loss
+   stops are now pinned in the real daily run. `tests/book2/test_daily_wiring.py` builds the run with
+   `build_day_runner` and `daily.live_from.book2_hybrid` set: the reviews step holds `Book2ResearchPauses` and commits
+   `research_pauses.csv`. With Book 2 off it holds neither. Plants: `book2_reviews` returning nothing fails it;
+   `book2_review_paths` returning nothing fails it.
+3. **Judge 662, accepted: a plant list per criterion, with results.** Each plant was applied alone and the
    criterion's tests run (`-x`), then the file was restored. Script:
    kept in the builder's scratchpad, not the repository (it edits files).
 
@@ -510,10 +515,12 @@ branch yet: it merges in once that fix is pushed.
    | 14 pauses | history check reduced to the last commit (item 1) | caught |
    | 15 label | Book 2's own label refusal off | caught |
    | review | two resolved picks of one opportunity accepted | caught |
+   | 14 pauses in the run | `book2_reviews` returns nothing (661.1 S1) | caught |
+   | 14 pauses in the run | `book2_review_paths` returns nothing (661.1 S1) | caught |
    | O11 (12) | no sheet in Book 2's private pack in the replay | caught |
 
-   **24 of 24 caught.**
-3. **Real output sample (committed code, no post):**
+   **26 of 26 caught.**
+4. **Real output sample (committed code, no post):**
    - **The 16 Oct replay** (`tests/e2e_acceptance/book2_replay.py`, real quotes; the test playbook's paper version
      `sc-a` v1 fires).
      - Book 2's day log has one slot: default `sc-a-v1:2026-11-23`, action `follow_rule`, status `allowed` ("sc-a v1:
