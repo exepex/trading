@@ -10,10 +10,11 @@ from __future__ import annotations
 from collections import Counter
 from pathlib import Path
 
+from fno.numbering.blocks import LEDGER_TRIAL, ledger_trials, seed_blocks
 from fno.numbering.categories import CATEGORIES
 from fno.numbering.numbered_items import numbered_items
 from fno.numbering.registry import SEEDED, Row, append_row, read_rows
-from fno.numbering.seed_pin import seeded_digest, write_pins
+from fno.numbering.seed_pin import read_pins, seeded_digest, write_pins
 
 
 def seed_registries(root: Path) -> int:
@@ -29,5 +30,16 @@ def seed_registries(root: Path) -> int:
                 continue
             append_row(path, Row(item.number, item.name, SEEDED))
             added += 1
-    write_pins(root, {c.name: seeded_digest(read_rows(root / c.registry)) for c in CATEGORIES.values()})
+    added += _seed_ledger_trials(root)
+    series = [*CATEGORIES.values(), LEDGER_TRIAL]
+    write_pins(root, {**read_pins(root), **{s.name: seeded_digest(read_rows(root / s.registry)) for s in series}})
     return added
+
+
+def _seed_ledger_trials(root: Path) -> int:
+    """Story O12e: the ledger's trials no block covers yet, one history block per run of one experiment."""
+    path = root / LEDGER_TRIAL.registry
+    blocks = seed_blocks(ledger_trials(root), read_rows(path))
+    for block in blocks:
+        append_row(path, Row(block.text, block.name, SEEDED))
+    return len(blocks)
