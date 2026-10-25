@@ -60,8 +60,10 @@ def test_an_established_version_in_an_unavailable_source_forces_data_check_faile
 
 def test_no_eligible_version_from_an_unavailable_source():
     with pytest.raises(RecordRefused, match="real-money"):
-        established_day(candidates=(), candidate_sources=SCHOOL_DOWN, reason=NoTradeReason.DATA_CHECK_FAILED,
-                        real_money=RealMoneyAnswer.ELIGIBLE_FOR_YOUR_OWN_REVIEW, eligible_version="school:CS1@1")  # fmt: skip
+        established_day(
+            candidates=(), candidate_sources=SCHOOL_DOWN, reason=NoTradeReason.DATA_CHECK_FAILED,
+            real_money=RealMoneyAnswer.ELIGIBLE_FOR_YOUR_OWN_REVIEW, eligible_version="school:CS1@1",
+        )  # fmt: skip
 
 
 def test_while_nothing_is_established_an_unavailable_school_changes_no_answer():
