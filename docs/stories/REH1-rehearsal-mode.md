@@ -1085,7 +1085,7 @@ real-run code."
   the index recorders unwrapped; the `v4` window recorder unwrapped; the guard without the index rows.
 - **S2. No Groww SDK, no live fallback** (`tests/rehearsal/test_guard_recorders.py`, a fresh process): each of the six
   recorders is recorded over an `NSEProvider` whose call is refused; the SDK line appears once per builder (three).
-- **S3. NSE's own chain recorder** (judge 669 m1 for REH1s; follow-up `story/reh1qs-minors`): `build_nse_quote_recorder`
+- **S3. NSE's own chain recorder** (judge 670 m1 for REH1s; follow-up `story/reh1qs-minors`): `build_nse_quote_recorder`
   (`quotes record --source nse`, O6) has its own guard row, and in the fresh process it is recorded over its
   `NseQuoteProvider`, whose call is refused. The guard's planted-break count is thirteen.
 
@@ -1118,8 +1118,9 @@ constant. Before `since`, the command is exercised, never failed."
 `rehearse evening --day 2026-10-21` from main 4e8be7b72 (run 20261025T025540Z-5413fe) ended "failed: closes read
 --commit, records certify closes --level provisional --commit, data-librarian fo-bhavcopy ..., data-librarian
 participant-oi ..., data-snapshot fii-dii-cash-by-session". On 21 Oct none of the evening routine's commands was in its
-routine: the first commit holding `lab close` in CLAUDE.md is 6eced93c2 (21 Oct 16:56 UTC, 22:26 IST, after 19:53), the
-evening's data commands 49aa26951 (21 Oct 23:09 UTC), and the first evening outputs in the record are 22 Oct's (below).
+routine: the first commit holding the evening routine's `lab close` in CLAUDE.md is 5c3195ba0 (21 Oct 22:44 UTC, 22 Oct
+04:14 IST; judge 674.1), the evening's data commands 49aa26951 (21 Oct 23:09 UTC), and the first evening outputs in
+the record are 22 Oct's (below).
 A rehearsal runs today's routine, so on an earlier day each such command meets a record that never held its answer
 ("rehearsal:NOT_RECORDED", `RecordedAnswerMissing`) and counts as the routine's failure. REH1k keyed only the lab
 editions (`live_key`); these commands have no key.
@@ -1172,6 +1173,48 @@ editions (`live_key`); these commands have no key.
   changed.
 - **R4. Empty:** a command with no `since` (the daily run) is never exercised by it.
 - **R5. Real runs unchanged:** the full suite.
+
+#### Claims, code round 1 (for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1r-code` (from main, after the text's merge eb1b5a817). Code:
+`fno/rehearsal/routines.py` (`Command.since`, `Command.exercised_on`, four dated constants each citing its source),
+`fno/rehearsal/rehearse.py` (`run_routine` sets apart every command `exercised_on` the day), and
+`fno/rehearsal/exercised_line.py` (`not_live_result` records `since`; the line names such a command "(in its routine
+from <since>)"). Tests: `tests/rehearsal/test_command_since.py` (12). Text: judge 674.1's Finding line now cites
+5c3195ba0; judge 670.1's S3 cites 670.
+
+| Criterion | Tests | Plants (each caught) |
+|---|---|---|
+| R1 | the 21 Oct evening: "7 commands done", seven exercised, `closes read`'s record `{"status": "not_live", "since": "2026-10-22", ...}`; the exercised line names it "(in its routine from 2026-10-22)"; `lab close` keeps its edition's form | `since` ignored; a since-command counted as failed; the line without the qualifier; `since` recorded for a lab edition too |
+| R2 | the 22 Oct evening: its own five commands fail as on the day, the certify command and `lab close` exercised; 24 Oct with the edition live: nothing exercised; the pre-open routine through `run_routine` on 22 Oct ("2 commands done") and 23 Oct ("failed: preopen record, global-cues preopen") | `<` made `<=` |
+| R3 | each command's `since` equals the table's row (judge 673.1); the boundary index-close 22 Oct exercised, 23 Oct the routine's; the lab editions keep their key and take no `since`; every command still in its CLAUDE.md section (the existing two-way test) | a date changed |
+| R4 | the daily run has no `since` and is never set apart by it; a set-apart command with no `exercised` record is refused | the guard dropped |
+| R5 | the full suite | |
+
+**Plants:** 8 planted, 8 caught, in a separate worktree, each restored with `git checkout --`.
+
+**Gates** (main merged in, the token kept): 17571 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
+clean.
+
+**Self-review** (an independent review agent): no blocking finding; every `since` checked again in git against the
+table and the record (first outputs 47a4ff7a8, 3decf6a60, 2428dac17, f24218f2e, 936611423, c08dde158, 5aab4ed4c,
+6bdf18007; the earlier hand and job rows rightly not counted); real runs unchanged (`routines.py` is imported only by
+the rehearsal's `cli.py` and `rehearse.py`). Accepted and fixed: the "not in its routine" note never reached the posted
+line (it was in `result["reason"]`, which the line does not read; a daily not-live step keeps its live-from note there,
+so the line cannot print every `reason`): now its own `since` key and a qualified item, tested at the line; the two
+stale texts (`NO_EXERCISED`, a comment); the guard and the pre-open boundary through `run_routine`, tested. Not
+changed: an exercised command's name shows its raw arguments (`--from {day}`), REH1k's key since before this change.
+
+**Real output sample** (a full clone of this branch at 6572169ea, the token kept): `rehearse evening --day
+2026-10-21`, run 20261025T055423Z-26bf03, branch `refs/heads/rehearsal/2026-10-21-20261025T055423Z-26bf03`, ended "7
+commands done" (before, pass 2's run 20261025T025540Z-5413fe: "failed: closes read --commit, records certify ...,
+data-librarian fo-bhavcopy ..., data-librarian participant-oi ..., data-snapshot fii-dii-cash-by-session"). #fno-desk,
+read back, labelled "*DRY RUN, 2026-10-21 replay, not a real trading day*": "not live in real runs (exercised): closes
+read --commit (in its routine from 2026-10-22) failed: close-read receipts: nothing new to commit; records certify
+closes --level provisional --commit (in its routine from 2026-10-24) failed: closes 2026-10-21 provisional: NOT
+recorded: no staged version; ...; lab close failed: lab close 2026-10-21: the evening report was not made
+(RuntimeError); nothing was posted; lab release-check (in its routine from 2026-10-22) ok; replay clock not checked (by
+design)". An earlier run on e67612f7d (before the line fix, 20261025T055020Z-d318af) also ended "7 commands done".
 
 #### Gap list (rule 2)
 
