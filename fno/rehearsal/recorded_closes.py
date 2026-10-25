@@ -32,7 +32,7 @@ class RecordedCloseList(CloseListSource):
 
     def answer(self) -> tuple[dict, bytes]:
         now = self.now()
-        found = self._nearest_after(now, now.date())
+        found = self._served(now, now.date())
         if found is None:
             raise RecordedAnswerMissing(NOT_RECORDED.format(at=now.isoformat()))
         path, saved = found
@@ -43,7 +43,7 @@ class RecordedCloseList(CloseListSource):
             raise RecordedAnswerMissing(NOT_RECORDED.format(at=now.isoformat()))
         return json.loads(raw), raw
 
-    def _nearest_after(self, now: datetime, day: date) -> tuple[str, datetime] | None:
+    def _served(self, now: datetime, day: date) -> tuple[str, datetime] | None:
         prefix = f"data/closes/{day:%Y}/{day:%m}/{day.isoformat()}."
         saved = [(r.path, datetime.fromisoformat(r.written_at)) for r in self.receipts.under(prefix.rsplit("/", 1)[0])
                  if r.path.startswith(prefix) and r.path.endswith(RAW_SUFFIX)]  # fmt: skip

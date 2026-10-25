@@ -52,7 +52,7 @@ def closes(tmp_path, now):
 
 def test_the_recheck_gets_its_own_answer_on_time_and_late_and_the_first_read_gets_the_first(tmp_path):
     def served(now):
-        return closes(tmp_path, now)._nearest_after(now, now.date())[0].split(".")[1]
+        return closes(tmp_path, now)._served(now, now.date())[0].split(".")[1]
 
     assert served(at(16, 0)) == "recheck"  # saved 4 s after the read asked: the near window, as before
     assert served(at(16, 20)) == "recheck"  # pushed 20 minutes later: the latest before now, never 15:40's
@@ -80,3 +80,36 @@ def test_ahead_stays_bounded_at_ten_minutes_and_a_later_answer_never_hides_an_ea
 def test_empty_and_a_day_with_only_later_answers_give_nothing():
     assert scheduled_pick(at(15, 0), []) is None
     assert scheduled_pick(at(9, 0), [(at(15, 33), "afternoon")]) is None
+
+
+class Clock:
+    def __init__(self, now):
+        self.at, self.slept = now, []
+
+    def __call__(self):
+        return self.at
+
+    def sleep(self, seconds):
+        self.slept.append(seconds)
+        self.at += timedelta(seconds=seconds)
+
+
+def test_a_late_read_is_served_its_recorded_bytes_at_once_and_an_early_one_waits(tmp_path):
+    """Self-review M2: through `answer()`, the fallback serves the recorded raw answer with no wait; the near window
+    still waits for its saved time (no answer before it existed)."""
+    receipts = ReceiptFolder(tmp_path)
+    receipts.write(Receipt("data/closes/2026/10/2026-10-21.recheck.raw.json", "ab", 2, at(16, 0, 4).isoformat(),
+                           "closes read", "r"))  # fmt: skip
+    raw = {"data/closes/2026/10/2026-10-21.recheck.raw.json": b'{"recheck": true}'}
+    late, early = Clock(at(16, 20)), Clock(at(15, 59))
+    assert RecordedCloseList(receipts, raw.get, late, late.sleep).answer() == ({"recheck": True}, b'{"recheck": true}')
+    assert late.slept == [] and late() == at(16, 20)
+    RecordedCloseList(receipts, raw.get, early, early.sleep).answer()
+    assert early.slept == [64.0] and early() == at(16, 0, 4)
+
+
+def test_a_first_read_pushed_past_the_recheck_s_answer_is_served_the_recheck(tmp_path):
+    """Self-review M2, the stated fidelity limit: a 15:40 read pushed past 16:00:04 gets the latest answer the day
+    held, the recheck's, so A4h's recheck then reads "unchanged" where the real day compared two lists. A live read at
+    that moment would also have seen the later list; nothing of the real record is written."""
+    assert closes(tmp_path, at(16, 5))._served(at(16, 5), date(2026, 10, 21))[0].endswith("recheck.raw.json")
