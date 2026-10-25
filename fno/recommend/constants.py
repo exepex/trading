@@ -60,3 +60,15 @@ class OutcomeSource(StrEnum):
     BACKTEST = "backtest"
     SIMULATOR = "simulator"
     REHEARSAL = "rehearsal"
+
+
+class CandidateSourceName(StrEnum):
+    """Where the day's candidates come from (orchestrator's ruling, 25 Oct): each is listed with its state."""
+
+    DESK_BOOK1 = "desk:book1"
+    SCHOOL = "school"
+
+
+class SourceState(StrEnum):
+    COMPLETE = "complete"
+    UNAVAILABLE = "unavailable"  # the source step's status says why; never read as "no candidates"
