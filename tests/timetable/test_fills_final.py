@@ -10,6 +10,7 @@ import pytest
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, OUTCOME_OPENED, STEP_FAILED, STEP_REFUSED
 from fno.desk.daily_ports import CommitFailed
 from fno.desk.daily_run import FILLS_LATE, FILLS_REFUSED, NOT_RETRIED, RERUN_FINAL, WRITTEN, RunStopped
+from fno.desk.fill_results import trade_fills
 from fno.desk.run_log import RETRY
 from tests.desk.builders import at
 
@@ -90,7 +91,7 @@ def test_a_rerun_after_a_stop_at_fills_by_fills_the_rest_once(root, tmp_path, al
     written = fills(root, BOOK2_HYBRID)
     clock.now = at(15, 20, day=NORMAL)
     log = run.run(NORMAL)
-    assert log.result("fills")["c1"]["outcome"] == OUTCOME_OPENED and fills(root, BOOK3_AI)
+    assert trade_fills(log.result("fills"), BOOK3_AI)["c1"]["outcome"] == OUTCOME_OPENED and fills(root, BOOK3_AI)
     assert fills(root, BOOK2_HYBRID) == written  # replayed, never doubled
     assert not [t for t in alerts.sent if "step fills REFUSED" in t]
 
@@ -125,4 +126,4 @@ def test_the_run_that_took_the_snapshot_fills_even_when_its_commit_ends_past_fil
 
     run.steps.take_snapshot = slow_commit
     log = run_day(run, clock, NORMAL)
-    assert log.result("snapshot")["valid"] and log.result("fills")["t1"]["outcome"] == OUTCOME_OPENED
+    assert log.result("snapshot")["valid"] and trade_fills(log.result("fills"))["t1"]["outcome"] == OUTCOME_OPENED

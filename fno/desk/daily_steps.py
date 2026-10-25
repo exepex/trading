@@ -30,6 +30,7 @@ from .daily_ports import (
 )
 from .entries import EntryFiller
 from .exits import ExitDesk
+from .fill_results import TRADES, trade_entries
 from .no_decision import write_no_decision
 from .pack_items import PackError
 from .timetable import Timetable
@@ -156,7 +157,7 @@ class DeskSteps:
         except RUN_STOPS:
             raise
         except Exception as error:  # the trades already written stay in the accounts: the alert says how many
-            written = sum(1 for r in result.values() if "snapshot_id" in r)
+            written = sum(1 for _, _, entry in trade_entries(result) if "snapshot_id" in entry)
             if written:
                 raise StepInterrupted(written) from error
             raise
@@ -181,11 +182,12 @@ class DeskSteps:
                 self.alerts.send(ALERT.format(day=day, book=book, what=result[book]["reason"]))
                 continue
             for order in orders:
+                trades = result.setdefault(book, {TRADES: {}})[TRADES]  # by book: two books may share a trade ID
                 try:
-                    result[order.proposal.trade_id] = self._fill_one(pack, decision, order, snapshot_valid)
+                    trades[order.proposal.trade_id] = self._fill_one(pack, decision, order, snapshot_valid)
                 except AccountWriteRefused as refused:  # never crashes the run before its exits (judge 84)
                     reason = NOT_WRITTEN.format(reason=refused)
-                    result[order.proposal.trade_id] = {"outcome": "not filled", "reason": reason}
+                    trades[order.proposal.trade_id] = {"outcome": "not filled", "reason": reason}
                     self.alerts.send(ALERT.format(day=day, book=book, what=reason))
 
     def _fill_one(self, pack: CommonPack, decision: CommittedDecision, order, snapshot_valid: bool) -> dict:
