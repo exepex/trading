@@ -52,7 +52,8 @@ unclaimed 2/s, claimed 5/s, no sharing, v4 at 14:31, no quiet check, day cap 60,
 - 5d5d054ae merged with main c709f11c3 (FNO_SLACK_BOT_TOKEN kept): pytest -n auto 16616 passed, 0 failed; ruff,
   format, `check_imports` and `check_records` clean. Slack in that window: only labelled rehearsal posts.
 - 01477b7cf merged with main cbd3937a4 as 897f93842: ruff clean, 2640 files formatted, `check_imports` clean. The
-  focused suites passed. The full suite is running; its count follows in a note to this file.
+  focused suites passed; pytest -n auto (token kept) 16634 passed, 13 xfailed, 0 failed (581 s). No Slack post in that
+  window on any of the three channels.
 
 ## Notes (not findings)
 
