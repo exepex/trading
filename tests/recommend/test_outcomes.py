@@ -13,7 +13,7 @@ from fno.recommend.ports import InputFailed
 from fno.recommend.refs import RecordRef
 from fno.school.constants import SLOT_1500, RecordKind
 from fno.school.fakes import FakeDashcam
-from tests.school.instructor.builders import OTHER, ROAD, SESSIONS, held_trade
+from tests.school.instructor.builders import OTHER, ROAD, SESSIONS, decision_record, held_trade, outcome, refilled
 
 FIRST, MIDDLE, LAST = SESSIONS
 
@@ -73,3 +73,22 @@ def test_a_traded_desk_candidate_fails_loudly_and_an_untraded_one_is_none():
     with pytest.raises(InputFailed, match="not built"):
         lookup(FakeDashcam()).outcome(desk, FIRST, LAST)
     assert lookup(FakeDashcam()).outcome(replace(desk, traded=False), FIRST, LAST) is None
+
+
+def test_an_outcome_of_another_decision_by_the_same_driver_and_road_never_matches():
+    """A later trade of the same driver on the same road rests on another sealed decision file: never this one."""
+    dashcam = FakeDashcam()
+    dashcam.seal(FIRST, SLOT_1500, RecordKind.DECISIONS, (decision_record(FIRST),))
+    dashcam.seal(LAST, SLOT_1500, RecordKind.OUTCOMES, (outcome("11" * 32, entry_day=MIDDLE),))
+    assert lookup(dashcam).outcome(school_candidate(dashcam), FIRST, LAST) is None
+
+
+def test_the_latest_correction_wins():
+    dashcam = FakeDashcam()
+    seal = dashcam.seal(FIRST, SLOT_1500, RecordKind.DECISIONS, (decision_record(FIRST),))
+    original = outcome(seal.sha256, exit_day=MIDDLE)
+    corrected = refilled(original, 15.0, corrects="ab" * 32)
+    dashcam.seal(MIDDLE, SLOT_1500, RecordKind.OUTCOMES, (original,))
+    dashcam.seal(LAST, SLOT_1500, RecordKind.OUTCOMES, (corrected,))
+    assert original.net != corrected.net
+    assert lookup(dashcam).outcome(school_candidate(dashcam), FIRST, LAST).net == corrected.net
