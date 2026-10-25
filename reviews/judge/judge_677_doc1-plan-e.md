@@ -103,3 +103,40 @@ Revision 2 at `b91fb1422` (the owner's rules of 25 Oct, plus section 7), still r
   functionality it describes" can never move a lane-1-narrowing rule change to lane 2.
 - **Gates at b91fb1422, clean worktree:** record scan clean (9,537 files); doc-reading tests 963 passed, 13 xfailed,
   0 failed.
+
+## Addendum 2
+
+Round 2 of 2, at `765c79001` (153 lines; it also carries revision 2's CLAUDE.md and AGENTS.md lines). **FAIL: 1
+should-fix left (677.1's SF3), 2 minor.** Judge F not read. After this round the owner decides.
+
+- **SF1, fixed.** `DESK_DECISIONS.md` is now under "Not in scope": kept at its path, append-only, no row removed,
+  edited or renumbered, and any change to its form is a separate lane-1 code story. `docs/decisions/` cites its rows
+  by date and title. The files that frozen files or code cite (JUDGE.md, G6-v4-freeze.md, plus whatever the P6
+  citation check finds) keep their path and their cited sections.
+- **SF2, fixed.**
+  - The register row claims only DOC1's own folders, plus an area's files while that area is written, and never
+    DESK_DECISIONS or records.
+  - P1 is pinned to a commit.
+  - Item 2c reviews `<scan>..main` at P6, with my plant.
+- **Minors 1-3 from round 1, fixed:**
+  - 339 rows;
+  - P1 names `reviews/claude/` and `conversations/`, and P2b is a cross-area pass naming response 325;
+  - item 2b covers `ci_scope.sh`, line-number citations, an old-to-new path map and pointer files.
+- **Should-fix (677.1 SF3), not answered.** CLAUDE.md, unchanged since b91fb1422, still says two things.
+  - Its new Code bullet makes "a decision, a rule, a status or roadmap claim" need a judge PASS, with only "conversation
+    logs, judge files and register rows" left in lane 3.
+  - Its Branch section, line 212, still lists "decision and status rows" in "Lane 3, no judge", and `ci_scope.sh` agrees
+    with line 212.
+  - The change widens checks and narrows no lane-1 rule. But it ships a rule document with two answers to the same
+    question.
+  - The fix is two lines in this branch:
+    - line 212 reads "... conversation logs, register rows (owner decision rows appended to `docs/DESK_DECISIONS.md` by
+      the orchestrator: lane 3 until DOC1's P7), ...", or whichever rule the owner wants;
+    - the Code bullet names that exception and says the Rule-document guard still applies.
+  - AGENTS.md's line needs the same qualifier ("in that lane's check; lane 3 as listed in CLAUDE.md") and "as the place a
+    decision lives", or it forbids the mandatory dated conversation logs.
+- **Minor 1:** section 4 item 2 says "1 runtime read". There are three: `budget/wiring.py:54`,
+  `checks/validity_account.py:159` and `risk/overrides.py:51`. "Not in scope" names all three, so no harm now.
+- **Minor 2:** the register row still says "each under 350 lines" (now 500).
+- **Gates at 765c79001, clean worktree:** record scan clean (9,537 files); doc-reading tests 963 passed, 13 xfailed,
+  0 failed.
