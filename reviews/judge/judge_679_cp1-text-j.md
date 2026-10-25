@@ -49,3 +49,32 @@ one paisa.
 ## Notes
 - The orchestrator reports the doc tests at 963 passed. The change is one Markdown file; I judged it by reading.
 - I did not coordinate with judge B.
+
+## Addendum 1: round 2 (the last), story/cp1-measured-pads at 1fd94daf (165 lines)
+**PASS** (text), lane 1: S1, S2 and m1 closed. One Markdown commit on 5348d501 (+92 -49).
+- **S1 closed.** The unit is now one quantity throughout.
+  - The table holds MS-SIM-b's relative half-spread, and a leg pays max(relative × its own fill price, half a tick),
+    with `TICK` imported (`fno/school/simulator/constants.py:12`).
+  - The provisional rule is max(Rs 1, p75 × price). `PadSource.pad` now takes the leg's price.
+  - Criterion 2 plants "the relative value used as rupees". The note's Rs 0.12 is a recorded check, outside CI,
+    because it reads Drive.
+  - The leave-one-session-out evidence (median absolute error Rs 0.113 against 0.137 out of the money, Rs 2.46 against
+    2.92 in the money) is labelled [some evidence]. I did not re-run it, as it needs the Drive captures. The choice is
+    sound by reasoning: in-the-money rupee half-spreads scale with the premium.
+- **S2 closed.** Only `fno/costs_pads/wiring.py` builds a `MeasuredPad`, from the trial's committed ledger row, its
+  card and the loaded table, and there is no trial-less constructor.
+  - Three named refusals: `PadTableNotNamed`, `PadTableMismatch` (which includes the receipt not matching the file
+    read) and `PadTableNotRegistered`.
+  - Criterion 8 plants a trial-less build.
+  - The text states correctly that `require_registered` checks only the protocol file, so the table check is CP1's own.
+- **m1 closed.** Why `SpreadLearner` and `SpreadModel` are not reused as they are: no side key, frozen with the
+  practice card, and 26 of 33 buckets differ by side. Every measuring function is reused: `relative_half_spread`,
+  `bucket_of`, `percentile` (`spreads/model.py:21`), `TICK` and `MIN_QUOTED_SESSIONS`.
+- B's points are in as well: per-band dates (labelled reasoning only, with 2027's missing holidays named), the bands
+  linked rather than restated, and A16 out of scope with its reason.
+  - New Q4: trades before the table's first session pay max(flat, measured). That is the right default, because
+    measured pads can then only raise an older backtest's cost.
+- Note: `research/edge2/slippage.py` still computes its own `max(gap/2, TICK/2)` (lines 41 and 109). Its removal is on
+  `story/edge2-slippage-floor` (lane 2), as criterion 2 says.
+- Document rules: 165 lines, and one owning table that links C1, B2, MS-SIM-b, A4 and R1. I did not coordinate with
+  judge B.
