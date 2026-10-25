@@ -14,6 +14,7 @@ from fno.constants import BOOK1_RULES, BOOK2_HYBRID, CASH_LEDGER_FILE, OUTCOME_C
 from fno.desk.daily_ports import CommitFailed
 from fno.desk.daily_run import RunStopped
 from fno.desk.exit_rules import TimeExit
+from fno.desk.fill_results import trade_fills
 from fno.desk.records import EVENTS_FILE, FILLS_FILE, DeskRecords
 from fno.desk.run_log import RunLog
 from fno.desk.status import open_positions
@@ -114,7 +115,7 @@ def test_a_failed_drive_write_of_any_file_stops_the_run_and_the_rerun_fills_once
     assert not [m for _, m in commits.made if m.endswith("step fills")]
     fresh_container(root)
     log = run.run(NORMAL)  # later the same day
-    assert log.result("fills")["t1"]["outcome"] == OUTCOME_OPENED and "exits" in log.steps
+    assert trade_fills(log.result("fills"))["t1"]["outcome"] == OUTCOME_OPENED and "exits" in log.steps
     fresh_container(root)
     files.download()
     account = PaperAccount(root, BOOK1_RULES)
@@ -150,7 +151,7 @@ def test_a_stop_at_the_download_blocks_the_next_session_s_entries(root, tmp_path
     log = run_day(run, clock, NORMAL)
     for book, trade in ((BOOK1_RULES, "t1"), (BOOK2_HYBRID, "b1")):
         assert "the run of 2026-10-13 stopped before any step" in log.result("fills")[book]["reason"]
-        assert trade not in log.result("fills")
+        assert trade not in trade_fills(log.result("fills"))
     assert len(alerts.sent) == 1 and list(log.steps)[-2:] == ["exits", "trade_marks"]
 
 
@@ -174,7 +175,7 @@ def test_a_last_session_stopped_before_its_exits_blocks_today_s_entries_only(roo
                                        for book in BOOKS}  # fmt: skip
         assert len(alerts.sent) == 1 and str(previous) in alerts.sent[0]
     else:
-        assert log.result("fills")["t1"]["outcome"] == OUTCOME_OPENED and alerts.sent == []
+        assert trade_fills(log.result("fills"))["t1"]["outcome"] == OUTCOME_OPENED and alerts.sent == []
 
 
 def test_one_book_s_failed_exit_review_blocks_that_book_only(root, tmp_path, alerts):
@@ -192,7 +193,10 @@ def test_one_book_s_failed_exit_review_blocks_that_book_only(root, tmp_path, ale
         "the exits of 2026-10-13 were not reviewed (PrivateFilesUnavailable"
         in log.result("fills")[BOOK1_RULES]["reason"]
     )
-    assert "t1" not in log.result("fills") and log.result("fills")["b1"]["outcome"] == OUTCOME_OPENED
+    assert (
+        "t1" not in trade_fills(log.result("fills"))
+        and trade_fills(log.result("fills"))["b1"]["outcome"] == OUTCOME_OPENED
+    )
     assert len(alerts.sent) == 1 and BOOK1_RULES in alerts.sent[0] and BOOK2_HYBRID not in alerts.sent[0]
     assert list(log.steps)[-2:] == ["exits", "trade_marks"] and log.result("exits")[BOOK1_RULES]["reviewed"] is True
 
@@ -211,8 +215,12 @@ def test_no_snapshot_blocks_only_a_book_whose_due_exits_were_held_up(root, tmp_p
     assert held[BOOK1_RULES]["waiting"] and held[BOOK2_HYBRID]["waiting"] == []
     alerts.sent.clear()
     log = run_day(run, clock, MONDAY)
-    assert "due exits held up: t1" in log.result("fills")[BOOK1_RULES]["reason"] and "t5" not in log.result("fills")
-    assert BOOK2_HYBRID not in log.result("fills") and log.result("fills")["b5"]["outcome"] == OUTCOME_OPENED
+    assert "due exits held up: t1" in log.result("fills")[BOOK1_RULES]["reason"] and "t5" not in trade_fills(
+        log.result("fills")
+    )
+    assert (
+        BOOK2_HYBRID not in log.result("fills") and trade_fills(log.result("fills"))["b5"]["outcome"] == OUTCOME_OPENED
+    )
 
 
 def test_drive_written_but_the_totals_push_rejected_reconciles_on_a_fresh_container_rerun(root, tmp_path, alerts):
