@@ -53,12 +53,12 @@ def decide(facts: DayFacts) -> Recommendation:
         reason = _without_trade(facts, established)
     eligible = None if reason in BLOCKS_REAL_MONEY else _eligible(facts, established)
     real_money = RealMoneyAnswer.ELIGIBLE_FOR_YOUR_OWN_REVIEW if eligible else RealMoneyAnswer.DO_NOT_TRADE_REAL_MONEY
+    braked = tuple(sorted(set(facts.braked) & set(established)))  # only an established version's brake can matter
     return Recommendation(
         schema_version=RECORD_SCHEMA_VERSION, kind=RECORD_KIND, session=facts.session, made_at=facts.made_at,
         evidence_cutoff=facts.made_at, code_commit=facts.code_commit, config_sha256=facts.config_sha256,
         rung_rule_sha256=RUNG_RULE_SHA256, inputs=facts.inputs, versions=facts.versions, candidates=facts.candidates,
-        candidate_sources=facts.sources, braked_versions=tuple(sorted(set(facts.braked))), real_money=real_money,
-        eligible_version=eligible,
+        candidate_sources=facts.sources, braked_versions=braked, real_money=real_money, eligible_version=eligible,
         paper=PaperAnswer.NO_TRADE if reason else PaperAnswer.PAPER_TRADE, paper_trade=trade, reason=reason,
     )  # fmt: skip
 

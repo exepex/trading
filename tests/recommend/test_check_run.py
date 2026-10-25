@@ -46,6 +46,9 @@ class Outcomes(OutcomeLookup):
     def outcome(self, cand, session, until):
         return self.found.get(cand.version)
 
+    def ticket(self, cand, session):
+        return False
+
 
 def harness(tmp_path, found=None, record=None):
     data, alerts = FakeData(), RecordingAlerts()
@@ -71,7 +74,7 @@ def test_nothing_recorded_says_so(tmp_path):
 
 def test_an_open_trade_is_checked_again_each_evening_without_a_line(tmp_path):
     run, data, alerts = harness(tmp_path, record=traded_day())
-    assert run.run(SESSIONS[1]).lines == (f"recommender check {DAY}: not_known_yet, 1 trade(s) still open",)
+    assert run.run(SESSIONS[1]).lines == (f"recommender check {DAY}: not_known_yet, 1 position(s) still open",)
     run.run(SESSIONS[2])
     assert alerts.lines == [] and sorted(p for p in data.files if ".check." in p) == [
         f"recommend/2026/11/{DAY}.check.{SESSIONS[1]}.json",
@@ -127,3 +130,33 @@ def test_a_day_unreadable_at_its_last_check_is_written_final_and_alerted(tmp_pat
         f"recommender check NOT made for {DAY}"
     )
     assert run.run(long[60]).ok
+
+
+def test_a_stale_seal_on_one_day_never_stops_the_others(tmp_path):
+    """Self-review 1 (blocking): the real reader raises StaleSeal; that day is alerted, the next day still checked."""
+    from fno.school.contracts.seal import StaleSeal
+
+    run, data, alerts = harness(tmp_path, {CS1: FoundOutcome(10.0, False)}, record=traded_day())
+    second = no_trade(session=SESSIONS[1], made_at=MADE_AT + timedelta(days=1),
+                      evidence_cutoff=MADE_AT + timedelta(days=1), versions=(evidence_of(CS1),),
+                      candidates=(candidate(CS1, traded=True),))  # fmt: skip
+    run.keeper.keep(record_path(second.session), encode(second), lambda b: None, "second day")
+    real = run.ports.read
+
+    def read(path):
+        if path == record_path(DAY):
+            raise StaleSeal("hash differs")
+        return real(path)
+
+    run.ports = CheckPorts(run.ports.receipts, read, run.ports.sessions, run.ports.lookup)
+    result = run.run(SESSIONS[3])
+    assert not result.ok and alerts.lines[0].startswith(f"recommender check NOT made for {DAY}: ")
+    assert any(line.startswith(f"PAPER ONLY. Recommender check for {SESSIONS[1]:%d %b %Y}") for line in alerts.lines)
+
+
+def test_a_damaged_check_file_is_that_day_s_problem(tmp_path):
+    run, data, alerts = harness(tmp_path, record=traded_day())
+    run.run(SESSIONS[1])
+    data.files[f"recommend/2026/11/{DAY}.check.{SESSIONS[1]}.json"] = b"{broken"
+    result = run.run(SESSIONS[2])
+    assert not result.ok and "does not read" in alerts.lines[-1]

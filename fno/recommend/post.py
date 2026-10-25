@@ -19,7 +19,7 @@ UNAVAILABLE = "{name}: unavailable ({status})"
 NOT_RECOMMENDED = "Paper, not a recommendation: {count} trade(s) of versions below rung 3."
 RECORD = "Record {path}, SHA-256 {short}."
 NO_PROVEN = "no version has passed"
-BRAKED = "under its own drawdown brake or daily stop: {versions}"
+BRAKED = "no established version is eligible; under their own drawdown brake or daily stop: {versions}"
 NOT_ELIGIBLE = "no established version is eligible under the real-money gate, RM1"
 
 

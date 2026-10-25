@@ -11,7 +11,7 @@ from fno.recommend.contracts import Candidate
 from fno.recommend.outcomes import SealedOutcomes
 from fno.recommend.ports import InputFailed
 from fno.recommend.refs import RecordRef
-from fno.school.constants import SLOT_1500, RecordKind
+from fno.school.constants import SLOT_1500, Outcome, RecordKind
 from fno.school.fakes import FakeDashcam
 from fno.school.instructor.contracts import record_sha256
 from tests.school.instructor.builders import OTHER, ROAD, SESSIONS, decision_record, held_trade, outcome, refilled
@@ -115,3 +115,18 @@ def test_a_correction_of_a_record_not_on_file_fails_the_check():
     dashcam = _two_outcomes(lambda original: refilled(original, 15.0, corrects="cd" * 32))
     with pytest.raises(InputFailed, match="not on file"):
         lookup(dashcam).outcome(school_candidate(dashcam), FIRST, LAST)
+
+
+def test_an_open_ticket_is_known_from_its_sealed_decision():
+    dashcam = FakeDashcam()
+    dashcam.seal(FIRST, SLOT_1500, RecordKind.DECISIONS, (decision_record(FIRST, outcome=Outcome.TICKET),))
+    cand = school_candidate(dashcam, traded=False)
+    assert lookup(dashcam).ticket(cand, FIRST) and lookup(dashcam).outcome(cand, FIRST, LAST) is None
+
+
+def test_a_candidate_whose_decisions_file_is_not_the_listed_one_fails():
+    dashcam = FakeDashcam()
+    held_trade(dashcam)
+    cand = school_candidate(dashcam, traded=False)
+    with pytest.raises(InputFailed, match="not the one the recommendation listed"):
+        lookup(dashcam).ticket(replace(cand, decision=replace(cand.decision, sha256="cd" * 32)), FIRST)

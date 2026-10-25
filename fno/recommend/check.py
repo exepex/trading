@@ -20,6 +20,9 @@ from .check_record import (
 )
 from .constants import WINDOW_SESSIONS, SourceState
 from .contracts import Candidate, Recommendation
+from .ports import InputFailed
+
+MISMATCH = "{key}: an untraded decision has a trade's outcome"
 
 
 @dataclass(frozen=True)
@@ -34,6 +37,10 @@ class OutcomeLookup(ABC):
         """The candidate's sealed closed outcome between its session and `until`, None while none is sealed; an
         unreadable outcome raises `InputFailed`."""
 
+    @abstractmethod
+    def ticket(self, candidate: Candidate, session: date) -> bool:
+        """True when the candidate's sealed decision was a school ticket (a measurement, never a trade)."""
+
 
 def check(record: Recommendation, record_sha256: str, checked_on: date, made_at: datetime, lookup: OutcomeLookup,
           last_check: bool) -> CheckRecord:  # fmt: skip
@@ -41,13 +48,13 @@ def check(record: Recommendation, record_sha256: str, checked_on: date, made_at:
     results = tuple(_result(c, record.session, checked_on, lookup) for c in record.candidates)
     unavailable = tuple(sorted(s.name.value for s in record.candidate_sources if s.state is SourceState.UNAVAILABLE))
     closed = [r.net for r in results if r.state is CandidateState.CLOSED]
-    open_trades = sum(r.state is CandidateState.OPEN for r in results)
-    problem = NEVER_CLOSED.format(sessions=WINDOW_SESSIONS) if open_trades and last_check else ""
+    open_positions = sum(r.state is CandidateState.OPEN for r in results)
+    problem = NEVER_CLOSED.format(sessions=WINDOW_SESSIONS) if open_positions and last_check else ""
     return CheckRecord(
         schema_version=CHECK_SCHEMA_VERSION, kind=CHECK_KIND, session=record.session, checked_on=checked_on,
         made_at=made_at, recommendation_sha256=record_sha256, results=results, closed_so_far=round(sum(closed), 2),
-        open_trades=open_trades, unavailable_sources=unavailable, last_check=last_check, problem=problem,
-        verdict=verdict_for(unavailable, open_trades, problem),
+        open_positions=open_positions, unavailable_sources=unavailable, last_check=last_check, problem=problem,
+        verdict=verdict_for(unavailable, open_positions, problem),
     )  # fmt: skip
 
 
@@ -55,7 +62,7 @@ def unreadable(session: date, checked_on: date, made_at: datetime, problem: str)
     """The last check of a day whose inputs cannot be read: final and alerted, so no day leaves the window silently."""
     return CheckRecord(
         schema_version=CHECK_SCHEMA_VERSION, kind=CHECK_KIND, session=session, checked_on=checked_on, made_at=made_at,
-        recommendation_sha256="", results=(), closed_so_far=0.0, open_trades=0, unavailable_sources=(),
+        recommendation_sha256="", results=(), closed_so_far=0.0, open_positions=0, unavailable_sources=(),
         last_check=True, problem=problem, verdict=verdict_for((), 0, problem),
     )  # fmt: skip
 
@@ -65,8 +72,10 @@ def _result(candidate: Candidate, session: date, until: date, lookup: OutcomeLoo
     key = (candidate.version, candidate.decision.path)
     if found is not None and found.is_ticket:
         return CandidateResult(*key, CandidateState.TICKET, found.net)  # a ticket is never counted as a trade
-    if not candidate.traded:
-        return CandidateResult(*key, CandidateState.NO_TRADE, None)
-    if found is None:
+    if candidate.traded:
+        return CandidateResult(*key, CandidateState.CLOSED if found else CandidateState.OPEN, found and found.net)
+    if found is not None:  # an untraded decision with a trade's outcome: the records disagree
+        raise InputFailed(MISMATCH.format(key=candidate.decision.path))
+    if lookup.ticket(candidate, session):  # an open ticket keeps the day open, so it is reported once it closes
         return CandidateResult(*key, CandidateState.OPEN, None)
-    return CandidateResult(*key, CandidateState.CLOSED, found.net)
+    return CandidateResult(*key, CandidateState.NO_TRADE, None)

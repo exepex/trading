@@ -38,7 +38,8 @@ def test_the_contract_refuses_a_braked_eligible_version():
 
 def test_the_line_names_the_brake():
     line = recommendation_line(established_day(braked_versions=("school:CS1@1",)), Saved("p.json", "ab" * 32, "e" * 40))
-    assert "Real money: DO NOT TRADE (under its own drawdown brake or daily stop: school:CS1@1)." in line
+    assert ("Real money: DO NOT TRADE (no established version is eligible; under their own drawdown brake or daily "
+            "stop: school:CS1@1).") in line  # fmt: skip
 
 
 def test_braked_versions_are_sorted_unique_and_required():
@@ -48,3 +49,10 @@ def test_braked_versions_are_sorted_unique_and_required():
     del data["braked_versions"]
     with pytest.raises(RecordRefused, match="lacks braked_versions"):
         decode(json.dumps(data, sort_keys=True, separators=(",", ":")).encode())
+
+
+def test_a_braked_version_below_rung_3_is_never_named():
+    """Self-review 8: only an established version's brake can matter to real money, so only it is named."""
+    assert decided(EvidenceRung.EXPLORATORY, braked={V}).braked_versions == ()
+    with pytest.raises(RecordRefused, match="not rung 3"):
+        established_day(versions=(), candidates=(), braked_versions=("school:CS1@1",))

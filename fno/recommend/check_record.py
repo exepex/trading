@@ -52,7 +52,7 @@ class CheckRecord(CanonicalRecord):
     recommendation_sha256: str
     results: tuple[CandidateResult, ...]  # every listed candidate; empty only for a check that could not read them
     closed_so_far: float  # the sum over the trades closed so far (tickets apart); the day's total only when final
-    open_trades: int
+    open_positions: int
     unavailable_sources: tuple[str, ...]
     last_check: bool  # the check on the window's last session: whatever it finds is final
     problem: str  # why the check is data_check_failed; empty otherwise
@@ -73,21 +73,21 @@ def _problems(rec: CheckRecord) -> list[str]:
         (all((r.net is None) == (r.state in (CandidateState.NO_TRADE, CandidateState.OPEN)) for r in rec.results),
          "a net is given exactly for closed trades and tickets"),
         (rec.closed_so_far == round(sum(r.net for r in closed), 2), "closed so far is not the sum of closed trades"),
-        (rec.open_trades == sum(r.state is CandidateState.OPEN for r in rec.results), "the open count is wrong"),
+        (rec.open_positions == sum(r.state is CandidateState.OPEN for r in rec.results), "the open count is wrong"),
         (type(rec.last_check) is bool and isinstance(rec.problem, str), "last_check or problem has the wrong type"),
-        (rec.verdict is verdict_for(rec.unavailable_sources, rec.open_trades, rec.problem), "the verdict differs"),
-        (bool(rec.results) or bool(rec.problem) or rec.open_trades == 0, "no results without a problem"),
-        (not (rec.open_trades and rec.last_check) or bool(rec.problem), "open at the last check must say never closed"),
+        (rec.verdict is verdict_for(rec.unavailable_sources, rec.open_positions, rec.problem), "a wrong verdict"),
+        (bool(rec.results) or bool(rec.problem) or rec.open_positions == 0, "no results without a problem"),
+        (not (rec.open_positions and rec.last_check) or bool(rec.problem), "open at the last check, no problem"),
         (list(rec.unavailable_sources) == sorted(set(rec.unavailable_sources)), "sources are not sorted or repeat"),
     )  # fmt: skip
     return [problem for ok, problem in checks if not ok]
 
 
-def verdict_for(unavailable: tuple[str, ...], open_trades: int, problem: str) -> Verdict:
+def verdict_for(unavailable: tuple[str, ...], open_positions: int, problem: str) -> Verdict:
     """The one rule the check and its record both use (judge 658 S3): a problem first, then open trades, then an
     unavailable source; a day with an unavailable source is re-checked until its listed candidates have closed."""
     if problem:
         return Verdict.DATA_CHECK_FAILED
-    if open_trades:
+    if open_positions:
         return Verdict.NOT_KNOWN_YET
     return Verdict.INCOMPLETE if unavailable else Verdict.COMPLETE

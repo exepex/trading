@@ -40,8 +40,13 @@ def cmd_decide(args, out=print) -> int:
 def cmd_check(args, out=print) -> int:
     """The evening check (REC1c): it runs after `lab close` has posted, so its own failure never touches the edition."""
     from .check_wiring import build_check_run
+    from .wiring import is_session
 
-    result = build_check_run().run(args.on or now_ist().date())
+    day = args.on or now_ist().date()
+    if not is_session(day):  # criterion 14: a day that is not a trading session writes nothing
+        out(NOT_A_SESSION.format(day=day))
+        return 0
+    result = build_check_run().run(day)
     for line in result.lines:
         out(line)
     return 0 if result.ok else 1

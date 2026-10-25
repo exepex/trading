@@ -101,6 +101,7 @@ def _problems(rec: Recommendation) -> list[str]:
         (_sorted_unique([ref.path for ref in rec.inputs]), "inputs are not sorted by path or repeat one"),
         (_sorted_unique([v.version for v in rec.versions]), "versions are not sorted or repeat one"),
         (_sorted_unique(list(rec.braked_versions)), "braked versions are not sorted or repeat one"),
+        (all(rungs.get(v) is EvidenceRung.ESTABLISHED for v in rec.braked_versions), "a braked version is not rung 3"),
         (_sorted_unique([_candidate_key(c) for c in rec.candidates]), "candidates are not sorted or repeat one"),
         (all(rungs.get(c.version) == c.rung for c in rec.candidates),
          "a candidate's rung is not its version's evidence rung"),

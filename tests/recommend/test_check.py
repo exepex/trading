@@ -18,8 +18,11 @@ CS1, DB1, N0 = "school:CS1@1", "school:DB1@1", "school:N0@1"
 
 
 class Outcomes(OutcomeLookup):
-    def __init__(self, found: dict, fails: str = ""):
-        self.found, self.fails = found, fails
+    def __init__(self, found: dict, fails: str = "", tickets: tuple = ()):
+        self.found, self.fails, self.tickets = found, fails, tickets
+
+    def ticket(self, cand, session):
+        return cand.version in self.tickets
 
     def outcome(self, cand, session, until):
         if self.fails and cand.version == self.fails:
@@ -45,12 +48,12 @@ def test_every_listed_candidate_is_reported_and_the_closed_ones_summed():
         (DB1, CandidateState.CLOSED, -3400.0),
         (N0, CandidateState.NO_TRADE, None),
     ]
-    assert (result.closed_so_far, result.open_trades, result.verdict) == (-2199.5, 0, Verdict.COMPLETE)
+    assert (result.closed_so_far, result.open_positions, result.verdict) == (-2199.5, 0, Verdict.COMPLETE)
 
 
 def test_a_traded_candidate_without_its_outcome_keeps_the_day_not_known():
     result = checked(day(candidate(CS1, n=1), candidate(DB1, n=2)), Outcomes({CS1: FoundOutcome(500.0, False)}))
-    assert (result.open_trades, result.verdict, result.closed_so_far) == (1, Verdict.NOT_KNOWN_YET, 500.0)
+    assert (result.open_positions, result.verdict, result.closed_so_far) == (1, Verdict.NOT_KNOWN_YET, 500.0)
 
 
 def test_a_ticket_is_reported_apart_never_as_a_trade():
@@ -100,7 +103,7 @@ def test_no_candidates_is_a_complete_empty_day():
 
 
 @pytest.mark.parametrize("change", [
-    {"closed_so_far": 1.0}, {"open_trades": 1}, {"verdict": Verdict.COMPLETE, "unavailable_sources": ("school",)},
+    {"closed_so_far": 1.0}, {"open_positions": 1}, {"verdict": Verdict.COMPLETE, "unavailable_sources": ("school",)},
     {"checked_on": date(2026, 11, 1)},
 ])  # fmt: skip
 def test_a_check_record_whose_parts_disagree_is_refused(change):
@@ -114,3 +117,16 @@ def test_a_check_record_whose_parts_disagree_is_refused(change):
 def test_a_check_reads_back_with_the_same_bytes():
     good = checked(day(candidate(CS1, n=1)), Outcomes({CS1: FoundOutcome(10.0, False)}))
     assert CheckRecord.from_bytes(good.to_bytes()) == good
+
+
+def test_an_open_ticket_keeps_the_day_open_so_it_is_reported_once_closed():
+    """Self-review 4: an untraded ticket decision with no outcome yet is open, never 'no trade'."""
+    record = day(candidate(CS1, traded=False, n=1))
+    result = checked(record, Outcomes({}, tickets=(CS1,)))
+    assert (result.results[0].state, result.verdict) == (CandidateState.OPEN, Verdict.NOT_KNOWN_YET)
+
+
+def test_an_untraded_decision_with_a_trade_s_outcome_fails_the_check():
+    """Self-review 5: the records disagree, so the check fails rather than say abstaining cost nothing."""
+    with pytest.raises(InputFailed, match="untraded decision has a trade's outcome"):
+        checked(day(candidate(CS1, traded=False, n=1)), Outcomes({CS1: FoundOutcome(-5000.0, False)}))

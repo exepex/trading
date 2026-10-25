@@ -12,6 +12,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from ..alerts.sender import AlertSender
+from ..school.contracts.seal import StaleSeal
 from ..storage.receipts import RECEIPT_SUFFIX
 from .check import OutcomeLookup, check, unreadable
 from .check_record import FINAL, CheckRecord
@@ -46,26 +47,27 @@ class CheckRun:
 
     def run(self, on: date) -> DayResult:
         lookup, lines, ok = self.ports.lookup(), [], True
-        for day in self._waiting(on):
+        for day in self._recorded_days(on):
             last = len(self.ports.sessions(day, on)) >= WINDOW_SESSIONS
-            try:
-                lines += self._check(day, on, lookup, last)
-            except (InputFailed, NotSaved, RecordRefused) as failed:
+            try:  # each day on its own: one unreadable file never stops the others (self-review, blocking)
+                if not self._final(day):
+                    lines += self._check(day, on, lookup, last)
+            except (InputFailed, NotSaved, RecordRefused) as failed:  # RecordRefused covers a damaged check file
                 lines += self._failed(day, on, last, str(failed))
                 ok = False
         return DayResult(tuple(lines) or (NOTHING.format(on=on),), ok)
 
-    def _waiting(self, on: date) -> list[date]:
+    def _recorded_days(self, on: date) -> list[date]:
         recent = self.ports.sessions(on - timedelta(days=LOOKBACK_DAYS), on)[-WINDOW_SESSIONS:]
-        return [day for day in recent if self._recorded(day) and not self._final(day)]
+        return [day for day in recent if self._recorded(day)]
 
     def _check(self, day: date, on: date, lookup: OutcomeLookup, last: bool) -> list[str]:
-        data = self.ports.read(record_path(day))
+        data = self._read(record_path(day))
         record = decode(data)
         result = check(record, hashlib.sha256(data).hexdigest(), on, self.clock(), lookup, last)
         kept, stands = self._keep(result)
         if stands.verdict not in FINAL:
-            return [f"recommender check {day}: {stands.verdict.value}, {stands.open_trades} trade(s) still open"]
+            return [f"recommender check {day}: {stands.verdict.value}, {stands.open_positions} position(s) still open"]
         line = _line(record, stands, kept)
         return [self.alerts.send(line), line]
 
@@ -84,7 +86,7 @@ class CheckRun:
         day, on = result.session, result.checked_on
         kept = self.keeper.keep(_check_path(day, on), result.to_bytes(), _vouch(day, on),
                                 RECEIPT_MESSAGE.format(day=day, on=on))  # fmt: skip
-        return kept, CheckRecord.from_bytes(kept.payload)
+        return kept, _check_record(kept.payload)
 
     def _recorded(self, day: date) -> bool:
         return (self.ports.receipts / f"{record_path(day)}{RECEIPT_SUFFIX}").is_file()
@@ -94,10 +96,26 @@ class CheckRun:
         if not checks:
             return False
         latest = checks[-1].relative_to(self.ports.receipts).as_posix().removesuffix(RECEIPT_SUFFIX)
-        return CheckRecord.from_bytes(self.ports.read(latest)).verdict in FINAL
+        return _check_record(self._read(latest)).verdict in FINAL
+
+    def _read(self, path: str) -> bytes:
+        """A data-area file verified against its receipt; any failure to read it is an input failure of that day."""
+        try:
+            return self.ports.read(path)
+        except (StaleSeal, OSError, ValueError, KeyError) as unreadable:
+            raise InputFailed(f"{path}: {type(unreadable).__name__}") from None
 
     def _folder(self, day: date) -> Path:
         return self.ports.receipts / AREA_FOLDER / f"{day:%Y}" / f"{day:%m}"
+
+
+def _check_record(data: bytes) -> CheckRecord:
+    try:
+        return CheckRecord.from_bytes(data)
+    except RecordRefused:
+        raise
+    except (ValueError, KeyError, TypeError) as damaged:  # a damaged check file: that day's problem, never the run's
+        raise RecordRefused(f"a check file does not read ({type(damaged).__name__})") from None
 
 
 def _check_path(day: date, on: date) -> str:
@@ -107,9 +125,9 @@ def _check_path(day: date, on: date) -> str:
 def _vouch(day: date, on: date):
     def vouch(held: bytes) -> None:
         try:
-            stored = CheckRecord.from_bytes(held)
-        except (RecordRefused, ValueError, TypeError, KeyError) as refused:
-            raise NotOurs(type(refused).__name__) from None
+            stored = _check_record(held)
+        except RecordRefused as refused:
+            raise NotOurs(str(refused)) from None
         if (stored.session, stored.checked_on) != (day, on):
             raise NotOurs(f"a check of {stored.session} on {stored.checked_on}")
 
