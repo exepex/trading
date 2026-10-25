@@ -2,7 +2,7 @@
 
 **Lane 1, two judges** (it decides whether a step that writes records runs again, and it calls outside services:
 Groww, NSE, Drive, Slack). **Builder:** session_016CU8KFuEEtWAM7ZNnFcKxv (O1's owner from 25 Oct). **Status:** story
-text round 2 (judges E 682 and F 683: every finding answered below). It links the stories it touches and does not
+text round 3, pending the owner's word on a third round (judges E 682/682.1 and F 683/683.1: every finding answered below). It links the stories it touches and does not
 restate them: O1 (`O1-daily-run.md`), O1-day-lock, GW1a (`GW1a-groww-guard-core.md`), A4, A16
 (`A16-intraday-quote-recorder.md`), A22 (`A22-preopen-data.md`), FL1-1d, MS-P1j (`MS-market-school.md`) and T1.
 
@@ -65,10 +65,18 @@ The daily run is one thread, so a retry delays every later step. A step's **retr
    - `premium_ranges` by its `DEADLINE` (15:30);
    - each read from its own constant, never copied.
 
-A retry is made only if `now + wait + expected <= retry deadline`. Otherwise the policy stops now and escalates with
-"the next wait would pass <HH:MM> (<which step's limit>)". A retry never moves a later step past its limit.
+A retry is made only if **every** limit is still met with the steps between them counted (judges 682.1 and 683.1):
+- its own deadline: `now + wait + expected(the retried step) <= own deadline`;
+- and, for each later limit `L` of step `S`: `now + wait + expected(the retried step) + the sum of expected(every
+  step that runs after the retried step and before S) <= L`.
+  - Example: an `exits` retry before the school counts `trade_marks`, `reviews`, `quotes_done`, `card`,
+    `price_distribution` and `premium_ranges`, each by the same rule, before 15:25.
+  - A step that will not run today (not live, already done) counts 0.
 
-**The expected run time** is the step's own duration in the previous session's committed run log (`finished_at -
+Otherwise the policy stops now and escalates with "the next wait would pass <HH:MM> (<which step's limit>)". A retry
+never moves a later step past its limit.
+
+**The expected run time** of any step (the retried one and every step between) is the step's own duration in the previous session's committed run log (`finished_at -
 started_at`), times 1.5. With no earlier run, it is `COMMAND_LIMIT_SECONDS` (600 s) for a command step and 60 s for
 an in-process desk step. Reasoning only: the 1.5 margin covers a slower day, and the fallback is the longest a command
 may run.
@@ -81,9 +89,9 @@ may run.
 | `v4_release` | 14:45 (G10: the release by 14:45) | 14:45 | through `Alerted` |
 | `forecasts_v4_pack` | 15:10 (committed before 15:10, G7b) | 15:10 | through `Alerted` |
 | `book1` | `decision_deadline` 15:12 (E3) | 15:12 (`decisions`, the next timed step; the pack runs before it) | through `Alerted` |
-| desk `exits`, `trade_marks` (O1 R2) | none of their own (they read the 15:15 snapshot) | 15:25 (the school) | `_run_step`, for `RETRIED_ON_RERUN` only |
-| `reviews`, `card`, `price_distribution` | none of their own | 15:25 (the school) | through `Alerted` (not safe: section 6) |
-| `premium_ranges` | 15:30 (`fno/premium_ranges/constants.py` `DEADLINE`) | 15:25 (the school runs after it) | through `Alerted` |
+| desk `exits`, `trade_marks` (O1 R2) | none of their own (they read the 15:15 snapshot) | 15:25 (the school), less the expected times of the steps between (section 3.1) | `_run_step`, for `RETRIED_ON_RERUN` only |
+| `reviews`, `card`, `price_distribution` | none of their own | 15:25 (the school), less the expected times of the steps between | through `Alerted` (not safe: section 6) |
+| `premium_ranges` | 15:30 (`fno/premium_ranges/constants.py` `DEADLINE`) | 15:25 (the school runs right after it) | through `Alerted` |
 | `recommend`, the score steps, `price_ranges`, `v4_deadline` | 16:00, `close_recheck`'s start (named, judge E m2) | 16:00 | through `Alerted` |
 | `candles` (A16b) | 16:00, `close_recheck`'s start | 16:00 | through `Alerted`; a Groww child (section 5) |
 | `close_read` (15:40), `close_recheck` (16:00) | 19:53, the evening routine that reads the close (CLAUDE.md, FL1-1d step 1c) | 19:53 | through `Alerted` |
@@ -148,7 +156,7 @@ nothing twice. A step not in this table is not safe.
 | `weather` | `fno/weather/`: "a different record is already written" | no | **safe** |
 | `forecasts_v4` | `fno/forecast_v4_rules/`: "a different row is already written"; "rows are never changed" | no | **safe** |
 | `v4_release` | `fno/v4_pack/`: "already released" | its package's CLI sends (`fno/v4_pack/cli.py`) | **not safe** until the code round shows `v4 release` posts nothing |
-| `forecasts_v4_pack` | `fno/forecast_v4_rules/`: "files written or already the same" | no | **safe** |
+| `forecasts_v4_pack` | `fno/forecast_v4_rules/`: "files written or already the same" | yes: its command's `run_followups` can send W8's review alert (`pack_wiring.py:179`) | **not safe** (judge 683.1) |
 | `book1` | `fno/playbook/`: "already decided these inputs for {day}: refused"; "decision records are never rewritten" | no | **safe** (a retry after a decision is refused, never a second run) |
 | `reviews` (E6) | none named | its package sends (the automatic pauses) | **not safe** |
 | `card` (T1) | one delivery record per attempt (`fno/cards/deliveries.py`), no one-post proof | yes | **not safe** |
@@ -160,7 +168,7 @@ nothing twice. A step not in this table is not safe.
 | `v4_deadline` | `fno/v4_pack/`: "REFUSED by the write-once store; nothing overwritten" | yes (the deadline alerts) | **not safe** |
 | `candles` (A16b) | `fno/intraday/`: "a mark that already has one is refused (rows are written once)" | its package sends | **not safe** until its sends are shown to be failure alerts only |
 | `close_read`, `close_recheck` | `fno/close_read/`: "close already read", "close already rechecked" | its package sends | **not safe** until the same |
-| desk `exits`, `trade_marks` | O1 R2's table (event and fill IDs; the day's rows replaced) and `test_late_retries.py` | no | **safe** (owner question 3) |
+| desk `exits`, `trade_marks` | O1 R2's table (event and fill IDs; the day's rows replaced) and `test_late_retries.py` | `exits` alerts only when its event is new (`fno/desk/exits.py:196-197`, `if new`), so a retry alerts nothing twice | **safe** (owner question 3) |
 | `lab open`, `lab close` | `fno/forecast_lab/`: one edition's write-once records | yes (the editions) | **not safe** |
 | librarian commands | A9's store: "uploaded {uploaded}, already there {present}" (each session's file once) | on problems only | **not safe** until the same |
 | A16's marks | `fno/intraday/`: one row per mark file, a mark that has one refused | on failure | safe inside the mark's window, with section 5's limits |
@@ -214,6 +222,10 @@ nothing twice. A step not in this table is not safe.
    - The expected time comes from the previous session's log, else the fallback (G, E).
    - Plants: the later steps' limits ignored; **`book1` failing at 15:05 delays `fills` past `fills_by`** (it must
      not: the retry stops at 15:12 less its expected time); the expected time taken as zero.
+   - **The steps between are counted** (judges 682.1, 683.1): `exits` failing at 15:20 must not move the school past
+     15:25, and the same for `trade_marks`, `reviews`, `card` and `price_distribution`, each with the steps between it
+     and the school at their run-log times (one test per step). Plant: **an `exits` retry pushes the school past
+     15:25** (the steps between taken as zero).
 3. **The circuit and a child's class.**
    - A Groww 429 waits at least 60 s (G).
    - A sign-in failure is never retried, in process or as a child (B).
@@ -264,6 +276,8 @@ nothing twice. A step not in this table is not safe.
   - safety and step 2b: sections 6 and 7;
   - escalation: section 8;
   - owner questions: section 9.
+- **Judges 682.1 and 683.1:** the steps between counted (section 3.1, plant 10.2); `forecasts_v4_pack` not safe
+  (section 6).
 - **Judge 682:**
   - SF1: section 3.1 and plant 10.2;
   - SF2: section 5 and plant 10.3;
