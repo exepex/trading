@@ -36,3 +36,12 @@ Owner, 25 Oct 2026 (relayed in this session's task): "no proven edge: let's try 
 - Next family: F7 as planned, or a family using the FII-change lean as the side filter of a defined-risk NIFTY weekly
   spread (orchestrator's call).
 - R1 factory: a dependence-corrected G1 bound for multi-day holds (proposal to its owner).
+
+## F8 (later)
+
+- Orchestrator chose a side-filter family (F8, block edge2-f8, trials 121-123; F7 parked). Registered before any
+  option price was read; discovery (spreads alone, no OI read) at d38baa12: every 2-leg NIFTY weekly credit spread
+  loses on both sides (side averages -Rs 219 to -388); P0W10 futile; P0W5 and P5W5 kept
+  (`research/edge2/F8_DISCOVERY.md`).
+- Open: whether to spend participant OI 2025-26 on F8's held-out read (my recommendation: keep it unread; low prior,
+  low power); judge J on the branch.
