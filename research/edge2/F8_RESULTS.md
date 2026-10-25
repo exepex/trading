@@ -8,8 +8,11 @@ Rupees per trade for 1 lot of the time, C1's charges at today's STT, Rs 1 entry 
 ## Answer
 
 **Unfiltered, every spread loses after costs on both sides.** By the pre-registered futility rule (side-average net
-below -Rs 300), P0W10 is dropped; P0W5 and P5W5 go to the held-out read of the side filter (2025-26), which waits for
-a lane-1 judge. [strong evidence for the unfiltered spreads on 305 cycles; says nothing yet about the filter]
+below -Rs 300), P0W10 is dropped; P0W5 and P5W5 would have gone to the held-out read of the side filter (2025-26),
+but **that read is WAIVED by the orchestrator (25 Oct 2026)**: participant OI 2025-26 stays unread and the filter is
+untested. **Never run `python research/edge2/study_f8.py heldout`:** `f8/discovery.json` still lists P0W5 and P5W5 as
+`nominated`, so the command would open the seal. [strong evidence for the unfiltered spreads on 305 cycles; nothing
+about the filter]
 
 | Variant | Side | Taken | Mean gross | Charges | Pads | Mean net | SE | Win share | Worst trade |
 |---|---|---|---|---|---|---|---|---|---|

@@ -13,3 +13,7 @@ lot or a settlement close.
 
 Discovery measures the spreads alone (both sides) and applies the futility rule; the held-out read (2025-26, the
 side filter) needs a lane-1 judge's pass on these frozen rules first.
+
+**Later (25 Oct 2026): the held-out read is WAIVED by the orchestrator** (`F8_RESULTS.md`, "Decision"). Never run
+`python research/edge2/study_f8.py heldout`: `f8/discovery.json` names P0W5 and P5W5 as `nominated`, so the command
+would open the seal and read participant OI 2025-26, which stays unread.

@@ -34,7 +34,8 @@ not more]
 
 **G1's "passed" for FL-H5 (trial 118) in `research/factory/gates.csv` is not a pass of this study.** The factory's
 screen takes the lower 90% bound from the plain SD over n = 1,451, but H5 trades overlap (five open at once), so the
-bound is about sqrt(5) too tight. With the protocol's Newey-West error the bound is 739 - 1.28 x 824 = -Rs 316, below
+bound is too tight: measured on the run (judge 642), the Newey-West lag-4 error is 1.56 times the plain one for FL-H5
+(824 against 527), 0.95 for FD-H5 and 1.06 for CD-H5 (this file first said "about sqrt(5)", which was wrong). With the protocol's Newey-West error the bound is 739 - 1.28 x 824 = -Rs 316, below
 zero; Holm fails (p 0.19) and the always-long control beats it. The first gate row stays as logged (append-only);
 a correcting G1 row (`screened_out`, net -Rs 316.2 on the Newey-West bound, `supersedes=passed_2026-10-24`) is appended
 after it, so the machine record's last gate for 118 is `screened_out` (judge J's S2). [strong evidence: arithmetic on the frozen run's figures]

@@ -48,3 +48,7 @@ registered before any of their results; they run only after the protocol freeze 
 | 121-123 | 2026-10-25 | EDGE2 F8 | Registered before any option price of the study was read (`research/edge2/F8_PROTOCOL.md`, cards `research/ideas/EDGE2-F8-*.md`): the sign of the FII net index-futures change (F6's post-hoc lean) chooses a put or call 2-leg NIFTY weekly credit spread (P0W5, P5W5, P0W10), entered at the next open, held to expiry; 2019-24 measures the spread alone, the filter is tested only on 2025-26 after a judge | Discovery (spread alone): every spread loses on both sides, side averages -Rs 219 to -388; P0W10 futile, P0W5 and P5W5 kept (`research/edge2/F8_RESULTS.md`) | Closed: the filter untested, the held-out step waived by the orchestrator (participant OI 2025-26 kept unread); 124-126 unused |
 
 Total trials so far: 123 (count every new variant, threshold or filter here before reading its result).
+
+Dates (EDGE2, judge 642 m4): `registered_on` and the gate log's `on` are the factory tools' date, which is UTC on the
+cloud containers (24 Oct for EDGE2 rows written before 05:30 IST on 25 Oct); `first_run_on` is B4's IST date. Later
+rows use IST; earlier rows stay as written (write-once).
