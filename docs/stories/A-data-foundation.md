@@ -2092,6 +2092,13 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
   - **Read-only by construction:** the Groww client is reached only through an allow-list per caller (A16's
     `ReadOnlyGroww`, agreed with A16's owner). This caller's list is `get_order_margin_details`, `get_quote` and the
     constants they need.
+    - **Built through GW1 (judge I, agreed with GW1's owner, 25 Oct).** The client comes from
+      `get_provider("groww", cfg, BROKER_CHECK_CALLS)`: GW1a's sign-in guard and its alert, and the 60 s stop after a
+      429, all apply, behind this caller's list alone. The recorder's default list (every other caller) keeps no
+      margin call, and a test proves it.
+    - **Once GW1's quiet windows land** (A16's marks every 15 minutes, 120 s each): the check starts about 14:06 and
+      runs about a minute, between the 14:00 and 14:15 windows. A run that reaches a window has its later baskets
+      `error` (fail closed) [reasoning only until GW1 parts 5-6 merge].
     - A list may hold only public reads named `get_<lower_snake_case>` and UPPER_CASE constants; never a name starting
       with `_`, never a token or session call (`get_access_token`, `generate_socket_token`, `session`).
     - As a second line, never a name starting with an order verb (`place_`, `modify_`, `cancel_`, `create_`; the SDK's

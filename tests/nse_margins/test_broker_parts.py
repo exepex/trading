@@ -185,6 +185,12 @@ def test_the_wiring_reaches_groww_through_get_provider_with_only_this_caller_s_l
         with pytest.raises(ReadOnlyViolation):
             getattr(broker.client, name)
 
+    from fno.providers import get_provider
+
+    default = get_provider("groww", load_app_config()).api  # GW1's owner: the default list never widens by accident
+    with pytest.raises(ReadOnlyViolation, match="get_order_margin_details is not a read call"):
+        default.get_order_margin_details  # noqa: B018
+
 
 @pytest.mark.parametrize(("scan", "nov", "expected"), [(20_000.0, -5_525.0, 25_525.0), (3_000.0, 5_000.0, 0.0)])
 def test_groww_s_span_is_compared_with_the_row_s_span_after_its_net_option_value(scan, nov, expected):

@@ -284,3 +284,7 @@ call and the quote get through; `place_order`, `get_positions_for_user` and `get
 **Plants:** no list passed to `get_provider`, 1 failed; `GrowwProvider` ignoring `allowed`, 1 failed.
 **Files of GW1's owner touched** (`fno/providers/__init__.py`, `fno/providers/groww.py`): about 3 lines each, put to
 the orchestrator for that owner's agreement.
+- **GW1's owner agreed (25 Oct)** and asked for a test that a `get_provider("groww", cfg)` client without `allowed`
+  still refuses the margin call. It is added; the plant "default list widened with the margin call" is caught (1 failed).
+  Their unmerged parts 5-6 add quiet windows at A16's marks; the story states what that means for the check's
+  14:06 run.
