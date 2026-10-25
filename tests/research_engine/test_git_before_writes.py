@@ -54,6 +54,7 @@ def with_trial(path: Path) -> Path:
     git(root, "config", "user.name", "test")
     (root / "research" / "exp").mkdir(parents=True)
     claim_block(root)
+    commit(root, "claims")  # the ledger reads claims as committed (story O12e)
     Ledger(root).register("1", "exp", "policy one", "prospective", True, today=RUN_DAY)
     commit(root, "ledger")
     return root

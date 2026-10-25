@@ -12,10 +12,11 @@ from __future__ import annotations
 import csv
 import io
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from fno.numbering.registry import Row, read_rows
+from fno.numbering.registry import Row, read_rows, rows_from_text
 
 LEDGER = "research/ledger.csv"  # B4's LEDGER_FILE, named here so the number check stays standard library only
 BLOCK = re.compile(r"([1-9]\d*)(?:-([1-9]\d*))?")
@@ -174,10 +175,16 @@ def seed_blocks(trials: list[Trial], rows: list[Row]) -> list[Block]:
 
 
 class TrialClaims:
-    """The claims `Ledger.register` and the evaluation freeze read: the blocks in this checkout's registry."""
+    """The claims `Ledger.register`, `require_committed`, the evaluation freeze and the factory read: the blocks in the
+    registry as git holds it at HEAD, like the ledger row itself, so a block typed locally and never committed covers
+    nothing (judge J)."""
 
-    def __init__(self, root: Path):
-        self.root = Path(root)
+    def __init__(self, committed_text: Callable[[str], str | None]):
+        self._committed_text = committed_text
+
+    def _blocks(self) -> list[Block]:
+        text = self._committed_text(LEDGER_TRIAL.registry)
+        return well_formed(rows_from_text(text)) if text else []
 
     def problem(self, trial_id: str, experiment: str) -> str | None:
         """Why this trial may not be registered or run here, or None; Book 3's named ids are not counted."""
@@ -185,7 +192,7 @@ class TrialClaims:
             return None
         if not counted(trial_id):
             return BAD_ID.format(id=trial_id, experiment=experiment)
-        owner = next((b for b in LEDGER_TRIAL.blocks(self.root) if b.covers(int(trial_id))), None)
+        owner = next((b for b in self._blocks() if b.covers(int(trial_id))), None)
         if owner is None:
             return NOT_CLAIMED.format(id=trial_id, registry=LEDGER_TRIAL.registry, command=CLAIM_COMMAND)
         if not owner.is_for(experiment):
@@ -194,7 +201,7 @@ class TrialClaims:
 
     def next_free(self, experiment: str, used: set[str]) -> str:
         """The lowest unused id of a block claimed for this experiment; never one from another block."""
-        for block in sorted(LEDGER_TRIAL.blocks(self.root), key=lambda b: b.first):
+        for block in sorted(self._blocks(), key=lambda b: b.first):
             if block.is_for(experiment):
                 free = next((n for n in range(block.first, block.last + 1) if str(n) not in used), None)
                 if free is not None:

@@ -168,7 +168,7 @@ class Ledger:
     def __init__(self, root: Path, git: Git | None = None, claims: TrialClaims | None = None):
         self.root, self.git = Path(root), git or Git(Path(root))
         self.file = self.root / LEDGER_FILE
-        self.claims = claims or TrialClaims(self.root)
+        self.claims = claims or TrialClaims(self.git.committed_text)
 
     def rows(self) -> list[dict]:
         return read_ledger(self.file.read_text()) if self.file.is_file() else []

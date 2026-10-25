@@ -42,6 +42,7 @@ def init_repo(root: Path) -> Path:
     (root / "research").mkdir()
     (root / "numbers").mkdir()
     (root / CLAIMS_FILE).write_text(CLAIMS, encoding="utf-8")
+    commit(root, "claims")  # the ledger reads claims as committed (story O12e)
     for trial in ("1", "2"):
         ledger.register(trial, "old", f"trial {trial}", "prospective", True, today=None)
     commit(root, "ledger")

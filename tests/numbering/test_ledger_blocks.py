@@ -8,13 +8,13 @@ import pytest
 
 from fno.book3.registry import TRIAL_FAMILY
 from fno.config import ROOT
-from fno.numbering.blocks import BOOK3_EXPERIMENT, LEDGER, LEDGER_TRIAL, TrialClaims, ledger_trials, seed_blocks
+from fno.numbering.blocks import BOOK3_EXPERIMENT, LEDGER, LEDGER_TRIAL, ledger_trials, seed_blocks
 from fno.numbering.check import check_numbers
 from fno.numbering.registry import read_rows
 from fno.numbering.seed import seed_registries
 from fno.numbering.seed_pin import read_pins, seeded_digest, write_pins
 from fno.research_engine.ledger import COLUMNS, LEDGER_FILE, Ledger, NotRegistered, TrialNotClaimed
-from tests.numbering.helpers import HEADER, write
+from tests.numbering.helpers import HEADER, git, write
 
 STAMP = "2026-10-25T00:00:00Z"
 CLAIMS = HEADER + f"1-2,old,existing,\n3-6,edge2-f6,session_x,{STAMP}\n"
@@ -25,11 +25,16 @@ def trial(n: int, experiment: str) -> str:
 
 
 def checkout(tmp_path: Path, claims: str = CLAIMS, trials: str = "") -> Path:
-    """Two history trials and their pinned block, then `claims` as the registry and `trials` appended."""
+    """Two history trials and their pinned block, then `claims` as the registry and `trials` appended; committed, as
+    the ledger reads its rows and its claims from git."""
     ledger = ",".join(COLUMNS) + "\n" + trial(1, "old") + trial(2, "old") + trials
     write(tmp_path, {LEDGER: ledger, LEDGER_TRIAL.registry: HEADER + "1-2,old,existing,\n"})
     write_pins(tmp_path, {LEDGER_TRIAL.name: seeded_digest(read_rows(tmp_path / LEDGER_TRIAL.registry))})
-    return write(tmp_path, {LEDGER_TRIAL.registry: claims})
+    write(tmp_path, {LEDGER_TRIAL.registry: claims})
+    for command in (("init", "-q"), ("config", "user.email", "t@example.invalid"), ("config", "user.name", "t"),
+                    ("add", "-A"), ("commit", "-qm", "checkout")):  # fmt: skip
+        git(tmp_path, *command)
+    return tmp_path
 
 
 def test_the_checks_ledger_and_book_3s_experiment_are_their_owners():
@@ -144,12 +149,7 @@ def test_a_block_named_edge2_f1_never_covers_edge2_f10(tmp_path):
 
 def test_a_row_typed_by_hand_outside_its_block_never_runs(tmp_path):
     """Judge 636: a row written straight into the ledger never passed `register`, so the run checks it too."""
-    from tests.numbering.helpers import git
-
     root = checkout(tmp_path, trials=trial(7, "edge2-f6") + trial(4, "edge1-rules"))
-    for command in (("init", "-q"), ("config", "user.email", "t@example.invalid"), ("config", "user.name", "t"),
-                    ("add", "-A"), ("commit", "-qm", "typed by hand")):  # fmt: skip
-        git(root, *command)
     with pytest.raises(NotRegistered, match="trial 7 is in no block"):
         Ledger(root).require_committed("7")
     with pytest.raises(NotRegistered, match="claimed for experiment 'edge2-f6', not 'edge1-rules'"):
@@ -159,9 +159,21 @@ def test_a_row_typed_by_hand_outside_its_block_never_runs(tmp_path):
 
 def test_the_next_free_id_is_the_lowest_in_the_experiments_block_and_never_another_blocks(tmp_path):
     root = checkout(tmp_path, CLAIMS + f"7-9,edge2-f7,session_y,{STAMP}\n")
-    claims = TrialClaims(root)
+    claims = Ledger(root).claims
     assert claims.next_free("edge2-f6-x", {"1", "2", "3"}) == "4"
     with pytest.raises(ValueError, match=r"no free id in a block claimed for experiment 'edge2-f6-x'"):
         claims.next_free("edge2-f6-x", {"3", "4", "5", "6"})  # full, though 7-9 is free
     with pytest.raises(ValueError, match=r"no free id in a block claimed for experiment 'edge3'"):
         claims.next_free("edge3", set())
+
+
+def test_a_block_typed_locally_and_never_committed_covers_nothing(tmp_path):
+    """Judge J: the claim is read as git holds it, like the ledger row; an uncommitted block lets nothing through."""
+    root = checkout(tmp_path, trials=trial(7, "edge2-f7"))
+    write(root, {LEDGER_TRIAL.registry: CLAIMS + f"7-9,edge2-f7,session_y,{STAMP}\n"})  # typed, not committed
+    with pytest.raises(NotRegistered, match="trial 7 is in no block"):
+        Ledger(root).require_committed("7")
+    with pytest.raises(TrialNotClaimed, match="trial 8 is in no block"):
+        register(root, "8", "edge2-f7")
+    git(root, "commit", "-qam", "the block")
+    assert Ledger(root).require_committed("7")["experiment"] == "edge2-f7"
