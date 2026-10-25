@@ -17,7 +17,18 @@ def rehearsed_recorder(recorder, env: Mapping[str, str] = os.environ):
         return recorder
     from .recorded_quotes import RecordedRecorder
 
-    return RecordedRecorder(recorder, record_quote_store(recorder.store, mode))
+    return RecordedRecorder(recorder, record_quote_store(recorder.store, mode), part_record(mode))
+
+
+def part_record(mode: Rehearsal):
+    """REH1n: whether the replayed day had a capture, from the record checkout and the daily run's own parts."""
+    from ..config import load_app_config
+    from ..daily.v4_wiring import day_parts
+    from ..models import now_utc
+    from .part_record import PartRecord
+
+    single = {part.canonicals[0]: part.name for part in day_parts(load_app_config()) if len(part.canonicals) == 1}
+    return PartRecord(mode.record, single, now_utc)
 
 
 def record_quote_store(store, mode: Rehearsal):

@@ -25,7 +25,8 @@ INDEX_WINDOW_START, INDEX_WINDOW_END = time(15, 1), time(15, 13)
 INDEX_WORKERS, INDEX_PER_SECOND = 3, 2.5  # with A16's 5 a second, under the about 10 where Groww began failing
 NOT_STARTED = RecordResult("window closed")
 ATTEMPTED = "recorded"  # the status of every in-window attempt, complete or not; each one wrote its sidecar
-QUIET_STATUSES = ("not a trading day", "already recorded")  # nothing to record and nothing to alert
+NOT_A_PART = "not a part of the day"  # REH1n: a rehearsal's capture its replayed day never had; no real run says it
+QUIET_STATUSES = ("not a trading day", "already recorded", NOT_A_PART)  # nothing to record and nothing to alert
 DONE_WITHOUT_ATTEMPT = (*QUIET_STATUSES, "too early")  # never attempted, so never closed none
 # The earliest start that still reaches the window by waiting (A4c-2: 15:01 minus the 20-minute early wait). A run
 # started before it records nothing and writes no none marker, so its result says so (DRY2 R1, 24 Oct 2026).

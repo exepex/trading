@@ -10,8 +10,11 @@ import json
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from ..quotes.indices import NOT_A_PART
 from ..quotes.recorder import NONE_MARKER, RecordResult
 from ..storage.raw_store import RawFileStore
+from .part_record import NOT_RECORDED as NOT_A_PART_REASON
+from .part_record import PartRecord
 
 META, CSV = ".meta.json", ".csv"
 NOT_RECORDED = "rehearsal: no recorded {kind} attempt of {stem} on {day}"
@@ -33,9 +36,10 @@ class Attempt:
 
 
 class RecordedRecorder:
-    def __init__(self, live, record: RawFileStore):
-        """`live`: the recorder the composition root built (never asked to capture); `record`: the real record."""
-        self.live, self.source, self.store = live, record, live.store
+    def __init__(self, live, record: RawFileStore, parts: PartRecord | None = None):
+        """`live`: the recorder the composition root built (never asked to capture); `record`: the real record;
+        `parts`: whether the replayed day had this capture at all (REH1n; None: every capture was a part)."""
+        self.live, self.source, self.store, self.parts = live, record, live.store, parts
         self.dataset, self.stem, self.now, self.sleep = live.dataset, live.slot.stem, live.now, live.sleep
         self.provider, self.slot, self.underlying = live.provider, live.slot, live.underlying
         self.published: set[str] = set()
@@ -52,6 +56,8 @@ class RecordedRecorder:
             return RecordResult("not a trading day")
         if self.canonical(day) is not None:
             return RecordResult("already recorded", self.canonical(day))
+        if (absent := self._not_a_part(day)) is not None:
+            return absent
         result = RecordResult("window closed", reason=NOT_RECORDED.format(kind="in-window", stem=self.stem, day=day))
         while (attempt := self._next(day, in_window=True)) is not None:
             result = self._publish(day, attempt)
@@ -66,6 +72,8 @@ class RecordedRecorder:
             return RecordResult("not a trading day")
         if self.canonical(day) is not None:
             return RecordResult("already recorded", self.canonical(day))
+        if (absent := self._not_a_part(day)) is not None:
+            return absent
         attempt = self._next(day, in_window=True)
         if attempt is None:
             return RecordResult("window closed", reason=NOT_RECORDED.format(kind="in-window", stem=self.stem, day=day))
@@ -80,6 +88,12 @@ class RecordedRecorder:
         if attempt is None:
             return RecordResult("window closed", reason=NOT_RECORDED.format(kind="execution", stem=self.stem, day=day))
         return self._publish(day, attempt)
+
+    def _not_a_part(self, day: date) -> RecordResult | None:
+        """REH1n: a capture the replayed day never had answers so, before any wait, and writes nothing."""
+        if self.parts is None or self.parts.is_part(self.dataset, self.stem, day):
+            return None
+        return RecordResult(NOT_A_PART, reason=NOT_A_PART_REASON.format(stem=self.stem, day=day))
 
     def close_day(self, day: date) -> None:
         if self.canonical(day) is None and self._marker_in_record(day) in (None, NONE_MARKER):

@@ -15,13 +15,15 @@ from pathlib import Path
 from ..alerts.sender import AlertSender
 from ..constants import EXERCISED_PARTS, STEP_EXERCISED, STEP_FAILED, STEP_NOT_BUILT, STEP_NOT_LIVE, STEP_OK
 from ..daily.full_log import FULL_LOGS
+from ..quotes.indices import NOT_A_PART
 
 EXERCISED_LINE = "not live in real runs (exercised): {items}"
 PART = "{step}'s {part} part"
 SINCE = "{what} (in its routine from {since})"  # REH1r: live in real runs, but not yet in that routine on the day
+NOT_A_PART_ITEM = "{part}: {who}not a part of {day}"  # REH1n: a capture the replayed day never had
 
 
-def exercised_line(steps: dict[str, dict], fixed: tuple[str, ...] = ()) -> str | None:
+def exercised_line(steps: dict[str, dict], fixed: tuple[str, ...] = (), day: date | None = None) -> str | None:
     """The line for a run log's steps, with the rehearsal's own `fixed` items last, or None when nothing was."""
     items = []
     for name, step in steps.items():
@@ -29,10 +31,23 @@ def exercised_line(steps: dict[str, dict], fixed: tuple[str, ...] = ()) -> str |
         if result.get("status") == STEP_NOT_LIVE and STEP_EXERCISED in result:
             what = SINCE.format(what=name, since=result["since"]) if "since" in result else name
             items.append(_item(what, result[STEP_EXERCISED]))
-        parts = result.get(EXERCISED_PARTS, {})
-        items += [_item(PART.format(step=name, part=part), done) for part, done in parts.items()]
+        for part, done in result.get("parts", {}).items():
+            items += _not_a_part(PART.format(step=name, part=part), done, day)
+        for part, done in result.get(EXERCISED_PARTS, {}).items():
+            label = PART.format(step=name, part=part)
+            items += _not_a_part(label, done, day) or [_item(label, done)]
     items += fixed
     return EXERCISED_LINE.format(items="; ".join(items)) if items else None
+
+
+def _not_a_part(label: str, done: dict, day: date | None) -> list[str]:
+    """REH1n: one item per capture of the part that its replayed day never had, read from the part's printed lines."""
+    marker, found = f"{NOT_A_PART}:", []
+    for line in done.get("lines", ()):
+        if marker in line:
+            who = line.split(marker, 1)[0].strip()
+            found.append(NOT_A_PART_ITEM.format(part=label, who=f"{who} " if who else "", day=day or "the day"))
+    return found
 
 
 def _item(what: str, done: dict) -> str:
@@ -56,7 +71,7 @@ def report_exercised(checkout: Path, day: date, out: Callable[[str], None], aler
     and the routine's own commands not live in real runs (`commands`, REH1k)."""
     path = Path(checkout) / FULL_LOGS / f"{day.isoformat()}.json"
     steps = json.loads(path.read_text(encoding="utf-8"))["steps"] if path.is_file() else {}
-    line = exercised_line({**steps, **(commands or {})}, fixed)
+    line = exercised_line({**steps, **(commands or {})}, fixed, day)
     if line is not None:
         out(line)
         alerts.send(line)

@@ -9,6 +9,7 @@ from functools import partial
 from ..alerts.output import announce
 from ..alerts.sender import AlertSender
 from ..research_data.calendar import CalendarError
+from .indices import NOT_A_PART
 from .recorder import NO_SAME_DAY_TRADES, RAW_FILE_NOT_SAVED, QuoteSnapshotRecorder, RecordResult
 
 CALENDAR_STOP = "3 pm quote recorder stopped, nothing recorded: {error} ({file})"
@@ -26,7 +27,7 @@ RAW_FILE_ALERT = (
     "FNO_GDRIVE_* settings (A9: run tools/gdrive_oauth_setup.py if the owner's consent expired)."
 )
 CONFIGURED, NSE_SOURCE = "configured", "nse"
-GOOD_STATUSES = ("recorded", "already recorded", "not a trading day")
+GOOD_STATUSES = ("recorded", "already recorded", "not a trading day", NOT_A_PART)  # REH1n: a rehearsal only
 WINDOW_REFUSED = "3 pm quote recorder: nothing asked"
 WINDOW_NSE = "--window is for the configured provider's capture only, not --source nse"
 
