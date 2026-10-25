@@ -45,6 +45,10 @@ cost real money later, so:
 - **One builder per function (owner, 15 Oct 2026).** Before starting any story, fix or design change, read
   `docs/WORK_REGISTER.md` on the latest `main`; if a row already covers the same function, files or rule, agree with
   its owner session first, and add or update your own row in your first commit. Never build a second version.
+- **Sessions and models (owner, 25 Oct 2026).** Builders and executors run on Sonnet 5.5, reviewers and judges on Opus
+  5.5, each in its own separate session created by the orchestrator, never as a subtask or subagent of another
+  session; sessions message each other directly; every removal or clean-up needs two independent judges. The rule is
+  owned by `docs/JUDGE.md`, "Sessions, models and roles".
 - **The main job is the desk meeting** (see `AGENTS.md`): find profitable trades from data, every role reasoning from its
   own angle; code and data bugs are fixed directly and mentioned in one line, never the main topic.
 - **Answer from every financial role** listed in `AGENTS.md` (mathematician, statistician, F&O trader, options

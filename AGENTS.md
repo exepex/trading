@@ -36,6 +36,9 @@ the same rules (see `CLAUDE.md`).
   everything that can be given, and point to where the rest can be found. Never quietly water an answer down.
 - **Questions and clarifications** follow the same rules: ask them plainly, directly and only when the answer
   changes what you do.
+- **Sessions and models (owner, 25 Oct 2026).** Builders and executors run on Sonnet 5.5, reviewers and judges on
+  Opus 5.5, each in its own session, never as a subagent; judges are independent; every removal or clean-up needs two
+  independent judges. Owned by `docs/JUDGE.md`, "Sessions, models and roles".
 - **No patches.** Find the root cause, validate it with data and tests, then fix the design. When a component keeps
   needing fixes, question the design.
 - **No blind acceptance or rejection of reviews.** Check every review comment and piece of feedback (from the owner,

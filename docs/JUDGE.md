@@ -27,10 +27,29 @@ unsure, the change is lane 1.
   lane 1 and needs the code judge's PASS.
 - The dashboard's own lane-1 paths are listed in its `CLAUDE.md`.
 
-## Two judges
+## Sessions, models and roles (owner, 25 Oct 2026; story AG1)
 
-One **code judge** for lane 1 and one **lane-2 auditor** (owner, 22 Oct 2026). Each is a separate session that did not
-build what it judges and shares no context with the builders.
+Owner, 25 Oct 2026: "All the implementer agents and executor agents will use Sonnet 5.5 model, while the reviewer
+agent and the judge agents will use Opus 5.5 model. And each implementer and judge, they will have their own session.
+Do not run them as subtasks in one single session. Keep them separate and in their independent sessions. And you act
+as the coordinator of those sessions."
+
+This section owns the rule; `CLAUDE.md` and `AGENTS.md` link here.
+
+- **Models:** builders, implementers and executors run on Sonnet 5.5; reviewers and judges on Opus 5.5.
+- **One session each:** every builder and every judge (and reviewer) is its own separate, trackable session, created
+  by the orchestrator. Never a subtask or subagent inside another session, and a session never judges its own work.
+- **The orchestrator coordinates:** it creates the sessions, names each story's judge or judges, and decides nothing
+  that is the owner's. Each session reports its result to it, plus any question that waits for the owner's decision.
+- **Direct contact:** sessions message each other with the `claude-code-remote` `send_message` tool, without the
+  orchestrator. A builder hands its work (branch, SHA, files) to its judge directly; the judge answers the builder
+  directly; the orchestrator gets the result.
+- **Judges are independent, unbiased, honest and transparent:** one **code judge** for lane 1 and one **lane-2
+  auditor**, each a separate session that did not build what it judges and shares no context with the builder. Where
+  two judges review one change, the second does not read the first's verdict before writing its own.
+- **Removals and clean-ups need two independent judges** (owner, 25 Oct 2026: "every removal and cleanup needs to be
+  reviewed thoroughly by a judge and independent judge"): any change that deletes or retires code, data, documents or
+  rules, in any lane, merges only after both PASS, each with its own judge file and the two-round limit below.
 
 ## For each lane-1 story
 
@@ -83,7 +102,7 @@ the second judge when it routes the change.
    code starts.
 2. **Gap list:** each requirement of the design is covered by a named criterion or listed out of scope with its reason;
    a requirement in neither list is a blocking finding.
-3. **Builder self-review:** independent code-review agents on the diff; the Claims section says what they found and
+3. **Builder self-review:** a review of the diff by a separate reviewer session (Opus 5.5, asked by the builder directly); the Claims section says what they found and
    what was fixed or why not.
 4. **Broken-code proof:** each criterion names its code and a test that fails when that code is broken on purpose. The
    judge still plants its own.
