@@ -116,3 +116,18 @@ area: one scanner, one reviewer, one writer, two judges; at most three areas at 
 - Revision 2 (owner, 25 Oct): 500-line limit, one owning document per functionality, functional correctness first,
   documents judged like code. The interim rule is added to CLAUDE.md ("Code") and AGENTS.md ("Documents") in this
   branch so every session follows it before DOC1 finishes; no routine section of CLAUDE.md is changed.
+
+## 7. Known conflicts reported by builders (25 Oct; inputs for P1)
+
+Ruling until DOC1 reaches each area: work already in review lands in its current file, so no review changes
+mid-round; any new piece starts its own document (under 500 lines) with a one-line link from its parent; nobody
+moves, splits or deletes an existing document outside DOC1.
+
+| File or pair | Problem | Reported by |
+|---|---|---|
+| docs/stories/REH1-rehearsal-mode.md (2,000 lines) | over 500; REH1r code and REH1n round 3 add about 75 | REH1 builder |
+| docs/stories/REC1-recommender.md (857) | over 500; mostly round-by-round Claims | REC1 builder |
+| docs/stories/F1t-ai-trading-runner.md (775, branch), F5-book2.md (542, branch) | over 500 | AI books builder |
+| docs/stories/E3-fills-by-book.md (46, on main) vs E-paper-desk.md's E3 section | one functionality, two documents | AI books builder |
+| docs/stories/O1-daily-run.md lines 52-65 vs A-data-foundation.md "A14c part 2" | A14c part 2 described twice (the follow-up replaces O1's copy with a link) | A14c builder |
+| reviews/claude/response_291 claims tables vs A-data-foundation.md | design restated | A14c builder |
