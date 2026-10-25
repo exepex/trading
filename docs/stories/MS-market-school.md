@@ -3620,3 +3620,6 @@ clean (2765 files); check_records clean (9296 files); check_numbers at the merge
 - **The orchestrator's 08:50 question (can a stopped run feed the next morning's plan?): no.** `PreviousSlotToday`
   plans from the roads' catalogue and the previous session's 15:00 capture snapshots (`report_inputs.py`:
   `plan_slot(previous, self.catalogue, self.snapshots, self.gate)`), never from the dashcam or the accounts. No change.
+- **Gates at ff5846845** (round 2's code, on main merged in at eefeb96b5; this text is Markdown only on top): full
+  suite 16765 passed, 1 skipped, 13 xfailed (FNO_SLACK_BOT_TOKEN kept set); ruff check and format clean; check_imports
+  clean (2777 files); check_records clean (9322 files).
