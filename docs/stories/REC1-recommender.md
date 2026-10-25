@@ -714,3 +714,77 @@ by the round-2 work above. The rest are fixed at ca2e8358:
   written final, later checks counted. Tests: 335 in `tests/recommend`.
 - **Known cost:** each evening reads the latest check of every receipted day. It is cheap through the verified Drive
   cache, and grows by one small read per session.
+
+### REC1d text amendment (round 2: judges 663 J and 664 K; placement agreed 25 Oct by the orchestrator for MS-P1g's builder, who is out of reach, and for FL1's owner on the reserved call; conditions from MS-P1j's builder, current owner of `fno/school/reports/`)
+
+What section 3's "08:50 and 20:05" bullet and REC1c item 5 become exact as, each named:
+
+1. **Placement: a wrapper of its own, outside the school's (J's S1 and K's SF1, accepted).**
+   - Round 1 put the recommender's block inside `build_school_maker`. That function returns the plain maker when
+     `school.reports` is false (`fno/school/reports/wiring.py`), so the block would have vanished with the school's
+     switch.
+   - The fix: the recommender wraps the lab's maker itself. `fno/recommend/report_guard.py` has
+     `with_recommend_section(maker, config)`, and `fno/recommend/report_section.py` has its two sections.
+   - `fno/forecast_lab/page_wiring.py` changes only its reserved call, to wrap the school's wrapper:
+     `with_recommend_section(with_school_sections(...))`. This is the orchestrator's yes, for FL1's owner.
+   - `report_guard.py` imports nothing of the recommender at load time, as `guard.py` does. A failure to set it up
+     gives the plain edition plus one alert naming the exception class.
+   - `fno/school/reports/` is not changed at all. MS-P1j's builder reviews the reserved line before the judges.
+2. **Each section under its own switch.**
+   - The recommender's section shows only from `daily.live_from.recommend`, and the school's only with `school.reports`.
+     Neither key is read by the other's wrapper.
+   - With the recommender's switch off, `with_recommend_section` returns the maker it was given, unchanged.
+3. **Isolation.**
+   - The two wrappers are separate. The recommender's section raising never stops the school's section or the edition:
+     it gives one alert, "recommender <edition> section not made (<Class>); the edition was posted without it", with
+     the exception class and never its message. The school's failure handling is unchanged.
+   - Tests: a failing recommender section with the school's section still posted, and the reverse.
+4. **Order and text.**
+   - The school's sections render exactly as today, in the same place. The recommender's comes after them, because its
+     wrapper is the outer one.
+   - All of `tests/school/reports/` passes untouched.
+5. **08:50, "Recommender, PAPER ONLY":**
+   - The standing real-money answer and each rated version's rung, from the latest recommendation record before
+     today, labelled "standing; today's answer at about 15:20" and naming that record's day.
+   - **The checks of the previous NSE session only (K's SF2 and J's m1).** "Last evening" means the previous NSE
+     session by the session calendar, never the previous calendar day.
+     - Every check line names its check date, in the check's own words (`check_text`).
+     - Only check files dated that previous session are shown. An older check is never shown, dated or not.
+     - When recorded days are still not final and no check file is dated the previous session, the section says "the
+       previous session's check did not run" and names the waiting days.
+     - A `data_check_failed` check is named with its problem. Neither case ever fails the edition.
+   - No record yet gives one line, "no recommendation recorded yet". A record that cannot be read is named as not
+     read, by its path and the exception class only.
+6. **20:05, "Recommender, PAPER ONLY":**
+   - Today's two answers with their codes, in REC1b's line words, without the receipt part.
+   - Then one fixed line: "tonight's check runs after this edition; it is on #fno-desk and in tomorrow's 08:50". No
+     stale check is ever shown as today's (orchestrator, 25 Oct).
+   - On a session with no record (the step did not run or did not post), it says "no recommendation recorded for
+     <day>". It adds the run log's `recommend` status and reason code only, never the step's printed lines (K's m1).
+   - That status is read through a port in the shape of MS-P1j4's `DayInputs.school_step`, never by opening the run
+     log inside the section (MS-P1j's builder, 25 Oct).
+7. **Words and their guard.**
+   - The section names no strike, price, range or strategy internal. Its only amounts are the check's after-cost
+     rupee totals, which REC1c already posts to #fno-desk.
+   - Its own guard: every line is built only from `post.py`'s and `check_text.py`'s templates and this module's fixed
+     lines. A test checks each line against those templates.
+   - It is never routed through the school's LEAK or rupee checks, which would withhold it.
+   - No line carries a record hash: the edition is not a record.
+8. **Tests on an explicit config.** `config.yaml` has `school.reports: true`, so every new test passes its own config
+   and never builds the real school inputs.
+9. **Criteria for REC1d**, each with a plant:
+   - (a) **All four switch pairs** (school off or on, recommender off or on), each with a golden file of both editions:
+     - both off is byte-identical to the plain maker, with the real recommender wrapper in place;
+     - school only is byte-identical to today's school golden;
+     - recommender only shows the plain edition plus the recommender's block;
+     - both show the school's sections, then the recommender's.
+     Plants: the recommender gated by `school.reports`, and the recommender's block always added.
+   - (b) A data_check_failed check is named, and the edition still posts. Plant: a raised reader error is swallowed
+     silently.
+   - (c) The morning never shows today's record as standing. Plant: `<=` in place of `<`.
+   - (d) One failing wrapper never removes the other's section. Plant: the recommender's `try` around the inner maker.
+   - (e) An empty history gives the "no recommendation recorded yet" line.
+   - (f) Every line matches an allowed template. Plant: a candidate's decision path added to a line.
+   - (g) Only the previous session's checks are shown, each with its date. Waiting days with no check dated the
+     previous session give "the previous session's check did not run". Plant: an older check shown without its date.
+   - (h) The 20:05 no-record line carries only the status and reason code. Plant: the step's printed line appended.
