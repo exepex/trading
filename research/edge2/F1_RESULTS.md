@@ -67,3 +67,9 @@ weekly since 20 Nov 2024 (the only weekly still listed): WF-G0 -Rs 690 on 99 tra
 The cost wall suggests where an edge, if any, could survive: structures with fewer legs per rupee of premium, or a
 cheaper exit than settlement (exercise STT on in-the-money legs). These are candidates for later pre-registered
 families, never re-tests of F1's variants on the same data.
+
+## Deviations
+
+- The G1 inputs were first appended to the six idea cards after the freeze (commit b9b23f9d), which made B4's
+  `require_registered` refuse them (judge J's S1). The cards are restored to their frozen text; the inputs stay in
+  history at b9b23f9d and the gate rows are unchanged. No number changed.

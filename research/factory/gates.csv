@@ -83,3 +83,4 @@ trial_id,gate,outcome,on,commit,numbers
 118,G1,passed,2026-10-24,ed28d6b7bd72aeacb506041f9851d13725029c15,bound=720.9;expected=1397.2;cost=657.7;tail=0.0;net=63.3;ratio=2.12;thin_margin=no
 119,G1,screened_out,2026-10-24,ed28d6b7bd72aeacb506041f9851d13725029c15,bound=-58.3;expected=194.1;cost=656.9;tail=0.0;net=-715.2;ratio=0.30;thin_margin=yes
 120,G1,screened_out,2026-10-24,ed28d6b7bd72aeacb506041f9851d13725029c15,bound=-269.7;expected=400.6;cost=657.5;tail=0.0;net=-927.2;ratio=0.61;thin_margin=yes
+118,G1,screened_out,2026-10-25,a5cc130fcff9c0ce4405b8c9f5efd77270922e62,bound=341.5;expected=1397.2;cost=657.7;tail=0.0;net=-316.2;se=823.7;correction=newey_west_lag4;supersedes=passed_2026-10-24
