@@ -9,8 +9,9 @@ from datetime import date
 import pytest
 
 from fno.forecast_lab.constants import EVENING, MORNING
+from fno.rehearsal.exercised_line import exercised_line
 from fno.rehearsal.rehearse import run_routine
-from fno.rehearsal.routines import NOT_IN_ROUTINE, ROUTINES, Command
+from fno.rehearsal.routines import ROUTINES, Command
 
 D21, D22, D23, D24 = (date(2026, 10, d) for d in (21, 22, 23, 24))
 # docs/stories/REH1-rehearsal-mode.md, REH1r, Design 2 (judges 673.1 and 674.1)
@@ -54,9 +55,17 @@ def test_on_21_oct_every_evening_command_is_exercised_and_the_routine_is_done(tm
     assert (code, line) == (0, "7 commands done")
     assert len(exercised) == 7
     closes = exercised["closes read --commit"]["result"]
-    assert closes == {"status": "not_live", "reason": NOT_IN_ROUTINE.format(day=D21, since=D22),
+    assert closes == {"status": "not_live", "since": "2026-10-22",
                       "exercised": {"status": "failed", "reason": "said no: closes read --commit"}}  # fmt: skip
-    assert "reason" not in exercised["lab close"]["result"]  # its edition's note, as REH1k gives it
+    assert "since" not in exercised["lab close"]["result"]  # its edition's own not-live, as REH1k gives it
+
+
+def test_the_exercised_line_says_the_command_was_not_yet_in_its_routine(tmp_path):
+    """Self-review should-fix: the owner sees why, once, in the posted line; a lab edition's item is as before."""
+    _, _, exercised = evening(tmp_path, D21)
+    line = exercised_line(exercised)
+    assert "closes read --commit (in its routine from 2026-10-22) failed: said no: closes read --commit" in line
+    assert "; lab close failed: said no: lab close;" in line
 
 
 # R2: on and after `since`, the real rule
@@ -104,3 +113,22 @@ def test_a_command_with_no_since_is_never_exercised_by_it():
     assert Command(("x",), since=D22).exercised_on(D21, frozenset()) and not Command(("x",)).exercised_on(
         D21, frozenset()
     )
+
+
+def test_set_apart_commands_without_an_exercised_record_are_refused(tmp_path):
+    failing_fno(tmp_path)
+    with pytest.raises(ValueError, match="need an `exercised` record"):
+        run_routine(tmp_path, ROUTINES["evening"], D21, dict(os.environ), [].append, frozenset())
+
+
+@pytest.mark.parametrize(
+    ("day", "line"), [(D22, "2 commands done"), (D23, "failed: preopen record, global-cues preopen")]
+)
+def test_the_preopen_routine_before_and_on_its_first_day_through_run_routine(tmp_path, day, line):
+    """Self-review minor: the boundary through `run_routine`, on a routine whose every command is set apart (one in
+    the background)."""
+    failing_fno(tmp_path)
+    exercised = {}
+    code, said = run_routine(tmp_path, ROUTINES["preopen"], day, dict(os.environ), [].append, frozenset(), exercised)
+    assert said == line and code == (0 if day == D22 else 1)
+    assert len(exercised) == (2 if day == D22 else 0)

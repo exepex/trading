@@ -17,7 +17,6 @@ PREOPEN_SINCE = date(2026, 10, 23)  # a2b2ad8c6 and e6010ac0a (22 Oct); first ou
 INDEX_CLOSE_SINCE = date(2026, 10, 23)  # 96af942cd (22 Oct 04:29 IST); the morning's first output 3decf6a60, 23 Oct
 CERTIFY_SINCE = date(2026, 10, 24)  # 51cab79b0 (23 Oct 22:42 IST, on main about 23:58); first record 24 Oct 08:41 IST
 EVENING_SINCE = date(2026, 10, 22)  # cae76af89, 49aa26951 (22 Oct); the routine's own outputs 22 Oct 19:54-19:55 IST
-NOT_IN_ROUTINE = "not in its routine on {day} (since {since})"
 
 
 @dataclass(frozen=True)

@@ -20,7 +20,7 @@ from .clock import ReplayClock
 from .exercised_line import not_live_result, report_exercised
 from .git_dates import install_git_shim
 from .mode import Rehearsal, in_this_process
-from .routines import NOT_IN_ROUTINE, ROUTINES, Command, Routine
+from .routines import ROUTINES, Command, Routine
 
 HOME = Path("~/.fno/rehearsals").expanduser()
 STARTED = "rehearsal {routine} {day} {run_id}: data as of {at}, checkout {checkout}"
@@ -30,7 +30,7 @@ ENDED = "rehearsal {routine} {day} {run_id} ended: {line}; branch {ref}; Drive d
 RECEIPTS_MESSAGE = "Rehearsal {routine} {day}: the routine's receipts"
 CONFIG_FILE = "config.yaml"
 REPLAY_CLOCK = "replay clock not checked (by design)"  # REH1l: said once per rehearsal, never a capture's problem
-NO_EXERCISED = "run_routine: commands not live in real runs need an `exercised` record"
+NO_EXERCISED = "run_routine: commands set apart (not live, or not yet in their routine) need an `exercised` record"
 EXERCISED_UNREAD = "rehearsal: the exercised steps could not be read from the run's full log: {problem}"
 
 
@@ -125,14 +125,14 @@ def run_routine(checkout: Path, routine: Routine, day: date, env: dict, out: Cal
 
     apart = {c for c in routine.commands if c.exercised_on(day, not_live)}
     if apart and exercised is None:
-        raise ValueError(NO_EXERCISED)  # a not-live command's outcome must be reported somewhere, never dropped
+        raise ValueError(NO_EXERCISED)  # a set-apart command's outcome must be reported somewhere, never dropped
     background = [(c, start(c)) for c in routine.commands if c.background]
     results = [(c, _relayed(start(c), out)) for c in routine.commands if not c.background]
     results += [(c, _relayed(child, out)) for c, child in background]
     for c, (code, last) in results:
         if c in apart:
-            reason = None if c.live_key in not_live else NOT_IN_ROUTINE.format(day=day, since=c.since)
-            exercised[" ".join(c.args)] = {"result": not_live_result(code, last, reason)}
+            since = None if c.live_key in not_live else c.since
+            exercised[" ".join(c.args)] = {"result": not_live_result(code, last, since)}
     failed = [" ".join(c.args) for c, (code, _) in results if code != 0 and c not in apart]
     if len(results) == 1 and results[0][0] not in apart:  # the daily run: its own last line
         return results[0][1]
