@@ -20,7 +20,7 @@ from .clock import ReplayClock
 from .exercised_line import not_live_result, report_exercised
 from .git_dates import install_git_shim
 from .mode import Rehearsal, in_this_process
-from .routines import ROUTINES, Command, Routine
+from .routines import NOT_IN_ROUTINE, ROUTINES, Command, Routine
 
 HOME = Path("~/.fno/rehearsals").expanduser()
 STARTED = "rehearsal {routine} {day} {run_id}: data as of {at}, checkout {checkout}"
@@ -116,22 +116,25 @@ def run_routine(checkout: Path, routine: Routine, day: date, env: dict, out: Cal
     """The routine's own commands in the rehearsal's checkout, each relayed line by line: the background ones first,
     then the rest in order, then the background ones waited for. One command's failure never stops the next, as in
     the routine; the last line is the daily run's own, or which commands failed. A command whose live key is in
-    `not_live` runs as on the day, but its outcome goes into `exercised` (REH1j's shape), never into "failed"."""
+    `not_live`, or that was not yet in its routine on `day` (REH1r), runs as on the day, but its outcome goes into
+    `exercised` (REH1j's shape), never into "failed"."""
 
     def start(command: Command) -> subprocess.Popen:
         return subprocess.Popen([sys.executable, "-m", "fno", *command.for_day(day)], cwd=checkout, env=env,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)  # fmt: skip
 
-    if not_live and exercised is None:
+    apart = {c for c in routine.commands if c.exercised_on(day, not_live)}
+    if apart and exercised is None:
         raise ValueError(NO_EXERCISED)  # a not-live command's outcome must be reported somewhere, never dropped
     background = [(c, start(c)) for c in routine.commands if c.background]
     results = [(c, _relayed(start(c), out)) for c in routine.commands if not c.background]
     results += [(c, _relayed(child, out)) for c, child in background]
     for c, (code, last) in results:
-        if c.live_key in not_live:
-            exercised[" ".join(c.args)] = {"result": not_live_result(code, last)}
-    failed = [" ".join(c.args) for c, (code, _) in results if code != 0 and c.live_key not in not_live]
-    if len(results) == 1 and results[0][0].live_key not in not_live:  # the daily run: its own last line
+        if c in apart:
+            reason = None if c.live_key in not_live else NOT_IN_ROUTINE.format(day=day, since=c.since)
+            exercised[" ".join(c.args)] = {"result": not_live_result(code, last, reason)}
+    failed = [" ".join(c.args) for c, (code, _) in results if code != 0 and c not in apart]
+    if len(results) == 1 and results[0][0] not in apart:  # the daily run: its own last line
         return results[0][1]
     return (1 if failed else 0), (f"failed: {', '.join(failed)}" if failed else f"{len(results)} commands done")
 

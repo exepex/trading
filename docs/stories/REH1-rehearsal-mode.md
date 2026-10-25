@@ -1085,7 +1085,7 @@ real-run code."
   the index recorders unwrapped; the `v4` window recorder unwrapped; the guard without the index rows.
 - **S2. No Groww SDK, no live fallback** (`tests/rehearsal/test_guard_recorders.py`, a fresh process): each of the six
   recorders is recorded over an `NSEProvider` whose call is refused; the SDK line appears once per builder (three).
-- **S3. NSE's own chain recorder** (judge 669 m1 for REH1s; follow-up `story/reh1qs-minors`): `build_nse_quote_recorder`
+- **S3. NSE's own chain recorder** (judge 670 m1 for REH1s; follow-up `story/reh1qs-minors`): `build_nse_quote_recorder`
   (`quotes record --source nse`, O6) has its own guard row, and in the fresh process it is recorded over its
   `NseQuoteProvider`, whose call is refused. The guard's planted-break count is thirteen.
 
@@ -1118,8 +1118,9 @@ constant. Before `since`, the command is exercised, never failed."
 `rehearse evening --day 2026-10-21` from main 4e8be7b72 (run 20261025T025540Z-5413fe) ended "failed: closes read
 --commit, records certify closes --level provisional --commit, data-librarian fo-bhavcopy ..., data-librarian
 participant-oi ..., data-snapshot fii-dii-cash-by-session". On 21 Oct none of the evening routine's commands was in its
-routine: the first commit holding `lab close` in CLAUDE.md is 6eced93c2 (21 Oct 16:56 UTC, 22:26 IST, after 19:53), the
-evening's data commands 49aa26951 (21 Oct 23:09 UTC), and the first evening outputs in the record are 22 Oct's (below).
+routine: the first commit holding the evening routine's `lab close` in CLAUDE.md is 5c3195ba0 (21 Oct 22:44 UTC, 22 Oct
+04:14 IST; judge 674.1), the evening's data commands 49aa26951 (21 Oct 23:09 UTC), and the first evening outputs in
+the record are 22 Oct's (below).
 A rehearsal runs today's routine, so on an earlier day each such command meets a record that never held its answer
 ("rehearsal:NOT_RECORDED", `RecordedAnswerMissing`) and counts as the routine's failure. REH1k keyed only the lab
 editions (`live_key`); these commands have no key.

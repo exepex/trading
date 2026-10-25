@@ -41,10 +41,11 @@ def _item(what: str, done: dict) -> str:
     return f"{what} {status}: {reason}" if status != STEP_OK and reason else f"{what} {status}"
 
 
-def not_live_result(code: int, last: str) -> dict:
-    """A rehearsed routine's command not live in real runs (REH1k), in the run log's shape: its exit and last line."""
+def not_live_result(code: int, last: str, reason: str | None = None) -> dict:
+    """A rehearsed routine's command not live in real runs (REH1k), or not yet in its routine (REH1r, `reason`), in
+    the run log's shape: its exit and last line."""
     done = {"status": STEP_OK} if code == 0 else {"status": STEP_FAILED, "reason": last or f"exit {code}"}
-    return {"status": STEP_NOT_LIVE, STEP_EXERCISED: done}
+    return {"status": STEP_NOT_LIVE, **({"reason": reason} if reason else {}), STEP_EXERCISED: done}
 
 
 def report_exercised(checkout: Path, day: date, out: Callable[[str], None], alerts: AlertSender,
