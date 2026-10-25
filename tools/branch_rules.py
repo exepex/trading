@@ -6,17 +6,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 DEFAULT_BRANCH = "main"
 GRACE = timedelta(hours=24)  # a merged branch stays this long after it landed on main (a builder may still push)
 RECENT = timedelta(hours=48)  # an unmerged branch with a newer commit is treated as being worked on
-REHEARSAL_KEEP = timedelta(days=7)  # a rehearsal run's branch is for inspection only (REH1 Q3), so it goes after a week
-REHEARSAL_FRESH = timedelta(hours=24)  # the one-off clean-up keeps runs this new: a judge may be reading them
 REHEARSAL_PREFIX = "rehearsal/"
-RUN_STAMP = re.compile(
-    r"-(\d{8}T\d{6}Z)-[0-9a-f]+$"
-)  # `rehearsal/<day>-<run_id>`: the run id starts with its UTC start
+REHEARSAL_WHY = "rehearsal run: REH1 Q3 (owner, 24 Oct) keeps them for inspection until the owner says otherwise"
 BRANCH_TOKEN = re.compile(r"[A-Za-z0-9_./-]+")  # a branch name, with or without a slash; a loose match only keeps more
 
 KEEP, KEEP_UNSURE, DELETE = "keep", "keep-unsure", "delete"
@@ -30,7 +26,6 @@ class Branch:
     merged: bool  # the tip is an ancestor of origin/main
     ahead: int  # commits on the branch that are not on origin/main
     landed_at: datetime | None = None  # the main commit that first held the tip; None when not merged
-    on_main_line: bool = False  # the tip is a commit on main's own first-parent line: fast-forwarded, or cut and unused
     code_files: int = 0  # code files only this branch changes (inventory only; 0 = nothing of value would be lost)
 
 
@@ -74,11 +69,6 @@ def mentioned(names: list[str], text: str) -> frozenset[str]:
     return frozenset(name for name in names if name in found)
 
 
-def rehearsal_started(name: str) -> datetime | None:
-    stamp = RUN_STAMP.search(name)
-    return datetime.strptime(stamp.group(1), "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC) if stamp else None
-
-
 def protection(branch: Branch, evidence: Evidence) -> str | None:
     """Why the branch must stay whatever else is true (checks shared by both rules); None when nothing protects it."""
     if branch.name == DEFAULT_BRANCH:
@@ -95,32 +85,21 @@ def protection(branch: Branch, evidence: Evidence) -> str | None:
 
 
 def merged_branch(branch: Branch, now: datetime) -> tuple[str, str]:
-    if branch.on_main_line:
-        return KEEP_UNSURE, "tip is on main's own line: merged by fast-forward, or cut from main and not used yet"
     landed = branch.landed_at or branch.tip_time
     if now - max(landed, branch.tip_time) < GRACE:
         return KEEP_UNSURE, "merged into main less than 24 h ago (grace for a late push)"
     return DELETE, "merged into main"
 
 
-def rehearsal_branch(branch: Branch, now: datetime, keep: timedelta) -> tuple[str, str]:
-    started = rehearsal_started(branch.name)
-    if started is None:
-        return KEEP_UNSURE, "a rehearsal branch whose run id has no start time"
-    if now - started < keep:
-        return KEEP_UNSURE, f"rehearsal run started {started:%d %b %H:%M} UTC, newer than {keep}"
-    return DELETE, "rehearsal run branch: written by `daily run --rehearse`, read by nothing"
-
-
 def ongoing_decision(branch: Branch, evidence: Evidence, now: datetime) -> tuple[str, str]:
-    """The standing rule: merged branches (after the grace) and week-old rehearsal runs go; everything else stays."""
+    """The standing rule: a merged branch goes after the grace; everything else stays."""
     held = protection(branch, evidence)
     if held:
         return KEEP, held
     if branch.merged:
         return merged_branch(branch, now)
     if branch.name.startswith(REHEARSAL_PREFIX):
-        return rehearsal_branch(branch, now, REHEARSAL_KEEP)
+        return KEEP, REHEARSAL_WHY
     return KEEP, "not merged into main"
 
 
@@ -132,7 +111,7 @@ def inventory_decision(branch: Branch, evidence: Evidence, now: datetime) -> tup
     if branch.merged:
         return merged_branch(branch, now)
     if branch.name.startswith(REHEARSAL_PREFIX):
-        return rehearsal_branch(branch, now, REHEARSAL_FRESH)
+        return KEEP_UNSURE, REHEARSAL_WHY
     if now - branch.tip_time < RECENT:
         return KEEP_UNSURE, "not merged, last commit within 48 h, in no register row"
     if branch.name in evidence.recent_mentions:

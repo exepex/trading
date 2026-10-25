@@ -225,7 +225,7 @@ damage, not by its size; when unsure, lane 1.
 A checkout on a detached HEAD pushes with `git push origin HEAD:<branch>`.
 
 **Branches are deleted once merged (owner, 25 Oct 2026, story GB1).** A branch merged into `main` is deleted by
-`.github/workflows/branch-cleanup.yml` 24 hours after it landed; a rehearsal run's branch after 7 days. A branch stays
+`.github/workflows/branch-cleanup.yml` 24 hours after it landed (rehearsal run branches stay until the owner decides). A branch stays
 while (a) it heads an open pull request, (b) it is not merged and is named in `docs/WORK_REGISTER.md`'s Branch column,
 or (c) it is listed in `.github/branch-keep.txt` (a story whose text is merged but whose code is still to come lists its branch
 there). Rules, evidence and the one-off clean-up: `docs/stories/GB1-branch-cleanup.md`.

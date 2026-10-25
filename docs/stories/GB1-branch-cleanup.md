@@ -31,9 +31,10 @@ removal and cleanup needs to be reviewed thoroughly by a judge and independent j
   (below). Judge files quote run ids as evidence; the evidence is in the judge files, the Drive `dryrun/` folders keep the
   run's data. **Question for the owner, through the orchestrator:** does the 25 Oct rule replace Q3 for rehearsals?
 - **A merged branch is not always finished.** O14 and CP1 merged their story text and code is still to come on the same
-  branch (register rows). So "merged" alone would delete a branch in use. A branch freshly cut from `main` is also an
-  ancestor of `main`, so git cannot tell it from a fast-forward merge: any branch whose tip is a commit on `main`'s own
-  first-parent line is `keep-unsure`, never deleted by a rule (16 today). Real merges (a merge commit) are told apart.
+  branch (register rows). So "merged" alone would delete a branch in use. A branch freshly cut from `main` (or
+  fast-forwarded into it) is also an ancestor of `main`, so git cannot tell it from a merged one. Such a branch has no
+  commit of its own, so deleting it loses nothing and the next push recreates it; the 24-hour grace (from its tip's date)
+  and the keep list are its only guard, and Judge Q (round 1, finding 2) preferred that to keeping 16 and growing.
 
 ## The rules (tools/branch_rules.py, pure, one function per rule)
 
@@ -51,9 +52,9 @@ Then, for a branch nothing protects:
 - **Merged** into `main`: deleted once 24 hours have passed since the later of "its merge reached `main`'s own line" and
   its last commit (`GRACE`). Evidence: JUDGE.md's merge procedure merges after the PASS and then marks the register row; a
   builder may still push a lane-3 note. 24 hours covers that, and a deleted branch is recreated by the next push.
-- **A rehearsal run's branch:** the standing rule deletes it 7 days after the run started (`REHEARSAL_KEEP`; the run id
-  holds the UTC start time); the one-off clean-up keeps runs under 24 hours (a judge of an in-flight rehearsal story may
-  open them), marked `keep-unsure`.
+- **A rehearsal run's branch:** never deleted by either rule (`keep-unsure` in the inventory, `keep` in the standing
+  rule) until the owner answers whether the 25 Oct words replace REH1's Q3 ("keep them so the owner can inspect them",
+  24 Oct). If the owner says yes, one small rule (delete after N days from the run id's start time) is added then.
 - **Not merged** (the one-off only; the standing rule never deletes an unmerged branch): `keep-unsure` when its last
   commit is under 48 hours old, when a file written in the last 48 hours names it, or when it holds **unfinished code**
   (a commit not on `main`, patch for patch, that changes a file under `fno/`, `tools/`, `.github/` or `config.yaml`).
@@ -70,9 +71,9 @@ tool). Counts at its making:
 
 | Decision | Count | What |
 |---|---|---|
-| delete | 386 | 365 merged; 17 unmerged, idle over 48 h with no unfinished code; 4 old rehearsal runs |
-| keep | 32 | `main`; the keep list (10 of its 11 names exist on origin today, this story's included; 3 are merged); 5 open pull requests' heads (one is a stale, merged one: PR 131); 16 unmerged and in the register |
-| keep-unsure | 180 | 84 merged under 24 h ago (go tomorrow); 16 whose tip is on main's own line (see rules); 45 rehearsal runs under 24 h; 26 unmerged and recent or named in a recent file; 9 unmerged holding unfinished code (A14c families, A19 news, A21 rates and announcements, F1t-F4 handover, O10 part 2, P2c paper books, and two of one or two files) |
+| delete | 397 | 383 merged; 14 unmerged, idle over 48 h with no unfinished code |
+| keep | 33 | `main`; the keep list (11 of its 11 names exist on origin now, 3 merged); 5 open pull requests' heads (one is a stale, merged one: PR 131); 16 unmerged and in the register |
+| keep-unsure | 169 | 82 merged under 24 h ago (go tomorrow); 49 rehearsal runs (owner's REH1 Q3); 29 unmerged and recent or named in a recent file; 9 unmerged holding unfinished code (A14c families, A19 news, A21 rates and announcements, F1t-F4 handover, O10 part 2, P2c paper books, and two of one or two files) |
 
 Restore a deleted branch (GitHub keeps the objects for a while): `git push origin <sha>:refs/heads/<name>` with the `sha`
 column.
@@ -91,7 +92,7 @@ column.
 - A failed deletion prints `FAILED`, the rest still run, exit 1. The step summary carries the full list.
 - `concurrency: branch-cleanup` (one run at a time, none cancelled).
 - **Exact dispatch** (after both judges PASS and the merge to `main`): first `mode=inventory apply=false`, check the
-  summary shows 386 `WOULD DELETE` and no `SKIP` of a branch that should go; then `mode=inventory apply=true`; then
+  summary shows 397 `WOULD DELETE` and no `SKIP` of a branch that should go; then `mode=inventory apply=true`; then
   `mode=merged apply=false` to see the standing rule alone; then set `BRANCH_CLEANUP_SCHEDULE=on`.
 - Not added to `capture-watch.yml` (it captures nothing); `NOT_WATCHED` in its workflow test names it.
 
@@ -101,8 +102,7 @@ column.
    `test_run.py` (keep list, open PR, main listed by mistake, stale register row on merged vs unmerged).
 2. **Merged goes after the grace, not before; a late push counts.** `test_merged_goes_after_the_grace_not_before`;
    real git: `test_git.py` (merged, unmerged, fresh-cut branch, `landed_at` is the merge's time not main's last move).
-3. **Rehearsal runs by run-id age; both windows.** `test_rehearsal_branch_goes_by_its_run_id_start`,
-   `test_standing_rule_deletes_a_week_old_rehearsal...`, `test_one_off_rehearsal_window_is_a_day`.
+3. **Rehearsal runs are never deleted** (owner's Q3 pending): `TestEveryRule::test_rehearsal_runs_are_kept_for_the_owner`.
 4. **Idle unmerged goes only in the one-off, never with unfinished code or recent activity.**
    `test_one_off_deletes_an_idle_unmerged_branch...`; `test_unfinished_code_is_counted_only_for_commits_not_on_main`.
 5. **Head must match the plan; gone is skipped; a failure is counted and the rest run; dry run deletes nothing.** `test_run.py`.
@@ -124,9 +124,9 @@ only if it was already planned for deletion).
   13 xfailed; `ruff check fno tests tools`, `ruff format --check` and `tools/check_imports.py` clean. `check_numbers` is
   for `main` after the merge.
 - **Real output sample (dry run, 25 Oct 10:43 UTC, the committed code against the real origin):**
-  `python tools/branch_cleanup.py --mode inventory --open-prs <file>` printed 386 `WOULD DELETE` lines (first:
-  `WOULD DELETE claude/bold-thompson-hpqkq3 1653fc3926: merged into main`) and `dry run: 386 planned, 0 failed`, no `SKIP`.
-  `--mode merged` printed `dry run: 365 planned, 0 failed` (the 386 minus the 17 idle unmerged and the 4 old rehearsals).
+  `python tools/branch_cleanup.py --mode inventory --open-prs <file>` printed 397 `WOULD DELETE` lines (first:
+  `WOULD DELETE claude/bold-thompson-hpqkq3 1653fc3926: merged into main`) and `dry run: 397 planned, 0 failed`, no `SKIP`.
+  `--mode merged` printed `dry run: 383 planned, 0 failed` (the 397 minus the 14 idle unmerged).
   Nothing was deleted from this session.
 - **Plants:** 21 one-line breakages of the rules, the re-check, the dry-run switch, the exit code, the git reading and the
   workflow; 20 are caught by the tests. The survivor (`with_code and ahead` to `with_code`) is an equivalent mutant: a
@@ -136,7 +136,7 @@ only if it was already planned for deletion).
   would keep 50 merged branches, the very clutter the owner wants gone). The cost: a text-first story's branch must go on
   the keep list, or it is deleted 24 h after the text merges and recreated by the code push. CLAUDE.md says so.
 - **Independent review (one agent, read-only), 8 findings checked:** accepted and fixed with tests: (1) empty or
-  fast-forwarded branches counted as merged (`on_main_line`; 16 branches moved from delete to keep-unsure); (2) the delete
+  fast-forwarded branches counted as merged (first fixed with `on_main_line`, then dropped after Judge Q's round 1: the grace is the guard, see Facts); (2) the delete
   had no head check (now `--force-with-lease`, tested: refused after a push); (3) a `|` in a branch name crashed the reader
   (`rsplit`); (4) names without a slash were invisible to the register and mention checks (loose token, over-protects only);
   (8) a `#` inside a kept name (comment needs a space before `#`). Not changed: (5) protected branches make a delete fail

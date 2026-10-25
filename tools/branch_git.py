@@ -33,7 +33,8 @@ def _landed_at(sha: str) -> datetime | None:
     return _time(git("show", "-s", "--format=%cI", path)) if path else None
 
 
-CODE_PATHS = ("fno", "tools", ".github", "config.yaml")  # a branch that only here changes these holds unfinished code
+# a branch that alone changes these holds unfinished work
+CODE_PATHS = ("fno", "tools", "tests", ".github", "config.yaml")
 
 
 def unique_code_files(sha: str) -> int:
@@ -48,7 +49,6 @@ def unique_code_files(sha: str) -> int:
 
 
 def read_branches(with_code: bool = False) -> list[Branch]:
-    main_line = set(git("rev-list", "--first-parent", MAIN_REF).split())
     merged = set(git("branch", "-r", "--merged", MAIN_REF, "--format=%(refname:lstrip=3)").split())
     fields = "%(refname:lstrip=3)|%(objectname)|%(committerdate:iso-strict)"
     found = []
@@ -60,7 +60,7 @@ def read_branches(with_code: bool = False) -> list[Branch]:
         ahead = 0 if is_merged else int(git("rev-list", "--count", f"{MAIN_REF}..{sha}"))
         landed = _landed_at(sha) if is_merged else None
         code = unique_code_files(sha) if with_code and ahead else 0
-        found.append(Branch(name, sha, _time(date), is_merged, ahead, landed, sha in main_line, code))
+        found.append(Branch(name, sha, _time(date), is_merged, ahead, landed, code))
     return found
 
 

@@ -26,8 +26,8 @@ OLD = NOW - timedelta(days=5)
 NO_EVIDENCE = Evidence(keep_list={}, register=frozenset(), open_prs=frozenset())
 
 
-def branch(name="story/x", merged=True, tip=OLD, landed=OLD, ahead=0, code=0, line=False):
-    return Branch(name, "a" * 40, tip, merged, ahead, landed if merged else None, line, code)
+def branch(name="story/x", merged=True, tip=OLD, landed=OLD, ahead=0, code=0):
+    return Branch(name, "a" * 40, tip, merged, ahead, landed if merged else None, code)
 
 
 def test_register_reads_only_the_branch_column():
@@ -70,15 +70,12 @@ class TestEveryRule:
         assert rule(branch(tip=fresh), NO_EVIDENCE, NOW)[0] == KEEP_UNSURE  # a late push counts as activity
         assert rule(branch(landed=NOW - timedelta(hours=25)), NO_EVIDENCE, NOW)[0] == DELETE
 
-    def test_rehearsal_branch_goes_by_its_run_id_start(self, rule):
-        new = "rehearsal/2026-10-23-20261025T020000Z-abc123"
-        assert rule(branch(new, merged=False), NO_EVIDENCE, NOW)[0] == KEEP_UNSURE
-        assert rule(branch("rehearsal/2026-10-23-nonsense", merged=False), NO_EVIDENCE, NOW)[0] == KEEP_UNSURE
+    def test_rehearsal_runs_are_kept_for_the_owner(self, rule):
+        name = "rehearsal/2026-10-19-20261018T020000Z-abc123"
+        assert rule(branch(name, merged=False), NO_EVIDENCE, NOW)[0] in (KEEP, KEEP_UNSURE)
 
 
-def test_standing_rule_deletes_a_week_old_rehearsal_and_keeps_every_unmerged_branch():
-    week_old = "rehearsal/2026-10-19-20261018T020000Z-abc123"
-    assert ongoing_decision(branch(week_old, merged=False), NO_EVIDENCE, NOW)[0] == DELETE
+def test_standing_rule_keeps_every_unmerged_branch():
     assert ongoing_decision(branch(merged=False, ahead=3), NO_EVIDENCE, NOW)[0] == KEEP
 
 
@@ -89,18 +86,6 @@ def test_one_off_deletes_an_idle_unmerged_branch_unless_it_holds_unfinished_code
     assert inventory_decision(branch(merged=False, tip=NOW - timedelta(hours=47)), NO_EVIDENCE, NOW)[0] == KEEP_UNSURE
     named = Evidence({}, frozenset(), frozenset(), frozenset({"story/x"}))
     assert inventory_decision(idle, named, NOW)[0] == KEEP_UNSURE
-
-
-def test_one_off_rehearsal_window_is_a_day():
-    start = (NOW - timedelta(hours=30)).strftime("%Y%m%dT%H%M%SZ")
-    name = f"rehearsal/2026-10-23-{start}-abc123"
-    assert inventory_decision(branch(name, merged=False), NO_EVIDENCE, NOW)[0] == DELETE
-    assert ongoing_decision(branch(name, merged=False), NO_EVIDENCE, NOW)[0] == KEEP_UNSURE
-
-
-def test_a_tip_on_mains_own_line_is_never_deleted_as_merged():
-    for rule in (ongoing_decision, inventory_decision):
-        assert rule(branch(line=True), NO_EVIDENCE, NOW)[0] == KEEP_UNSURE
 
 
 def test_names_without_a_slash_are_matched():

@@ -60,8 +60,7 @@ def test_merged_unmerged_and_fresh_branches_are_told_apart(clone):
 
     assert found["story/merged"].merged and found["story/merged"].landed_at is not None
     assert not found["story/open"].merged and found["story/open"].ahead == 2
-    assert found["story/fresh"].merged and found["story/fresh"].on_main_line  # told apart from a real merge by its tip
-    assert found["story/merged"].merged and not found["story/merged"].on_main_line
+    assert found["story/fresh"].merged  # an unused branch has nothing of its own: the grace is all that guards it
     assert "HEAD" not in found and found["main"].merged
 
 
@@ -117,3 +116,26 @@ def test_a_branch_name_with_a_bar_is_read(clone):
     push_branch(clone, "story/a|b", ["a.txt"])
     git(clone, "fetch", "-q", "origin")
     assert "story/a|b" in {b.name for b in branch_git.read_branches()}
+
+
+def test_a_cherry_picked_commit_is_not_unfinished_work(clone):
+    (clone / "fno").mkdir()
+    push_branch(clone, "story/picked", ["fno/new.py"])
+    commit(clone, "other.txt")  # so the pick gets a new hash instead of fast-forwarding
+    git(clone, "cherry-pick", "story/picked")  # the same patch lands on main under another hash
+    git(clone, "push", "-q", "origin", "main")
+    git(clone, "fetch", "-q", "origin")
+
+    found = {b.name: b for b in branch_git.read_branches(with_code=True)}
+
+    assert found["story/picked"].ahead == 1 and found["story/picked"].code_files == 0
+
+
+def test_a_branch_that_only_adds_tests_holds_unfinished_work(clone):
+    (clone / "tests").mkdir()
+    push_branch(clone, "story/tests-only", ["tests/test_new.py"])
+    git(clone, "fetch", "-q", "origin")
+
+    found = {b.name: b for b in branch_git.read_branches(with_code=True)}
+
+    assert found["story/tests-only"].code_files == 1
