@@ -1002,7 +1002,7 @@ editions (`live_key`); these commands have no key.
    | morning, `lab open` | 5c3195ba0 | `live_key` (REH1k, 23 Oct) | none (its key) |
    | morning, `records certify closes --since 7 --level certified` | 51cab79b0, 23 Oct 22:42 IST | 24 Oct 08:41 IST, "Records: DR1 certification" | 24 Oct |
    | evening, `closes read --commit` | cae76af89, 22 Oct 05:58 IST | 22 Oct 19:54 IST, "Receipts ... (A4h close read)" | 22 Oct |
-   | evening, `records certify closes --level provisional` | 51cab79b0, 23 Oct 22:42 IST | 24 Oct (the shadow's first records) | 24 Oct |
+   | evening, `records certify closes --level provisional` | 51cab79b0, 23 Oct 22:42 IST (on `main` about 23:58 IST, after that evening's 19:53) | none yet (`receipts/records/` holds only the morning's two certified records of 24 Oct; no session evening since) | 24 Oct (CLAUDE.md) |
    | evening, `data-librarian fo-bhavcopy`, `participant-oi`, `data-snapshot fii-dii-cash-by-session` | 49aa26951, 22 Oct 04:39 IST | 22 Oct 19:54 IST, the three manifests' commits | 22 Oct |
    | evening, `lab close` | 6eced93c2 | `live_key` (REH1k, 23 Oct) | none (its key) |
    | evening, `lab release-check` | 49aa26951, 22 Oct 04:39 IST | 22 Oct 19:55 IST, "Evening routine 2026-10-22: release-check logs" | 22 Oct |
