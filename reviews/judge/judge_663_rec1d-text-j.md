@@ -46,3 +46,24 @@ None (a text round). For the code round: S1's flag swap; m1's missed evening not
 
 ## Notes
 - I did not coordinate with judge K.
+
+## Addendum 1: the moved head, story/rec1d-sections at 21a5ccff2 (still round 1, the orchestrator's re-point)
+**PASS** (text), lane 1: S1 and m2 closed; m1 open (minor). One Markdown commit on ccc71f331 (+42 -21). Doc-reading
+tests: 932 passed, 13 xfailed.
+- **S1 closed.** Item 2 gives each section its own switch: the school's on `school.reports`, the recommender's on
+  `daily.live_from.recommend`.
+  - The wrapper wraps when any switch is on, so `build_school_maker`'s early return (`wiring.py:37-38`) has to go,
+    and the text requires that.
+  - Criterion (b) tests each switch alone, with the plant "the recommender gated on `school.reports`".
+  - Criterion (a) keeps all-off byte-identical to the plain maker.
+- Conditions 2-5 are sound:
+  - Isolation per section, alerting the edition, the section and the exception class only (e).
+  - The school's sections first and unchanged; `tests/school/reports/` untouched.
+  - A template guard on every line (g), outside the school's LEAK and rupee checks. That is right: those checks would
+    withhold the check's after-cost totals, which REC1c already posts.
+  - Explicit configs in the tests.
+- **m2 closed.** The heading now records the orchestrator's yes for MS-P1g and FL1. MS-P1j's builder reviews the
+  `fno/school/reports/` diff before the judges.
+- **m1 still open (minor).** Item 5 still defines "check missing" as "a recorded day with no check file dated after
+  it". A day still open whose previous-session check did not run is not named. Define it against the previous
+  session's check; this can ride the code round.
