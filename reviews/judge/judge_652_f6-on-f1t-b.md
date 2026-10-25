@@ -33,3 +33,21 @@ contains b8f0585c1) into origin/main dd8992423 (clean, dd77cbc78). ruff, format 
 
 13 planted, 11 caught. The survivors are SF1 and m1. A third, Book 1's proposal given a `strategy_id`, survives too
 but is equivalent: only Book 3's constitution check reads it.
+
+## Addendum 1: round 2 (the last), e805c6466 on F1t round 2 7850269ed
+
+**PASS. Lane 1.** I ran the gates on a trial merge into origin/main ea79fe255 (clean, 0949dd4f7). ruff, format (2,749),
+imports (2,904), record scan (9,491) and check_numbers are clean; **17,508 passed, 1 skipped, 13 xfailed** (token
+kept). I judged F6's own changes; F1t's round 2 (`collect`, `promote`, `time_limit`) is F1t's judges'.
+
+- **SF1: FIXED.** `tests/book3/test_write_paths.py` fails any registered version whose write paths cover the
+  constitution, any tracked file whose SHA-256 a D6 row registers, or any v4 byte-checked or recorded file, and it
+  asserts that the protected set is real. My round-1 survivor (paths widened to `book3/`) now fails. Beyond the ask:
+  `Book3Decider` refuses the day when the ledger's bytes no longer start with its earlier bytes after registering
+  (`decider.py`; plant "ledger rewrite allowed" caught).
+- **m1: FIXED.** Each registered prompt is checked through `prompt_text` against its file; my wrong-hash plant now
+  fails.
+- **The builder's own fix, `Book3Sheet`: MET.** D2 over Book 3's tradable strategies with no picks, put in Book 3's
+  private pack; `SHEETS` maps a book to a lazy builder, built only for the run's packed books. So Book 3's sheet is
+  never built while `book3_ai` is not live, and a failure refuses that book alone. Plants: the sheet built for an
+  unpacked book (1 failed); the sheet run with picks (41 failed).

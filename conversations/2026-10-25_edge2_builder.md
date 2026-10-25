@@ -55,3 +55,12 @@ Owner, 25 Oct 2026 (relayed in this session's task): "no proven edge: let's try 
 - One head for judge J round 2: story/edge2-f8-fii-side-spread at 56031075 (the F6 fixes re-applied on F8's line:
   the gate log's append-only check reads history linearly, so a merge of parallel appends fails it).
 - Next-search candidates (event IV crush, weekly calendar) sent to the orchestrator; no discovery until J passes.
+
+## Judge 642 and round 2
+
+- Judge 642 (J): FAIL on F1+F6 with 2 should-fixes and 4 minors; the "no edge" results reproduced exactly.
+- Fixes on a new line, story/edge2-round2 (d9979131): result-derived G1 inputs in a sidecar beside each frozen card
+  (the factory's card reader extended), 118 closed by `factory spend` (G2 exploratory), tests for J's 7 surviving
+  plants, the minor notes. Full suite 16,900 passed.
+- Orchestrator: F9 (event IV crush, block edge2-f9, trials 127-132) next, registered only after J passes; calendars wait
+  for a verified payoff and margin model; the wide-wing condor declined.

@@ -238,9 +238,10 @@ def test_a_proven_label_without_evidence_cannot_reach_a_record():
         decode(json.dumps(data, sort_keys=True, separators=(",", ":")).encode())
 
 
-def test_a_malformed_report_hash_is_refused():
+@pytest.mark.parametrize("name", ["review", "sample_plan", "lower_bound", "second_window"])
+def test_a_malformed_report_hash_is_refused(name):
     record = paper_trade()
     version = record.versions[0]
-    broken = replace(version.reports, lower_bound=replace(version.reports.lower_bound, sha256="ab"))
+    broken = replace(version.reports, **{name: replace(getattr(version.reports, name), sha256="ab")})
     with pytest.raises(RecordRefused, match="SHA-256"):
         replace(record, versions=(replace(version, reports=broken),))
