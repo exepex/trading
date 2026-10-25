@@ -118,7 +118,8 @@ part of the same goal. Say which role a point comes from when it matters, and sa
 ## Groww in market hours
 
 No person and no AI session runs a Groww command by hand from 09:15 to 15:35 IST (owner, 25 Oct 2026); only the
-scheduled routines call Groww then. The rule is owned by CLAUDE.md, "How to work".
+scheduled routines call Groww then. Exception: a failed scheduled command may always be run again by hand, so no data
+is lost. The rule is owned by CLAUDE.md, "How to work".
 
 ## Documents (when an agent changes a document)
 
