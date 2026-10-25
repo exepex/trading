@@ -806,3 +806,7 @@ number,name,session,claimed_at_utc
 658.1,rec1c-r2-code-r1,session_013gvtjtZJEjpki7qkbzU5kK,2026-10-25T02:31:34Z
 658.2,rec1c-code-r2,session_013gvtjtZJEjpki7qkbzU5kK,2026-10-25T02:56:30Z
 660.1,rec1c-code-r2-k,session_01Sikvmfgvs25V6W2XotPYPX,2026-10-25T02:56:57Z
+663.1,rec1d-text-head2,session_013gvtjtZJEjpki7qkbzU5kK,2026-10-25T03:30:43Z
+663.2,rec1d-text-final,session_013gvtjtZJEjpki7qkbzU5kK,2026-10-25T03:33:32Z
+664.1,rec1d-text-r2-k,session_01Sikvmfgvs25V6W2XotPYPX,2026-10-25T03:35:58Z
+661.1,f5-code-merge,session_01AfgnvV9T8Zpbm6riR6HaEi,2026-10-25T03:37:30Z

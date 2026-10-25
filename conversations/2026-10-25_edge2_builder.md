@@ -64,3 +64,20 @@ Owner, 25 Oct 2026 (relayed in this session's task): "no proven edge: let's try 
   plants, the minor notes. Full suite 16,900 passed.
 - Orchestrator: F9 (event IV crush, block edge2-f9, trials 127-132) next, registered only after J passes; calendars wait
   for a verified payoff and margin model; the wide-wing condor declined.
+
+## F9 (later)
+
+- EDGE2 F1+F6+F8 merged to main (judge J pass, 56031075 + 90becf94); plant tests on a lane-2 branch.
+- F9 event IV crush registered as trials 124-127 (orchestrator: the factory needs consecutive trials; 128-132
+  released), 58 scheduled A6 events fixed, entry at the prior close exposed to the gap; frozen at effae511; run once:
+  no edge (net -Rs 388 to -467 a trade, gross Rs 175-216 against the Rs 820 bar), event days about Rs 150 better than
+  ordinary days; nothing nominated, held-out unread (`research/edge2/F9_RESULTS.md`).
+- Open: a judge on e3ec093a; the next step after four no-edge families (orchestrator, then the owner).
+
+## Slippage note (later)
+
+- Orchestrator: a descriptive slippage study, no trials. Reused MS-SIM-b's reader and spread functions read-only
+  (its owner out of reach). Finding: for NIFTY and BANKNIFTY near-month and NIFTY weekly OTM strikes, half the 15:00
+  spread is about Rs 0.03-0.65 a unit, under C1's Rs 1 pad; next-month and FINNIFTY/MIDCPNIFTY next-month quotes are
+  much wider or missing (`research/edge2/SLIPPAGE_NOTE.md`). No EDGE result is re-read with new pads.
+- Open: an owner question on a measured, per-bucket pad in C1 (lane 1); the fills-against-mid section from Monday.
