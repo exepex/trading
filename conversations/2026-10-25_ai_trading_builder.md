@@ -36,6 +36,21 @@
 - Found: Book 2 cannot trade even with Q1 lifted. D2 trades only `paper` rules, the only rule is `research`, and D4
   refuses a trade the rules did not offer. Book 3 trades its own research specs. Owner question Q5 was sent.
 
+- Judges 621 (K) and 623 (E) failed F1t text round 1. Their findings were the served model (`last_served_model`; the
+  orchestrator ruled an instructions line alone unverified), decisions stopping on BG1's level alone, the
+  seal-before-reveal order, and fail-open on cost. All were accepted; round 2 is at 4dbf786d.
+- Orchestrator, 25 Oct: "the OWNER APPROVED (DESK_DECISIONS 25 Oct, '9 yes, 10 yes, 11 yes')": envelope v1, constitution v1
+  and (A) for Book 2. Done: D6 rows on story/ai-books-terms-v1 (1a694643; must merge with a merge commit), and F5's
+  revision for Q11 (a369d4f0).
+
+- F1t text revision 2 PASSED (judges 621.2, 623.1). The F1t code was re-ported onto main and reviewed by two
+  independent agents; their 5 should-fix findings were fixed. Full suite 16,921 passed. The head cab730a8 (PR #157) is
+  with the judges.
+- F4 text round 2 (judge 628): 1ca9b691. F5 Q11 round 2 (judge 632's two blocking findings, accepted after checking
+  the code): 27aa4610.
+- Found and reported: only 10 s between the last receipt reading (15:11:50) and E3's 15:12 deadline. A slow day is
+  late, never a trade; the test fire measures it.
+
 ## Decisions so far
 
 - F1t's code is re-ported onto main after the text PASS, never merged blind; F6 is re-judged after F1t's port; F5's
@@ -44,6 +59,4 @@
 
 ## Open questions
 
-- Owner Q5: may Book 2 (only) take registered research candidates as its rule defaults, labelled "strategy not yet
-  passed", under D2's 1-open-trade unproven limit? Recommended: (A) yes; (B) is to wait for a paper rule.
-- Owner: approve the envelope v1 and constitution v1 drafts (register their hashes in D6) before go-live.
+- None open with the owner. The remaining waits are the judges' verdicts.

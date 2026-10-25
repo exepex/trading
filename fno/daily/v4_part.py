@@ -1,8 +1,8 @@
-"""Protocol v4's 14:30-14:40 capture as a quote part of the daily run (story G10 completion, criteria 1-2): A4e's named
-window (`quotes record --window v4`), unchanged, opened with the 3 pm parts at the run's start and started at 14:27
-(O1's margin before the window), waiting inside A4e's recorder for 14:30. Its times and dataset come from A4e's window
-in `config.yaml`, never copied; it is live from `daily.live_from.v4_pack` and commits its own files as soon as it ends
-(it shares none with NIFTY's 14:55 part)."""
+"""Protocol v4's capture as a quote part of the daily run (story G10 completion, criteria 1-2): A4e's named window
+(`quotes record --window v4`, 14:32-14:40 since 25 Oct), unchanged, opened with the 3 pm parts at the run's start and
+started at 14:29 (O1's margin before the window), waiting inside A4e's recorder for 14:32. Its times and dataset
+come from A4e's window in `config.yaml`, never copied; it is live from `daily.live_from.v4_pack` and commits its own
+files as soon as it ends (it shares none with NIFTY's 14:55 part)."""
 
 from __future__ import annotations
 

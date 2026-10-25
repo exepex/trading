@@ -542,3 +542,51 @@ reads the configured rate (protocol 1.4: pricing.py only): fno/forecast/wiring.p
   method `21f62594f26f`), M1's 4 files and its day files to 2026-10-19 (2,412 rows, `a49c62612a46`), live rows of
   22-23 Oct apart, G8's reports of 10, 17 and 24 Oct.
 - **Gates:** see the commit message of the pushed head.
+
+### The freeze (criteria 5-8, 10; owner's answers of 25 Oct 2026; one round for judge B)
+
+Three commits on `story/v4-freeze`, merged from `main` (never rebased since, so the protocol commit's SHA is the one
+the record names):
+1. **The protocol commits `1712a476b` and `a6da6f2b2`** (the second is the last commit that changes `PROTOCOL_v4.md`,
+   the one the record names: the capture window opens at 14:30:00 and the capture starts inside it at 14:32:00, after
+   A16's 14:30 mark, Groww's 300-a-minute cap; orchestrator, 25 Oct). The first: W1, W2, W5, W6 and W7 as the
+   owner signed them on 25 Oct ("Keep all sign ... W1 to W7"), W3 and W8 as decided on 24 Oct, at their sections (1.1,
+   1.3, 1.4, 1.5, 3.1); the status line; `pricing.py` named; section 10 as the freeze code builds it.
+   `tests/forecast_v4/test_protocol_text.py` reads every wording and the status line. Full suite on it: 16,545
+   passed, 1 skipped, 14 xfailed.
+2. **`5e99d5782`, a fix found by writing the real record:** the disclosure's Drive tables have the byte table's row
+   shape, so their four receipts read as false "changed since the freeze". Pins now come only from the record's
+   "## Frozen files" section, drift only from "## Recorded" (`freeze_check.section`); a bare table is read whole.
+   Test: `test_only_the_byte_checked_section_pins_files_and_only_the_recorded_section_drifts`.
+3. **The freeze commit:**
+   - `research/forecasts/FREEZE_v4.md`: `Protocol commit:` `a6da6f2b2`, `Frozen on: 2026-10-25`, `First counted
+     session: 2026-10-26`; preconditions, settings (`forecasts_v4_pack` and `ai_books_v4` 2026-10-26, `budget.cap`
+     none), known limits; then the tool's tables printed on `5e99d5782`, a clean tree: 149 byte-checked, 63 recorded
+     (G11's own "AI registration" table), 54 not deciding, the platform and the disclosure. `check()` on the whole
+     tree: no problem, no drift.
+   - `research/forecasts/v4_slots.csv`: 5 `rules` rows and G11's 10 rows printed by `ai register-v4-slots --print`,
+     unchanged; G8's registry reads 15 members, all effective 2026-10-26.
+   - `research/ledger.csv` trials 101-108 (`forecasts-v4`, protocol commit `a6da6f2b2`) and `research/LEDGER.md`'s
+     row 101-108 and its total (108).
+   - `config.yaml`: `quotes.windows.v4.start` = "14:32" (O1's v4 part then starts at 14:29; `tests/quotes/
+     test_named_window_config.py` and `tests/daily/test_v4_part.py` pin it); `daily.live_from.ai_books_v4` and
+     `forecasts_v4_pack` = "2026-10-26" (orchestrator's rulings,
+     25 Oct: the owner's S and their 24 Oct "turn on everything completed"; G7b's builder confirms the step needs
+     nothing else).
+   - **The forecast lab page (orchestrator's ruling (a), P2b's builder out of reach):** `ProtocolFreeze` read from
+     `FREEZE_v4.md` (`market_read_models/wiring.v4_freeze`), v4 shown `frozen` with its commit from its freeze day
+     (point in time), as v3 from G4's report; v4's per-question entries stay P2b's open work (register row).
+- **Tests touched for the freeze (each says why):** `tests/e2e_acceptance/test_expected_missing.py` (the
+  `@missing("G6")` marker deleted with the record, as G11 did with its own); `tests/forecast_scoring_v4/
+  test_slot_file.py` (the 15 members, read through `SlotFile` without Drive); `tests/forecast_scoring_v4/
+  test_look_reconcile.py` (no slot-day before 26 Oct is unsettled; G8's no-Drive fixture); `tests/ai/test_v4_fire.py`
+  (the books' key is 2026-10-26; the refusal test uses G8's no-Drive seam, since the registry now reads G7b's Drive
+  records for each first eligible session); `tests/research/test_ledger_guard.py` (trials 1-108, the v4 rows);
+  `tests/market_read_models/test_forecast_lab_page.py` (the tripwire becomes the frozen-state tests);
+  `tests/forecast_scoring_v4/test_freeze_record.py` (new: criteria 5-7).
+- **Said plainly:** since the freeze, every command that reads G8's slot registry needs the Drive settings (the
+  first-eligible lookup reads G7b's Drive records). The daily run, the weekly workflow and the AI fire have them; a
+  bare clone without them stops with the named Drive error, never a silent wrong answer.
+- **Plants (7, all caught):** the section reading ignored; v4 always "draft" on the page; the page's freeze not point
+  in time; a broken record read silently; an edited slot row; a ledger row without its commit; `Frozen on:` a day
+  later.

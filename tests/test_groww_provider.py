@@ -4,7 +4,8 @@ from fno.config import load_config
 from fno.constants import ENV_GROWW_ACCESS_TOKEN, ENV_GROWW_API_KEY
 from fno.models import IST
 from fno.providers import get_provider
-from fno.providers.groww import token_day
+from fno.providers.groww_sign_in import token_day
+from tests.groww_sdk_fake import fake_sdk
 
 
 def test_token_window_turns_over_at_six_ist():
@@ -36,17 +37,8 @@ def test_a_key_alone_is_not_a_usable_groww_login_and_auto_falls_back(monkeypatch
 
 
 def test_groww_signs_in_again_after_the_six_am_expiry(monkeypatch):
-    import fno.providers.groww as groww
-
-    signed_in = []
-
-    class FakeApi:
-        def __init__(self, token):
-            signed_in.append(token)
-
-    provider = groww.GrowwProvider.__new__(groww.GrowwProvider)
-    provider.GrowwAPI, provider._api, provider._api_day = FakeApi, None, None
-    provider._token = lambda: f"token{len(signed_in)}"
+    sdk = fake_sdk(monkeypatch)
+    provider = _provider(monkeypatch)
     clock = iter(
         [
             datetime(2026, 10, 13, 9, 0, tzinfo=IST),
@@ -55,10 +47,10 @@ def test_groww_signs_in_again_after_the_six_am_expiry(monkeypatch):
             datetime(2026, 10, 14, 6, 1, tzinfo=IST),
         ]
     )
-    monkeypatch.setattr(groww, "now_ist", lambda: next(clock))
+    provider._sign_in.clock = lambda: next(clock)
     for _ in range(4):
-        assert provider.api is not None
-    assert signed_in == ["token0", "token1"]  # once on the 13th's token, again only after 06:00 on the 14th
+        assert provider.api.EXCHANGE_NSE == "NSE"
+    assert sdk.tokens == ["token0", "token1"]  # once on the 13th's token, again only after 06:00 on the 14th
 
 
 def test_expiries_skip_the_future_year_that_groww_refuses(monkeypatch):
@@ -68,26 +60,33 @@ def test_expiries_skip_the_future_year_that_groww_refuses(monkeypatch):
 
     import fno.providers.groww as groww
 
-    class FakeApi:
-        EXCHANGE_NSE = "NSE"
-
-        def get_expiries(self, exchange, underlying_symbol, year):
-            if year > 2026:
-                raise RuntimeError("Year cannot be in the future")
-            return {"expiries": ["2026-10-27", "2026-11-24", "2026-01-27"]}
-
-    provider = groww.GrowwProvider.__new__(groww.GrowwProvider)
+    sdk = fake_sdk(monkeypatch)
+    provider = _provider(monkeypatch)
     monkeypatch.setattr(groww, "now_ist", lambda: datetime(2026, 10, 12, 15, 0, tzinfo=IST))
-    provider._api, provider._api_day = FakeApi(), groww.token_day(groww.now_ist())
+
+    def expiries(exchange, underlying_symbol, year):
+        if year > 2026:
+            raise RuntimeError("Year cannot be in the future")
+        return {"expiries": ["2026-10-27", "2026-11-24", "2026-01-27"]}
+
+    sdk.answers["get_expiries"] = expiries
     assert provider.expiries("NIFTY") == [d(2026, 10, 27), d(2026, 11, 24)]
 
-    class BrokenApi(FakeApi):
-        def get_expiries(self, exchange, underlying_symbol, year):
-            raise RuntimeError("service down")
+    def broken(exchange, underlying_symbol, year):
+        raise RuntimeError("service down")
 
-    provider._api = BrokenApi()
+    sdk.answers["get_expiries"] = broken
     with pytest.raises(RuntimeError):
         provider.expiries("NIFTY")  # a failure for the current year is never hidden
+
+
+def _provider(monkeypatch):
+    import fno.providers.groww as groww
+
+    provider = groww.GrowwProvider({})
+    tokens = iter(range(100))
+    provider._token = lambda: f"token{next(tokens)}"
+    return provider
 
 
 def test_groww_quote_book_uses_best_fields_else_depth_and_keeps_trade_time():
