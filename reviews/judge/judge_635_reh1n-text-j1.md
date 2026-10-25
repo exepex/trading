@@ -46,3 +46,16 @@ builder's plants; I add finding 1's sidecar case.
 
 - Doc-reading tests on `883937fa6`: 922 passed, 14 xfailed. Record scan clean (9,270 files). The diff is Markdown only.
 - `FREEZE_v4.md` is on `story/v4-freeze`, not yet on `main`; (a) was checked there at `631a47c28`.
+
+## Addendum 1: round 2 at `5fa97694c` (the last round)
+
+**PASS**, lane 1, judge 1 of 2. All three findings are fixed and nothing new was found. Judged by reading; the change
+is text only (`git diff --name-only 82a26c344 5fa97694c`: `docs/stories/REH1-rehearsal-mode.md` alone).
+
+| Round-1 finding | Verdict | Evidence |
+|---|---|---|
+| SF1. The rule read markers only | FIXED | Design 1: "no canonical marker AND no sidecar of that stem in that dataset on or before D"; design 2: an earlier marker or sidecar, or either on D, is served as today. "The one wrong case" now needs a crash before the first attempt's sidecar, and it names Mon 26 Oct (v4's first live day) as its one exposure. New case and plant: one attempt's sidecar on D with no marker stays "window closed", alerted, exit 1 (plant: markers only). Look-ahead is still excluded ("never reads a day after D") |
+| m2. (b)'s reason | FIXED | New gap-list row: steps with their own live key (`close_read`, `close_recheck`, `card`, the v4 and G13 steps) are each a `LiveFrom` step, so a replayed day before the key's date is `not_live`, exercised by REH1j, never a failure. This matches `steps.py:105` |
+| m3. Register row | FIXED | `main`'s `WORK_REGISTER.md` REH1 row names REH1n, `story/reh1n-new-quote-parts`, `fno/quotes/indices.py` and `fno/quotes/cli.py` |
+
+Gates: doc-reading tests on `5fa97694c`, 932 passed, 13 xfailed.

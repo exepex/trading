@@ -54,3 +54,31 @@ suite.
     take both posts to be the orchestrator's or a builder's rehearsals. The orchestrator should confirm.
 - The deviation (no R1 card or D6 row, because the recommender is not a book and the rung rule tests no hypothesis)
   is accepted, as the orchestrator states. I see nothing in REC1a that decides a trade on its own today.
+
+## Addendum 1: round 2 (the last), story/rec1a-contracts at 4988abbbe
+**PASS**, lane 1: S1 is closed; 1 minor. Trial merge with main ccc56670c: 16,705 passed, 1 skipped, 14 xfailed;
+ruff, format, check_imports (2,773 files), check_records (9,299) and check_numbers clean.
+- **S1 closed.** `VersionEvidence.__post_init__` accepts only `rung_for(count, reports)`. Rung 3 needs four
+  RecordRefs: review, sample plan, lower bound and second window. Each ref's SHA-256 joins `_hashes`.
+  - My probe refuses: rung 3 with 0 or 5 sessions; rung 3 with no review; rung 2 written over full rung-3 evidence;
+    first after last; dates with a count of 0; 30 sessions in 10 days.
+  - Through the codec, these are refused too: a nulled lower bound, an unknown report field, a bad report SHA-256.
+- **Lower labels and demotions (the orchestrator's question).** An exact tie breaks no legitimate path:
+  - 30 sessions and no review gives rung 1, accepted.
+  - A review only gives rung 2, accepted.
+  - A report that stops passing is dropped from `reports`, so the rung falls by the same rule.
+  - `lowered()` acts on the day's shown rung, which no record field stores. It is unchanged: 3 with 1 condition
+    gives 2; 3 with 5 gives 0.
+  - If REC1b ever records a shown rung, it needs its own field, never `VersionEvidence.rung`.
+- **Plants: 11 of 12 caught.**
+  - Caught: the tie removed; the tie as a ceiling only; the span check off; first after last; dates at count 0; second
+    window or sample plan optional; rung 2 without review; watching at 29; report hashes unchecked; paper at rung 2.
+  - Survived: `refs()` dropping the review (m1).
+- **m1 (minor, test only):** `test_a_malformed_report_hash_is_refused` breaks only `lower_bound`. Parametrize it over
+  all four references. The code is right: my probe refuses a bad review SHA-256.
+- Note: a rung-0 version may carry report references it cannot use. They cannot raise its rung. A later story may
+  refuse them.
+- Slack, with the token set (1792886736-1792887288):
+  - #fno-intraday: nothing.
+  - #fno-desk and #fno-forecast: only "DRY RUN ... replay" posts. These are the REH1 rehearsals, as the orchestrator
+    confirmed for 629. Nothing in `fno/recommend` or `tests/recommend` mentions Slack.

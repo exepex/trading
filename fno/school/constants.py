@@ -15,6 +15,9 @@ MONTHLY_DATASET = "groww/derivatives/quote-snapshots"  # = fno.quotes.recorder.D
 WEEKLY_DATASET = "groww/derivatives/quote-snapshots-weekly"  # = fno.quotes.weekly.WEEKLY_DATASET (A4f)
 RECORD_SCHEMA_VERSION = 1  # every decision and outcome record carries it; a layout change is a new version
 SLOT_1500 = "15:00"  # the pilot's only slot: each road's canonical 3 pm capture of the session
+# MS-P1j2/j3: the slot's last start, five minutes before law 6's close: the daily step never starts after it, and the
+# runner never makes a session's first seal after it in RECORD mode (a later seal's fills would all be refused)
+SLOT_LAST_START = time(15, 25)
 SLOT_TIME = time(15, 0)
 MAX_ROADS_PER_SESSION = 5
 
