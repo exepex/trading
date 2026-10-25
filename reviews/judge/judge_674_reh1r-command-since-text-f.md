@@ -31,3 +31,20 @@
 ## Notes
 
 - The certify-provisional row's 24 Oct is a Saturday. No evening session can run before 26 Oct, so the date is harmless.
+
+## Addendum 1
+
+**Text round 2 of 2 at story/reh1r-command-since @ 07f561343, judge F: PASS (1 minor). Lane 1.** Own session; I did
+not read judge E. Text only (`git diff 4066fdfdb 07f561343`: one file).
+
+| Item | Answer | My check | Result |
+|---|---|---|---|
+| SF1: index-close's `since` | 23 Oct, citing `conversations/2026-10-22.md` and 3decf6a60; the rule is now "the later of the CLAUDE.md commit and the routine's own first run"; R3 gains the 22 Oct exercised / 23 Oct real boundary | read; consistent with my round-1 evidence | **Accepted** |
+| The other dates under the new rule | pre-open 23 Oct, evening 22 Oct, certify 24 Oct unchanged | the evening task existed by 22 Oct 19:53 (its own outputs 19:54-19:55, e.g. 936611423 by the routine); the hand and job rows the text now excludes are other writers: 70a0ff55a `omenix-participant-oi` 21 Oct 21:37, 238f8e2c9 `omenix-flows-download` 22 Oct 01:05, 71ec37be2 `omenix-panel-days` 22 Oct 01:34 | **Confirmed** |
+| E's minors (lab close row; "the routine's own output") | lab close cites 5c3195ba0 (the evening routine's) | `git log -S"lab open"` gave 5c3195ba0 22 Oct 04:14 IST in round 1 | **Accepted** |
+
+Doc-reading tests on a trial merge with main: 933 passed, 13 xfailed; record scan clean (9,511 files).
+
+**Minor.** The Finding paragraph (line 980) still names 6eced93c2 as "the first commit holding `lab close` in
+CLAUDE.md", while the table now cites 5c3195ba0 for the evening routine. Both are after 21 Oct's 19:53, so the finding
+holds. Align the sentence when the code round touches the section.
