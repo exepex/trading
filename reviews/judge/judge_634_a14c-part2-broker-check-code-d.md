@@ -111,3 +111,21 @@ SDK 18063 passed, 13 xfailed, 0 failed; without it (a ModuleNotFoundError shim f
 
 Note: a conflict with GW1 parts 5-6 in `fno/providers/__init__.py` and `groww.py` is expected. The second merge
 keeps both parameters and reruns the real-chain test.
+
+## Addendum 3: the follow-up merged with main (GW1 parts 5-6), head `ff978df29`
+
+**PASS, lane 1.** The delta c2ed049e6..df106dc73 is as in addendum 2. This addendum covers the merge `ff978df29`.
+
+| Item | Verdict | Evidence |
+|---|---|---|
+| Both parameters kept | MET | `GrowwProvider(config, on_sign_in_failure, quiet, allowed)`; `_groww_provider` passes `MarkQuietWindows()` and `allowed`. No other caller passes `allowed` positionally (git grep: the other callers are `GrowwProvider(cfg)` or `GrowwProvider({})`) |
+| Quiet windows reach the margin check | MET | the real-chain test pins the windows' clock: at 10:05 one margin request goes out; at 14:15:30 (inside A16's mark) it is refused unsent with `GrowwQuietWindow` and the basket is `error` (fail closed, as the story says) |
+| Retry text | MET | it points to DESK_DECISIONS "Failed commands: automatic retry" and O14: "until O14 is live, the by-hand rerun above is the only one". This resolves addendum 2's minor 1 |
+
+**Gates (trial merge with main, clean):** ruff, format, imports, check_records and check_numbers clean; with the SDK
+18160 passed, 13 xfailed, 0 failed; without it 18159 passed, 1 skipped, 0 failed. **Plants:** 6 (the old double
+wrap, `allowed` dropped in `get_provider`, the quiet windows dropped, the arguments misplaced, the by-hand hint after
+14:50, the default list widened), all caught.
+
+Open, as before: addendum 2's minor 2 (GW1's sign-in budget count) is on the orchestrator's stabilisation list. The
+merge waits for STAB1 (owner, 25 Oct).
