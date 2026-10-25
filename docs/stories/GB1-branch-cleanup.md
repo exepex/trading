@@ -120,8 +120,9 @@ only if it was already planned for deletion).
 
 ## Claims
 
-- **Gates (on this branch, from `origin/main` fefcf893 plus this change):** see the last line of this section, filled
-  after the run.
+- **Gates (branch tip e2afda0b8 on `origin/main` fefcf893):** `python -m pytest -q -n auto` 18114 passed, 1 skipped,
+  13 xfailed; `ruff check fno tests tools`, `ruff format --check` and `tools/check_imports.py` clean. `check_numbers` is
+  for `main` after the merge.
 - **Real output sample (dry run, 25 Oct 10:43 UTC, the committed code against the real origin):**
   `python tools/branch_cleanup.py --mode inventory --open-prs <file>` printed 386 `WOULD DELETE` lines (first:
   `WOULD DELETE claude/bold-thompson-hpqkq3 1653fc3926: merged into main`) and `dry run: 386 planned, 0 failed`, no `SKIP`.
