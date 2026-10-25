@@ -75,3 +75,20 @@ now a single clause.**
     a rule.
 - **Minor 2, fixed** in CLAUDE.md (no new line over 120 characters). AGENTS.md line 121 is 122 characters: style only.
 - **Gates at 02e5b5e0b:** record scan clean (9,539 files); doc-reading tests 963 passed, 13 xfailed, 0 failed.
+
+## Addendum 3
+
+Narrow check at `f69dd5a4d`. **PASS.**
+
+- **Should-fix 1 fixed.**
+  - CLAUDE.md now ends "... a failed fills step never retried), and for the daily run step 2b's once-only rerun holds
+    until O14 replaces it".
+  - AGENTS.md has the same clause ("for the daily run, step 2b's once-only rerun holds until story O14 replaces it").
+  - The interim hand rerun and step 2b now agree: once only for the daily run's exits and marks retry; the failed
+    routine's own command otherwise.
+- **Accepted:** the DESK row stays a verbatim record of the owner's words, and CLAUDE.md is the owning text. That is
+  the rule in CLAUDE.md "Code" (lane 3, append-only).
+- **No new line over 120 characters.** The diff against main touches only CLAUDE.md and AGENTS.md.
+- **Gates at f69dd5a4d:** record scan clean (9,539 files); doc-reading tests 963 passed, 13 xfailed, 0 failed.
+
+No blocking, should-fix or minor finding is left.
