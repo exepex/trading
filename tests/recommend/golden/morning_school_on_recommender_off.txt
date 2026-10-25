@@ -4,9 +4,9 @@
 ✅ All systems normal. Research only. Not a trade tip.
 
 School pilot, Today (Paper: no real money, no order)
-Banner: AMBER, paper only (plan from 01 Nov 2026 15:00 data, indicative prices, not today's quotes)
-Roads: NIFTY-M open; BANKNIFTY-M open; FINNIFTY-M open; MIDCPNIFTY-M open; NIFTY-W open (plan from 01 Nov 2026 15:00 data, indicative prices, not today's quotes)
-Each planned trade is booked at its road's 15:00 slot at today's quotes, or dropped. (plan from 01 Nov 2026 15:00 data, indicative prices, not today's quotes)
-CS1@1 BANKNIFTY-M: PCS, worst loss Rs 2,500 (plan from 01 Nov 2026 15:00 data, indicative prices, not today's quotes)
+Banner: AMBER, paper only (plan from 22 Oct 2026 15:00 data, indicative prices, not today's quotes)
+Roads: NIFTY-M open; BANKNIFTY-M open; FINNIFTY-M open; MIDCPNIFTY-M open; NIFTY-W open (plan from 22 Oct 2026 15:00 data, indicative prices, not today's quotes)
+Each planned trade is booked at its road's 15:00 slot at today's quotes, or dropped. (plan from 22 Oct 2026 15:00 data, indicative prices, not today's quotes)
+CS1@1 BANKNIFTY-M: PCS, worst loss Rs 2,500 (plan from 22 Oct 2026 15:00 data, indicative prices, not today's quotes)
 no latency [reasoning only]: fills at the quotes the driver saw
 Open question: NSE's terms on 'virtual trading or simulation' (settlement uses NSE's archived file)

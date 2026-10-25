@@ -13,11 +13,10 @@ from fno.recommend.report_guard import with_recommend_section
 from fno.recommend.report_maker import RecommendReportMaker
 from fno.recommend.report_section import EveningSection
 from fno.school.reports.guard import with_school_sections
-from tests.recommend.builders import DAY
 from tests.recommend.report_fakes import Store
 from tests.school.reports import fakes as f
+from tests.school.reports.test_editions import DAY, NOW, OFF, ON, files_of, lab_maker  # the page fake's day (J 667 m1)
 from tests.school.reports.test_editions import GOLDEN as SCHOOL_GOLDEN
-from tests.school.reports.test_editions import NOW, OFF, ON, files_of, lab_maker
 
 GOLDEN = Path(__file__).parent / "golden"
 LIVE = {"daily": {"live_from": {"recommend": DAY.isoformat()}}}
@@ -28,7 +27,7 @@ EDITIONS = ("morning", "evening")
 @pytest.fixture
 def store(tmp_path):
     store = Store(tmp_path)
-    store.record(day=DAY - timedelta(days=3))  # Friday: the morning's standing answer
+    store.record(day=DAY - timedelta(days=1))  # Thursday 22 Oct: the morning's standing answer
     store.record(day=DAY)
     return store
 
