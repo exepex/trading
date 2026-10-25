@@ -43,6 +43,12 @@ def rehearsed_live(live: dict[str, date | None], env: Mapping[str, str] = os.env
     return {**live, **dict.fromkeys(notes, mode.day)}, notes
 
 
+def rehearsed_date(key: str, real: date | None, env: Mapping[str, str] = os.environ) -> date | None:
+    """One `daily.live_from` date as the daily run's root sees it (story REH1o): a child that checks its own live date
+    (G13's issuers) issues on the replayed day its step was made live for; a real run gets `real` unchanged."""
+    return rehearsed_live({key: real}, env)[0][key]
+
+
 def note_this_process(note: str | None) -> None:
     """The not-live line every labelled post of this process carries (story REH1k: one lab edition per process, as
     one daily-run step at a time); None leaves the process as it is."""

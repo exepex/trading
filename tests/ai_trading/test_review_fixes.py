@@ -38,10 +38,38 @@ def test_a_collection_reaching_a_book_at_e3_s_deadline_records_late_and_promotes
     assert all(not d.calls for d in day.deciders.values())
 
 
-def test_one_second_before_the_deadline_still_promotes(tmp_path):
+def test_more_than_the_reserve_before_the_deadline_still_promotes(tmp_path):
     day = sealed_day(tmp_path)
-    day.clock.now = at(15, 11, 59)
+    day.clock.now = at(15, 11, 49)  # 11 s left: 1 s for the decider after the 10 s reserve
     assert day.collect(late_at=at(15, 12)).outcomes["book2_hybrid"]["status"] == PROMOTED
+
+
+def test_within_the_reserve_before_the_deadline_is_late_and_no_decider_runs(tmp_path):
+    """Judge 651 should-fix 1: the run check, snapshots and record need the last 10 s before E3 collects."""
+    day = sealed_day(tmp_path)
+    day.clock.now = at(15, 11, 50)
+    outcomes = day.collect(late_at=at(15, 12)).outcomes
+    assert {b: o["status"] for b, o in outcomes.items()} == dict.fromkeys(BOOKS, "late")
+    assert "did not finish within 0.0 s" in outcomes["book2_hybrid"]["reason"]
+    assert all(not d.calls for d in day.deciders.values())
+
+
+def test_a_run_finished_at_or_after_the_deadline_is_put_back_and_late(tmp_path):
+    """A decider the alarm could not stop (no main thread) is still never collected: the check after it undoes it."""
+    day = sealed_day(tmp_path)
+    day.clock.now = at(15, 11, 0)
+    decider = day.deciders["book2_hybrid"]
+    original = decider.decide
+
+    def slow(accepted):
+        decided = original(accepted)
+        day.clock.now = at(15, 12, 5)
+        return decided
+
+    decider.decide = slow
+    outcomes = day.collect(books=("book2_hybrid",), late_at=at(15, 12)).outcomes
+    assert outcomes["book2_hybrid"]["status"] == "late" and "finished at 15:12:05" in outcomes["book2_hybrid"]["reason"]
+    assert outcomes["book2_hybrid"]["run_id"] == "" and DecisionStore(day.root, "book2_hybrid").runs(DAY) == []
 
 
 def test_a_record_that_cannot_be_written_after_promotion_puts_the_run_back(tmp_path, monkeypatch):
@@ -92,3 +120,28 @@ def test_a_null_budget_block_fails_open_on_cost_only():
 
     check = LevelBudgetStop(meter).check(DAY)
     assert check.stop == "" and "AttributeError" in check.note
+
+
+@pytest.mark.parametrize("rehearsing", [True, False])
+def test_the_wiring_builds_no_routine_trigger_in_a_rehearsal_and_its_steps_refuse(tmp_path, monkeypatch, rehearsing):
+    """Judge 651 should-fix 2, on the real wiring and the real mode: in a rehearsal no `RoutineTrigger` is built (the
+    factory is a spy) and both steps refuse; in a real run both triggers are built."""
+    from datetime import datetime
+
+    from fno.ai_trading import wiring
+    from fno.models import IST
+    from fno.rehearsal.mode import Rehearsal, in_this_process
+
+    built = []
+    monkeypatch.setattr(wiring, "build_decision_trigger", lambda book, env: built.append(book))
+    live = lambda day: ("book2_hybrid",)  # noqa: E731
+    clock = lambda: datetime.combine(DAY, time(15, 1), IST)  # noqa: E731
+    arguments = (CFG, tmp_path, live, {}, None, None, None, None, clock)
+    if rehearsing:
+        with in_this_process(Rehearsal.new(DAY, tmp_path / "home", tmp_path)):
+            steps = wiring.build_ai_steps(*arguments)
+            results = [step.run(DAY).result for step in steps.values()]
+        assert built == [] and all(r["reason"].startswith("rehearsal: AI decision") for r in results)
+    else:
+        wiring.build_ai_steps(*arguments)
+        assert sorted(built) == ["book2_hybrid", "book3_ai"]

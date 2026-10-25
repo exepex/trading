@@ -7,7 +7,7 @@ promoted run). A book with an outcome record already is never judged again."""
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from pathlib import Path
 
@@ -34,6 +34,9 @@ FAILED = "the collection failed for this book: {error}"  # the type only: a mess
 STARTED_LATE = "ai_collect reached this book at {now:%H:%M:%S}, at or after E3's decision deadline: a run would be late"
 PACKS_CHANGED = "the day's packs are not the ones fired (their SHA-256 differs from the fire log's labels)"
 CARDS_CHANGED = "the analyst cards read now are not the ones fired (their SHA-256 differs)"
+FINISHED_LATE = "the decider finished at {now:%H:%M:%S}, at or after E3's decision deadline: its run is put back"
+DECIDER_LIMIT_S = 60.0  # the decider's budget (F5's and F6's deciders aim at half of it)
+CHECK_RESERVE_S = 10.0  # after the decider, before E3's deadline: the run check, the git snapshots, the outcome record
 BLOCKED = "the judge's verdict blocks ({status}: {reason}); the no-trade run {run_id} is committed, no trade today"
 
 
@@ -130,8 +133,14 @@ class DecisionCollector:
             common, private, decision, cards, consulted_units(cards), outcome.commitment_commit,
             outcome.reveal_commit, judged.path, judged.verdict.blocks,
         )  # fmt: skip
-        promotion = self.promoter.promote(accepted, version.write_paths)
-        if not promotion.promoted:
+        promotion = self.promoter.promote(accepted, version.write_paths, self._decider_seconds())
+        if promotion.promoted and self.late_at is not None and self.clock() >= self.late_at:
+            promotion = replace(promotion, promoted=False, paths=(), run_id="", restored=promotion.undo(),
+                                reason=FINISHED_LATE.format(now=self.clock()))  # fmt: skip
+            outcome.stop(LATE, promotion.reason)
+        elif promotion.timed_out:
+            outcome.stop(LATE, promotion.reason)
+        elif not promotion.promoted:
             outcome.stop(REFUSED, promotion.reason)
         elif judged.verdict.blocks:
             reason = BLOCKED.format(status=judged.verdict.status, reason=judged.verdict.reason, run_id=promotion.run_id)
@@ -140,6 +149,13 @@ class DecisionCollector:
             outcome.status, outcome.reason = PROMOTED, f"run {promotion.run_id} committed for E3's deadline"
             outcome.strategy_label = promotion.strategy_label
         return promotion, (self.root / judged.path,)
+
+    def _decider_seconds(self) -> float | None:
+        """What is left before E3's deadline, less the reserve, at most the decider's budget (judge 651): `ai_collect`
+        then always ends before E3 collects, so a slow AI book is `late` and never costs Book 1 its day."""
+        if self.late_at is None:
+            return None
+        return min(DECIDER_LIMIT_S, (self.late_at - self.clock()).total_seconds() - CHECK_RESERVE_S)
 
     def _cards(self, day: date, outcome: DayOutcome, labels: dict) -> dict:
         """F2's item read again (the fire log keeps only its hash): exactly the one fired, or the book is refused."""

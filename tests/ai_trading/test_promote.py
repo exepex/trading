@@ -160,3 +160,18 @@ def test_a_relative_path_is_the_repository_s_whatever_the_current_directory(tmp_
     monkeypatch.chdir(tmp_path.parent)
     assert is_under(tmp_path, Path("journal/book2_hybrid/x.json"), ("journal/book2_hybrid/",))
     assert not is_under(tmp_path, Path("journal/book3_ai/x.json"), ("journal/book2_hybrid/",))
+
+
+def test_a_decider_stopped_by_its_time_limit_is_put_back_and_marked_timed_out(tmp_path):
+    """Judge 651 should-fix 1: the run it wrote before the stop is gone; the collector then records `late`."""
+    import time
+
+    class Slow(FakeDecider):
+        def decide(self, accepted_decision):
+            super().decide(accepted_decision)
+            time.sleep(5)
+
+    promoter = Promoter(tmp_path, {"book2_hybrid": Slow(tmp_path)})
+    promotion = promoter.promote(accepted(tmp_path), write_paths("book2_hybrid"), 0.2)
+    assert (promotion.promoted, promotion.timed_out) == (False, True) and "within 0.2 s" in promotion.reason
+    assert promotion.restored and DecisionStore(tmp_path, "book2_hybrid").runs(DAY) == []
