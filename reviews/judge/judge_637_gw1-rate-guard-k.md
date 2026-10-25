@@ -52,3 +52,38 @@ which the orchestrator's rehearsals were already posting before my run began (00
 - No wait before an attempt; no refusal check; `api` without the allow-list.
 - No halving; always half pace.
 - Groww's text in the alert; Groww's text in the 429; the next-year 429 swallowed.
+
+## Addendum 1: round 2 (the last), `story/gw1-groww-rate-guard` at 33f34e571 (judge K)
+
+**Parts 1-4: PASS. Parts 5-6: FAIL, 1 blocking. The branch as a whole cannot merge as it stands.** I did not read
+judge I's verdict.
+
+**Gates.** A trial merge of 33f34e57183cf270d85dd4141d3a1b6802cf8b34 into origin/main d6438bafa is clean (00cd71685). On it,
+with the Slack token set:
+- `pytest -n auto`: 16,795 passed, 1 skipped, 13 xfailed, exit 0.
+- ruff check and format are clean. `check_imports` (2,782 files), `check_records` (9,325 files) and `check_numbers` are clean.
+- No test posted to Slack: all three channels are empty for 00:41:24-00:51:01 UTC.
+- No changed `fno/` file is in `FREEZE_v4.md`.
+
+| Round-1 finding | Verdict | Own evidence |
+|---|---|---|
+| SF1: a won run plus an unclaimed one | fixed | `ClaimResult.take` is `outcome == WON`. An unclaimed run retries once after 15 s, then records `missed` ("claim not pushed ... not taken here"). A claim committed but not pushed now counts only after `publish()` pushes it, and the old `NOTHING_AS` = published hole is closed. A pull conflict keeps the remote copy (`-X theirs`), so its holder is `lost`. No path gives two takers |
+| SF2: a late mark outside the window | fixed | A16 asks at 4/s until `FAST_LEAD` (1 s) before mark + 120 s, then at 1/s, and every call is paced before its send time. A mark taken up to 120 s late is at 1/s from its start. After a window, A16 at 1/s plus A4c at 2.5/s plus NIFTY at about 1.2/s is about 4.7/s, under 5/s and 300 a minute |
+| SF3: E8's stand-in | stated | in Known limits, with 120-274 s, and in the register's E8 row |
+| m1, m2, m3 | fixed | 3 sign-in tries per process; the worst case is 38 × 3 = 114, under 150. `groww-check` and the feed probe go through `get_provider`. The unpaced readers' limit is stated |
+
+**Blocking B1: E3's capture can now end after `fills_by`, and C3 then refuses the day's prices.**
+- The story says "`desk.fills_by` (15:20) limits only a rerun". That is not so. C3's `SnapshotInWindow` (`fno/checks/snapshot_checks.py:30`) needs the capture's `finished_at` ≤ `fills_by`, and fails as `prices_unverified` otherwise.
+- E3 now asks from 15:17:00. Its five recorded captures took 2:34-3:15 (sidecars of 19, 21, 22 and 23 Oct), so they would end at 15:19:34-15:20:15. That leaves 3-26 s of margin, and 22 Oct's 3:15 fails.
+- Your decision (fills_by about 15:23) is not on the head: `config.yaml` still says `fills_by: "15:20"`.
+- **Fix:** move `desk.fills_by` in this change (or merge it first), and correct line 114. Check the knock-ons:
+  - the rerun rule (`FILLS_LATE`) and `runner.py`'s wait to `fills_by`;
+  - the school's `SCHOOL_STARTS_BY` 15:25. With E3 ending about 15:20 the school starts about 15:21, which is fine; a day with an E3 retry is near the limit.
+
+**Minor:**
+- **m4:** two of my plants survive: `FAST_LEAD` = 0 (fast starts can be booked up to 1 s past the window), and the fast pace back to 5/s. Neither breaks a limit while the window refuses the others, but both rules lack a test.
+
+**Plants:** 12 of mine, 10 caught:
+- unclaimed taken; no claim retry; `publish` skipped;
+- always fast; 1/s made 4/s; calls unpaced; window 90 s;
+- 4 sign-in tries; `groww-check` and the feed probe built directly.
