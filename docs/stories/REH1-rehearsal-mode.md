@@ -1031,8 +1031,8 @@ compared two lists; a live read at that moment would also have seen the later li
 written (pinned by `test_a_first_read_pushed_past_the_recheck_s_answer_is_served_the_recheck`). No log line for a
 fallback serve: the recorded sources have no output of their own.
 
-**Gates** (main merged in, the token kept): 17355 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
-clean (rerun after the self-review's commit: the rehearsal and close-read folders, 336 passed).
+**Gates** (main merged in at the final head, the token kept): 17443 passed, 13 xfailed, 0 failed; ruff, format,
+imports, record scan clean.
 
 **Real output sample** (a full clone of this branch at 265a1281e, the token kept): `daily run --rehearse --day
 2026-10-21`, run 20261025T030751Z-2a40b3, branch `refs/heads/rehearsal/2026-10-21-20261025T030751Z-2a40b3`. Before
