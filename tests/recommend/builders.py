@@ -38,7 +38,7 @@ def no_trade(**changes) -> Recommendation:
         inputs=(RecordRef("playbook/registry.csv", sha(8)),),
         versions=(evidence_of("school:CS1@1", EvidenceRung.EXPLORATORY), evidence_of("school:N0@1")),
         candidates=(candidate("school:CS1@1", EvidenceRung.EXPLORATORY), candidate("school:N0@1", traded=False, n=2)),
-        candidate_sources=COMPLETE,
+        candidate_sources=COMPLETE, braked_versions=(),
         real_money=RealMoneyAnswer.DO_NOT_TRADE_REAL_MONEY, eligible_version=None, paper=PaperAnswer.NO_TRADE,
         paper_trade=None, reason=NoTradeReason.NO_ESTABLISHED_VERSION,
     )  # fmt: skip

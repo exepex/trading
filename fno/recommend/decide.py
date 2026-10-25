@@ -57,7 +57,8 @@ def decide(facts: DayFacts) -> Recommendation:
         schema_version=RECORD_SCHEMA_VERSION, kind=RECORD_KIND, session=facts.session, made_at=facts.made_at,
         evidence_cutoff=facts.made_at, code_commit=facts.code_commit, config_sha256=facts.config_sha256,
         rung_rule_sha256=RUNG_RULE_SHA256, inputs=facts.inputs, versions=facts.versions, candidates=facts.candidates,
-        candidate_sources=facts.sources, real_money=real_money, eligible_version=eligible,
+        candidate_sources=facts.sources, braked_versions=tuple(sorted(set(facts.braked))), real_money=real_money,
+        eligible_version=eligible,
         paper=PaperAnswer.NO_TRADE if reason else PaperAnswer.PAPER_TRADE, paper_trade=trade, reason=reason,
     )  # fmt: skip
 
@@ -92,4 +93,5 @@ def _without_trade(facts: DayFacts, established: list[str]) -> NoTradeReason:
 
 
 def _eligible(facts: DayFacts, established: list[str]) -> str | None:
-    return next((v for v in established if v in facts.rm1_eligible), None)
+    """A version under its own brake or daily stop is never eligible (orchestrator's ruling, judge 654.1)."""
+    return next((v for v in established if v in facts.rm1_eligible and v not in facts.braked), None)

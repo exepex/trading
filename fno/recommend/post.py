@@ -19,6 +19,7 @@ UNAVAILABLE = "{name}: unavailable ({status})"
 NOT_RECOMMENDED = "Paper, not a recommendation: {count} trade(s) of versions below rung 3."
 RECORD = "Record {path}, SHA-256 {short}."
 NO_PROVEN = "no version has passed"
+BRAKED = "under its own drawdown brake or daily stop: {versions}"
 NOT_ELIGIBLE = "no established version is eligible under the real-money gate, RM1"
 
 
@@ -37,6 +38,8 @@ def _real_money(record: Recommendation) -> str:
         return DO_NOT.format(why=NO_PROVEN)
     if record.reason in BLOCKS_REAL_MONEY:  # the day itself stops real money too, named (judge 654 m2)
         return DO_NOT.format(why=REASON_TEXT[record.reason])
+    if record.braked_versions:  # an established version under its own brake is never eligible (REC1c)
+        return DO_NOT.format(why=BRAKED.format(versions=", ".join(record.braked_versions)))
     return DO_NOT.format(why=NOT_ELIGIBLE)
 
 
