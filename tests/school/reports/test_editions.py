@@ -94,9 +94,13 @@ def test_an_edition_with_no_section_is_passed_through():
     assert made.text == (GOLDEN / "morning.txt").read_text()
 
 
-def test_the_real_config_has_the_flag_off(monkeypatch):
-    maker = lab_maker("morning")
-    assert with_school_sections(maker) is maker
+def test_the_real_config_has_the_reports_on():
+    """The owner's switch (25 Oct 2026, with MS-P1j4); the flag-off behaviour stays pinned on an explicit off
+    configuration (`test_with_the_flag_off_the_edition_is_byte_identical_...`), never on the file."""
+    from fno.config import load_app_config
+    from fno.school.settings import school_settings
+
+    assert school_settings(load_app_config()).reports is True
 
 
 def test_a_failure_alert_never_repeats_the_exceptions_message():
