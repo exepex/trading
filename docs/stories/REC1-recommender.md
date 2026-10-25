@@ -851,5 +851,5 @@ on Sun 25 Oct, the morning section would say "No recommendation recorded yet."
 
 **Known limits.**
 - The 08:50 section reads every waiting day's latest check, about 60 small files at most.
-- In a rehearsal, the sections read through the same builders as REC1c's check (REH1's Drive), not the `dryrun/`
-  records. Nothing posts in a rehearsal unless the lab's editions do.
+- Not verified in a rehearsal (REH1). The sections read Drive through `build_drive_cache`, as REC1c's check does.
+  Whether a rehearsal points that cache at its `dryrun/` records is not checked here.
