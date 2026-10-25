@@ -35,3 +35,20 @@ No finding.
   and correct for the owner's purpose. F1t's rule, not F5's.
 - F1t revision 2 (the label and the run check) is "for the code judge" (`F1t-ai-trading-runner.md:651`). F5's label
   depends on it; F5's Depends names F1t.
+
+## Addendum 1: round 2 at 27aa46107 (diff a369d4f0b..27aa46107; answering judges 631 and 632)
+
+**PASS, lane 1** (Judge I, own session). The diff changes only `F5-book2.md`.
+
+| Item | Verdict | My evidence |
+|---|---|---|
+| 632 B1: paused versions stayed tradable | FIXED | `book2_tradable` is now `approved_on(day)`, which needs `paper` at the start and through the day, excludes drifted versions, and lets a pause or retirement stop entries at once (`fno/playbook/loader.py:56-62`). It adds `shadow_on(day)` only while still `research` through the day. A version promoted that day is in neither set, the same as D2 ("an approval waits for the next session") |
+| 632 SF1: where the set replaces D2's and C4's | FIXED | `Book2Playbook` is passed to `RuleEvaluator.evaluate`, which reads `approved_on` and `shadow_on` (`fno/playbook/evaluate.py:50-52`), and to C4's proposal builder, which reads `approved_on` (`fno/checks/validity_adapter.py:52`). Its empty `shadow_on` means Book 2 evaluates no shadow, while Book 1's plain `Playbook` keeps D2's shadow books. No D2 or C4 code changes. Criterion 13 tests no shadow writes and Book 1 byte-identical |
+| 632 B2: no loss stop on a research version in Book 2 | FIXED | I confirmed the gap: E6 counts a research version only on its shadow account, and `AutoPauser` pauses only `paper` (`fno/scorecard/pauses.py:85-101`). `Book2ResearchPauses` stops a research version for Book 2 alone, on Book 2's own closed trades from the first: one closed loss of at least `catastrophic_loss_rs`, or a cumulative net at or below `-CUMULATIVE_CAPS` (3, `pauses.py:33`) times it, using E6's constants, imported. It writes one row per version, sends one alert, and drops the version from `book2_tradable` that day; open trades keep their exits. Criterion 14 has boundaries on both sides and an idempotent second run |
+| 632 m1: F5's own label refusal | FIXED | criterion 15, with F1t's check stubbed out |
+| 631 notes | FIXED | one mode name (`EnvelopeMode`); the per-version limit and a new version number starting again at 0 are stated for the owner |
+
+Note (not a finding): the stop is per version and written once, so a new version number trades again from zero. That
+is consistent with the per-version unproven limit, and registering a version is itself a lane-1 registry change.
+
+Doc-reading tests at 27aa46107, with `FNO_SLACK_BOT_TOKEN` kept: 922 passed, 14 xfailed.

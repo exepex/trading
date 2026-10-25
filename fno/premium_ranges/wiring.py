@@ -60,6 +60,9 @@ def build_seals(store) -> Seals:
 
 
 def build_issuer(cfg: dict, store=None, before=None) -> PremiumIssuer:
+    from ..rehearsal.live_wiring import rehearsed_date
+
     store = store or build_store()
-    return PremiumIssuer(store, build_session_calendar(), UNDERLYINGS, live_from(cfg), now_ist, method_sha256(),
+    live = rehearsed_date(STEP, live_from(cfg))  # REH1o
+    return PremiumIssuer(store, build_session_calendar(), UNDERLYINGS, live, now_ist, method_sha256(),
                          before or (lambda day: []))  # fmt: skip

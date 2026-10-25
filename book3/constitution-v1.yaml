@@ -1,0 +1,12 @@
+# Book 3's constitution v1 (story D5; owner, 16 Oct 2026, "D4/D5: the five design questions accepted as recommended":
+# up to 3 weeks = 21 calendar days to the planned exit, all nine defined-risk codes C4 accepts, monthly NIFTY expiries
+# only). Approved by the owner on 25 Oct 2026 (DESK_DECISIONS, Q10 "10 yes"); in force once its SHA-256 is registered as D6 component
+# `constitution`. The risk limits and the scoring protocol are references, never numbers, so Book 3 can change neither.
+version: 1
+underlying: NIFTY
+expiry: monthly
+structures: [BF, CCS, CDS, LC, LP, PCS, PDS, SC, SF]
+max_holding_days: 21
+sources: [common_pack, private_pack]
+risk: risk.profiles.books
+scoring: research/evaluation/PROTOCOL.md

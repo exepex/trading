@@ -103,7 +103,7 @@ def test_duplicates_and_bad_rows_are_refused(repo):
 
 def test_the_repository_ledger_counts_experiment_1_and_keeps_history_retrospective():
     rows = read_ledger(REPO_LEDGER.read_text())
-    assert [r["trial_id"] for r in rows] == [str(i) for i in range(1, 109)] and tuple(rows[0]) == COLUMNS
+    assert [r["trial_id"] for r in rows] == [str(i) for i in range(1, 124)] and tuple(rows[0]) == COLUMNS
     v5v1 = rows[99]  # G14's measurement card (trial 100): no hypothesis, its card in the ideas folder
     v5v1_card = "research/ideas/CARD_V5V1.md"
     assert (v5v1["kind"], v5v1["hypothesis"], v5v1["protocol_path"]) == ("prospective", "no", v5v1_card)

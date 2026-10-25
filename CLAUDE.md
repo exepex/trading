@@ -64,7 +64,8 @@ cancels orders.
    (story G10: from `daily.live_from.v4_pack`, after the `v4` quote part's 14:32-14:40 capture), G7b's pack-derived v4
    rows (`forecasts_v4_pack`, from `daily.live_from.forecasts_v4_pack`, right after the release, committed before 15:10),
    E3's desk (pack, Book 1's decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk,
-   v4's 15:10 deadline check (G10, from 15:12) and, from 15:33 IST (after A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`:
+   the market school's 15:00 paper slot (MS-P1j2: right after G13d's issue, never started after 15:25 IST, never
+   retried; `school.enabled`), v4's 15:10 deadline check (G10, from 15:12) and, from 15:33 IST (after A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`:
    yesterday's 15-minute candles, read-only Groww) and, last, A4h's close reads. It writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
    done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
    same day skips the steps already done. A "waiting until HH:MM IST" line is a wait for the next step's time, never a
