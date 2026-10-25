@@ -29,3 +29,27 @@ be allowed.
 - If the scheduled 14:05 run fails outright before its 3 pm parts, that day's quotes are lost, unless the scheduled
   session's own step 2b covers it.
 - Name the daily run explicitly as a Groww command, so a session cannot argue that it is not one.
+
+## Addendum 1
+
+Narrow check of e5209d7ca and 16861f8bd (head 16861f8bd). **FAIL: 1 should-fix, 1 minor.**
+
+- **Minor 1, fixed:** "no live Groww test ... (pytest never calls Groww live)".
+- **The exception matches the owner's words.** The owner said "if a scheduled command is failed, then a manual run
+  should be allowed ... It's not one time, it's always. If daily run fails, we should be able to run them manually",
+  and the text says "always allowed ... the same command may be run again by hand at once, in market hours too".
+  O1's day lock is consistent with it: "a second run beside a living one does nothing".
+- **Should-fix 1: it contradicts CLAUDE.md step 2b, and the rule does not say which wins.**
+  - Step 2b (owner, 24 Oct) retries the daily run after a failed exits or marks step "once more at once, once only ...
+    never a rerun chosen later".
+  - The new exception allows the same command again with no limit, and the DESK_DECISIONS row b070ec499 says "as often
+    as needed to avoid losing data".
+  - Exits and marks are money steps. A session can now read two rules for the same retry: once, or as often as needed.
+  - "It's not one time, it's always" can mean "the exception holds every day", not "unlimited reruns a day". The text
+    must not decide that silently.
+  - Fix: say how the two combine, for example: "step 2b's once-only rule still holds for a daily run that ended 'a rerun
+    today retries it'; this exception covers a command that failed or stopped early, once at once, then the owner
+    decides". Or quote the owner if the owner meant to lift 2b's limit. Apply the same wording to the DESK row's
+    detail.
+- **Minor 2:** the two new CLAUDE.md lines (37 and 38) are 156 and 158 characters long. Rewrap them.
+- **Gates at 16861f8bd:** record scan clean (9,539 files); doc-reading tests 963 passed, 13 xfailed, 0 failed.
