@@ -7,9 +7,10 @@ log = logging.getLogger(__name__)
 AUTO_PROVIDER = "auto"
 
 
-def get_provider(name: str, config: dict) -> Provider:
+def get_provider(name: str, config: dict, allowed: frozenset[str] | None = None) -> Provider:
     """`auto` uses Groww when its credentials are set (the owner's PC) and the free NSE website otherwise. A Groww
-    provider built here alerts its failed sign-in (story GW1a); A16 builds its own."""
+    provider built here alerts its failed sign-in (story GW1a); A16 builds its own. `allowed`: a caller's own Groww
+    allow-list (A14c part 2's margin calls), else the recorder's default."""
     name = (name or "nse").lower()
     if name == AUTO_PROVIDER:
         return _auto_provider(config)
@@ -18,7 +19,7 @@ def get_provider(name: str, config: dict) -> Provider:
 
         return NSEProvider(config)
     if name == "groww":
-        return _groww_provider(config)
+        return _groww_provider(config, allowed)
     if name == "sample":
         from .sample import SampleProvider
 
@@ -40,10 +41,10 @@ def _auto_provider(config: dict) -> Provider:
     return NSEProvider(config)
 
 
-def _groww_provider(config: dict) -> Provider:
+def _groww_provider(config: dict, allowed: frozenset[str] | None = None) -> Provider:
     from .groww import GrowwProvider
 
-    return GrowwProvider(config, alert_sign_in_failure)
+    return GrowwProvider(config, alert_sign_in_failure, allowed)
 
 
 def alert_sign_in_failure(line: str) -> None:

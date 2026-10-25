@@ -12,9 +12,8 @@ from functools import cache
 
 from ..composition import build_alert_sender
 from ..config import ROOT
-from ..intraday.read_only import ReadOnlyGroww
 from ..models import now_ist
-from ..providers.groww import GrowwProvider
+from ..providers import get_provider
 from ..school.roads.lots import ArchivedLots
 from ..school.roads.stored_files import StoredFilesOnly
 from ..school.roads.wiring import build_archive_stores
@@ -35,8 +34,8 @@ PACE_SECONDS = 2.0  # one broker request every 2 seconds (measured: 15 baskets a
 def build_broker_check(cfg: dict, env=os.environ) -> BrokerMarginCheck:
     """Groww and Drive are built on first use, so a closed day or an early start needs neither the SDK nor settings
     (judge 630 finding 1). The lot is the row builder's own (one source); A20a's dated lot checks it."""
-    provider = cache(lambda: GrowwProvider(cfg))
-    broker = GrowwBrokerMargins(ReadOnlyGroww(lambda: provider().api, BROKER_CHECK_CALLS))
+    provider = cache(lambda: get_provider("groww", cfg, BROKER_CHECK_CALLS))  # GW1's guards, this caller's list only
+    broker = GrowwBrokerMargins(lambda: provider().api)
     lots = cache(lambda: ArchivedLots(RawFileLibrary(build_archive_stores(), StoredFilesOnly())))
     log = build_margin_log(cfg, ROOT)
     parts = BrokerCheckParts(

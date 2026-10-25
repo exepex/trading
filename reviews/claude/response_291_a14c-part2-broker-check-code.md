@@ -260,3 +260,27 @@ Both points are accepted, checked against the code.
 - **History:** 371f308ed briefly removed the path under the first form of the rule; this commit reverts it.
 - **The story** says the same, and that any other hand-run Groww command from 09:15 to 15:35 stays forbidden.
 - **Monday's sample** stays after 15:35 IST: it is a different command (a rehearsal), not a rerun of a failed step.
+
+### How the check builds its Groww client (judge I's GW1 point), and a blocking defect it exposed (25 Oct)
+
+**The defect (strong evidence, reproduced).** Since GW1a (98e5dcfcb), `GrowwProvider.api` is itself a `ReadOnlyGroww`
+with the recorder's default list, which has no `get_order_margin_details`. The check wrapped `provider.api` in its own
+list, so the inner list refused every margin request ("get_order_margin_details is not a read call this client may
+use"). Live, every basket would have been `error`. No test caught it: the fakes skipped the provider. The 21 and
+25 Oct rehearsals predate the merge with GW1a.
+
+**How it builds now.**
+- `broker_wiring.py` calls `get_provider("groww", cfg, BROKER_CHECK_CALLS)` on first use. The check therefore has
+  GW1a's sign-in guard and its alert, the 60 s pause after a 429, and whatever GW1 adds to the provider later (its
+  quiet windows), behind one list, this caller's own.
+- `GrowwBrokerMargins` takes a function returning `provider.api` and builds no wrapper of its own.
+- `get_provider` and `GrowwProvider` gain an optional `allowed` (default: the recorder's list, so every other caller
+  is unchanged).
+
+**Test:** `test_the_wiring_reaches_groww_through_get_provider_with_only_this_caller_s_list` drives the real chain
+(`get_provider`, the real `GrowwProvider` and its guards, a fake `growwapi` module, the check's adapter). The margin
+call and the quote get through; `place_order`, `get_positions_for_user` and `get_order_list` are refused.
+
+**Plants:** no list passed to `get_provider`, 1 failed; `GrowwProvider` ignoring `allowed`, 1 failed.
+**Files of GW1's owner touched** (`fno/providers/__init__.py`, `fno/providers/groww.py`): about 3 lines each, put to
+the orchestrator for that owner's agreement.

@@ -128,7 +128,8 @@ class GrowwProvider(Provider):
 
     name = "groww"
 
-    def __init__(self, config: dict, on_sign_in_failure: Callable[[str], None] | None = None):
+    def __init__(self, config: dict, on_sign_in_failure: Callable[[str], None] | None = None,
+                 allowed: frozenset[str] | None = None):  # fmt: skip
         super().__init__(config)
         try:
             from growwapi import GrowwAPI
@@ -137,7 +138,7 @@ class GrowwProvider(Provider):
         self.GrowwAPI = GrowwAPI
         self._sign_in = GrowwSignIn(lambda: self.GrowwAPI(self._token()), on_failure=on_sign_in_failure)
         guarded = RateGuardedGroww(self._sign_in.client, RateLimitPause())
-        self._api = ReadOnlyGroww(lambda: guarded)
+        self._api = ReadOnlyGroww(lambda: guarded, *([allowed] if allowed else []))  # a caller's own list
 
     @property
     def api(self) -> ReadOnlyGroww:

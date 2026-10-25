@@ -44,7 +44,7 @@ class FakeApi:
 
 def test_the_adapter_reads_the_index_and_the_basket_through_its_allow_list():
     api = FakeApi()
-    broker = GrowwBrokerMargins(ReadOnlyGroww(lambda: api, BROKER_CHECK_CALLS))
+    broker = GrowwBrokerMargins(lambda: ReadOnlyGroww(lambda: api, BROKER_CHECK_CALLS))
     assert broker.index_level() == 20_050.5
     assert broker.basket(BASKETS[("SF", 100.0)].orders(65)) == (12_675.0, 52_130.0)
     assert api.calls[0][1]["segment"] == "CASH" and api.calls[1][1]["segment"] == "FNO"
@@ -57,7 +57,7 @@ def test_the_adapter_reads_the_index_and_the_basket_through_its_allow_list():
     ids=["zero level", "no level", "no exposure", "no figures"],
 )
 def test_an_answer_without_a_usable_figure_is_refused(quote, margin):
-    broker = GrowwBrokerMargins(ReadOnlyGroww(lambda: FakeApi(quote, margin), BROKER_CHECK_CALLS))
+    broker = GrowwBrokerMargins(lambda: ReadOnlyGroww(lambda: FakeApi(quote, margin), BROKER_CHECK_CALLS))
     with pytest.raises(BrokerAnswerProblem):
         broker.basket([]) if margin else broker.index_level()
 
@@ -148,24 +148,42 @@ def test_the_root_of_the_jobs_github_actions_runs_builds_no_broker_client():
     assert "stress-broker-check" not in workflows
 
 
-def test_the_wiring_gives_the_check_only_this_caller_s_read_only_client(monkeypatch):
+def test_the_wiring_reaches_groww_through_get_provider_with_only_this_caller_s_list(monkeypatch):
+    """The real chain: get_provider, GrowwProvider's sign-in and 429 guards (GW1a), one list, the check's adapter.
+    After GW1a, `GrowwProvider.api` is itself an allow-list; built with the recorder's default it refused every
+    margin request (found 25 Oct). A fake `growwapi` stands in for the SDK; no request leaves the process."""
+    import sys
+    import types
+
     from fno.config import load_app_config
+    from fno.constants import ENV_GROWW_ACCESS_TOKEN, ENV_GROWW_API_KEY, ENV_GROWW_API_SECRET
     from fno.nse_margins import broker_wiring
 
-    class Provider:
-        def __init__(self, cfg):
-            self.api = FakeApi()
+    asked = []
 
-    monkeypatch.setattr(broker_wiring, "GrowwProvider", Provider)
-    monkeypatch.setattr(broker_wiring, "build_drive_span_files", lambda env: lambda day: ("x", None))
-    monkeypatch.setattr(broker_wiring, "build_data_store", lambda writer, env: ("store", writer))
+    class GrowwAPI(FakeApi):
+        def __init__(self, token):
+            super().__init__()
+
+        def get_order_margin_details(self, **kwargs):
+            asked.append("margin")
+            return super().get_order_margin_details(**kwargs)
+
+        def place_order(self, **kwargs):  # pragma: no cover - must never be reachable
+            raise AssertionError("an order call reached the SDK")
+
+    monkeypatch.setitem(sys.modules, "growwapi", types.SimpleNamespace(GrowwAPI=GrowwAPI))
+    for name in (ENV_GROWW_API_KEY, ENV_GROWW_API_SECRET):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv(ENV_GROWW_ACCESS_TOKEN, "planted")
     monkeypatch.setattr(broker_wiring, "build_drive_cache", lambda env: "cache")
     check = broker_wiring.build_broker_check(load_app_config(), env={})
-    assert check.pace_seconds == 2.0 and check.parts.record.store == ("store", "margins stress-broker-check")
-    client = check.parts.broker.client
-    assert client.get_quote and client.SEGMENT_FNO == "FNO"
-    with pytest.raises(ReadOnlyViolation):
-        client.place_order  # noqa: B018
+    broker = check.parts.broker
+    assert broker.basket(BASKETS[("SF", 100.0)].orders(65)) and asked == ["margin"]
+    assert broker.index_level() > 0
+    for name in ("place_order", "get_positions_for_user", "get_order_list"):
+        with pytest.raises(ReadOnlyViolation):
+            getattr(broker.client, name)
 
 
 @pytest.mark.parametrize(("scan", "nov", "expected"), [(20_000.0, -5_525.0, 25_525.0), (3_000.0, 5_000.0, 0.0)])

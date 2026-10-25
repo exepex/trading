@@ -6,7 +6,7 @@ need. The calculator creates nothing: after the four calls of 14-16 Oct the acco
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from ..constants import NIFTY_SYMBOL
 from ..intraday.index_reading import quote_reading
@@ -33,8 +33,13 @@ class BrokerMargins(ABC):
 
 
 class GrowwBrokerMargins(BrokerMargins):
-    def __init__(self, client: ReadOnlyGroww):
-        self.client = client
+    def __init__(self, client: Callable[[], ReadOnlyGroww]):
+        """`client` is called on each use, so the provider is built (and signs in) only when a request is due."""
+        self._client = client
+
+    @property
+    def client(self) -> ReadOnlyGroww:
+        return self._client()
 
     def index_level(self) -> float:
         api = self.client
