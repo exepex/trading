@@ -140,3 +140,26 @@ should-fix left (677.1's SF3), 2 minor.** Judge F not read. After this round the
 - **Minor 2:** the register row still says "each under 350 lines" (now 500).
 - **Gates at 765c79001, clean worktree:** record scan clean (9,537 files); doc-reading tests 963 passed, 13 xfailed,
   0 failed.
+
+## Addendum 3
+
+Round 2's final head, `02dd914d1` (17393a334 and da825c6b7, plus the minors commit), judged in place of 765c79001
+as the orchestrator asked. **PASS.** Judge F not read.
+
+- **677.1 SF3, fixed.** CLAUDE.md's Code bullet and AGENTS.md now name the lanes: lane 1 needs a judge PASS, lane 2
+  the orchestrator's check and the auditor.
+  - Lane 3 is listed as conversation logs, judge files, number claims, register rows and the owner's dated rows in
+    `DESK_DECISIONS.md`.
+  - That agrees with the Branch section's lane-3 list (its "decision and status rows" are those rows, while a status
+    or roadmap page takes its functionality's lane) and with `tools/ci_scope.sh`.
+  - The bullet says the Rule-document guard still applies, and that the daily conversation log stays a log.
+  - Against main, the change only widens checks: documents that had no review now take their functionality's lane. It
+    narrows no lane-1 rule.
+  - The CLAUDE.md diff against main is one added block in the Code section (11 lines). No routine section changed.
+- **The 500-line exception** (F's item): a new document is never over 500 lines; an existing one may be edited until
+  DOC1 splits it. That is clear, and matches section 7's ruling.
+- **677.2 minors, fixed:** three runtime reads named with their lines; the register row says 500.
+- **Gates at 02dd914d1, clean worktree:** record scan clean (9,537 files); doc-reading tests 963 passed, 13 xfailed,
+  0 failed.
+
+No blocking, should-fix or minor finding is left. P0's own gate still needs F's PASS and the owner's approval.
