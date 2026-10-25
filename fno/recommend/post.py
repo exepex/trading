@@ -18,6 +18,7 @@ SOURCE = "{name}: {count} candidate(s)"
 UNAVAILABLE = "{name}: unavailable ({status})"
 NOT_RECOMMENDED = "Paper, not a recommendation: {count} trade(s) of versions below rung 3."
 RECORD = "Record {path}, SHA-256 {short}."
+NO_PROVEN = "no version has passed"
 NOT_ELIGIBLE = "no established version is eligible under the real-money gate, RM1"
 
 
@@ -31,7 +32,9 @@ def recommendation_line(record: Recommendation, saved: Saved) -> str:
 def _real_money(record: Recommendation) -> str:
     if record.real_money is RealMoneyAnswer.ELIGIBLE_FOR_YOUR_OWN_REVIEW:
         return ELIGIBLE.format(version=record.eligible_version)
-    return DO_NOT.format(why=REASON_TEXT[record.reason] if record.reason else NOT_ELIGIBLE)
+    if not any(v.rung is EvidenceRung.ESTABLISHED for v in record.versions):
+        return DO_NOT.format(why=NO_PROVEN)
+    return DO_NOT.format(why=NOT_ELIGIBLE)
 
 
 def _paper(record: Recommendation) -> str:
