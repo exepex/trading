@@ -56,3 +56,31 @@ failing the step; adoption overwritten. Survivors: X19 and X23 (S2), X1 (redunda
 ## Notes
 - Slack, with FNO_SLACK_BOT_TOKEN set (1792890618-1792891186): nothing in any of the three channels.
 - I did not coordinate with judge K.
+
+## Addendum 1: round 2 (the last), story/rec1b-daily-record at d82e459d7 (4908677a plus a merge of main)
+**PASS**, lane 1: S1 and S2 closed, m1 closed, m2 ruled by the orchestrator. Trial merge with main e114ed99
+(a2fe22bb): 16,992 passed, 1 skipped, 13 xfailed; ruff, format, check_imports (2,807 files), check_records (9,362)
+and check_numbers clean.
+- **S1 closed.** `disagreeing()` makes `_reason` give `data_check_failed` when RM1 names a version below rung 3 or not
+  rated, and `gather` alerts it by name. Plants Y1 and Y2 are caught.
+  - My X15 (`_eligible` without its rung-3 check) now survives, as an equivalent mutant: such a version always triggers
+    `disagreeing`, and `data_check_failed` blocks real money.
+- **S2 closed.**
+  - Criterion 8: `test_reads_only.py` catches my X23 import.
+  - Criterion 14: `test_cli.py` catches X19 for a weekend, 26 Jan and Sunday 8 Nov.
+  - Criterion 10's card part is now a construction argument: `recommend` runs after `card`, and
+    `test_no_card_module_reads_the_recommender` checks no card module imports it. That proves the card unchanged at
+    least as well as a golden file would.
+- **m1 closed.** A receipted day re-sends its own stored line, labelled "Re-sent". The discarded answer's problems are
+  not alerted. Y6 and Y7 caught.
+  - Note: a rerun after an input-problem day re-sends the record that stands, and the step then reads `ok`. The record
+    still says `data_check_failed`, and the first run alerted it. Acceptable; say so if the run log's `ok` ever matters.
+- **m2 and `quote_gate_failed` (the orchestrator's question): I agree with the addition** (reasoning only).
+  - A failed quote gate means the day's prices are unusable; the card already maps it to `data_check_failed`.
+  - An "eligible for your own review" on such a day would point the owner at a trade whose day inputs failed.
+  - `BLOCKS_REAL_MONEY` = {data_check_failed, step_problems, quote_gate_failed, weather_red}. Y3, Y4 and Y5 are caught.
+  - Left open for the owner: `brake` (the version's own drawdown brake) still allows ELIGIBLE. I would block that too;
+    it is a version condition, outside the ruling. Not reachable before rung 3.
+- **Plants: 12 of 14 caught.** Caught: X13, X16, X17, X19, X23, Y1-Y7. Survivors: X1 (redundant guard, as in round 1)
+  and X15 (equivalent, above). Run with PYTHONDONTWRITEBYTECODE=1 in their own worktree.
+- Slack, with the token set (1792892265-1792892845): nothing in any channel. I did not coordinate with judge K.

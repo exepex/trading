@@ -33,3 +33,20 @@
 
 5 planted on 75f7c584a: **5 caught**. No-record path removed; the no-record banner GREEN; drivers planned on all
 roads; a failed driver not named; the no-plan message dropped.
+
+## Addendum 1
+
+**Round 2 of 2 at story/ms-p1j4-no-record @ f6af52752 (code ff5846845), judge F, judge 2 of 2: PASS. Lane 1.** Own
+session; I did not read judge E.
+
+| Item | Answer | My check | Result |
+|---|---|---|---|
+| SF1: a sealed but unfinished day looked quiet | `finished` (both of the runner's `FINISHED` kinds sealed) and the step's status; no finish → RED "School run incomplete … fills and outcomes not recorded"; finished but step not ok → RED "… this record may be incomplete"; finished with the step ok or missing → unchanged | my 648 render again on the new code: (unfinished, failed `o1:STOPPED_AT_LIMIT`) → **red**, "School run incomplete for <day>: … fills and outcomes not recorded."; (finished, failed) → red, "may be incomplete"; (finished, ok) and (finished, no step) → amber, unchanged | **Accepted** |
+| The claim "both files are sealed even when empty" | | `runner._finish` seals `OUTCOMES` and `DRIFT` unconditionally after the fills; `DashcamStore.seal` writes and publishes the encoded payload for any record tuple, empty included (`dashcam/store.py:30-41`); so a quiet finished day is `finished` and never trips the line | **Confirmed** |
+| Nothing private | the new line holds a day, a status and a public code | read | **Confirmed** |
+
+Gates on a trial merge with main d73c75534 (clean): **16,820 passed, 1 skipped, 13 xfailed** (token kept); ruff, format
+(2,655 files), `check_imports`, `check_records` (9,338 files) clean.
+
+Plants (round 2), 5, **5 caught**: the incomplete check removed; the finish ignored; the step status ignored; the
+incomplete line not red; `finished` as any instead of all. Both rounds: 10 of 10.
