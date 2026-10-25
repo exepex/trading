@@ -468,3 +468,71 @@ Changed from the passed text, each from the ruling:
 - **m1.** The rung-3 test reads the version's own rung records, never the unread source.
 - **m2.** The line says "Recommender (not the card)"; the card shows the desk's status, and the two can differ.
   `ELIGIBLE` names the version, "for your own review, never a buy".
+
+### REC1b Claims (round 1, branch `story/rec1b-daily-record`; the SHA is in the commit that carries this text)
+
+New files are in `fno/recommend/`; each is at most 125 lines:
+- `ports.py`, `gather.py`, `decide.py`;
+- `desk_source.py`, `school_source.py`, `evidence.py`, `conditions.py`;
+- `store.py`, `post.py`, `run.py`, `cli.py`, `wiring.py`.
+
+Changed elsewhere:
+- `fno/recommend/contracts.py` and `constants.py`: `candidate_sources`;
+- `fno/constants_operations.py`: one row;
+- `fno/daily/wiring.py`: the step and its live key;
+- `fno/daily/reason_codes.py`: the `recommend` codes;
+- `fno/cli.py`: one parser;
+- `config.yaml`: `daily.live_from.recommend: null`;
+- the tests that pin the step tuple, the live keys and the receipt builders (they now name `recommend`).
+
+Nothing in `fno/cards/` changes.
+
+| Criterion | Code | Tests | Plants (all caught) |
+|---|---|---|---|
+| 2 reason order | `decide.py` `_reason`, `_without_trade` | `test_decide.py` (one test per adjacent pair, plus step problems and no established version) | established ignored |
+| 4 "proven" is rung 3 | `decide.py`, the contract | `test_a_trade_below_rung_3_is_never_a_recommendation`, the rung-3 trade | (REC1a's plants) |
+| 7 real money | `decide.py` `_eligible`, no eligibility before an RM1 report | `test_real_money_needs_rung_3_and_rm1`, data check | - |
+| 9 write-once, receipt first | `store.py`, `run.py` | `test_run.py` (refused push posts nothing; receipt before post; same day not written or posted again; a half-finished save adopted; foreign bytes never overwritten) | post before the receipt; already recorded posted again; adoption overwritten |
+| 10 line and sources | `post.py`, `school_source.py`, `desk_source.py`, `gather.py` | `test_school_source.py`, `test_desk_source.py`, `test_gather.py`, `test_post.py`, `test_run.py` (scan for strike or price) | school off read as complete; unavailable written as complete; missing seal tolerated; manifest checked one way; hash unchecked; shadow counted; price in the line |
+| inputs fail as inputs | `ports.open_run_log`, each adapter | unreadable run log, decision file, seal, weather | failed input passes; missing weather passes; backfill weather passes; unrated version guessed |
+| evidence point in time | `evidence.py` | `test_evidence.py` | day d read; closed road counted; desk paper version rated silently |
+| the step | `fno/daily/wiring.py` | `test_daily_step.py` (after `school`; null means not live; no pathspec; one alert; every last line has its code) | step moved; status alerts twice |
+| rung card pinned | `run.py` | `test_a_changed_rung_rule_makes_no_record` | hash unchecked |
+
+**Plants:** 22, all caught. A comment-only control plant survived, as it should. They ran with
+`PYTHONDONTWRITEBYTECODE=1` and no `__pycache__`.
+
+**Self-review (quality rule 3).** An independent agent reviewed f646e2c9. I checked every finding against the code;
+all are fixed at 25860aca except the notes below.
+- **Should-fix:**
+  1. A file listed in `records.sha256` but missing was dropped silently. The manifest is now checked both ways.
+  2. Two alerts went out for one failure, the second with "alert sent" as its reason. Now `status_alerts=False`
+     (a raise is still alerted), and the command prints its outcome line last.
+  3. `made_at` sits inside the bytes, so a rerun after a half-finished save could never succeed. A record on Drive
+     with no receipt is now adopted (as the dashcam's `recover`), and the first record stands. A receipted day is
+     never written or posted again. Programming errors keep their traceback.
+  4. Unreadable inputs crashed the step. Each adapter now raises `InputFailed`, which becomes `data_check_failed`.
+- **Minor:** criterion 10's `<status>, <reason>` format; the `recommend:*` public codes; `STEP_OK` used.
+- **Found by me while fixing:** Book 1's records write action `trade` for a research shadow too
+  (`decision_record.py:51`). "Traded" is now `Decision.CHOSEN` in `book` mode only.
+- **Not fixed, stated plainly:**
+  - The run-log reference in `inputs` is the log as read at decision time. Later steps rewrite that file, so the hash
+    verifies against the run's commit after the school step (O1 commits each step), not against the final file.
+  - A GitHub outage makes receipts unknown. A rung-3 version could then read lower that day, and an unavailable
+    school would no longer force `data_check_failed`. This cannot happen before rung 3; it is a question for the
+    rung-3 story.
+  - `risk_refused` and `braked` have no reader yet, so `risk_cap` and `brake` cannot occur. Their readers come with
+    the first rung-3 version, as does the desk's evidence reader. Until then a desk version at `paper` fails loudly.
+
+**Real output sample.** A dry run on the committed records of Fri 23 Oct. Real: desk source, run log, M1 weather,
+D6 versions, playbook registry. The school step is absent from that day's log. Fakes: only the Drive store and Slack.
+```
+PAPER ONLY. Recommender (not the card) for 23 Oct 2026. Real money: DO NOT TRADE (no version has passed). Paper: NO
+TRADE (no_established_version: no version has passed: none is established on forward paper results). Candidates:
+desk:book1: 1 candidate(s); school: unavailable (missing, the school step is not in the run log). Paper, not a
+recommendation: 0 trade(s) of versions below rung 3. Record recommend/2026/10/2026-10-23.json, SHA-256 <12 hex>.
+```
+The record rated 13 versions: `book1_rules` and the 12 registered school versions, all at rung 0.
+
+**Timing:** judge 641.2 m3 notes the school's start of about 15:21:30-15:25:30. The orchestrator is getting GW1's
+measured chain, and the text will be updated when it comes. A refused school (`TOO_LATE`) is recorded `unavailable`.
