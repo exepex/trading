@@ -14,7 +14,7 @@ from fno.constants import BOOK1_RULES, BOOK2_HYBRID, CASH_LEDGER_FILE, OUTCOME_C
 from fno.desk.daily_ports import CommitFailed
 from fno.desk.daily_run import RunStopped
 from fno.desk.exit_rules import TimeExit
-from fno.desk.fill_results import trade_fills
+from fno.desk.fill_results import book_refusals, trade_fills
 from fno.desk.records import EVENTS_FILE, FILLS_FILE, DeskRecords
 from fno.desk.run_log import RunLog
 from fno.desk.status import open_positions
@@ -218,9 +218,8 @@ def test_no_snapshot_blocks_only_a_book_whose_due_exits_were_held_up(root, tmp_p
     assert "due exits held up: t1" in log.result("fills")[BOOK1_RULES]["reason"] and "t5" not in trade_fills(
         log.result("fills")
     )
-    assert (
-        BOOK2_HYBRID not in log.result("fills") and trade_fills(log.result("fills"))["b5"]["outcome"] == OUTCOME_OPENED
-    )
+    assert BOOK2_HYBRID not in book_refusals(log.result("fills"))  # Book 2 is not blocked: it opens b5
+    assert trade_fills(log.result("fills"))["b5"]["outcome"] == OUTCOME_OPENED
 
 
 def test_drive_written_but_the_totals_push_rejected_reconciles_on_a_fresh_container_rerun(root, tmp_path, alerts):

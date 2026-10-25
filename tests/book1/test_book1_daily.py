@@ -130,7 +130,7 @@ def test_book1_s_records_are_collected_on_time_every_fixture_day_and_a_c4_pass_f
 def test_a_book1_decision_without_a_c4_pass_never_becomes_a_fill(root, tmp_path, alerts, monkeypatch, c4):
     """Criterion 5. `None` is today's reality until C4 merges: no Book 1 order fills at all."""
     logs = run_days(root, tmp_path, alerts, c4, monkeypatch)
-    results = [r for log in logs for r in log.result("fills").values()]
+    results = [r for log in logs for r in trade_fills(log.result("fills")).values()]
     assert results and all(r["reason"].startswith("not filled: no completed C4 pass") for r in results)
     assert DeskRecords(PaperAccount(root, BOOK1_RULES)).fill_rows() == []
 
