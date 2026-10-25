@@ -1,14 +1,14 @@
 """No Groww call inside A16's marks unless it is A16's own (story GW1, part 5).
 
-A16 asks at 5 a second, which is 300 a minute: Groww's whole Live Data cap (research/school/probes/
-2026-10-22-p0-1-groww-chain.md). Every scheduled routine runs in its own container, so no limiter is shared. The
-clock is the shared rule instead, for a provider built through `get_provider` (the 3 pm NIFTY, `v4`, A4c and E3's
-execution captures): an attempt that starts in a mark's quiet window (from the mark to `QUIET_SECONDS` after it)
-waits for its end before its first call (`wait`, from `GrowwProvider.expiries`, the first Groww call of every A4
-attempt), and any other call inside one is refused unsent (`check`). A call is never delayed after its caller stamped
-its send time (A4's fetcher stamps before it asks): a refused call is a recorded failure with true times, retried by
-its recorder. A16's marks took 48-58 s to record on 20-23 Oct, 83 s at most (its committed slot rows' `first_seen_at`
-minus the mark)."""
+A16 asks at 4 a second (`fno/intraday/groww_source.py`), close to Groww's 300 a minute Live Data cap (5 a second
+averaged; research/school/probes/2026-10-22-p0-1-groww-chain.md). Every scheduled routine runs in its own container,
+so no limiter is shared. The clock is the shared rule instead, for a provider built through `get_provider` (the 3 pm
+NIFTY, `v4`, A4c and E3's execution captures): an attempt that starts in a mark's quiet window (from the mark to
+`QUIET_SECONDS` after it) waits for its end before its first call (`wait`, from `GrowwProvider.expiries`, the first
+Groww call of every A4 attempt), and any other call inside one is refused unsent (`check`). A call is never delayed
+after its caller stamped its send time (A4's fetcher stamps before it asks): a refused call is a recorded failure with
+true times, retried by its recorder. A16's marks took 48-58 s to record on 20-23 Oct, 83 s at most (its committed slot
+rows' `first_seen_at` minus the mark)."""
 
 from __future__ import annotations
 

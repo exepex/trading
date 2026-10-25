@@ -10,7 +10,8 @@ where possible.
 - Live Data (quote, LTP, OHLC): 10 a second and 300 a minute. Sign-in (`/v1/token/api/access`): 5 a second, 30 a
   minute **and 150 per 24 hours**. The probe does not say whether the limits are per key or per user, so this story
   treats every session on the owner's account as sharing one budget.
-- A16 alone paces at 5 a second (`fno/intraday/groww_source.py:26`), which is 300 a minute, the whole Live Data cap.
+- Before GW1, A16 alone paced at 5 a second, which is 300 a minute: the whole Live Data cap. GW1 paces it at 4
+  (`fno/intraday/groww_source.py:30`).
   During an A16 mark (about 85 s from each :00, :15, :30 and :45) any other Groww read goes over the cap.
 
 ## What is wrong today (strong evidence: the code at a54f1016)
@@ -157,7 +158,8 @@ Criteria for parts 1-4: [GW1a's acceptance](GW1a-groww-guard-core.md#acceptance)
 
 ## Every set of readers that can overlap (round 2)
 
-All rates are per second; Groww's limit is 5 a second, which is 300 a minute. Every row is one test case.
+All rates are per second. Groww's Live Data limits are 10 a second and 300 a minute. Over a minute, 300 averages 5
+a second, so every row must stay at or under 5 a second (well under the 10 a second cap). Every row is one test case.
 
 | When | Readers | Rate |
 |---|---|---|
@@ -240,40 +242,12 @@ The 1.2 is measured, not a pacer (see the known limits).
 
 ### Round 1
 
-Round 1, parts 1-6:
-
-- Code: `fno/providers/groww_sign_in.py` (rule 1), `fno/providers/groww_rate_guard.py` (rules 3-4),
-  `fno/providers/groww_quiet_windows.py` (rule 5), `fno/providers/groww.py` (`api` is `ReadOnlyGroww` over
-  `RateGuardedGroww` over `GrowwSignIn`; `feed_client()`), `fno/providers/__init__.py` (`get_provider` builds Groww
-  with the sign-in alert and the quiet windows), `fno/intraday/feed_wiring.py` (`GrowwFeed(provider.feed_client())`),
-  `fno/intraday/source.py`, `recorder.py` and `groww_source.py` (rule 6). No v4-frozen file changed.
+- Parts 1-4's claims (code, tests, mutations, gates, output sample) are in [GW1a](GW1a-groww-guard-core.md#claims).
 - Round 1's own review found that a wait inside any call would record A4's send times up to 90 s early (its frozen
-  fetcher stamps before it asks): fixed before review by waiting only before an attempt's first call and refusing the
-  rest.
-- An independent review agent on the diff found that same send-time error (it read the earlier version) and two
-  low items, both fixed: a 429 on the next-year expiry call was swallowed by `listed_expiries`, hiding the cause
-  (now re-raised); the sign-in alert was sent while the sign-in lock was held (now sent after its release). It found
-  no order path, no caller broken by the wrapper and no leak of Groww's text.
-- Tests: `tests/test_groww_guard.py` and `tests/test_groww_quiet_windows.py` (acceptance 1-6: good, bad, boundary and empty cases),
-  `tests/intraday/test_o9_one_taker.py` (acceptance 7), `tests/test_groww_provider.py` (the 06:00 renewal and the
-  expiry list through the new client), `tests/groww_sdk_fake.py` (a stand-in SDK that records sign-ins and calls).
-- Gates at round 1's head (01477b7cf): pytest -n auto 16617 passed, 1 skipped, 13 xfailed; ruff check and format, check_imports and
-  check_records clean.
-- Mutations, each caught: no back-off check; an alert on every failure; no doubling; no day cap; `api` without the
-  allow-list; no 429 translation; no pause check; Groww's text carried on; `get_provider` without the alert; without
-  the quiet windows; the mark itself outside its window; no refusal check; no wait before an attempt; no refusal
-  raised; a swallowed next-year 429; the alert sent inside the lock; an alert on every failure (second form); the
-  recorder not sharing its pace; the source
-  not halving it.
-- Real output sample (the committed code, a stand-in SDK; no value, no secret):
+  fetcher stamps before it asks). It was fixed before review: the quiet window waits only before an attempt's first
+  call and refuses the rest.
+- Quiet-window output sample (the committed code, a stand-in clock; no value):
 
 ```
-Groww sign-in failed (ConnectionError); this process tries again after 5 minutes, at most 3 tries a day
-08:22:00 ConnectionError: (sign-in tried)
-08:23:00 GrowwSignInPaused: Groww sign-in paused after 1 failed try this token day; next try at 08:27:00 IST
-08:27:00 ConnectionError: (sign-in tried)
-08:28:40 GrowwSignInPaused: Groww sign-in paused after 2 failed tries this token day; next try at 08:37:00 IST
-2026-10-27 25000 CE #3: GrowwRateLimited (provider message withheld) | GrowwRateLimited:429
-2026-10-27 25000 CE #4: GrowwRateLimitPaused (provider message withheld) | GrowwRateLimitPaused
 attempt at 15:00:20 waits [100.0] s; another call then: Groww call refused unsent: inside A16's 15:00 mark until 15:02:00 IST
 ```
