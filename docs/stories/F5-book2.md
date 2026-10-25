@@ -455,8 +455,9 @@ trade ID alone (`fno/desk/daily_steps.py:185`).
 2. Accepted, fixed: a judge-blocked day's records read "not chosen by book2_hybrid", like an AI veto. Every record now
    reads "no trade, judge failed" or "no trade, judge unavailable", from the verdict file (criterion 11; tests).
    `SelectionAllocator` takes the unpicked reason; Book 3 is unchanged.
-3. Open, for the orchestrator or owner: a forbidden `no_trade` still trades nothing (D4's `resolve`: account `None`,
-   as the text says). An envelope therefore cannot force the default to trade. Changing that is a D4 rule, not F5's.
+3. **Ruled by the orchestrator (25 Oct): intended.** A forbidden `no_trade` still trades nothing (D4's `resolve`:
+   account `None`). The envelope can only narrow the AI's choices, never widen them into a trade: it fails toward no
+   trade.
 4. Known limit, kept: the replay reproduces the run from `inputs.json` by reading the stored rule actions and each
    pick's stored default, not by recomputing the rule default. The counts are recorded only for the versions sent to
    the allocator. The inputs hash in every record catches any edit, but a decider bug in the rule default would replay
