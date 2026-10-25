@@ -57,3 +57,23 @@ None. A design has no code to mutate.
 
 - To claim my number I printed the tail of `reviews/judge/README.md`, which showed Judge R's row 686. I had already
   formed my findings, did not use it, and checked none of R's points.
+
+## Addendum 1
+
+Round 2 at `4caf44151` (497 lines). **FAIL, lane 1**: finding 2 is still partly open; every other finding is
+fixed and checked. This was the last round, so the owner decides.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 1 | Fixed | M17 and C22 added; summary item 6 corrected; K2 now walks every import and forbids `RawFileLibrary` and any NSE source in system code; I8b switches one root at a time |
+| 2 | **Partly** | 6.3 adds a git claim plus a standby path, as asked. But 6.1 (lines 351-353) still says the old path "stays in code, not scheduled" and that rollback means "flip the key and restore the old routine line". A path that is not scheduled cannot stand by, so a no-start day is still lost; 6.3 (line 394) also still says "restorable by one key". Once the old path is removed, nothing covers a no-start and the text does not say so. The hand-run reading (line 277) is still the builder's reading, not an owner question. The died-after-claim lease has no planted test |
+| 3 | Fixed | Owner key is now `job_from: <session date>`, set at least one session ahead |
+| 4 | Fixed | 33 (38 with a rerun), then 129 and 135 with the planned jobs; limits 60 and 140 leave I10 room |
+| 5 | Fixed | M10 lists the inverted imports; `boundary.py` lists a shared layer |
+| 6 | Fixed | M15 rests on git history; I4 only removes the dead cron |
+| 7-9 | Fixed | C6 in I3; I1 is lane 1; `fno/alerts/` is the existing package |
+
+Fix that would close 2 (text only): in 6.1 and 6.3, the old path stays **scheduled** as the standby until its
+removal; rollback is a later `legacy_from` date. State the cover after removal (it is today's risk, with the
+Actions alert only as a second signal). Add owner question 4: may a routine that never started be run by hand in
+market hours? Add a planted died-after-claim test to I7.
