@@ -10,7 +10,7 @@ today's 0.15% STT on 4 legs in and 4 out, a Rs 1 pad a leg a side.
 **No variant makes money after costs, and nothing is nominated, so the FINNIFTY and MIDCPNIFTY held-out set stays
 unread.** There **is** an event effect: the same trade loses Rs 140-190 less on event days than on ordinary days. It
 is far too small to pay for eight orders. [strong evidence that these 4 rules lose on 55 events, 2019-2026; some
-evidence for the event effect: p_event 0.002-0.039 against ordinary days, not a Holm-covered test]
+evidence for the event effect: p_event 0.002-0.048 against ordinary days (pooled and year-matched, see Deviations), not a Holm-covered test]
 
 | Variant (trial) | Decided trades (events) | Mean gross | Charges | Pads | Mean net | SE (event-clustered) | p | Rs 2 pad | Ordinary days, mean net | p_event, as run (pooled) | p_event, year-matched (deviation) | Win share |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -31,8 +31,8 @@ evidence for the event effect: p_event 0.002-0.039 against ordinary days, not a 
 - **Gamma.** The largest event-day moves (entry close to E's close, the near-month future): the 2024 election result
   day BANKNIFTY -8.2% (overnight gap -0.9%) and NIFTY -6.4% (gap -1.7%); the 8 Apr 2026 RBI day BANKNIFTY +5.8% (gap
   +4.6%) and NIFTY +3.9% (gap +3.0%); the 2020 Budget (a Saturday session) BANKNIFTY -3.4%. The cap held: the worst
-  single trades lost Rs 2,147 (FLY-E0), Rs 3,971 (FLY-E1), Rs 4,569 (CONDOR-E0) and Rs 4,764 (CONDOR-E1), within Rs
-  10,000. Every event's gap and move per variant is in `f9/discovery.json` ("gamma").
+  single trades lost Rs 2,334 (FLY-E0, the incomplete 2024 election-day exit; -Rs 2,147 among decided trades),
+  Rs 3,971 (FLY-E1), Rs 4,569 (CONDOR-E0) and Rs 4,764 (CONDOR-E1), within Rs 10,000. Every event's gap and move per variant is in `f9/discovery.json` ("gamma").
 - Skips: the 2 trades of the 4 Dec 2026 RBI meeting (still ahead); 1 entry with no traded ATM straddle; 1 untraded
   leg at entry; the incomplete exit named above.
 
