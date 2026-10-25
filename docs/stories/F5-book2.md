@@ -538,3 +538,5 @@ branch yet: it merges in once that fix is pushed.
      - `authority_check` reads "the judge's verdict blocks: no pick, the rule default kept as a shadow".
      - The day record reads "no opportunity was chosen today" (D3's own day text; the block is named in its
        `authority_check` and `judge`).
+5. **Gates (round 2):** the full suite on 9f46f926, in its own worktree: 18,104 passed, 1 skipped, 12 xfailed, 0
+   failed. ruff, `ruff format`, `check_imports` and the record scan are clean.
