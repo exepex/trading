@@ -788,3 +788,68 @@ What section 3's "08:50 and 20:05" bullet and REC1c item 5 become exact as, each
    - (g) Only the previous session's checks are shown, each with its date. Waiting days with no check dated the
      previous session give "the previous session's check did not run". Plant: an older check shown without its date.
    - (h) The 20:05 no-record line carries only the status and reason code. Plant: the step's printed line appended.
+
+### REC1d Claims (code round 1, branch `story/rec1d-sections-code`; the SHA is in the commit that carries this text)
+
+**Files.**
+- New: `fno/recommend/report_guard.py` (the lab's one entry; imports nothing at load time),
+  `report_maker.py` (the outer wrapper and its set-up failure maker), `report_section.py` (the two sections and their
+  ports), `report_words.py` (the words and the problem guard), `report_wiring.py` (the switch, the ports, the run log's
+  status and code), `shelf.py` (the receipts shelf, shared with REC1c's check run).
+- Changed:
+  - `fno/forecast_lab/page_wiring.py`: the reserved call, `with_recommend_section(with_school_sections(...))`.
+  - `fno/recommend/check_run.py`: it uses the shelf. There is no change of behaviour, and REC1c's tests are unchanged
+    and pass.
+  - `fno/recommend/post.py`: two private functions made public, `real_money_text` and `paper_text`, so the sections
+    use REC1b's own words (DRY).
+  - `fno/recommend/constants.py`: `RECOMMEND_STEP`.
+- Tests: `tests/recommend/test_report_section.py`, `test_report_maker.py`, `test_report_words.py`,
+  `test_report_wiring.py`, `report_fakes.py`, and eight golden files in `tests/recommend/golden/`.
+
+**Deviations from the text, each stated.**
+1. Item 4 said `tests/school/reports/` passes untouched. One line was added to
+   `test_the_real_report_maker_is_built_through_the_school_guard`. That test pins `build_report_maker`'s return as
+   the school wrapper's own. With the outer wrapper this is no longer true, and on the real config it would build
+   the real ports.
+   - The line stubs `with_recommend_section` as identity, so the test still pins the school guard exactly.
+   - My own test `test_the_lab_wraps_the_school_s_maker_in_the_recommender_s` pins the outer order.
+   - Asked of MS-P1j's builder with this SHA.
+2. An added line, `NOT_KNOWN`: "<n> position(s) still open, so the day is not known yet."
+   - REC1c's `answer_text` is written for final checks only. On a check that is not final, it would have said
+     "No candidate traded, so abstaining cost nothing", which is wrong.
+   - The morning shows `not_known_yet` checks dated the previous session, so they need their own words: the open
+     count, never a total.
+   - Found in self-review; test `test_a_day_not_known_yet_gives_its_open_count_never_an_answer_or_a_total`.
+3. The run log's status and reason are shown only when they read as O1's words and codes (`[a-z_]+` and
+   `<step>:<CODE>`). Otherwise they read "unknown". Logs before 22 Oct hold free-text reasons, so this carries
+   judge 664 m1's "code only" into the port itself.
+
+**Criteria and their plants.** Each plant was run with bytecode off and `__pycache__` removed. Every one fails a test
+in `tests/recommend` or `tests/school/reports`, and a comment-only control plant passes.
+
+| Criterion | Plant |
+|---|---|
+| (a) | gated by `school.reports`; block always added; live date ignored |
+| (b) | a reader error returns nothing |
+| (c) | `<=` for the standing record |
+| (d) | a failure drops the inner sections; the exception message put in the alert |
+| (e) | an empty history returns nothing |
+| (f) | a decision path appended to a line; a check problem shown unguarded |
+| (g) | an older check shown; the check line undated; waiting days not named |
+| (h) | the run log's free text shown |
+| self-review | a not-final check given an answer |
+| wiring | the lab's maker not wrapped |
+
+**Real output sample.** No real recommendation record exists yet: Mon 26 Oct is the first. Run on main's real wiring
+on Sun 25 Oct, the morning section would say "No recommendation recorded yet."
+- The golden files `tests/recommend/golden/*_recommender_on.txt` are the sections over test records. Each one was
+  read line by line.
+- A real sample follows as soon as 26 Oct's record exists: the 27 Oct 08:50 edition.
+
+**Gates.** The full suite passed: 17505, 1 skipped, 13 xfailed. `ruff check`, `ruff format --check` and
+`check_imports` are clean. Every new file is under 350 lines; the largest is `report_section.py`.
+
+**Known limits.**
+- The 08:50 section reads every waiting day's latest check, about 60 small files at most.
+- Not verified in a rehearsal (REH1). The sections read Drive through `build_drive_cache`, as REC1c's check does.
+  Whether a rehearsal points that cache at its `dryrun/` records is not checked here.
