@@ -32,7 +32,8 @@ removal and cleanup needs to be reviewed thoroughly by a judge and independent j
   run's data. **Question for the owner, through the orchestrator:** does the 25 Oct rule replace Q3 for rehearsals?
 - **A merged branch is not always finished.** O14 and CP1 merged their story text and code is still to come on the same
   branch (register rows). So "merged" alone would delete a branch in use. A branch freshly cut from `main` is also an
-  ancestor of `main`, so git cannot tell it from a merged one. Both are covered by the keep list and the 24-hour grace.
+  ancestor of `main`, so git cannot tell it from a fast-forward merge: any branch whose tip is a commit on `main`'s own
+  first-parent line is `keep-unsure`, never deleted by a rule (16 today). Real merges (a merge commit) are told apart.
 
 ## The rules (tools/branch_rules.py, pure, one function per rule)
 
@@ -69,9 +70,9 @@ tool). Counts at its making:
 
 | Decision | Count | What |
 |---|---|---|
-| delete | 402 | 381 merged; 17 unmerged, idle over 48 h with no unfinished code; 4 old rehearsal runs |
-| keep | 31 | `main`; the keep list (9 of its 11 names exist on origin today; 3 of the 9 are merged); 5 open pull requests' heads (one is a stale, merged one: PR 131); 16 unmerged and in the register |
-| keep-unsure | 164 | 84 merged under 24 h ago (go tomorrow); 45 rehearsal runs under 24 h; 26 unmerged and recent or named in a recent file; 9 unmerged holding unfinished code (A14c families, A19 news, A21 rates and announcements, F1t-F4 handover, O10 part 2, P2c paper books, and two of one or two files) |
+| delete | 386 | 365 merged; 17 unmerged, idle over 48 h with no unfinished code; 4 old rehearsal runs |
+| keep | 32 | `main`; the keep list (10 of its 11 names exist on origin today, this story's included; 3 are merged); 5 open pull requests' heads (one is a stale, merged one: PR 131); 16 unmerged and in the register |
+| keep-unsure | 180 | 84 merged under 24 h ago (go tomorrow); 16 whose tip is on main's own line (see rules); 45 rehearsal runs under 24 h; 26 unmerged and recent or named in a recent file; 9 unmerged holding unfinished code (A14c families, A19 news, A21 rates and announcements, F1t-F4 handover, O10 part 2, P2c paper books, and two of one or two files) |
 
 Restore a deleted branch (GitHub keeps the objects for a while): `git push origin <sha>:refs/heads/<name>` with the `sha`
 column.
@@ -83,14 +84,14 @@ column.
   repository variable `BRANCH_CLEANUP_SCHEDULE` is `on`** (off until the orchestrator sets it after the first real run).
 - Checks out `main` with full history; reads the inventory, keep list and register from `main`, never from the branch
   the run was started on. `permissions`: `contents: write`, `pull-requests: read`. No secret, no Drive, no Slack.
-- **Before each deletion**, from one `git ls-remote` of GitHub taken at the start: the branch exists; its head equals the
+- **Before each deletion**, from one `git ls-remote` of GitHub taken at the start (the delete itself is `git push --force-with-lease=<ref>:<sha> :<ref>`, so GitHub refuses it if the branch moved in between): the branch exists; its head equals the
   SHA the plan was made from (inventory mode: the CSV's `sha`), else `SKIP ... head moved`; and the keep list, an open PR
   and the register (unmerged only) are re-checked against *current* files, else `SKIP`. `main` is refused by rule 1
   whatever the file says. A second row for one branch stops the run before anything is deleted.
 - A failed deletion prints `FAILED`, the rest still run, exit 1. The step summary carries the full list.
 - `concurrency: branch-cleanup` (one run at a time, none cancelled).
 - **Exact dispatch** (after both judges PASS and the merge to `main`): first `mode=inventory apply=false`, check the
-  summary shows 402 `WOULD DELETE` and no `SKIP` of a branch that should go; then `mode=inventory apply=true`; then
+  summary shows 386 `WOULD DELETE` and no `SKIP` of a branch that should go; then `mode=inventory apply=true`; then
   `mode=merged apply=false` to see the standing rule alone; then set `BRANCH_CLEANUP_SCHEDULE=on`.
 - Not added to `capture-watch.yml` (it captures nothing); `NOT_WATCHED` in its workflow test names it.
 
@@ -122,9 +123,9 @@ only if it was already planned for deletion).
 - **Gates (on this branch, from `origin/main` fefcf893 plus this change):** see the last line of this section, filled
   after the run.
 - **Real output sample (dry run, 25 Oct 10:43 UTC, the committed code against the real origin):**
-  `python tools/branch_cleanup.py --mode inventory --open-prs <file>` printed 402 `WOULD DELETE` lines (first:
-  `WOULD DELETE claude/bold-thompson-hpqkq3 1653fc3926: merged into main`) and `dry run: 402 planned, 0 failed`, no `SKIP`.
-  `--mode merged` printed `dry run: 381 planned, 0 failed` (the 402 minus the 17 idle unmerged and the 4 old rehearsals).
+  `python tools/branch_cleanup.py --mode inventory --open-prs <file>` printed 386 `WOULD DELETE` lines (first:
+  `WOULD DELETE claude/bold-thompson-hpqkq3 1653fc3926: merged into main`) and `dry run: 386 planned, 0 failed`, no `SKIP`.
+  `--mode merged` printed `dry run: 365 planned, 0 failed` (the 386 minus the 17 idle unmerged and the 4 old rehearsals).
   Nothing was deleted from this session.
 - **Plants:** 21 one-line breakages of the rules, the re-check, the dry-run switch, the exit code, the git reading and the
   workflow; 20 are caught by the tests. The survivor (`with_code and ahead` to `with_code`) is an equivalent mutant: a
@@ -133,5 +134,12 @@ only if it was already planned for deletion).
 - **Decision for the judges, built as the safer side:** a merged branch's register row does not protect it (50 stale rows
   would keep 50 merged branches, the very clutter the owner wants gone). The cost: a text-first story's branch must go on
   the keep list, or it is deleted 24 h after the text merges and recreated by the code push. CLAUDE.md says so.
+- **Independent review (one agent, read-only), 8 findings checked:** accepted and fixed with tests: (1) empty or
+  fast-forwarded branches counted as merged (`on_main_line`; 16 branches moved from delete to keep-unsure); (2) the delete
+  had no head check (now `--force-with-lease`, tested: refused after a push); (3) a `|` in a branch name crashed the reader
+  (`rsplit`); (4) names without a slash were invisible to the register and mention checks (loose token, over-protects only);
+  (8) a `#` inside a kept name (comment needs a space before `#`). Not changed: (5) protected branches make a delete fail
+  loudly (exit 1), safe; (6) `landed_at` errs late, safe; (7) the URL is gone, the delete is now git; (9) the workflow tests
+  are structural, as the other workflow tests are.
 - **Not claimed:** that GitHub accepts the deletion from `GITHUB_TOKEN` in this repository. The workflow cannot show
   that before it runs; the dry run proves everything but the final API call, and the first applied run proves it.

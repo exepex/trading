@@ -19,7 +19,11 @@ NONE = Evidence({}, frozenset(), frozenset())
 def go(plan, held=NONE, apply=True, table=None, delete=None):
     deleted = []
     code = branch_cleanup.run(
-        plan, held, apply, delete or deleted.append, table if table is not None else {n: s for n, s, *_ in plan}
+        plan,
+        held,
+        apply,
+        delete or (lambda name, sha: deleted.append(name)),
+        table if table is not None else {n: s for n, s, *_ in plan},
     )
     return code, deleted
 
@@ -64,7 +68,7 @@ def test_a_stale_register_row_does_not_stop_a_merged_branch_but_stops_an_unmerge
 
 
 def test_a_failed_delete_is_counted_and_the_rest_still_run():
-    def delete(name):
+    def delete(name, sha):
         if name == "story/a":
             raise RuntimeError("boom")
         deleted.append(name)

@@ -48,18 +48,19 @@ def unique_code_files(sha: str) -> int:
 
 
 def read_branches(with_code: bool = False) -> list[Branch]:
+    main_line = set(git("rev-list", "--first-parent", MAIN_REF).split())
     merged = set(git("branch", "-r", "--merged", MAIN_REF, "--format=%(refname:lstrip=3)").split())
     fields = "%(refname:lstrip=3)|%(objectname)|%(committerdate:iso-strict)"
     found = []
     for line in git("for-each-ref", f"refs/remotes/{REMOTE}", f"--format={fields}").splitlines():
-        name, sha, date = line.split("|")
+        name, sha, date = line.rsplit("|", 2)
         if name == "HEAD":
             continue
         is_merged = name in merged
         ahead = 0 if is_merged else int(git("rev-list", "--count", f"{MAIN_REF}..{sha}"))
         landed = _landed_at(sha) if is_merged else None
         code = unique_code_files(sha) if with_code and ahead else 0
-        found.append(Branch(name, sha, _time(date), is_merged, ahead, landed, code))
+        found.append(Branch(name, sha, _time(date), is_merged, ahead, landed, sha in main_line, code))
     return found
 
 
@@ -77,9 +78,11 @@ def open_pr_heads(gh_list: str) -> frozenset[str]:
     return frozenset(line.strip() for line in gh_list.splitlines() if line.strip())
 
 
-def delete_remote_branch(repo: str, name: str) -> None:
+def delete_remote_branch(name: str, sha: str) -> None:
+    """Delete only if GitHub still holds `sha` for the branch: a push since the check makes git refuse."""
+    ref = f"refs/heads/{name}"
     done = subprocess.run(
-        ["gh", "api", "-X", "DELETE", f"repos/{repo}/git/refs/heads/{name}"], capture_output=True, text=True
+        ["git", "push", REMOTE, f"--force-with-lease={ref}:{sha}", f":{ref}"], cwd=ROOT, capture_output=True, text=True
     )
     if done.returncode:
         raise RuntimeError(f"delete {name}: {(done.stderr or done.stdout).strip()[-300:]}")

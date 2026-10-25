@@ -5,14 +5,14 @@
 
 Both modes re-check every branch against GitHub right now before deleting it: the head must be the one the plan was
 made from (inventory mode: the CSV's `sha`), and no keep-list line, register row or open pull request may name it.
-Exit 1 when a deletion failed. Deleting needs `GH_TOKEN` and `GITHUB_REPOSITORY` (the workflow's own token).
+Exit 1 when a deletion failed. A deletion is `git push --force-with-lease=<ref>:<sha> :<ref>` with the checkout's token,
+so GitHub itself refuses it if the branch moved since the check.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
-import os
 import sys
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -59,7 +59,7 @@ def refusal(name: str, expected: str, merged: bool, held: Evidence, head: str | 
     return None
 
 
-def run(plan: Plan, held: Evidence, apply: bool, delete: Callable[[str], None], heads: dict[str, str]) -> int:
+def run(plan: Plan, held: Evidence, apply: bool, delete: Callable[[str, str], None], heads: dict[str, str]) -> int:
     failed = 0
     for name, sha, reason, merged in plan:
         why_not = refusal(name, sha, merged, held, heads.get(name))
@@ -70,7 +70,7 @@ def run(plan: Plan, held: Evidence, apply: bool, delete: Callable[[str], None], 
             print(f"WOULD DELETE {name} {sha[:10]}: {reason}")
             continue
         try:
-            delete(name)
+            delete(name, sha)
             print(f"DELETED {name} {sha[:10]}: {reason}")
         except RuntimeError as error:
             failed += 1
@@ -89,10 +89,7 @@ def main(argv: list[str] | None = None) -> int:
     held = evidence(open_pr_heads(args.open_prs.read_text(encoding="utf-8")))
     now = datetime.now(UTC)
     plan = inventory_plan(args.inventory) if args.mode == "inventory" else merged_plan(held, now)
-    repo = os.environ.get("GITHUB_REPOSITORY", "")
-    if args.apply and not repo:
-        raise SystemExit("--apply needs GITHUB_REPOSITORY (the workflow sets it)")
-    return run(plan, held, args.apply, lambda name: delete_remote_branch(repo, name), remote_heads())
+    return run(plan, held, args.apply, delete_remote_branch, remote_heads())
 
 
 if __name__ == "__main__":

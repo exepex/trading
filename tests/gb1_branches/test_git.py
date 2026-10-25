@@ -60,7 +60,8 @@ def test_merged_unmerged_and_fresh_branches_are_told_apart(clone):
 
     assert found["story/merged"].merged and found["story/merged"].landed_at is not None
     assert not found["story/open"].merged and found["story/open"].ahead == 2
-    assert found["story/fresh"].merged  # indistinguishable from a merged one: the keep list and the grace cover it
+    assert found["story/fresh"].merged and found["story/fresh"].on_main_line  # told apart from a real merge by its tip
+    assert found["story/merged"].merged and not found["story/merged"].on_main_line
     assert "HEAD" not in found and found["main"].merged
 
 
@@ -97,3 +98,22 @@ def test_a_branch_landed_when_its_merge_reached_main_not_when_main_last_moved(cl
     landed = {b.name: b for b in branch_git.read_branches()}["story/merged"].landed_at
 
     assert landed.isoformat() == "2026-01-03T10:00:00+00:00"
+
+
+def test_delete_goes_through_with_the_right_sha_and_is_refused_after_a_push(clone):
+    push_branch(clone, "story/x", ["a.txt"])
+    old = git(clone, "rev-parse", "story/x")
+    git(clone, "checkout", "-q", "story/x")
+    commit(clone, "b.txt")
+    git(clone, "push", "-q", "origin", "story/x")
+    with pytest.raises(RuntimeError):
+        branch_git.delete_remote_branch("story/x", old)  # the branch moved after the plan was made
+    assert "story/x" in branch_git.remote_heads()
+    branch_git.delete_remote_branch("story/x", git(clone, "rev-parse", "story/x"))
+    assert "story/x" not in branch_git.remote_heads()
+
+
+def test_a_branch_name_with_a_bar_is_read(clone):
+    push_branch(clone, "story/a|b", ["a.txt"])
+    git(clone, "fetch", "-q", "origin")
+    assert "story/a|b" in {b.name for b in branch_git.read_branches()}

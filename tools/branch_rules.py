@@ -17,7 +17,7 @@ REHEARSAL_PREFIX = "rehearsal/"
 RUN_STAMP = re.compile(
     r"-(\d{8}T\d{6}Z)-[0-9a-f]+$"
 )  # `rehearsal/<day>-<run_id>`: the run id starts with its UTC start
-BRANCH_TOKEN = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+")  # the shape of every branch name in the repository
+BRANCH_TOKEN = re.compile(r"[A-Za-z0-9_./-]+")  # a branch name, with or without a slash; a loose match only keeps more
 
 KEEP, KEEP_UNSURE, DELETE = "keep", "keep-unsure", "delete"
 
@@ -30,6 +30,7 @@ class Branch:
     merged: bool  # the tip is an ancestor of origin/main
     ahead: int  # commits on the branch that are not on origin/main
     landed_at: datetime | None = None  # the main commit that first held the tip; None when not merged
+    on_main_line: bool = False  # the tip is a commit on main's own first-parent line: fast-forwarded, or cut and unused
     code_files: int = 0  # code files only this branch changes (inventory only; 0 = nothing of value would be lost)
 
 
@@ -46,14 +47,16 @@ class Evidence:
 def parse_keep_list(text: str) -> dict[str, str]:
     kept = {}
     for line in text.splitlines():
-        name, _, why = line.partition("#")
+        name, _, why = re.sub(r"^\s*#.*", "", line).partition(" #")  # a comment starts at "#" after a space
         if name.strip():
             kept[name.strip()] = why.strip() or "keep list"
     return kept
 
 
 def names_in(text: str) -> set[str]:
-    return {token.rstrip(".") for token in BRANCH_TOKEN.findall(text)}  # a sentence's full stop is not part of a name
+    return {
+        t for t in (token.rstrip(".") for token in BRANCH_TOKEN.findall(text)) if re.search("[A-Za-z0-9]", t)
+    }  # a sentence's full stop is not part of a name
 
 
 def register_branches(text: str) -> frozenset[str]:
@@ -61,7 +64,7 @@ def register_branches(text: str) -> frozenset[str]:
     names = set()
     for line in text.splitlines():
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        if line.startswith("|") and len(cells) >= 6:
+        if line.startswith("|") and len(cells) >= 6 and cells[3] != "Branch":
             names.update(names_in(cells[3]))
     return frozenset(names)
 
@@ -92,6 +95,8 @@ def protection(branch: Branch, evidence: Evidence) -> str | None:
 
 
 def merged_branch(branch: Branch, now: datetime) -> tuple[str, str]:
+    if branch.on_main_line:
+        return KEEP_UNSURE, "tip is on main's own line: merged by fast-forward, or cut from main and not used yet"
     landed = branch.landed_at or branch.tip_time
     if now - max(landed, branch.tip_time) < GRACE:
         return KEEP_UNSURE, "merged into main less than 24 h ago (grace for a late push)"

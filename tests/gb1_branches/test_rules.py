@@ -26,8 +26,8 @@ OLD = NOW - timedelta(days=5)
 NO_EVIDENCE = Evidence(keep_list={}, register=frozenset(), open_prs=frozenset())
 
 
-def branch(name="story/x", merged=True, tip=OLD, landed=OLD, ahead=0, code=0):
-    return Branch(name, "a" * 40, tip, merged, ahead, landed if merged else None, code)
+def branch(name="story/x", merged=True, tip=OLD, landed=OLD, ahead=0, code=0, line=False):
+    return Branch(name, "a" * 40, tip, merged, ahead, landed if merged else None, line, code)
 
 
 def test_register_reads_only_the_branch_column():
@@ -36,7 +36,8 @@ def test_register_reads_only_the_branch_column():
         "| A | mentions story/other in prose | s | story/a-code (a, c); b to come | fno/x.py | in flight |\n"
         "| B | x | s | - | fno/ai | story/not-here |\n"
     )
-    assert register_branches(text) == {"story/a-code"}
+    found = register_branches(text)
+    assert "story/a-code" in found and not found & {"story/other", "fno/x.py", "story/not-here", "in", "Branch"}
 
 
 def test_keep_list_takes_names_and_reasons_and_skips_comments():
@@ -95,3 +96,18 @@ def test_one_off_rehearsal_window_is_a_day():
     name = f"rehearsal/2026-10-23-{start}-abc123"
     assert inventory_decision(branch(name, merged=False), NO_EVIDENCE, NOW)[0] == DELETE
     assert ongoing_decision(branch(name, merged=False), NO_EVIDENCE, NOW)[0] == KEEP_UNSURE
+
+
+def test_a_tip_on_mains_own_line_is_never_deleted_as_merged():
+    for rule in (ongoing_decision, inventory_decision):
+        assert rule(branch(line=True), NO_EVIDENCE, NOW)[0] == KEEP_UNSURE
+
+
+def test_names_without_a_slash_are_matched():
+    row = "| A | x | s | develop; judge-e-handover | f | st |\n"
+    assert {"develop", "judge-e-handover"} <= register_branches(row)
+    assert mentioned(["staging"], "pushed to staging.") == {"staging"}
+
+
+def test_a_hash_inside_a_kept_name_is_not_a_comment():
+    assert parse_keep_list("story/a#1  # why\n  # only a comment\n") == {"story/a#1": "why"}
