@@ -113,7 +113,7 @@ def test_each_recorded_source_uses_its_one_rule():
         return (Path(package.__file__).parent / f"{name}.py").read_text()
 
     for name in ("recorded_candles", "recorded_closes"):
-        assert "is_near(now, " in text(name)
+        assert "scheduled_pick(now, " in text(name) and "is_near" not in text(name)  # REH1q: the one scheduled rule
     for name in ("recorded_cues", "recorded_preopen"):
         assert "ServedOnce()" in text(name) and "is_near" not in text(name)
     for name in ("recorded_cues", "recorded_candles", "recorded_preopen", "recorded_closes"):

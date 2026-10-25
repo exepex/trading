@@ -5,6 +5,8 @@ from enum import IntEnum, StrEnum
 
 RECORD_KIND = "recommendation"
 RECORD_SCHEMA_VERSION = 1  # a layout change is a new version, never an edit of a written record
+RECOMMEND_STEP = "recommend"  # the O1 step and its `daily.live_from` key (REC1b)
+WINDOW_SESSIONS = 60  # the evening check follows a day this many sessions; a monthly option closes in about 35 days
 
 
 class RealMoneyAnswer(StrEnum):
@@ -44,6 +46,11 @@ REASON_TEXT = {
 }
 
 
+# A day stopped by one of these is DO NOT TRADE for real money too, never ELIGIBLE (orchestrator, judge 654 m2)
+BLOCKS_REAL_MONEY = frozenset({NoTradeReason.DATA_CHECK_FAILED, NoTradeReason.STEP_PROBLEMS,
+                               NoTradeReason.QUOTE_GATE_FAILED, NoTradeReason.WEATHER_RED})  # fmt: skip
+
+
 class EvidenceRung(IntEnum):
     """Confidence as a stated rule (story section 2), never a free number. Only ESTABLISHED is "proven"."""
 
@@ -60,3 +67,15 @@ class OutcomeSource(StrEnum):
     BACKTEST = "backtest"
     SIMULATOR = "simulator"
     REHEARSAL = "rehearsal"
+
+
+class CandidateSourceName(StrEnum):
+    """Where the day's candidates come from (orchestrator's ruling, 25 Oct): each is listed with its state."""
+
+    DESK_BOOK1 = "desk:book1"
+    SCHOOL = "school"
+
+
+class SourceState(StrEnum):
+    COMPLETE = "complete"
+    UNAVAILABLE = "unavailable"  # the source step's status says why; never read as "no candidates"

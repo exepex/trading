@@ -32,8 +32,9 @@ def day_steps(monkeypatch, cfg=None) -> dict:
     ("name", "after", "arguments", "pathspecs"),
     [
         # G13d's issue sits between G13's record and G13's scores (O1's owner, 22 Oct: its 15:30 seal comes first),
-        # then the school's slot (MS-P1j2: law 6's 15:30 too), then G13's scores, which have no 15:30 limit
-        ("price_distribution_scores", "school", ("pricedist", "score"), distribution_receipts()),
+        # then the school's slot (MS-P1j2: law 6's 15:30 too) and the recommendation that reads it (REC1b), then
+        # G13's scores, which have no 15:30 limit
+        ("price_distribution_scores", "recommend", ("pricedist", "score"), distribution_receipts()),
         ("price_range_scores", "price_ranges", ("pricerange", "score"), range_receipts()),
         ("premium_range_scores", "price_range_scores", ("premrange", "score"), premium_receipts()),
     ],

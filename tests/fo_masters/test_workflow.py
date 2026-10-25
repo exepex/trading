@@ -15,9 +15,10 @@ def load() -> dict:
     return yaml.safe_load(WORKFLOW.read_text())
 
 
-def test_three_daily_slots_morning_retry_and_evening():
+def test_four_daily_slots_early_morning_retry_and_evening():
+    """06:00 IST added for A14c part 2's 14:05 lot check (GitHub starts the 07:45 slot about 13:00 IST)."""
     crons = [slot["cron"] for slot in load()[True]["schedule"]]  # YAML 1.1 reads the key `on` as True
-    assert crons == ["15 2 * * *", "45 5 * * *", "15 13 * * *"]  # 07:45, 11:15 and 18:45 IST
+    assert crons == ["30 0 * * *", "15 2 * * *", "45 5 * * *", "15 13 * * *"]  # 06:00, 07:45, 11:15, 18:45 IST
 
 
 def test_rights_job_step_and_the_crash_only_alert_line():

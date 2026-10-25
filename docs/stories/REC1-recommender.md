@@ -38,13 +38,22 @@ Gaps: no single recommendation; no confidence rule; no write-once recommendation
 
 ### 1. One recommendation per NSE session, two answers
 
-Made by `python -m fno recommend decide` as the daily-run step `recommend`, after `quotes_done` and before `card`
-(about 15:20 IST). A muhurat-only session gets none (as T1). Each recommendation holds two separate answers:
+Made by `python -m fno recommend decide` as the daily-run step `recommend`, right after `school` (orchestrator's
+ruling, 25 Oct: the record must hold the school's sealed decisions of the day, or the evening check of a `NO_TRADE`
+is biased by omission, judge 620 S3). The chain, measured (GW1's builder via the orchestrator, 25 Oct; judge 641 SF2 and
+641.2 m3): E3 is asked from 15:17:00 and its worst capture ends 15:19:57; the snapshot step ends about 15:20:10 (about
+15:21:10 with one 60 s pause); then `quotes_done`; then the school step, starting about 15:21:30-15:22:30 under its own
+`SCHOOL_STARTS_BY` of 15:25 (`fno/daily/wiring.py`) and taking up to 6 min 13 s on a cold cache (MS-P1j's 23 Oct
+rehearsal; 77 s warm); then `recommend`, about 15:23-15:29 IST. On a day that needs E3's retry the school can be
+refused (`school:TOO_LATE`); then, as whenever the school does not run, the record's school source is `unavailable`
+(section 5), never complete. The recommend step's own timing never depends on the market being open: it reads
+sealed records only, so it runs when reached on a session day and is never refused for being after 15:30. A muhurat-only session gets none (as T1). Each recommendation holds two separate answers:
 
 - **Real money.** `DO_NOT_TRADE_REAL_MONEY` unless at least one version is both eligible under RM1 (section 4) on that
   day and at rung 3; then `ELIGIBLE_FOR_YOUR_OWN_REVIEW`, naming the version and pointing to its RM1 report. If RM1 and
   the rung disagree (eligible below rung 3), the answer is `DO_NOT_TRADE_REAL_MONEY` with `data_check_failed` and an
-  alert naming both. There is no "buy" value: the
+  alert naming both. A day stopped by `data_check_failed`, `step_problems`, `quote_gate_failed` or `weather_red` is
+  `DO_NOT_TRADE_REAL_MONEY` too, never eligible, with the condition named (orchestrator's ruling on judge 654 m2). There is no "buy" value: the
   enum has exactly these two members (a test proves no input reaches a third).
 - **Paper.** What the system itself books on paper today and why:
   - `PAPER_TRADE` (a recommendation): **only a version at rung 3, "Established"** (section 2), took a trade through
@@ -93,9 +102,23 @@ so a reader can recount it.
 
 ### 3. Where it goes (one record, every surface reads it)
 
-- **#fno-desk card:** a new `RecommendationStatus(StatusSource)` replaces `RegistryStatus` inside `RuledStatus`
-  (one line in `fno/cards/wiring.py`). Agreed with the card's owner (session_017q19WnkrRJvfQoXBLCy3hA, 25 Oct) on
-  these conditions, each checked against the card code on main:
+- **#fno-desk line (REC1b; orchestrator's ruling, 25 Oct).** After the record's receipt is pushed, the step posts one
+  short message to #fno-desk through the existing alert sender (`FNO_SLACK_BOT_TOKEN`; no new Slack sender). It
+  says it is the recommender's answer, not the card's (judge 641 m2): the card above it shows the desk's own status
+  ("NO TRADE (no_approved_strategy)") and the two can differ, for example a `PAPER_TRADE` line beside a card that
+  stays NO TRADE until T1 slice B. An `ELIGIBLE_FOR_YOUR_OWN_REVIEW` line names the version (a version ID such as
+  `school:CS1@1` is not a strategy internal) and says "for your own review, never a buy". For
+  example: "PAPER ONLY. Recommender (not the card) for 02 Nov 2026. Real money: DO NOT TRADE (no version has passed). Paper: NO
+  TRADE (no_established_version). Candidates: desk 1, school 42. Paper, not a recommendation: 16 trades of unproven
+  versions. Record <receipt path>, SHA-256 <first 12>." It names no strike, price or strategy internal. A source
+  that is unavailable is named ("school candidates: unavailable (not_live)"). No receipt pushed: no line, one problem
+  line instead (criterion 9).
+- **The card (not in REC1b; orchestrator's ruling, 25 Oct).** The card keeps its place in the run and its status.
+  Moving it after the school would cost the owner reading time before the close every day for months, while the
+  real-money answer can only be DO NOT TRADE (no version can reach rung 3 before the P2 review), so it would buy no
+  information. Putting the recommendation on the card is a separate decision with the card's owner when rung 3
+  becomes reachable. The card owner's conditions for that change (session_017q19WnkrRJvfQoXBLCy3hA, 25 Oct), each
+  checked against the card code on main, stay agreed:
   - **Reason codes stay inside the pinned dashboard contract** (`contracts/omenix-dashboard/api/schemas/fno-card.yaml`
     2.14.0, closed enum). The card's code is a mapping of the record's code, same meaning only:
     `no_established_version` -> `no_approved_strategy` (no version has passed), `quote_gate_failed` -> `data_check_failed`
@@ -145,6 +168,20 @@ first (327 item 9 named it a separate owner decision).
 - **Candidate set, fixed at decision time (judge 620 S3).** The record lists every candidate of the day as the
   decision saw it: each version's and control's decision record (version, path, SHA-256), traded or not, in one
   sorted list; an empty list is written as empty, never left out.
+- **Candidate sources (orchestrator's ruling, 25 Oct).** The record also lists each candidate source (`desk:book1`,
+  `school`) as `complete` or `unavailable`. **`complete` is defined positively** (judge 641 SF1): the source's own
+  record shows it ran. For `school`: the run's `SessionRun.status` is `""` (it ran the session), and every sealed
+  decision of the session was read and its hash checked. For `desk:book1`: Book 1's decision record of the day is
+  present and its hash checked. Everything else is `unavailable` with the step's status and reason code, for example
+  `ok` with `school:OFF` (today: `school.enabled` is false and the step exits 0 having run nothing), `ok` with
+  `school:NOT_A_SESSION`, `school:TOO_LATE`, `not_live`, `not_built`, `exercised`, `failed`, `refused` (O1's statuses; there is no `frozen`), or
+  the step missing from the run log. An `ok` status alone never makes a source complete. An unavailable source contributes no candidates, and the record says so; it never
+  reads as "no candidates from that source". The evening check reports an unavailable source by name, and its total
+  for the day is "incomplete: <source> unavailable", never a full total. An unavailable source that holds a rung-3
+  version makes the paper answer `data_check_failed`; whether a version is at rung 3 is read from its own rung records
+  (its counted outcomes and reports, section 2), never from the source that could not be read (judge 641 m1) (a recommendation cannot rest on decisions it could not read);
+  while no version is at rung 3 it changes neither answer. This adds one field to REC1a's record (`candidate_sources`,
+  required, sorted), made in REC1b before any record is written, so the schema stays version 1.
 - **Evening check:** `python -m fno recommend check` in the evening routine after `lab close` writes
   `recommend/<YYYY>/<MM>/<day>.check.json` once, reading the candidate set from the recommendation record only
   (never a new search of the day's decisions): for `PAPER_TRADE`, the result after C1 costs (from desk marks or the
@@ -170,7 +207,7 @@ first (327 item 9 named it a separate owner decision).
 | Part | What | Main files (new unless said) | Target |
 |---|---|---|---|
 | REC1a | contracts (`Recommendation`, two answer enums, reason codes, `EvidenceRung`), the rung rule, its R1 card and D6 row, the record codec **with the candidate set and `evidence_cutoff` from the first live day** (judge 620.1: release 2's evening check reads release 1's records), dashboard contract fields | `fno/recommend/contracts.py`, `rungs.py`, `codec.py`, `research/recommend/CARD_REC1.md`, `fno/constants.py` names | 27-28 Oct |
-| REC1b | `recommend decide`, the daily step, Drive store + receipt, card `RecommendationStatus` | `fno/recommend/decide.py`, `inputs.py`, `store.py`, `wiring.py`, `cli.py`; `fno/constants_operations.py` (one row), `fno/daily/wiring.py`, `fno/cards/wiring.py` (one line each) | 28-30 Oct |
+| REC1b | `recommend decide`, the daily step after `school`, the candidate sources, Drive store + receipt, the #fno-desk line (no card change) | `fno/recommend/decide.py`, `inputs.py`, `store.py`, `post.py`, `wiring.py`, `cli.py`; `fno/recommend/contracts.py` (`candidate_sources`); `fno/constants_operations.py` (one row), `fno/daily/wiring.py`, `fno/daily/reason_codes.py`, `config.yaml` (`daily.live_from.recommend: null`) | 26-29 Oct |
 | REC1c | `recommend check` and the evening routine step | `fno/recommend/check.py`, CLAUDE.md evening step | 2-5 Nov |
 | REC1d | morning and evening sections read the record | `fno/school/reports/` adapter (MS-P1g owner agreed) | 5-9 Nov |
 | REC1e | LR1 weekly section | `fno/learning/recommend_section.py` (LR1 owner agreed) | 9-11 Nov |
@@ -209,14 +246,21 @@ two-judge rule; REC1a, REC1c, REC1d and REC1e one judge each. No merge 14:00-16:
 8. **Reads only sealed records.** A trade answer cites its source decision by path and SHA-256; a changed byte in the
    source gives `data_check_failed`. The recommender module imports no fill, order or desk-writing code (an import
    test). Plant: one changed byte in a source decision; and an import of `fno.desk` fills added to the module.
-9. **Write-once and receipt first.** Same day twice: same bytes, no-op; different bytes refused and alerted; a failed
-   receipt push means no Slack post and one problem line to #fno-desk. Plant: the receipt push made to fail; a test
+9. **Write-once and receipt first.** A receipted day is never written again: a later run re-sends that day's own stored
+   line, labelled "Re-sent", so a run that stopped after its receipt and before its post loses no line (judge 654 m1);
+   a record on Drive without a receipt is adopted and the first record stands; other bytes are never written over; a
+   failed receipt push means no Slack post and one problem line to #fno-desk. Plant: the receipt push made to fail; a test
    proves nothing was posted.
-10. **Card.** With today's main data the card reads "Status: NO TRADE (no_approved_strategy)", "Real money: DO NOT
-   TRADE (no proven edge)" and "Paper: NO TRADE (no version has passed)"; T2 and T1e lines unchanged and line 1 of the
-   section replaced by `RuledStatus` (golden files); a missing or hash-mismatched record gives `data_check_failed`;
-   every card code is in the pinned contract (`card_codes()`); a `PAPER_TRADE` record keeps the card's status NO
-   TRADE. Plant: a `brake` code before the re-pin must give `data_check_failed` and the alert.
+10. **The #fno-desk line and the sources (REC1b).** With today's main data the line reads "Real money: DO NOT TRADE
+   (no version has passed)" and "Paper: NO TRADE (no_established_version)"; it carries no strike, price or strategy
+   internal (a test scans it against the record's private fields); it is posted only after the receipt is pushed. The
+   step runs after `school` in `DAILY_RUN_STEPS`. A school step `not_live`, `failed`, `refused`, `ok` with `school:OFF` or `school:NOT_A_SESSION`, or
+   missing from the run log gives `school: unavailable (<status>, <reason code>)` in the record and the line, never an
+   empty complete source; `complete` only when `SessionRun.status` is `""` and every sealed decision's hash checks; with a rung-3 version
+   in that source the paper answer is `data_check_failed`. The card's output is the same with the step on and off by
+   construction: the card runs before the step and no card module imports `fno.recommend` (an import-graph test,
+   judge 653 m1 and 654 S2). The line says "Recommender (not the card)" and names an eligible version. Plants: an unavailable school
+   written as `complete` with no candidates; "school off" (`ok`, `school:OFF`) read as complete; each fails a test.
 11. **Candidate set from day one (S3, judge 620.1; REC1a).** The codec round-trips the candidate set (version, path,
    SHA-256; empty written as empty) and `evidence_cutoff`; a record without either is refused by the codec. Plant:
    the candidate field made optional; a test fails. The release-1 record of a recorded day carries both.
@@ -236,15 +280,16 @@ two-judge rule; REC1a, REC1c, REC1d and REC1e one judge each. No merge 14:00-16:
 |---|---|
 | daily decision paper/no trade with reason | 1, 2, 4 |
 | confidence from a stated rule | 3, 5, 6, 13 |
-| "do not trade" alert when not sure | 4, 7, 10 |
+| "do not trade" alert when not sure | 4, 7, 10 (the #fno-desk line) |
 | every decision recorded write-once | 9 |
-| checked every evening, no-trade included, no hindsight | 11, 12 |
+| checked every evening, no-trade included, no hindsight | 10 (sources), 11, 12 |
 | learning through scheduled reviews | REC1e (LR1 section); rule changes stay new versions (R3), never daily |
 | never invents an edge | 3, 4, 5 (plants), 8 |
 | books 2 and 3 as recommenders | out: their trading job (F5, F6, F1t) is not built (DESK_DECISIONS 25 Oct (1)); they plug in as more versions with rungs, no change here |
 | real orders | out: hard line |
 | dashboard screen | out: UI pause; contract fields only |
-| dashboard reason codes `risk_cap`, `brake`, `no_candidate` | contract addition and re-pin, owner via the orchestrator, before release 2; guarded in criterion 10 |
+| the recommendation on the card | out of REC1b (orchestrator, 25 Oct): a separate decision with the card's owner when rung 3 becomes reachable; the card owner's conditions in section 3 stay agreed for it |
+| dashboard reason codes `risk_cap`, `brake`, `no_candidate` | contract addition and re-pin, owner via the orchestrator, before the recommendation reaches the card |
 | the card showing `TRADE` with fields | T1 slice B, the card owner's story, before any version reaches rung 3 |
 | futures and stock options | out: not in the pilot (327 P3+) |
 
@@ -396,3 +441,417 @@ rung-3 report made optional; the report hashes left unchecked. Tests: 122 in `te
 
 Gates at 12df90b1 (code unchanged since): full suite 16689 passed, 1 skipped, 14 xfailed; ruff check and format and
 `check_imports` clean.
+
+### REC1b text amendment (orchestrator's ruling, 25 Oct; for the judge before REC1b's code)
+
+Changed from the passed text, each from the ruling:
+- **The step runs after `school`, not before `card`** (section 1). Reason: the record must hold the school's sealed
+  decisions of the day (judge 620 S3); measured run times are in section 1. Its timing never depends on the market
+  being open.
+- **REC1b leaves the card unchanged and posts its own #fno-desk line** (section 3, criterion 10).
+  - The card source moves out of REC1b: it becomes a separate decision with the card's owner when rung 3 becomes
+    reachable.
+  - The card owner's conditions stay agreed for that later change.
+  - The card's output stays byte-identical (golden file).
+- **Candidate sources** (section 5, criterion 10).
+  - An unavailable source is recorded as unavailable with its step status, never as an empty complete list.
+  - An unavailable source holding a rung-3 version gives `data_check_failed`.
+  - This adds the required field `candidate_sources` to REC1a's record. It is made before any record exists, so the
+    schema stays version 1.
+- REC1b's files and dates are in the parts table (26-29 Oct). Live target unchanged: Mon 2 Nov.
+
+**Round 2 of the amendment (judge 641: 2 should-fix, 2 minor, all accepted; SF2 with the orchestrator's correction):**
+- **SF1.** `complete` is now defined positively: the source's own record shows it ran (`SessionRun.status == ""`
+  with every sealed decision hash-checked; Book 1's decision record present and hash-checked). `ok` with
+  `school:OFF` or `NOT_A_SESSION`, and every other status, is `unavailable` with its status and reason code. New
+  plant: "school off read as complete" (section 5, criterion 10).
+- **SF2.** The arithmetic is fixed. The chain is capture end (~15:20), then `quotes_done`, then school (starting
+  15:19-15:23 under `SCHOOL_STARTS_BY` 15:25; up to 6 min 13 s cold), then `recommend` at about 15:25-15:30. A refused
+  school (`TOO_LATE`) is `unavailable`. The orchestrator confirms with GW1's builder that the school's start stays
+  before 15:25.
+- **m1.** The rung-3 test reads the version's own rung records, never the unread source.
+- **m2.** The line says "Recommender (not the card)"; the card shows the desk's status, and the two can differ.
+  `ELIGIBLE` names the version, "for your own review, never a buy".
+
+### REC1b Claims (round 1, branch `story/rec1b-daily-record`; the SHA is in the commit that carries this text)
+
+New files are in `fno/recommend/`; each is at most 125 lines:
+- `ports.py`, `gather.py`, `decide.py`;
+- `desk_source.py`, `school_source.py`, `evidence.py`, `conditions.py`;
+- `store.py`, `post.py`, `run.py`, `cli.py`, `wiring.py`.
+
+Changed elsewhere:
+- `fno/recommend/contracts.py` and `constants.py`: `candidate_sources`;
+- `fno/constants_operations.py`: one row;
+- `fno/daily/wiring.py`: the step and its live key;
+- `fno/daily/reason_codes.py`: the `recommend` codes;
+- `fno/cli.py`: one parser;
+- `config.yaml`: `daily.live_from.recommend: null`;
+- the tests that pin the step tuple, the live keys and the receipt builders (they now name `recommend`).
+
+Nothing in `fno/cards/` changes.
+
+| Criterion | Code | Tests | Plants (all caught) |
+|---|---|---|---|
+| 2 reason order | `decide.py` `_reason`, `_without_trade` | `test_decide.py` (one test per adjacent pair, plus step problems and no established version) | established ignored |
+| 4 "proven" is rung 3 | `decide.py`, the contract | `test_a_trade_below_rung_3_is_never_a_recommendation`, the rung-3 trade | (REC1a's plants) |
+| 7 real money | `decide.py` `_eligible`, no eligibility before an RM1 report | `test_real_money_needs_rung_3_and_rm1`, data check | - |
+| 9 write-once, receipt first | `store.py`, `run.py` | `test_run.py` (refused push posts nothing; receipt before post; same day not written or posted again; a half-finished save adopted; foreign bytes never overwritten) | post before the receipt; already recorded posted again; adoption overwritten |
+| 10 line and sources | `post.py`, `school_source.py`, `desk_source.py`, `gather.py` | `test_school_source.py`, `test_desk_source.py`, `test_gather.py`, `test_post.py`, `test_run.py` (scan for strike or price) | school off read as complete; unavailable written as complete; missing seal tolerated; manifest checked one way; hash unchecked; shadow counted; price in the line |
+| inputs fail as inputs | `ports.open_run_log`, each adapter | unreadable run log, decision file, seal, weather | failed input passes; missing weather passes; backfill weather passes; unrated version guessed |
+| evidence point in time | `evidence.py` | `test_evidence.py` | day d read; closed road counted; desk paper version rated silently |
+| the step | `fno/daily/wiring.py` | `test_daily_step.py` (after `school`; null means not live; no pathspec; one alert; every last line has its code) | step moved; status alerts twice |
+| rung card pinned | `run.py` | `test_a_changed_rung_rule_makes_no_record` | hash unchecked |
+
+**Plants:** 22, all caught. A comment-only control plant survived, as it should. They ran with
+`PYTHONDONTWRITEBYTECODE=1` and no `__pycache__`.
+
+**Self-review (quality rule 3).** An independent agent reviewed f646e2c9. I checked every finding against the code;
+all are fixed at 25860aca except the notes below.
+- **Should-fix:**
+  1. A file listed in `records.sha256` but missing was dropped silently. The manifest is now checked both ways.
+  2. Two alerts went out for one failure, the second with "alert sent" as its reason. Now `status_alerts=False`
+     (a raise is still alerted), and the command prints its outcome line last.
+  3. `made_at` sits inside the bytes, so a rerun after a half-finished save could never succeed. A record on Drive
+     with no receipt is now adopted (as the dashcam's `recover`), and the first record stands. A receipted day is
+     never written or posted again. Programming errors keep their traceback.
+  4. Unreadable inputs crashed the step. Each adapter now raises `InputFailed`, which becomes `data_check_failed`.
+- **Minor:** criterion 10's `<status>, <reason>` format; the `recommend:*` public codes; `STEP_OK` used.
+- **Found by me while fixing:** Book 1's records write action `trade` for a research shadow too
+  (`decision_record.py:51`). "Traded" is now `Decision.CHOSEN` in `book` mode only.
+- **Not fixed, stated plainly:**
+  - The run-log reference in `inputs` is the log as read at decision time. Later steps rewrite that file, so the hash
+    verifies against the run's commit after the school step (O1 commits each step), not against the final file.
+  - A GitHub outage makes receipts unknown. A rung-3 version could then read lower that day, and an unavailable
+    school would no longer force `data_check_failed`. This cannot happen before rung 3; it is a question for the
+    rung-3 story.
+  - `risk_refused` and `braked` have no reader yet, so `risk_cap` and `brake` cannot occur. Their readers come with
+    the first rung-3 version, as does the desk's evidence reader. Until then a desk version at `paper` fails loudly.
+
+**Real output sample.** A dry run on the committed records of Fri 23 Oct. Real: desk source, run log, M1 weather,
+D6 versions, playbook registry. The school step is absent from that day's log. Fakes: only the Drive store and Slack.
+```
+PAPER ONLY. Recommender (not the card) for 23 Oct 2026. Real money: DO NOT TRADE (no version has passed). Paper: NO
+TRADE (no_established_version: no version has passed: none is established on forward paper results). Candidates:
+desk:book1: 1 candidate(s); school: unavailable (missing, the school step is not in the run log). Paper, not a
+recommendation: 0 trade(s) of versions below rung 3. Record recommend/2026/10/2026-10-23.json, SHA-256 <12 hex>.
+```
+The record rated 13 versions: `book1_rules` and the 12 registered school versions, all at rung 0.
+
+**Timing:** judge 641.2 m3 notes the school's start of about 15:21:30-15:25:30; GW1's measured chain is in section 1 now (round 2). The orchestrator was getting GW1's
+measured chain, and the text will be updated when it comes. A refused school (`TOO_LATE`) is recorded `unavailable`.
+
+**Gates at 25860aca (code unchanged since):** full suite 16856 passed, 1 skipped, 14 xfailed; ruff check and format,
+`check_imports` and `check_records` clean. `tests/recommend`: 252 tests.
+
+### REC1b Claims, round 2 (judge 653 PASS with 2 minors, judge 654 FAIL with 2 should-fix and 2 minors; all accepted)
+
+Each finding was checked against the code first; every one held.
+- **654 S1:** the RM1 and rung disagreement is now built.
+  - `decide.disagreeing`: RM1 naming a version below rung 3 gives `data_check_failed`, `DO_NOT_TRADE_REAL_MONEY`
+    and no eligible version.
+  - `gather` alerts it by name: "RM1 names <v> eligible, but its rung is <n>: the two gates disagree".
+  - Tests: `test_rm1_naming_a_version_below_rung_3_is_a_failed_data_check` (rungs 0, 1 and 2) and
+    `test_rm1_and_the_rung_disagreeing_is_alerted_by_name`.
+- **654 S2:** the three untested criteria now have tests.
+  - Criterion 8: `test_reads_only.py` scans every module's imports against the writers and traders (desk, books,
+    playbook, school execution, accounts, fleet, safety, drivers, tickets, simulator, providers, risk, checks, daily).
+    Only four named readers are allowed. J's plant `from ..desk import exits` is caught, and a test proves it.
+  - Criterion 14: `test_cli.py` runs a weekend, a holiday (26 Jan) and the coming muhurat-only Sunday 8 Nov 2026,
+    each printing the one line and building nothing. The calendar test separates them from a session day.
+  - Criterion 10's card part: the criterion now states the construction argument (K's m1), proved by
+    `test_no_card_module_reads_the_recommender` and the plant "card reads the recommender".
+- **654 m1:** a receipted day is never written again, and a later run re-sends that day's own stored line, labelled
+  "Re-sent: … an earlier run may have stopped after its receipt and before its line". So no line is ever lost
+  silently. Criterion 9's text says so.
+  - Found while testing: a run that finds the day already recorded used to alert its own discarded answer's input
+    problems. Only the record that stands is reported now (plant "dropped answer's problems alerted").
+- **654 m2 (orchestrator's ruling):** a day stopped by `data_check_failed`, `step_problems`, `quote_gate_failed` or
+  `weather_red` is DO NOT TRADE for real money too, never eligible.
+  - The line names the condition.
+  - The contract refuses ELIGIBLE on such a day.
+  - Section 1 has the one line.
+  - `quote_gate_failed` is added beside the ruling's two: it is the same kind of day condition, and leaving it out
+    would let a day whose quotes failed read "eligible". Judges, please check this addition.
+- **653 m2:** `test_a_book_entry_without_a_run_is_unavailable`.
+- **641.2 m3 (orchestrator's message):** GW1's measured chain is in section 1. The school starts about
+  15:21:30-15:22:30 and `recommend` runs about 15:23-15:29. A day needing E3's retry can make the school `TOO_LATE`,
+  which is then recorded `unavailable`.
+
+**Plants this round: 10, all caught.** Each judge's surviving plant (J's S1, X19 and X23; K's m2) is among them. One
+earlier result line was hidden by my own script and was re-run alone; it was caught. Tests: 276 in `tests/recommend`.
+
+### REC1c text amendment (before code; orchestrator's rulings, 25 Oct)
+
+What changes or is made exact in the passed text for REC1c, each named:
+
+1. **The brake rule first** (orchestrator's ruling on judge 654.1's open point, the safer reading): a version under its
+   own drawdown brake is never `ELIGIBLE_FOR_YOUR_OWN_REVIEW`.
+   - `decide` and the record's contract both refuse it.
+   - The real-money line names the brake.
+   - Test and plant: a rung-3, RM1-eligible version that is braked gives `DO_NOT_TRADE_REAL_MONEY`.
+   - It cannot occur before rung 3. It is built now so that it is in place before rung 3 is reachable.
+2. **Where it runs** (orchestrator, 25 Oct; judge 658 S1). Step "3b" of CLAUDE.md's evening section: `python -m fno
+   recommend check`, after step 3 has committed and pushed the edition's receipts and the release logs, so it never
+   races them.
+   - Its own command commits and pushes only its own receipts (`receipts/data/recommend/`), in its own commit.
+   - Step 4's notes cover its alert, its exit 1 and any "alert NOT sent" line.
+   - The CLAUDE.md line ships on REC1c's branch and is judged with it, in lane 1, because it changes a routine's
+     steps. The owner's routine prompt is unchanged: it already reads that section.
+   - **It never fails the evening edition.** It runs after `lab close` has posted. On its own error it alerts
+     #fno-desk and exits non-zero, and the edition's receipts are committed before it, as today.
+   - **"Never fails" also covers the readers after it** (judge 658 m2): LR1's weekly section and REC1d's 08:50 section
+     read a missing or `data_check_failed` check as exactly that, by name, and post their edition all the same.
+3. **What it reads**, all sealed records; it never reads a price, and never searches the day's decisions afresh.
+   - The recommendation record of the session being checked.
+   - Each **listed** candidate's outcome:
+     - A school candidate (`<seal path>#<road>`): its `OutcomeRecord` in the school dashcam's sealed `outcomes`
+       files from its session up to the check's day. The record names the same `decision_sha256`, `driver_id` and
+       `road`. Its `net` is after C1 costs. An outcome with `is_ticket` is reported apart, as a ticket, never as a
+       trade.
+     - **One live outcome per candidate** (judge 658 S2). Corrections are resolved first: a record whose SHA-256 a
+       later record names in `corrects` is replaced and drops out. Exactly one live record means closed; none means
+       open; two or more live records, or a `corrects` naming a record that is not there, mean `data_check_failed`
+       for the day, alerted. (Partly accepted: an outcome naming the candidate's seal under another driver or road
+       is not a fault. One sealed decisions file holds every driver's decisions on every road of the session, so
+       other drivers' outcomes rightly carry the same `decision_sha256`; the match is on all three: seal, driver,
+       road.)
+     - A candidate that did not trade contributes zero, shown as "no trade".
+     - A desk candidate that traded: the desk's outcome reader is not built, as with REC1b's desk evidence. That
+       candidate makes the check `data_check_failed` with that reason. It cannot occur before a desk version reaches
+       `paper`.
+4. **What it writes.** `recommend/<YYYY>/<MM>/<day>.check.json`, written once with its receipt pushed, with:
+   - per listed candidate: its key, `closed` / `open` / `no trade` / `ticket`, and its `net` when closed;
+   - `closed so far`, the sum over the closed trades, with the counts of the open ones (judge 658 m1). Until the day is
+     final it is not the day's total, and it appears in no line;
+   - the day's verdict: `not known yet` while any listed candidate is open, even when a source was unavailable;
+     `complete` when all have closed; `incomplete: <source> unavailable` when all listed candidates have closed but a
+     source was unavailable at decision time (final, written once, not re-checked; judge 658 S3); `data_check_failed`
+     when a listed candidate is still open at the 60th session's check ("never closed in 60 sessions"), final and
+     alerted (judge 658 S3), or when an outcome cannot be resolved to one live record;
+   - for a `NO_TRADE` day, "abstaining saved Rs X" or "abstaining cost Rs X" once complete.
+   A check of a day already checked as complete is never written again. A day still `not known yet` is checked again
+   on later evenings: each check is its own write-once file, `<day>.check.<check day>.json`, so no file is ever
+   rewritten.
+   - Which sessions it checks: every session with a recommendation record whose latest check is not final
+     (`complete`, `incomplete`, `data_check_failed`), from the last 60 sessions. A monthly option closes within about
+     35 days; the 60th session's check is the last and is always final.
+5. **Where it shows.**
+   - One #fno-desk line per newly completed day, "Recommender check for <day>: ...".
+   - The 08:50 "Today" section shows the latest checks (REC1d). The 20:05 edition cannot show tonight's check,
+     because the check runs after it; this is stated, not hidden.
+6. **Criteria for REC1c.** Criterion 12 as passed (trade, no trade, a candidate not closed, a missing record, each
+   candidate plus the total, never editing the recommendation, the dropped-loser plant), plus:
+   - (a) the brake test;
+   - (b) a school ticket never counted as a trade;
+   - (c) a source unavailable at decision time gives `incomplete`, never a total;
+   - (d) a check error never touches the edition's receipts (the command's own commit only);
+   - (e) the CLAUDE.md step text.
+
+### REC1c Claims (text round 2 for judge 658, and the code; branch `story/rec1c-evening-check`)
+
+**Judge 658 (text round 1).** Every point was checked against the code.
+- **S1 accepted.** The check is step 3b, after step 3's push, committing only its own receipts; step 4 covers its
+  alert. It is in CLAUDE.md on this branch.
+- **S2 accepted in part.** Corrections are resolved to one live outcome per candidate (`outcomes._live`, reusing the
+  school's `record_sha256`).
+  - None live means open.
+  - Two or more live records, or a `corrects` naming a record that is not on file, means `data_check_failed`, alerted.
+  - **Not accepted:** "an outcome naming the candidate's seal under another driver or road is a fault". One sealed
+    decisions file holds every driver's decisions on every road of the session (`fno/school/dashcam/store.py`, one
+    file per session and slot), so other drivers' outcomes rightly carry the same `decision_sha256`. The match is on
+    all three: seal, driver, road. The tests show another driver's or road's outcome never matches.
+- **S3 accepted.**
+  - The 60th session's check is the last. A candidate still open then gives final `data_check_failed` ("never closed
+    in 60 sessions"), with a line.
+  - A day unreadable at its last check is written final too, so no day leaves the window silently.
+  - `incomplete` is final only once its listed candidates have closed; until then the day is `not known yet`.
+- **m1 accepted.** `closed so far` (the `closed_so_far` field) appears in no line until the day is final.
+- **m2 accepted.** LR1's and REC1d's readers name a missing or `data_check_failed` check and post their edition all
+  the same. This is their parts' criterion.
+
+**Self-review (quality rule 3).** An independent agent reviewed 7b177c12. Its findings 2, 3 and 7 were already fixed
+by the round-2 work above. The rest are fixed at ca2e8358:
+- **1 (blocking):** the real Drive reader raises `StaleSeal`, and the run did not catch it, so one bad file stopped
+  every day without an alert. Every read is now wrapped, and each day, including its "is it final" read, has its own
+  guard. A damaged check file is that day's problem.
+- **4:** an open school ticket (untraded, no outcome yet) read as "no trade", and the day went final without it. It
+  now keeps the day open, known from its own sealed decision (`SealedOutcomes.ticket`), so it is reported once it
+  closes. "Open" now counts open positions, trades and tickets.
+- **5:** an untraded decision with a trade's sealed outcome is a disagreement, so the check fails.
+- **6:** `recommend check` writes nothing on a day that is not a trading session (criterion 14).
+- **8:** `braked_versions` holds only established versions (`decide`, and the contract refuses others). The line
+  says "no established version is eligible; under their own brake: ...".
+
+**Plants: 32, all caught.**
+- 3 for the brake, 13 for the check, 6 for round 2 (J's "a correction counted twice" among them), 7 for the
+  self-review fixes, and 3 more that each first survived and then got the test that catches it.
+- A comment-only control survived. All plants ran with `PYTHONDONTWRITEBYTECODE=1`.
+
+**Tests:** 331 in `tests/recommend`.
+
+**What the check cannot do yet, stated plainly:**
+- A traded desk candidate fails loudly: the desk's outcome reader is not built, and none can occur before a desk
+  version reaches `paper`.
+- The 20:05 edition never shows the same day's check, because the check runs after it.
+- REC1d (the 08:50 section) and REC1e (LR1) read these files; they are not built here.
+
+### REC1c Claims, code round 2 (judge 658.1 J: 1 should-fix and 1 minor; judge 660 K: the same should-fix and 1 minor; all accepted)
+
+- **S1 (J and K):** a missed evening on the 60th session dropped a day silently.
+  - `_recorded_days` now reads every receipted recommendation up to the check day, however old, not a calendar
+    window. A day 60 or more sessions old gets `last=True`, so its next evening's check is final: `data_check_failed`,
+    "never closed in 60 sessions", alerted.
+  - J's plant "the last evening missed" is `test_the_last_evening_missed_still_ends_the_day_final`.
+- **J m1:** records that disagree are written final at once, with one alert: two live outcomes, an orphan correction,
+  an untraded decision with an outcome. They raise `DataDisagrees`, a subclass of `InputFailed`. Read errors are still
+  retried and are final only at the last check. Tests: `test_records_that_disagree_are_written_final_at_once` and
+  `test_a_read_error_is_retried_not_written_final`.
+- **K m1:** a catch-up with `--on <past day>` counts only the check files made on or before that day (`_checked_on`
+  from the file name). Test: `test_a_catch_up_for_a_past_day_sees_only_the_checks_made_by_then`.
+- `_recorded`, now unused, is removed (no dead code).
+- **Plants this round: 4, all caught:** windowed days ("the last evening missed"), a disagreement retried, a read error
+  written final, later checks counted. Tests: 335 in `tests/recommend`.
+- **Known cost:** each evening reads the latest check of every receipted day. It is cheap through the verified Drive
+  cache, and grows by one small read per session.
+
+### REC1d text amendment (round 2: judges 663 J and 664 K; placement agreed 25 Oct by the orchestrator for MS-P1g's builder, who is out of reach, and for FL1's owner on the reserved call; conditions from MS-P1j's builder, current owner of `fno/school/reports/`)
+
+What section 3's "08:50 and 20:05" bullet and REC1c item 5 become exact as, each named:
+
+1. **Placement: a wrapper of its own, outside the school's (J's S1 and K's SF1, accepted).**
+   - Round 1 put the recommender's block inside `build_school_maker`. That function returns the plain maker when
+     `school.reports` is false (`fno/school/reports/wiring.py`), so the block would have vanished with the school's
+     switch.
+   - The fix: the recommender wraps the lab's maker itself. `fno/recommend/report_guard.py` has
+     `with_recommend_section(maker, config)`, and `fno/recommend/report_section.py` has its two sections.
+   - `fno/forecast_lab/page_wiring.py` changes only its reserved call, to wrap the school's wrapper:
+     `with_recommend_section(with_school_sections(...))`. This is the orchestrator's yes, for FL1's owner.
+   - `report_guard.py` imports nothing of the recommender at load time, as `guard.py` does. A failure to set it up
+     gives the plain edition plus one alert naming the exception class.
+   - `fno/school/reports/` is not changed at all. MS-P1j's builder reviews the reserved line before the judges.
+2. **Each section under its own switch.**
+   - The recommender's section shows only from `daily.live_from.recommend`, and the school's only with `school.reports`.
+     Neither key is read by the other's wrapper.
+   - With the recommender's switch off, `with_recommend_section` returns the maker it was given, unchanged.
+3. **Isolation.**
+   - The two wrappers are separate. The recommender's section raising never stops the school's section or the edition:
+     it gives one alert, "recommender <edition> section not made (<Class>); the edition was posted without it", with
+     the exception class and never its message. The school's failure handling is unchanged.
+   - Tests: a failing recommender section with the school's section still posted, and the reverse.
+4. **Order and text.**
+   - The school's sections render exactly as today, in the same place. The recommender's comes after them, because its
+     wrapper is the outer one.
+   - All of `tests/school/reports/` passes untouched.
+5. **08:50, "Recommender, PAPER ONLY":**
+   - The standing real-money answer and each rated version's rung, from the latest recommendation record before
+     today, labelled "standing; today's answer at about 15:20" and naming that record's day.
+   - **The checks of the previous NSE session only (K's SF2 and J's m1).** "Last evening" means the previous NSE
+     session by the session calendar, never the previous calendar day.
+     - Every check line names its check date, in the check's own words (`check_text`).
+     - Only check files dated that previous session are shown. An older check is never shown, dated or not.
+     - When recorded days are still not final and no check file is dated the previous session, the section says "the
+       previous session's check did not run" and names the waiting days. (Code round 1, judge 666 m1: the words became
+       "No check of <days> is dated the previous session (<date>); still waiting.", because a check that ran and
+       failed for a day writes no file.)
+     - A `data_check_failed` check is named with its problem. Neither case ever fails the edition.
+   - No record yet gives one line, "no recommendation recorded yet". A record that cannot be read is named as not
+     read, by its path and the exception class only.
+6. **20:05, "Recommender, PAPER ONLY":**
+   - Today's two answers with their codes, in REC1b's line words, without the receipt part.
+   - Then one fixed line: "tonight's check runs after this edition; it is on #fno-desk and in tomorrow's 08:50". No
+     stale check is ever shown as today's (orchestrator, 25 Oct).
+   - On a session with no record (the step did not run or did not post), it says "no recommendation recorded for
+     <day>". It adds the run log's `recommend` status and reason code only, never the step's printed lines (K's m1).
+   - That status is read through a port in the shape of MS-P1j4's `DayInputs.school_step`, never by opening the run
+     log inside the section (MS-P1j's builder, 25 Oct).
+7. **Words and their guard.**
+   - The section names no strike, price, range or strategy internal. Its only amounts are the check's after-cost
+     rupee totals, which REC1c already posts to #fno-desk.
+   - Its own guard: every line is built only from `post.py`'s and `check_text.py`'s templates and this module's fixed
+     lines. A test checks each line against those templates.
+   - It is never routed through the school's LEAK or rupee checks, which would withhold it.
+   - No line carries a record hash: the edition is not a record.
+8. **Tests on an explicit config.** `config.yaml` has `school.reports: true`, so every new test passes its own config
+   and never builds the real school inputs.
+9. **Criteria for REC1d**, each with a plant:
+   - (a) **All four switch pairs** (school off or on, recommender off or on), each with a golden file of both editions:
+     - both off is byte-identical to the plain maker, with the real recommender wrapper in place;
+     - school only is byte-identical to today's school golden;
+     - recommender only shows the plain edition plus the recommender's block;
+     - both show the school's sections, then the recommender's.
+     Plants: the recommender gated by `school.reports`, and the recommender's block always added.
+   - (b) A data_check_failed check is named, and the edition still posts. Plant: a raised reader error is swallowed
+     silently.
+   - (c) The morning never shows today's record as standing. Plant: `<=` in place of `<`.
+   - (d) One failing wrapper never removes the other's section. Plant: the recommender's `try` around the inner maker.
+   - (e) An empty history gives the "no recommendation recorded yet" line.
+   - (f) Every line matches an allowed template. Plant: a candidate's decision path added to a line.
+   - (g) Only the previous session's checks are shown, each with its date. Waiting days with no check dated the
+     previous session give "the previous session's check did not run". Plant: an older check shown without its date.
+   - (h) The 20:05 no-record line carries only the status and reason code. Plant: the step's printed line appended.
+
+### REC1d Claims (code round 1, branch `story/rec1d-sections-code`; the SHA is in the commit that carries this text)
+
+**Files.**
+- New: `fno/recommend/report_guard.py` (the lab's one entry; imports nothing at load time),
+  `report_maker.py` (the outer wrapper and its set-up failure maker), `report_section.py` (the two sections and their
+  ports), `report_words.py` (the words and the problem guard), `report_wiring.py` (the switch, the ports, the run log's
+  status and code), `shelf.py` (the receipts shelf, shared with REC1c's check run).
+- Changed:
+  - `fno/forecast_lab/page_wiring.py`: the reserved call, `with_recommend_section(with_school_sections(...))`.
+  - `fno/recommend/check_run.py`: it uses the shelf. There is no change of behaviour, and REC1c's tests are unchanged
+    and pass.
+  - `fno/recommend/post.py`: two private functions made public, `real_money_text` and `paper_text`, so the sections
+    use REC1b's own words (DRY).
+  - `fno/recommend/constants.py`: `RECOMMEND_STEP`.
+- Tests: `tests/recommend/test_report_section.py`, `test_report_maker.py`, `test_report_words.py`,
+  `test_report_wiring.py`, `report_fakes.py`, and eight golden files in `tests/recommend/golden/`.
+
+**Deviations from the text, each stated.**
+1. Item 4 said `tests/school/reports/` passes untouched. One line was added to
+   `test_the_real_report_maker_is_built_through_the_school_guard`. That test pins `build_report_maker`'s return as
+   the school wrapper's own. With the outer wrapper this is no longer true, and on the real config it would build
+   the real ports.
+   - The line stubs `with_recommend_section` as identity, so the test still pins the school guard exactly.
+   - My own test `test_the_lab_wraps_the_school_s_maker_in_the_recommender_s` pins the outer order.
+   - Asked of MS-P1j's builder with this SHA.
+2. An added line, `NOT_KNOWN`: "<n> position(s) still open, so the day is not known yet."
+   - REC1c's `answer_text` is written for final checks only. On a check that is not final, it would have said
+     "No candidate traded, so abstaining cost nothing", which is wrong.
+   - The morning shows `not_known_yet` checks dated the previous session, so they need their own words: the open
+     count, never a total.
+   - Found in self-review; test `test_a_day_not_known_yet_gives_its_open_count_never_an_answer_or_a_total`.
+3. The run log's status and reason are shown only when they read as O1's words and codes (`[a-z_]+` and
+   `<step>:<CODE>`). Otherwise they read "unknown". Logs before 22 Oct hold free-text reasons, so this carries
+   judge 664 m1's "code only" into the port itself.
+
+**Criteria and their plants.** Each plant was run with bytecode off and `__pycache__` removed. Every one fails a test
+in `tests/recommend` or `tests/school/reports`, and a comment-only control plant passes.
+
+| Criterion | Plant |
+|---|---|
+| (a) | gated by `school.reports`; block always added; live date ignored |
+| (b) | a reader error returns nothing |
+| (c) | `<=` for the standing record |
+| (d) | a failure drops the inner sections; the exception message put in the alert |
+| (e) | an empty history returns nothing |
+| (f) | a decision path appended to a line; a check problem shown unguarded |
+| (g) | an older check shown; the check line undated; waiting days not named |
+| (h) | the run log's free text shown |
+| self-review | a not-final check given an answer |
+| wiring | the lab's maker not wrapped |
+
+**Real output sample.** No real recommendation record exists yet: Mon 26 Oct is the first. Run on main's real wiring
+on Sun 25 Oct, the morning section would say "No recommendation recorded yet."
+- The golden files `tests/recommend/golden/*_recommender_on.txt` are the sections over test records. Each one was
+  read line by line.
+- A real sample follows as soon as 26 Oct's record exists: the 27 Oct 08:50 edition.
+
+**Gates.** The full suite passed: 17505, 1 skipped, 13 xfailed. `ruff check`, `ruff format --check` and
+`check_imports` are clean. Every new file is under 350 lines; the largest is `report_section.py`.
+
+**Known limits.**
+- The 08:50 section reads every waiting day's latest check, about 60 small files at most.
+- Not verified in a rehearsal (REH1). The sections read Drive through `build_drive_cache`, as REC1c's check does.
+  Whether a rehearsal points that cache at its `dryrun/` records is not checked here.
