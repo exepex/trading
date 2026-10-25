@@ -97,3 +97,25 @@ between it and the timed step.**
   school's start past 15:25.
 
 **Gates at ab97493c5:** record scan clean (9,547 files); doc-reading tests 963 passed, 13 xfailed, 0 failed.
+
+## Addendum 2
+
+Round 3 (granted by the owner on 25 Oct), a narrow check of the story's diff ab97493c5..3f15306ae. **PASS, 1 minor.**
+
+- **The residual of should-fix 1 is fixed.**
+  - Section 3.1 now meets every limit with the steps between counted:
+    `now + wait + expected(retried) + Σ expected(each step after it and before S) <= L`. Each term uses the same
+    1.5-times-previous-session rule, and a step that will not run today counts 0.
+  - The example names `trade_marks`, `reviews`, `quotes_done`, `card`, `price_distribution` and `premium_ranges`
+    before the 15:25 school. Section 4's rows say "less the expected times of the steps between".
+  - Criterion 10.2 adds the plant "an `exits` retry pushes the school past 15:25", and the same check for
+    `trade_marks`, `reviews`, `card` and `price_distribution`, each with one test.
+- **Verified in code:** `exits` alerts only when its event is new (`fno/desk/exits.py:196`, `if new and outcome in
+  ...`), so the safe row's "a retry alerts nothing twice" holds. `forecasts_v4_pack` is now not safe.
+- **Minor:** the header still reads "pending the owner's word on a third round". Update it to the owner's grant.
+- **Disclosure:** the commit range also carries main's merged judge files, so its diff showed me judge F's 683.1. My
+  finding (682.1) was written and pushed before that, and this check rests only on the story's diff and the code.
+- **Gates at 3f15306ae:** record scan clean (9,549 files); doc-reading tests 963 passed, 13 xfailed, 0 failed.
+  The story is 303 lines, under 500.
+
+No blocking or should-fix finding is left.
