@@ -667,3 +667,69 @@ Round 2 (answers to judges 621 and 623, all accepted; each fix is text):
   reveal race.
 - 621 m2 / 623 minor: the unreadable meter is a deliberate fail-open on cost only (orchestrator, 25 Oct). It costs
   minutes, never a trade.
+
+### Code round (story/f1t-code, 25 Oct 2026)
+
+**What was built:** the 16 Oct code re-ported onto `main` (never a blind merge of its 4,810-commit-old branch), plus
+revision 2's items. Decisions run on G11's `RunTerms` (`fno/ai_trading/terms.py`); `fno/ai`'s chain is reused with no
+new parameter.
+
+**Departures from the text, each forced by the v4 freeze (`FREEZE_v4.md` hashes `fno/constants.py` and
+`fno/ai/{versions,fire,outcome,scoring_gate,stop_rule,run_terms,answer,envelope,seal,submissions,timing,
+transcript_audit,audit_plan,draw_seed,coverage,rules,paths,pointer,receipts}.py`; none of them is in this diff):**
+- `model_misreported` is not a new breach kind in `fno/ai/transcript_audit.py`. It is F1t's own record
+  (`fno/ai_trading/model_audit.py`, `python -m fno ai-trading model-audit`), and `decision_stop_reason` counts it
+  beside the transcript breaches (two in 20 decision days, under one version).
+- The decision timing path is F1t's own (`fno/ai_trading/paths.py: timing_path`), passed to `RunTiming`.
+- `LevelBudgetStop` lives in `fno/ai_trading/budget.py`, implementing G11's `BudgetStop` interface.
+
+**Smaller departures:**
+- The strategy label is in the outcome record and the run log's `strategy_labels` (as words the public log keeps).
+  A promoted day sends no alert, so no alert line can carry it.
+- The reason codes are eight, not five: `ai:DONE`, `ai:CONFIG` and `ai:BUDGET_UNREAD` are added.
+- A `fire_unknown` session is audited by its link (`audit-record --session`), as in the 16 Oct code. The weekly
+  draw reads frozen `fired_sessions`, which counts only `fired: true`.
+
+**The code round's two independent reviews (25 Oct). Every should-fix is fixed, each with a test in
+`tests/ai_trading/test_review_fixes.py`, `tests/packs/test_book_sheet.py` or `tests/ai/test_fire_once.py`:**
+- **Late collection:** `ai_collect` reaching a book at or after E3's deadline records `late` and promotes nothing
+  (boundary 15:11:59 promotes).
+- **Failure reasons:** a failure's public reason keeps only the exception type; the message goes to the private run
+  log.
+- **A failure after promotion:** a failed outcome write after promotion puts the run back (`Promotion.undo`).
+- **Exposure:** exposure is judged over every live book's reveal, including a book recorded by an earlier run.
+- **An AI book's pack:** an AI book whose private pack cannot be built is refused alone, with one alert naming only
+  the error type. Book 1's failure still stops the step, as before.
+- **The fire log:** it commits through its own pending marker (`.pending_ai_fire.json`, E5b's pattern). A push that
+  fails turns each `firing` entry into `not_fired` ("the fire log could not be pushed before firing"), so a rerun
+  never calls it `fire_unknown`.
+
+Minor findings, also fixed:
+- the collection window is checked at load (reveal deadline + 50 s before E3's deadline);
+- with no AI book live, the AI settings are not read (`not_live`);
+- the budget meter fails open on any error;
+- the observer reads the publish branch;
+- `served.ai_decision_version` is checked by name (F6's key) and `run_id` equals the run folder;
+- relative paths are the repository's;
+- a type hint in `fno/budget/report.py` is corrected.
+
+**Kept, with the reason:**
+- `served_model_check` compares through `fno/ai/outcome.py:model_check`, which ignores a `[1m]` context suffix. It is
+  the same model and the forecasts' own rule; a different model name is still `model_mismatch`.
+- A rerun after a failed commit relies on E3's `PendingCommitter` recovery to commit the files already written; the
+  step's files go through the run's own committer.
+- An observer left running by a killed parent can write a second reading per deadline. Receipts take the first
+  valid reading, so the outcome is unchanged (known limit).
+- The 10 s between the last reading (15:11:50) and E3's 15:12 deadline is tight. It is checked at load, and the
+  non-counted test fire measures it. A slow day is `late`, never a trade.
+
+**Gates and sample:**
+- Full suite on the code head eebc9dc8 (its own worktree): 16,921 passed, 1 skipped, 14 xfailed. This Claims commit
+  is Markdown only.
+- ruff, `ruff format` and `check_imports` are clean; every file is under 350 lines.
+- Real output sample (criterion 15; fixture day, committed code, no post):
+  - Book 2 `promoted` ("run 2026-10-19-r1 committed for E3's deadline"; served `claude-opus-5-5`, source
+    `session_tool`, check `match`; commitment seen 15:10:00, reveal 15:11:00).
+  - Book 3 `late` ("commitment not on the remote at 15:10:00 (first seen 15:11:00)").
+  - Alert line: "AI books not promoted: book3_ai late: commitment not on the remote at 15:10:00 (first seen 15:11:00);
+    no trade today for these".
