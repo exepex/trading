@@ -61,3 +61,39 @@ AGENTS.md ("step 2b's once-only rerun holds until O14 replaces it") in the same 
 
 **Minor 3.** Section 6 makes `card` not safe until a test shows one post. Say the same for every step that posts to
 Slack (`recommend`, the editions): a Slack post is the one write that is not write-once.
+
+## Addendum 1
+
+Round 2 of 2, at `ab97493c5` (289 lines). **FAIL: 1 should-fix left (a residual of SF1); everything else is fixed.**
+Judge F not read. After this round the owner decides.
+
+**Fixed, checked against the code:**
+- **3.1's hard times** match the code: `pack_wait_until` 15:10, `decision_deadline` 15:12 and `fills_by` 15:20
+  (`config.yaml` lines 164-167); `SLOT_LAST_START` 15:25 (`school/constants.py:20`); premium_ranges' `DEADLINE`
+  15:30. `RETRIED_ON_RERUN` is `exits` and `trade_marks` (`desk/daily_run.py:84`).
+- **The expected run time** is defined: 1.5 times the previous session's duration, else 600 s or 60 s.
+- **Every caller has a named deadline**, and `book1`'s is 15:12.
+- **SF2:**
+  - sign-ins are counted, at most 12 a day by O14 (129 of 150 with the next morning's pre-open);
+  - the parent reads a child's class from a closed list, and an unreadable class counts as a sign-in failure;
+  - a sign-in failure is never retried;
+  - the plant is named.
+- **A16 and A22:** A22 is not wrapped, and its windows are exact. A16 gets at most 2 retries, none at the 14:30, 14:45,
+  15:00 and 15:15 marks.
+- **Safety:** the safe-steps table is not-safe by default, and every Slack-posting step is not safe. A command stopped
+  at 600 s is never retried (it may have uploaded already).
+- **Minors:** m1 (2b's clauses in CLAUDE.md and AGENTS.md updated in the same change), m2 and m3.
+
+**Should-fix 1 (residual). The deadline rule counts only the retried step's own expected time, not the steps run
+between it and the timed step.**
+- The check is `now + wait + expected <= retry deadline`, where `expected` is the retried step's.
+- `exits` and `trade_marks` have retry deadline 15:25 (the school). But `DAILY_RUN_STEPS` still runs `reviews`,
+  `quotes_done`, `card`, `price_distribution` and `premium_ranges` between them and the school.
+- So an `exits` retry the rule allows up to about 15:24 still pushes the school's start past 15:25. It can also push
+  `premium_ranges` toward its 15:30 refusal.
+- The `book1` plant passes only because `decisions` comes right after `book1`, with nothing between.
+- Fix: a later step's limit, minus the expected time of every step that runs before it (the same 1.5 times
+  previous-session rule), is what the retry must meet. Add a plant: `exits` failing at 15:20 must not move the
+  school's start past 15:25.
+
+**Gates at ab97493c5:** record scan clean (9,547 files); doc-reading tests 963 passed, 13 xfailed, 0 failed.

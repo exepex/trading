@@ -59,3 +59,38 @@ xfailed.
 2. One owning document: section 2 restates other stories' loops; one line and a link each would do. Section 4's
    "O14 only counts its attempts in the escalation line" for the 3 pm parts is unclear, since they alert themselves.
    Say whether O14 sends anything for them.
+
+## Addendum 1
+
+**Text round 2 of 2 at story/o14-retry-policy @ ab97493c5, judge F: FAIL on 1 should-fix (1 minor). Lane 1.** I did
+not read judge E. At most two rounds, so the owner decides.
+
+| Finding | Answer | My check | Result |
+|---|---|---|---|
+| 1 A22 | not wrapped (its own 30 s loop); candle read 09:10:00-09:10:45, window to 09:11:00 | matches `preopen/run.py:1-6` and CLAUDE.md | **Accepted** |
+| 2 Groww calls, A16 | at most 2 retries a mark inside 120 s, in the fire's process; none for the 14:30, 14:45, 15:00 and 15:15 marks; plant 10.5 | the marks are every 15 minutes (`slots.py`); `v4` at 14:32, the 3 pm parts and the snapshot are covered | **Accepted** |
+| 3 Safe table | in the text, with each guard; not safe by default; a 600 s stop never retried; one test per safe row; plant (`card` marked safe) | 7 guard messages found in their packages; no Slack sender in `weather`, `price_distribution`, `premium_ranges`, `price_ranges`, `playbook` | **Accepted** (minor 1) |
+| 4 Budget and a child's class | counted in sign-ins: 12 a day, worst case 129 of 150; the class read from the child's last line; an unknown class counts as a sign-in failure (fail closed); plant | read | **Accepted** |
+| Minors | named deadlines; section 2 one line each; O14 sends nothing for the 3 pm parts | read | **Accepted** |
+
+5. **Should fix: the deadline rule ignores the steps that run between the retried step and the limiting step (strong
+   evidence: the step order).**
+   - Section 3.1 allows a retry when `now + wait + expected <= the latest start of a later step`. It counts only the
+     retried step's own time.
+   - In `DAILY_RUN_STEPS` (`constants_operations.py:61-86`), `reviews`, `quotes_done`, `card`, `price_distribution`
+     and `premium_ranges` run between `exits`/`trade_marks` and the school. All are capped at 15:25, the school's
+     `SLOT_LAST_START`.
+   - An `exits` retry that ends at 15:24 leaves those steps to finish after 15:25. The school then starts late, and
+     `fleet/runner.py:107-114` makes no first seal for that session: the day's school record is lost.
+   - That contradicts section 3.1's own line "A retry never moves a later step past its limit". The same holds for the
+     retries of `reviews`, `card` and `price_distribution`.
+   - Fix: the retry deadline is each later limit minus the expected times of the steps between, from the same
+     run-log rule. Add the plant "an `exits` retry pushes the school past 15:25" to 10.2.
+
+**Minor 1 (fix before the code round's PASS).** Section 6 marks `forecasts_v4_pack` "posts to Slack: no", but its
+command (`forecast_v4_rules/cli.py:82`) runs `run_followups`. That can send W8's review alert
+(`pack_wiring.py:179`, `pack_followups.review_w8`), guarded by a marker the first attempt writes to Drive. Correct the
+row. Criterion 10.6's one-post test must cover that path, or the row becomes not safe.
+
+Gates (trial merge with main; only `O14-retry-policy.md` changes): record scan clean (9,548 files); doc-reading tests
+963 passed, 13 xfailed.
