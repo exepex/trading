@@ -13,14 +13,13 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Protocol
 
+from ..ai_trading.ports import SERVED_VERSION, AcceptedDecision, AiBookDecider, DecidedRun, DecisionRefused
 from ..books.book1 import Book1Inputs
 from ..books.paths import book_folder
-from ..constants import BOOK3_AI, VALIDITY_FAILURES_FILE
+from ..constants import BOOK3_AI, VALIDITY_FAILURES_FILE, PlaybookStatus
 from ..playbook.decision_run import DecisionRun
 from ..playbook.evaluate import RuleEvaluator
 from ..playbook.selection import Pick
@@ -37,39 +36,15 @@ NO_SHEET = "the private pack holds no day sheet (`evaluation`): Book 3 saw no ca
 SHEET_DIFFERS = "the day sheet does not reproduce now (pack {seen}, now {now}): nothing decided"
 UNKNOWN_CARDS = "cards_used names cards the session was not given: {cards}"
 NO_ROLE_SET = "none"
-DECISION_VERSION = "ai_decision_version"  # F1t's run check: `served` names the decision version
-CARD_IDS, ROLE_SET = "card_ids", "role_set_version"  # F1t's AcceptedDecision.analyst_cards (to confirm with F1t, F2)
+ROLE_SET = "role_set_version"  # F2's item, as F1t fires it: {"role_set_version", "roles": [{"card_id", "card"}]}
+STRATEGY_STATUS = PlaybookStatus.RESEARCH  # every Book 3 spec is research (D5): each trade "strategy not yet passed"
 PACK_DIFFERS = "{pack} pack read now ({now}) is not the one the session was fired with ({fired})"
-
-
-class DecisionRefused(ValueError):
-    """No run can be written (F1t's port: the book-day is `refused`)."""
-
-
-class Accepted(Protocol):
-    """What the decider reads of F1t's `AcceptedDecision`."""
-
-    day: date
-    version: str  # F1t's decision version (prompt, model, isolation), named in `served`
-    registered_model: str
-    model_reported: str
-    session: str
-    common_pack: object  # CommonPack: `.sha256`, `.body["opportunities"]`
-    private_pack: object  # PrivatePack: `.sha256`, `.body["evaluation"]`
-    decision: dict
-    analyst_cards: Mapping | None
-
-
-@dataclass(frozen=True)
-class DecidedRun:
-    run: Path
-    files: tuple[Path, ...] = ()
 
 
 RunFactory = Callable[[RuleEvaluator, Sequence[Mapping]], DecisionRun]  # (evaluator, stored picks) -> D3's run
 
 
-class Book3Decider:
+class Book3Decider(AiBookDecider):
     def __init__(self, root: Path, inputs: Book1Inputs, strategies: Book3Strategies, evaluators: Book3Evaluators,
                  proposer: Book3Proposer, runs: RunFactory, head: Callable[[], str],
                  served: Callable[[date], Mapping[str, str]],
@@ -79,7 +54,7 @@ class Book3Decider:
         self.proposer, self.runs, self.head, self.served = proposer, runs, head, served
         self.widths, self.prompt_version = widths, prompt_version
 
-    def decide(self, accepted: Accepted) -> DecidedRun:
+    def decide(self, accepted: AcceptedDecision) -> DecidedRun:
         decision, day = accepted.decision, accepted.day
         problems = check_decision(decision)
         if problems:
@@ -122,7 +97,7 @@ class Book3Decider:
         failures = book_folder(self.root, BOOK3_AI) / VALIDITY_FAILURES_FILE
         return [self.root / p for p in paths] + ([failures] if failures.is_file() else [])
 
-    def _require_sheet(self, accepted: Accepted, arguments: tuple, commit: str) -> None:
+    def _require_sheet(self, accepted: AcceptedDecision, arguments: tuple, commit: str) -> None:
         """The sheet the session saw must be exactly what D2 gives again now: every opportunity, rule result and built
         trade (legs, width, lots, maximum loss). Its commit may be older (F1t commits between the pack and now)."""
         seen = accepted.private_pack.body.get("evaluation")
@@ -133,16 +108,17 @@ class Book3Decider:
         if json.loads(json.dumps(seen.get("opportunities"))) != json.loads(json.dumps(now["opportunities"])):
             raise DecisionRefused(SHEET_DIFFERS.format(seen=_ids(seen), now=_ids(now)))
 
-    def _context(self, context: Mapping, accepted: Accepted) -> dict:
+    def _context(self, context: Mapping, accepted: AcceptedDecision) -> dict:
         """The run's context: the inputs' own (code, config, D6 version), the packs the session was fired with, the
-        model F1t checked, the session link and Book 3's served components."""
-        served = {**self.served(accepted.day), DECISION_VERSION: accepted.version}
+        model F1t checked, the session link, the judge's verdict file (D3 `judge`; Book 3's verdict never blocks) and
+        Book 3's served components with the decision version and the strategies' status (F1t criteria 7, 16, 17b)."""
+        served = {**self.served(accepted.day), SERVED_VERSION: accepted.version, "strategy_status": STRATEGY_STATUS}
         return {**context, "common_pack_sha256": accepted.common_pack.sha256,
                 "private_pack_sha256": accepted.private_pack.sha256, "model_served": accepted.model_reported,
-                "session_id": accepted.session, "served": served}  # fmt: skip
+                "session_id": accepted.session, "judge": accepted.judge or None, "served": served}  # fmt: skip
 
 
-def _require_fired_packs(context: Mapping, accepted: Accepted) -> None:
+def _require_fired_packs(context: Mapping, accepted: AcceptedDecision) -> None:
     """The packs D2 reads now must be the ones the session was fired with, or the records would claim data the
     decision did not use."""
     for pack, fired in (("common", accepted.common_pack.sha256), ("private", accepted.private_pack.sha256)):
@@ -156,11 +132,13 @@ def _ids(sheet: Mapping) -> list[str]:
 
 
 def _cards(item: Mapping | None) -> tuple[set[str], str]:
-    """(the card IDs given, the registered role set); no item means no role is registered yet (F2's rule). An item
-    without both fields is refused, never read as "no cards"."""
+    """(the card IDs given, the role set) from F2's item as F1t fired it: a card counts only when it was passed (a
+    usable status); no item, or one with no role set yet (F2 not built), means no card and the role set "none". An
+    item without a `roles` list is refused, never read as "no cards"."""
     if item is None:
         return set(), NO_ROLE_SET
-    ids, role_set = item.get(CARD_IDS), item.get(ROLE_SET)
-    if not isinstance(ids, list) or not isinstance(role_set, str) or not role_set:
-        raise DecisionRefused(f"analyst_cards must carry {CARD_IDS} (a list) and {ROLE_SET} (text)")
-    return set(ids), role_set
+    roles = item.get("roles")
+    if not isinstance(roles, list):
+        raise DecisionRefused("analyst_cards must carry a roles list (F2's item)")
+    ids = {r.get("card_id") for r in roles if isinstance(r, Mapping) and r.get("card") is not None and r.get("card_id")}
+    return ids, item.get(ROLE_SET) or NO_ROLE_SET

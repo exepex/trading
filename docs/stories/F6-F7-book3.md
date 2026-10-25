@@ -365,3 +365,36 @@ on scoreboard A (derived by S3 with D4's derivation against the rule default whe
    record with null `strategy_id`: done in their `story/d3-no-owner-override` (b49abdde), which also refuses any
    non-empty `owner_override`; F6 depends on it.
 3. **To D4's owner:** none needed (F7 uses `BookTerms` only).
+
+## Claims: the round on F1t's port (25 Oct 2026; builder session_01B3RARTgoiGJwBKXRCgGRe8; for judge 400's re-judge)
+
+Branch `story/f6-on-f1t`, stacked on `story/f1t-code` (F1t's code round), merged after F1t; judge 400's two
+should-fix findings and its minors are answered at d46379c7, unchanged here.
+
+1. **F1t's port, not a copy:** `Book3Decider` is an `AiBookDecider` taking F1t's `AcceptedDecision`, and raises
+   and returns F1t's `DecisionRefused` and `DecidedRun` (`fno/ai_trading/ports.py`). The local `Accepted` protocol
+   and classes are gone.
+2. **Judge field (F1t criterion 16; addendum 1's "Record" line):** every record's D3 `judge` is
+   `AcceptedDecision.judge`, through the run context. Book 3's verdict never blocks, so its decisions are unchanged
+   by it.
+3. **Strategy label (F1t criterion 17b):** every record's `served["strategy_status"]` is `research`. Every Book 3 spec
+   is `research` (D5), so **every Book 3 trade is labelled "strategy not yet passed"**. That is correct and honest
+   for the owner: Book 3 trades only its own unproven ideas, inside its constitution and the Rs 10,000 cap.
+4. **Decision version key:** `served["ai_decision_version"]` (F1t's `SERVED_VERSION`, F6's own key from the start).
+5. **Cards:** read from F2's item exactly as F1t fires it, `{"role_set_version", "roles": [{"card_id", "card"}]}`.
+   Only a card actually passed (`card` not null) may be cited. With no role set yet (F2 not built) the role set is
+   "none".
+6. **Registered:** Book 3's decision version 1 is in F1t's `VERSIONS`: the prompt `agents/book3/decide_v1.md`
+   (SHA-256 93d5fb96...), the model `claude-opus-5-5`, F6's standard-library `check_decision`, and the write paths
+   `journal/book3_ai/`, `book3/strategies/` and `research/ledger.csv`, never the constitution. Its parts (decider,
+   `Book3Orders`, the exit rules) are F1t's `BOOK_PARTS[book3_ai]`. Book 3's live switch stays null.
+7. **Prompt:** step 1 now follows F1t's served-model rule (copy `last_served_model`, `session_context.model` and
+   `model_source`), as F1t revision 2 requires. The old line asked for the configured model only.
+8. **Not yet (addendum 1's sequencing):** the `evidence` key and its prompt lines wait for F4's
+   `fno/judge/evidence.py`, which F4's code round builds. Until then F1t's `NoJudge` gives Book 3 a non-blocking
+   "judge not built (F4)" verdict.
+
+Tests: `tests/book3/test_through_f1t.py` takes a real Book 3 trade through F1t's real `Promoter` and run check, and
+checks the label; `tests/book3/test_decider.py` covers F2's item and an uncited card. On the branch: book3, ai_trading,
+ai, playbook, books, checks, desk and daily give 1,606 passed. ruff, format and `check_imports` are clean. The full
+suite runs before the hand-over.

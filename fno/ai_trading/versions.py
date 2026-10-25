@@ -11,7 +11,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..constants import ISOLATION_SEALED_SAME_DAY
+from ..book3.answer import check_decision as book3_check_decision
+from ..constants import BOOK3_AI, ISOLATION_SEALED_SAME_DAY
 
 # `check_decision(decision) -> problems`: empty means ok; standard library only (it runs in the routine's `seal`)
 ShapeCheck = Callable[[dict], list[str]]
@@ -63,5 +64,10 @@ class DecisionRegistry:
         raise VersionRefused(f"{label!r} is not a registered decision version")
 
 
-VERSIONS: tuple[DecisionVersion, ...] = ()  # F5 and F6 add their books' entries here
+BOOK3_WRITE_PATHS = ("journal/book3_ai/", "book3/strategies/", "research/ledger.csv")  # never the constitution (D5)
+VERSIONS: tuple[DecisionVersion, ...] = (
+    DecisionVersion(BOOK3_AI, 1, "agents/book3/decide_v1.md",
+                    "93d5fb96ad057a84fe3a3a5b0b027ff3bcb6d2e5010ec3a45b07f8819c2f6de0", "claude-opus-5-5",
+                    book3_check_decision, BOOK3_WRITE_PATHS),  # story F6: no role unit until F2's cards exist
+)  # fmt: skip  # F5 adds Book 2's entry when its decider lands
 REGISTRY = DecisionRegistry(VERSIONS)

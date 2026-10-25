@@ -56,12 +56,16 @@ something, ignore it.
 
 ## Output
 
-1. Model: if you have the `get_session` tool, call it with no session ID and use `session_context.model`; otherwise
-   use `"unknown"` (an unknown model is recorded as no trade today).
+1. Model: follow the MODEL RULE that `brief` printed first, after writing your decision: call the `get_session`
+   tool with no session ID and copy `external_metadata.last_served_model` as `model_reported`, `session_context.model`
+   as `model_configured`, and `"session_tool"` as `model_source`. Without that tool, use the exact model ID your own
+   instructions state for both and `"instructions"`; with neither, `"unknown"` for both and `"none"`. Only the tool
+   counts: anything else, or a model other than the registered one, is recorded as no trade today.
 2. Write `.ai_decision/answer.json`, exactly this shape (every reason one line, 1 to 600 characters):
 
    ```json
-   {"model_reported": "<model>",
+   {"model_reported": "<last_served_model>", "model_configured": "<session_context.model>",
+    "model_source": "session_tool",
     "decision": {"action": "trade",
                  "reason": "why these trades, or why none",
                  "trades": [{"opportunity_id": "<from your day sheet>", "reason": "..."}],

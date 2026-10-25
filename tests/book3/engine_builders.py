@@ -140,11 +140,14 @@ class Accepted:
     private_pack: Pack
     day: date = DAY
     version: str = "book3_ai-decision-v1"
+    book: str = "book3_ai"
     registered_model: str = "model-x"
     model_reported: str = "model-x"
     session: str = "https://claude.ai/code/session_test"
     common_pack: Pack = field(default_factory=lambda: Pack(COMMON_SHA, {"opportunities": COMMON_OPPORTUNITIES}))
     analyst_cards: dict | None = None
+    judge: str = "journal/ai_decisions/2026/judge.json"  # F1t's AcceptedDecision: the verdict file, never blocking
+    judge_blocks: bool = False
 
 
 def decision(trades=(), proposals=(), shadow=(), cards=(), reason="the desk's reason") -> dict:

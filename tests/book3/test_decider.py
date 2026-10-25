@@ -121,7 +121,29 @@ def test_a_bad_shape_or_an_unknown_card_is_refused_before_anything_is_written(tm
 
 def test_a_card_that_was_given_may_be_cited_and_its_role_set_is_recorded(tmp_path):
     repository(tmp_path)
-    cards = {"card_ids": ["volatility/v1/2026-10-13"], "role_set_version": "volatility/v1"}
+    cards = {
+        "day": "2026-10-13",
+        "input_sha256": "c" * 64,
+        "role_set_version": "volatility/v1",
+        "roles": [
+            {
+                "role": "volatility",
+                "unit_id": "analyst_volatility",
+                "status": "valid",
+                "reason": "",
+                "card_id": "volatility/v1/2026-10-13",
+                "card": {"finding": "IV rich"},
+            },
+            {
+                "role": "macro",
+                "unit_id": "analyst_macro",
+                "status": "no_submission",
+                "reason": "late",
+                "card_id": "macro/v1/2026-10-13",
+                "card": None,
+            },
+        ],
+    }  # F2's item as F1t fires it
     the_decision = decision(cards=["volatility/v1/2026-10-13"], proposals=[proposal(spec("b3-new"))])
     decider(tmp_path).decide(accepted(tmp_path, the_decision, analyst_cards=cards))
     row = parse_registry((tmp_path / "book3/strategies/registry.csv").read_text())[0]
@@ -219,6 +241,13 @@ def test_an_analyst_cards_item_without_its_fields_is_refused_never_read_as_no_ca
     repository(tmp_path)
     with pytest.raises(DecisionRefused, match="analyst_cards must carry"):
         decider(tmp_path).decide(accepted(tmp_path, decision(), analyst_cards={"cards": []}))
+
+
+def test_a_card_that_was_not_passed_cannot_be_cited(tmp_path):
+    repository(tmp_path)
+    cards = {"role_set_version": "v1", "roles": [{"card_id": "macro/v1/2026-10-13", "card": None}]}
+    with pytest.raises(DecisionRefused, match="not given"):
+        decider(tmp_path).decide(accepted(tmp_path, decision(cards=["macro/v1/2026-10-13"]), analyst_cards=cards))
 
 
 def test_a_sheet_whose_terms_differ_is_refused_even_with_the_same_candidates(tmp_path):
