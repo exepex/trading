@@ -715,22 +715,34 @@ by the round-2 work above. The rest are fixed at ca2e8358:
 - **Known cost:** each evening reads the latest check of every receipted day. It is cheap through the verified Drive
   cache, and grows by one small read per session.
 
-### REC1d text amendment (before code; for the judge, pending the orchestrator's yes on the placement)
+### REC1d text amendment (before code; placement agreed 25 Oct: the orchestrator for MS-P1g's builder, who is out of reach, and for FL1's owner on the reserved call; the conditions from MS-P1j's builder, current owner of `fno/school/reports/`)
 
 What section 3's "08:50 and 20:05" bullet and REC1c item 5 become exact as, each named:
 
-1. **Placement (agreement asked 25 Oct; MS-P1g's owner session is gone, so the orchestrator answers for it).**
+1. **Placement.**
    - The recommender's block is its own `ReportSection` per edition in `fno/recommend/report_section.py`. It reads
      only through REC1's receipted readers: the recommendation record, and the check files with their receipts.
    - `fno/school/reports/` gains only this: each edition maps to a tuple of sections, rendered in order, each
-     isolated. A failing section gives its own `failure_alert`, and the others still post. `build_school_maker` takes
-     an optional `extra` mapping from edition to sections, built by a builder the caller passes in, the same way it
-     passes `inputs`. The reports package imports nothing from `fno/recommend/`.
-   - `fno/forecast_lab/page_wiring.py` changes only its reserved call, to pass `extra=`. This needs the FL1 owner's
-     agreement.
-2. **When it shows.** Only with `school.reports` on, and from `daily.live_from.recommend`. With either off, both
-   editions are byte-identical to today: MS-P1g's golden files are unchanged, and a new test proves it.
-3. **08:50, "Recommender, PAPER ONLY":**
+     isolated. `build_school_maker` takes an optional `extra`, built by a builder the caller passes in, the same way it
+     passes `inputs`. The reports package imports nothing from `fno/recommend/`. If it is clearer, this is a new small
+     composite class rather than a larger `SchoolReportMaker`, and every file stays under 350 lines.
+   - `fno/forecast_lab/page_wiring.py` changes only its reserved call, to pass `extra=recommend_sections` (orchestrator's
+     yes, for FL1's owner).
+   - MS-P1j's builder reviews the diff on `fno/school/reports/` and on the reserved line before the judges.
+2. **Each section under its own switch (condition 1).**
+   - The school's sections show only with `school.reports` on. The recommender's show only from
+     `daily.live_from.recommend`.
+   - The wrapper wraps when any section's switch is on. Neither switch ever turns the other's section on or off.
+   - With every switch off, both editions are byte-identical to the plain maker. MS-P1g's golden test stays green.
+   - New tests cover "school off, recommender on" and "school on, recommender off".
+3. **Isolation per section (condition 2).**
+   - One section raising never stops another section or the edition. Each failure gives one alert naming its edition,
+     its section and the exception class, never the message, in the words of `maker.py`'s failure line.
+   - Tests: a failing recommender section with the school's section still posted, and the reverse.
+4. **Order and text (condition 3).**
+   - The school's sections render exactly as today, in the same place. The recommender's come after them.
+   - MS-P1j4's lines are unchanged. All of `tests/school/reports/` passes untouched, apart from new tests.
+5. **08:50, "Recommender, PAPER ONLY":**
    - The standing real-money answer and each rated version's rung, from the latest recommendation record before
      today, labelled "standing; today's answer at about 15:20" and naming that record's day.
    - Then the latest check of each day checked last evening, in the check's own words (`check_text`).
@@ -738,18 +750,27 @@ What section 3's "08:50 and 20:05" bullet and REC1c item 5 become exact as, each
      `data_check_failed` check is named with its problem. Neither ever fails the edition.
    - No record yet gives one line, "no recommendation recorded yet". A record that cannot be read is named as not
      read, by its path and the exception class only.
-4. **20:05, "Recommender, PAPER ONLY":**
+6. **20:05, "Recommender, PAPER ONLY":**
    - Today's two answers with their codes, in REC1b's line words, without the receipt part.
-   - Then one fixed line: "tonight's check runs after this edition; it is on #fno-desk and in tomorrow's 08:50".
-     REC1c item 5 already states that the 20:05 edition cannot show tonight's check.
+   - Then one fixed line: "tonight's check runs after this edition; it is on #fno-desk and in tomorrow's 08:50". No
+     stale check is ever shown as today's (orchestrator, 25 Oct).
    - On a session with no record (the step did not run or did not post), it says "no recommendation recorded for
      <day>", naming the run log's `recommend` status when there is one.
-5. **Words.** The section names no strike, price or strategy internal, only what REC1b's line and REC1c's check text
-   already allow. No line carries a record hash: the edition is not a record.
-6. **Criteria for REC1d**, each with a plant:
-   - (a) The flag-off golden files are byte-identical. Plant: the section is always added.
-   - (b) A missing check and a `data_check_failed` check are each named, and the edition still posts. Plant: a raised
+7. **Words and their guard (condition 4).**
+   - The section names no strike, price, range or strategy internal. Its only amounts are the check's after-cost
+     rupee totals, which REC1c already posts to #fno-desk.
+   - Its own guard: every line is built only from `post.py`'s and `check_text.py`'s templates and this module's fixed
+     lines. A test checks each line against those templates.
+   - It is never routed through the school's LEAK or rupee checks, which would withhold it.
+   - No line carries a record hash: the edition is not a record.
+8. **Tests on an explicit config (condition 5).** `config.yaml` has `school.reports: true`, so every new test passes
+   its own config and never builds the real school inputs.
+9. **Criteria for REC1d**, each with a plant:
+   - (a) With every switch off, the golden files are byte-identical. Plant: the recommender's section always added.
+   - (b) Each switch alone shows only its own section. Plant: the recommender gated on `school.reports`.
+   - (c) A missing check and a `data_check_failed` check are each named, and the edition still posts. Plant: a raised
      reader error is swallowed silently.
-   - (c) The morning never shows today's record as standing. Plant: `<=` in place of `<`.
-   - (d) One failing section never removes the school's section. Plant: one shared `try`.
-   - (e) An empty history gives the "no recommendation recorded yet" line.
+   - (d) The morning never shows today's record as standing. Plant: `<=` in place of `<`.
+   - (e) One failing section never removes the other. Plant: one shared `try`.
+   - (f) An empty history gives the "no recommendation recorded yet" line.
+   - (g) Every line matches an allowed template. Plant: a candidate's decision path added to a line.
