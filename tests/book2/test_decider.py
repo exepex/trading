@@ -41,9 +41,14 @@ def test_follow_rule_trades_both_defaults_labelled_research_and_every_record_is_
     assert {s["status"] for s in day_log(root)["slots"]} == {"allowed"} and out.files[0].name == f"{DAY}.json"
 
 
-def test_no_trade_trades_nothing_and_keeps_both_vetoes(tmp_path):
+def test_no_trade_trades_nothing_and_keeps_both_vetoes_with_the_rule_s_would_be_trades(tmp_path):
     root, _, records = run(tmp_path, [slot(P, "no_trade"), slot(R, "no_trade")])
-    assert chosen(records) == {} and [s["pick"] for s in day_log(root)["slots"]] == [None, None]
+    slots = day_log(root)["slots"]
+    assert chosen(records) == {} and [s["pick"] for s in slots] == [None, None]
+    assert [(s["rule_trade"]["width"], s["rule_trade"]["lots"], len(s["rule_trade"]["legs"])) for s in slots] == [
+        (50, 2, 4),
+        (100, 1, 4),
+    ]  # what the rule would have traded: priced later from the day's quotes
 
 
 def test_choose_width_and_reduce_lots_trade_the_rebuilt_candidate(tmp_path):
@@ -78,7 +83,8 @@ def test_a_forbidden_choice_is_blocked_by_c4_with_the_attempt(tmp_path):
 def test_a_blocking_judge_holds_no_chosen_trade_and_keeps_the_rule_default_as_a_shadow(tmp_path):
     root, _, records = run(tmp_path, [slot(P), slot(R)], judge_blocks=True)
     assert chosen(records) == {} and all(r["judge"] for r in records.values())
-    assert [d["opportunity_id"] for d in day_log(root)["judge_blocked_rule_default"]] == [P, R]
+    kept = day_log(root)["judge_blocked_rule_default"]
+    assert [d["opportunity_id"] for d in kept] == [P, R] and all(d["rule_trade"]["legs"] for d in kept)
 
 
 def test_the_unproven_limit_holds_a_version_with_an_open_trade_back(tmp_path):

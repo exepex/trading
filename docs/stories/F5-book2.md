@@ -391,19 +391,26 @@ Branch `story/f5-code`, stacked on `story/f6-on-f1t` (F6 round 2, which carries 
   loser worth anything.
 - The records now hold what the comparison needs: per opportunity, the rule's action next to Book 2's, and in the day
   log each slot's default terms and choice.
-- The rule's own result on the same days is that version's D2 shadow account (Book 1's run shadow-trades every
-  registered research candidate).
+- The rule's own result on the same days comes, first, from D2's existing shadow of the same research version, joined
+  by day and opportunity ID. Checked in the code: `Playbook.shadow_on` gives every registered research candidate, and
+  Book 1's run evaluates each one alone in its own shadow book (`fno/playbook/evaluate.py:52`).
+- **The shadow does not cover every day (strong evidence: code read):** that shadow book has its own one-open-trade
+  limit and its own C2. On a day it already holds an open trade of the version, it trades nothing, while Book 2's
+  account may still be offered the default.
+- So, per the ruling, the day log also carries the rule's would-be proposal for every slot (`rule_trade`: the sheet's
+  legs, width, lots and maximum loss), including the judge-blocked defaults. Any vetoed or blocked day can then be
+  priced later from the day's recorded quotes.
 - **Not built here:** the scoreboard view that lists vetoed days against that shadow result. That belongs to the
   scoreboard's story; F5 only records the inputs.
 - If the owner says (B), it is a one-line change (`binds_paper` → `True`).
 
 **Deviations and choices to check:**
-- **Shadow records (asked of the orchestrator):** the text asks for a D3 `mode: shadow` record for a shadow-only choice
-  and for the rule default on a judge-blocked day.
-  - D3's shadow records are D2's shadow-book outcomes, which fill shadow accounts, so emitting them from Book 2 risks a
-    fill path nobody owns.
-  - Both cases are recorded in Book 2's day log (`journal/book2_hybrid/ai_days/<day>.json`) instead. Envelope v1
-    allows every action, so the shadow-only case cannot occur under v1.
+- **Shadow records, ruled by the orchestrator (25 Oct): accepted, with one condition.** Both cases (a shadow-only
+  choice, and the rule default on a judge-blocked day) are recorded in Book 2's day log
+  (`journal/book2_hybrid/ai_days/<day>.json`), not as D3 `mode: shadow` records, so no shadow fill path exists that
+  nobody owns. The condition, that the rule's own result on those days be available, is met as described under Q12
+  above (D2's shadow where it traded, and `rule_trade` in the day log for every day). Envelope v1 allows every action,
+  so the shadow-only case cannot occur under v1.
 - `served.strategy_status` is run-level in D3: a run that picks any research version is labelled `research`
   (conservative: a paper trade in the same run then also reads "strategy not yet passed").
 - **The prompt stays neutral on the rule's record** (it says what `research` means, not "this rule loses Rs 386").

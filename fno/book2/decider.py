@@ -88,7 +88,8 @@ class Book2Decider(AiBookDecider):
         )
         _require_labelled(run)
         blocked = defaults if accepted.judge_blocks else None
-        log = write_day_log(self.root, day, decision["reason"], slots, selection.attempted, blocked)
+        trades = {d["opportunity_id"]: d["trade"] for d in seen["rule_default"]}
+        log = write_day_log(self.root, day, decision["reason"], slots, selection.attempted, blocked, trades)
         failures = book_folder(self.root, BOOK2_HYBRID) / VALIDITY_FAILURES_FILE
         return DecidedRun(run, (log, *([failures] if failures.is_file() else [])))
 
