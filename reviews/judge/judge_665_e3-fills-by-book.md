@@ -37,3 +37,16 @@ Branch `story/e3-fills-by-book` at `ca0de476c` (PR #162; story `docs/stories/E3-
 ## Notes
 
 - Claim 5 (the dashboard) is outside this repository; the orchestrator says it reads read models, not run logs.
+
+## Addendum 1: round 2, head `59961fd7e` (code 378007eec)
+
+**PASS, lane 1.** The orchestrator named head `6bb07be6c`, which does not exist on the remote; the branch's head is
+`59961fd7e` (Claims gate line on top of 378007eec). That head is the one judged.
+
+| Round-1 finding | Verdict | Evidence |
+|---|---|---|
+| 1 No step-level test of two books on one trade ID | FIXED | `test_book1_and_book2_on_one_opportunity_both_keep_their_fill_line` runs E3's daily run with Book 1 and Book 2 both on `t1`: both accounts fill, and both lines sit under their own book keys. My three plants in `_fill_books` are all caught: the old collision (by the new test), every book under `book1_rules` (6 tests) and one shared key (6 tests). Book 2's `b1`/`b5` and Book 3's `c1` are read through their own book |
+| 2 An old flat log read for any book | FIXED | `trade_fills`: an owner of None counts as Book 1; the test pins `trade_fills(old, BOOK2_HYBRID) == {}`. My plant (the old rule back) is caught |
+
+**Gates (trial merge with main, clean):** ruff, format, imports, check_records and check_numbers clean; full suite
+17516 passed, 13 xfailed, 0 failed. **Plants this round:** 4, all caught.
