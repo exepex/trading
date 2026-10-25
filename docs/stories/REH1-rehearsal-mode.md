@@ -1025,11 +1025,19 @@ behind; any time of the day from behind; the near window picking its latest; the
 only answers saved at or before now; ahead answers are still waited for); timestamps all carry their zone; windows are
 matched before the pick; no caller relied on the old "not recorded" for a late read; real runs never build these
 sources. Accepted: a test through `answer()` with a clock (the fallback serves its recorded bytes at once, the near
-window still waits: 64 s for 15:59 to 16:00:04); the name `_served`. Stated, not changed (the review's M1): a 15:40
-read pushed past 16:00:04 is served the recheck's answer, so A4h's recheck then reads "unchanged" where the real day
-compared two lists; a live read at that moment would also have seen the later list, and nothing of the real record is
-written (pinned by `test_a_first_read_pushed_past_the_recheck_s_answer_is_served_the_recheck`). No log line for a
-fallback serve: the recorded sources have no output of their own.
+window still waits: 64 s for 15:59 to 16:00:04); the name `_served`. No log line for a fallback serve: the recorded
+sources have no output of their own.
+
+**The stated limit, exactly** (judges 669 m1 and 671; follow-up `story/reh1qs-minors`). At the real 23 Oct times (the
+first read's answer saved 15:40:07, the recheck's 16:00:10): a first read pushed to 15:41:07 or earlier gets its own
+answer (near it); from 15:41:07 to 15:50:10 the fallback serves it at once (REH1q; before REH1q this stretch was "not
+recorded"); from 15:50:10 the recheck's answer is inside the ten minutes ahead (REH1g's rule, unchanged by REH1q), so
+the first read waits up to ten minutes and records the recheck's list, and the recheck then reads "unchanged" where the
+real day compared two lists. Stated, not capped: the real list of a moment between the two reads was never recorded,
+so any answer served there departs from the day; capping the near window at the next read would need the recorded
+source to know A4h's timetable or which read is asking (a coupling for a rehearsal-only case); nothing of the real
+record is written. Pinned by `test_the_stated_limit_at_the_real_23_oct_times` and
+`test_a_first_read_pushed_past_the_recheck_s_answer_is_served_the_recheck`.
 
 **Gates** (main merged in at the final head, the token kept): 17443 passed, 13 xfailed, 0 failed; ruff, format,
 imports, record scan clean.
@@ -1076,6 +1084,9 @@ real-run code."
   the index recorders unwrapped; the `v4` window recorder unwrapped; the guard without the index rows.
 - **S2. No Groww SDK, no live fallback** (`tests/rehearsal/test_guard_recorders.py`, a fresh process): each of the six
   recorders is recorded over an `NSEProvider` whose call is refused; the SDK line appears once per builder (three).
+- **S3. NSE's own chain recorder** (judge 669 m1 for REH1s; follow-up `story/reh1qs-minors`): `build_nse_quote_recorder`
+  (`quotes record --source nse`, O6) has its own guard row, and in the fresh process it is recorded over its
+  `NseQuoteProvider`, whose call is refused. The guard's planted-break count is thirteen.
 
 #### Claims (one round, for two judges)
 

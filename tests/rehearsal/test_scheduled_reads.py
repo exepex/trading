@@ -113,3 +113,21 @@ def test_a_first_read_pushed_past_the_recheck_s_answer_is_served_the_recheck(tmp
     held, the recheck's, so A4h's recheck then reads "unchanged" where the real day compared two lists. A live read at
     that moment would also have seen the later list; nothing of the real record is written."""
     assert closes(tmp_path, at(16, 5))._served(at(16, 5), date(2026, 10, 21))[0].endswith("recheck.raw.json")
+
+
+def test_the_stated_limit_at_the_real_23_oct_times(tmp_path):
+    """Judge 669 m1, the limit stated exactly: 23 Oct's first read saved 15:40:07, its recheck 16:00:10. A first read
+    pushed to 15:41:07 still gets its own answer near it; from then to 15:50:10 the fallback serves it at once (REH1q);
+    from 15:50:10 the recheck's answer is inside the ten minutes ahead (REH1g's rule) and is served after the wait."""
+    receipts = ReceiptFolder(tmp_path)
+    for name, saved in (("first", at(15, 40, 7, day=23)), ("recheck", at(16, 0, 10, day=23))):
+        receipts.write(Receipt(f"data/closes/2026/10/2026-10-23.{name}.raw.json", "ab", 2, saved.isoformat(),
+                               "closes read", "r"))  # fmt: skip
+    source = RecordedCloseList(receipts, lambda path: b"{}", lambda: None, lambda seconds: None)
+
+    def served(hh, mm, ss):
+        now = at(hh, mm, ss, day=23)
+        return source._served(now, now.date())[0].split(".")[1]
+
+    assert [served(15, 41, 7), served(15, 41, 8), served(15, 50, 9)] == ["first", "first", "first"]
+    assert [served(15, 50, 10), served(15, 55, 0)] == ["recheck", "recheck"]

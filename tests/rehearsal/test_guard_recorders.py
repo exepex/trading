@@ -18,14 +18,14 @@ def no_sdk():
 groww.has_groww_credentials = no_sdk
 from fno.rehearsal.process import install_process
 install_process()
-from fno.composition import build_quote_recorder
+from fno.composition import build_nse_quote_recorder, build_quote_recorder
 from fno.config import load_app_config
 from fno.quotes.index_wiring import build_index_quote_recorders
 from fno.quotes.window_wiring import build_window_quote_recorder
 from fno.rehearsal.http_guard import RehearsalCallRefused
 cfg = load_app_config()
 built = {"3 pm": build_quote_recorder(cfg), **build_index_quote_recorders(cfg),
-         "v4": build_window_quote_recorder(cfg, "v4")}
+         "v4": build_window_quote_recorder(cfg, "v4"), "nse": build_nse_quote_recorder(cfg)}
 for name, recorder in built.items():
     provider = getattr(recorder.provider, "inner", recorder.provider)
     try:
@@ -43,5 +43,6 @@ NAMES = ("3 pm", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTY weekly", "v4")
 def test_with_no_groww_sdk_every_3_pm_recorder_is_recorded_and_its_nse_fallback_refused(tmp_path):
     done = subprocess.run([sys.executable, "-c", PROBE, str(tmp_path)], capture_output=True, text=True, timeout=120,
                           check=True)  # fmt: skip
-    assert done.stdout.splitlines() == [f"{name} RecordedRecorder NSEProvider REFUSED" for name in NAMES]
+    expected = [f"{name} RecordedRecorder NSEProvider REFUSED" for name in NAMES]
+    assert done.stdout.splitlines() == [*expected, "nse RecordedRecorder NseQuoteProvider REFUSED"]  # O6's own chain
     assert done.stderr.count("using the NSE website for option chains") == 3  # each builder's own fallback, once
