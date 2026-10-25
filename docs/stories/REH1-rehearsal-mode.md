@@ -1042,6 +1042,59 @@ problems: quotes_done" (REH1n's weekly part only); `candles` started 15:35:53 (a
 `price_ranges`) and is ok, its lines the real day's own: "window 2026-09-21..2026-10-19: 495 of 500 session candles
 (20 sessions)", "sessions 1683: 1 written now, 1682 held before, 0 deferred".
 
+### REH1s: the guard pins every 3 pm recorder (story and code in one round)
+
+Lane 1 (the rehearsal's guard over outside services): two judges, one round. Builder session_01GAACYjcfHWkC3hp33iiMXV,
+branch `story/reh1s-guard-recorders`. The orchestrator, 25 Oct: "keep it small ... add the index and v4 window recorders
+to the guard's builders(), with tests that each live fallback is refused under the mode. No log-line change in
+real-run code."
+
+#### Finding (strong evidence: a probe under the mode)
+
+- The REC1 builder's 23 Oct rehearsal (run 20261025T022236Z-b5c28b), in a container without the Groww SDK, printed
+  "Groww unavailable (SDK not installed); using the NSE website for option chains". The line is
+  `fno/providers/__init__.py`'s `_auto_provider`, logged when it builds an `NSEProvider`; three 3 pm builders call it
+  ("auto"): `composition.build_quote_recorder`, `quotes/index_wiring.build_index_quote_recorders` and
+  `quotes/window_wiring.build_window_quote_recorder`. Building it calls nothing.
+- Under the mode, with the SDK unavailable, each builder returns a `RecordedRecorder` (the 3 pm one, BANKNIFTY,
+  FINNIFTY, MIDCPNIFTY, NIFTY weekly, the `v4` window), which never asks its provider; a direct call to that provider
+  is refused before it is sent ("rehearsal: no live call (GET www.nseindia.com/api/option-chain-contract-info)", the
+  HTTP guard every rehearsing child installs). No live read was possible.
+- The gap: `fno/rehearsal/guard.py`'s `builders()` pinned only "the 3 pm recorder"; a later change that stopped
+  wrapping the index or window recorders would not have stopped a rehearsal.
+
+#### Design
+
+- `builders()` gains one row per index recorder (`RECORDED_INDEX_OPTIONS` and `WEEKLY_NAME`, A4c's and A4f's) and one
+  for the `v4` window's (A4e's, G10's capture), each required to be a `RecordedRecorder` under the mode. No real-run
+  code changes (the SDK line stays as it is).
+- FREEZE_v4.md (`story/v4-freeze`): `guard.py` is in none of its tables; nothing else is touched.
+
+#### Criteria
+
+- **S1. Every 3 pm recorder is pinned** (`tests/rehearsal/test_guard.py`): with the mode set, `problems()` is empty;
+  without it, each builds what it builds today (`QuoteSnapshotRecorder`); the planted-break count is twelve. Plants:
+  the index recorders unwrapped; the `v4` window recorder unwrapped; the guard without the index rows.
+- **S2. No Groww SDK, no live fallback** (`tests/rehearsal/test_guard_recorders.py`, a fresh process): each of the six
+  recorders is recorded over an `NSEProvider` whose call is refused; the SDK line appears once per builder (three).
+
+#### Claims (one round, for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1s-guard-recorders` (from main). Code: `fno/rehearsal/guard.py`
+(five rows). Tests: `test_guard.py` (two cases extended), `test_guard_recorders.py` (new).
+
+**Plants:** 3 planted, 3 caught, in a separate worktree, each restored with `git checkout --`: the index recorders not
+rehearsed (both tests and the planted-break count), the `v4` window recorder not rehearsed (the same three), the guard
+without the index rows. A plant that would let a live call through was not run: it would reach NSE for real.
+
+**Real output sample** (this branch, the token kept): `python -m fno rehearse check` in a rehearsing process (the mode
+for 23 Oct, the replay clock at 14:05): exit 0, no line (every service its rehearsal form). With the index recorders
+planted unwrapped: "rehearsal guard: BANKNIFTY's 3 pm recorder is QuoteSnapshotRecorder, not its rehearsal form", the
+same for FINNIFTY, MIDCPNIFTY and NIFTY weekly, exit 1.
+
+**Gates** (main merged in, the token kept): 17436 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
+clean.
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
