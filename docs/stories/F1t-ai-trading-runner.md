@@ -773,3 +773,19 @@ the old code.
 Gates (round 2): the full suite on d7162890e (round 2 merged with main 80857781), in its own worktree: 17,146 passed,
 1 skipped, 13 xfailed, 0 failed. ruff, `ruff format`, `check_imports` and the record scan are clean; every file is
 under 350 lines.
+
+### Narrow re-check after round 2 (judges 651.1 and 655.1; prepared, pushed only on the owner's word)
+
+1. **651.1 should-fix and 655.1 m2, accepted (strong evidence: the plant below):** `DecisionTimedOut` subclassed
+   `Exception`, so a decider's own `except Exception` swallowed the stop. F6's `Book3Proposer._guards` has one, and
+   the decider would then run on unbounded.
+   - It now derives from `BaseException`, as `KeyboardInterrupt` does; the promoter catches it by name.
+   - The timer is cleared first and the old handler is restored in a nested `finally`, so an alarm landing inside the
+     cleanup still restores it.
+   - Tests: a block and a promoted decider that each catch `Exception` around slow work are still stopped in under 2 s;
+     the old handler comes back after a stop.
+   - Plant: back on `Exception`, 2 tests fail.
+2. **655 m1, accepted:** an empty or blank `strategy_status` on a chosen trade refuses the book-day.
+   - The code already refused it (`run_check.py`, `status.strip()`); the test was missing.
+   - An empty string is refused earlier, by D3's own record check (non-empty `served` text). Whitespace passes D3 and
+     is refused by F1t's run check. The test pins both.

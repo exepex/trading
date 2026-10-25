@@ -175,3 +175,24 @@ def test_a_decider_stopped_by_its_time_limit_is_put_back_and_marked_timed_out(tm
     promotion = promoter.promote(accepted(tmp_path), write_paths("book2_hybrid"), 0.2)
     assert (promotion.promoted, promotion.timed_out) == (False, True) and "within 0.2 s" in promotion.reason
     assert promotion.restored and DecisionStore(tmp_path, "book2_hybrid").runs(DAY) == []
+
+
+def test_a_decider_that_catches_exception_around_slow_work_is_still_stopped(tmp_path):
+    """Judge 651.1: F6's proposal guards catch Exception; the time limit must still stop the decider."""
+    import time
+
+    class Guarded(FakeDecider):
+        def decide(self, accepted_decision):
+            super().decide(accepted_decision)
+            try:  # noqa: SIM105 - written as deciders write their guards
+                time.sleep(5)
+            except Exception:  # noqa: BLE001 - a decider's own broad guard, as written in deciders
+                pass
+            time.sleep(5)
+
+    started = time.monotonic()
+    promotion = Promoter(tmp_path, {"book2_hybrid": Guarded(tmp_path)}).promote(
+        accepted(tmp_path), write_paths("book2_hybrid"), 0.2
+    )
+    assert promotion.timed_out and time.monotonic() - started < 2
+    assert DecisionStore(tmp_path, "book2_hybrid").runs(DAY) == []

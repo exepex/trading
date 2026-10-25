@@ -47,3 +47,20 @@ def _run_in_limit():
     with time_limit(0.01):
         time.sleep(0.05)
     return "ran"
+
+
+def test_a_decider_s_own_except_exception_cannot_swallow_the_stop():
+    """Judge 651.1: the stop is a BaseException, so Book 3's proposal guards (`except Exception`) never hide it."""
+    with pytest.raises(DecisionTimedOut), time_limit(0.2):
+        try:  # noqa: SIM105 - written as deciders write their guards
+            time.sleep(5)
+        except Exception:  # noqa: BLE001 - what a decider's own guard does
+            pass
+        time.sleep(5)  # never reached: the stop went through the guard
+
+
+def test_the_old_handler_comes_back_after_a_stop_too():
+    before = signal.getsignal(signal.SIGALRM)
+    with pytest.raises(DecisionTimedOut), time_limit(0.05):
+        time.sleep(1)
+    assert signal.getsignal(signal.SIGALRM) == before and signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0)

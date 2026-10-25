@@ -121,3 +121,13 @@ def test_a_run_s_label_reads_passed_only_when_every_traded_strategy_passed(tmp_p
     records = [record("book2_hybrid", f"{DAY}-r1", decided, decision=CHOSEN, served=served(status),
                       opportunity_id=f"opp-{n}") for n, status in enumerate(statuses)]  # fmt: skip
     assert strategy_label(store.write(DAY, f"{DAY}-r1", None, records)) == label
+
+
+@pytest.mark.parametrize("status, why", [
+    ("", "served: every component the decision used, as non-empty text"),  # D3 refuses the record itself
+    ("   ", "a chosen trade without served.strategy_status"),  # D3 takes it; F1t's run check refuses it
+])  # fmt: skip
+def test_an_empty_or_blank_strategy_status_on_a_chosen_trade_is_refused(tmp_path, status, why):
+    """Judge 655 m1: a blank status is no status: the book-day is refused, never labelled."""
+    _, result = collected(tmp_path, decider_changes=chosen(None, status))
+    assert status_of(result, "book2_hybrid") == REFUSED and why in result.outcomes["book2_hybrid"]["reason"]

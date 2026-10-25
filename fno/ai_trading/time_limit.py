@@ -14,8 +14,9 @@ from contextlib import contextmanager
 TIMED_OUT = "the decider did not finish within {seconds:.1f} s, before E3's decision deadline"
 
 
-class DecisionTimedOut(Exception):
-    """The decider was stopped by its time limit."""
+class DecisionTimedOut(BaseException):
+    """The decider was stopped by its time limit. A `BaseException`, as `KeyboardInterrupt` is (judge 651.1): a
+    decider's own `except Exception` (Book 3's proposal guards have one) must never swallow the stop."""
 
 
 @contextmanager
@@ -35,5 +36,7 @@ def time_limit(seconds: float | None) -> Iterator[None]:
     try:
         yield
     finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        signal.signal(signal.SIGALRM, previous)
+        try:
+            signal.setitimer(signal.ITIMER_REAL, 0)  # first: no alarm can land after this line
+        finally:
+            signal.signal(signal.SIGALRM, previous)  # always, even if the alarm landed inside this `finally`
