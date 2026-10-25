@@ -447,3 +447,20 @@ trade ID alone (`fno/desk/daily_steps.py:185`).
   line.
 - Fix proposed for its owner (E3's run log, lane 1): key the result by book as `decisions`, `exits` and `trade_marks`
   already are. That touches the run-log schema read by about ten test files.
+
+**Independent review (25 Oct, a separate reviewer on 467413243), each finding checked against the code:**
+1. Accepted, fixed: after the envelope, a shadow-only slot takes its default, so two picks could name one opportunity.
+   D2 would then trade the first while C4 paired the last pick's rule default. The decider now refuses the day when two
+   resolved picks name one opportunity (test). This cannot happen under envelope v1.
+2. Accepted, fixed: a judge-blocked day's records read "not chosen by book2_hybrid", like an AI veto. Every record now
+   reads "no trade, judge failed" or "no trade, judge unavailable", from the verdict file (criterion 11; tests).
+   `SelectionAllocator` takes the unpicked reason; Book 3 is unchanged.
+3. Open, for the orchestrator or owner: a forbidden `no_trade` still trades nothing (D4's `resolve`: account `None`,
+   as the text says). An envelope therefore cannot force the default to trade. Changing that is a D4 rule, not F5's.
+4. Known limit, kept: the replay reproduces the run from `inputs.json` by reading the stored rule actions and each
+   pick's stored default, not by recomputing the rule default. The counts are recorded only for the versions sent to
+   the allocator. The inputs hash in every record catches any edit, but a decider bug in the rule default would replay
+   clean. The sheet check at decision time (D2 recomputed and compared) is the guard.
+5. Known, as stated above: the run label is conservative (a research pick refused by C2 or C4 still labels the run
+   `research`). A forbidden trade of an opportunity whose rule did not fire is no built candidate, so it is recorded
+   in the day log's `attempted_picks` and `authority_check`, not as a C4 block.

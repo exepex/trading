@@ -83,6 +83,9 @@ def test_a_forbidden_choice_is_blocked_by_c4_with_the_attempt(tmp_path):
 def test_a_blocking_judge_holds_no_chosen_trade_and_keeps_the_rule_default_as_a_shadow(tmp_path):
     root, _, records = run(tmp_path, [slot(P), slot(R)], judge_blocks=True)
     assert chosen(records) == {} and all(r["judge"] for r in records.values())
+    assert {r["decision"]["reason"] for r in records.values() if r["opportunity_id"] != "no_trade"} == {
+        "no trade, judge failed"
+    }  # never read as the AI's own veto (review, 25 Oct)
     kept = day_log(root)["judge_blocked_rule_default"]
     assert [d["opportunity_id"] for d in kept] == [P, R] and all(d["rule_trade"]["legs"] for d in kept)
 
@@ -157,3 +160,22 @@ def test_with_no_tradable_version_book2_writes_the_day_s_no_trade_record(tmp_pat
     [day_record] = [json.loads(p.read_text()) for p in out.run.glob("no_trade*.json")]
     assert (day_record["chosen_action"], day_record["rule_default"]) == ("no trade", "no trade")
     assert day_record["authority_check"] == "the rules offered no trade: nothing to check"
+
+
+def test_an_unavailable_judge_is_named_as_such_in_every_record(tmp_path):
+    verdict = tmp_path / "journal" / "ai_decisions" / "2026" / "judge.json"
+    verdict.parent.mkdir(parents=True)
+    verdict.write_text(json.dumps({"status": "unavailable"}))
+    _, _, records = run(tmp_path, [slot(P), slot(R)], judge_blocks=True)
+    assert {r["decision"]["reason"] for r in records.values() if r["opportunity_id"] != "no_trade"} == {
+        "no trade, judge unavailable"
+    }
+
+
+def test_two_slots_resolving_to_one_opportunity_refuse_the_day(tmp_path):
+    """Review, 25 Oct: a shadow-only veto takes its default P, and another slot trades P too: C4 would have one rule
+    default for two slots, so nothing is decided."""
+    actions = {**ALL_ALLOWED, "no_trade": "shadow-only"}
+    root = repository(tmp_path, actions=actions)
+    with pytest.raises(DecisionRefused, match="resolve to the same opportunity"):
+        decider(root).decide(accepted(decision([slot(P, "no_trade"), slot(R, "trade", P)])))

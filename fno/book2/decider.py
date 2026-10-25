@@ -30,6 +30,7 @@ from ..playbook.envelope import BookTerms, TradeEnvelope, VersionKey
 from ..playbook.envelope_files import served_envelopes
 from ..playbook.evaluate import RuleEvaluator
 from ..playbook.outcomes import DayEvaluation
+from ..playbook.selection import NOT_CHOSEN
 from .answer import check_decision
 from .day_log import log_path, write_day_log
 from .evaluation import Book2Evaluators
@@ -43,6 +44,8 @@ SHEET_PARTS = ("opportunities", "rule_default", "eligible", "paused")
 
 NO_DEFAULT = "the rules offered no trade: nothing to check"
 JUDGE_BLOCKED = "the judge's verdict blocks: no pick, the rule default kept as a shadow"
+JUDGE_FAILED, JUDGE_UNAVAILABLE = "no trade, judge failed", "no trade, judge unavailable"  # criterion 11
+SAME_PICK = "two slots resolve to the same opportunity ({ids}): nothing decided"
 
 # (evaluator, stored picks, each pick's rule default terms, the run's counts, the rule's action per opportunity)
 #   -> D3's run with Book 2's C4 validator
@@ -79,7 +82,9 @@ class Book2Decider(AiBookDecider):
         slots = [] if accepted.judge_blocks else SlotResolver(rule, self.envelopes()).resolve(decision["slots"],
                                                                                            defaults)  # fmt: skip
         taken = [s for s in slots if s.pick is not None]
-        evaluator, selection = self.evaluators.with_picks([s.pick for s in taken], today.market)
+        _require_one_pick_each(taken)
+        unpicked = self._judge_reason(accepted) if accepted.judge_blocks else NOT_CHOSEN
+        evaluator, selection = self.evaluators.with_picks([s.pick for s in taken], today.market, unpicked)
         paired = {s.pick.opportunity_id: s.default.terms for s in taken}
         context = {**self._context(today.context, accepted, _status(seen, taken), snapshot.playbook().approved_on(day)),
                    "authority_check": _authority(slots, accepted.judge_blocks)}  # fmt: skip
@@ -92,6 +97,14 @@ class Book2Decider(AiBookDecider):
         log = write_day_log(self.root, day, decision["reason"], slots, selection.attempted, blocked, trades)
         failures = book_folder(self.root, BOOK2_HYBRID) / VALIDITY_FAILURES_FILE
         return DecidedRun(run, (log, *([failures] if failures.is_file() else [])))
+
+    def _judge_reason(self, accepted: AcceptedDecision) -> str:
+        """ "no trade, judge failed" or "no trade, judge unavailable", from the verdict file F1t's judge step wrote."""
+        try:
+            status = json.loads((self.root / accepted.judge).read_text(encoding="utf-8")).get("status")
+        except (OSError, ValueError, AttributeError):
+            status = None
+        return JUDGE_UNAVAILABLE if status == "unavailable" else JUDGE_FAILED
 
     def _context(self, context: Mapping, accepted: AcceptedDecision, status: str, tradable) -> dict:
         """The inputs' own context, the fired packs, the model F1t checked, the session, the judge's verdict file, and
@@ -109,6 +122,15 @@ def _require_same_sheet(seen: Mapping, now: Mapping) -> None:
     for part in SHEET_PARTS:
         if json.loads(json.dumps(seen.get(part))) != json.loads(json.dumps(now[part])):
             raise DecisionRefused(SHEET_DIFFERS.format(part=part))
+
+
+def _require_one_pick_each(taken: Sequence[SlotResult]) -> None:
+    """After the envelope (a shadow-only slot takes its default), two picks of one opportunity would leave C4 one rule
+    default for two slots: the day is refused, never decided on whichever pick came first."""
+    ids = [s.pick.opportunity_id for s in taken]
+    twice = sorted({i for i in ids if ids.count(i) > 1})
+    if twice:
+        raise DecisionRefused(SAME_PICK.format(ids=", ".join(twice)))
 
 
 def _rule_actions(rule: DayEvaluation) -> dict[str, str]:

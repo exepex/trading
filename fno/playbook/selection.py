@@ -54,8 +54,11 @@ class Attempt:
 
 class SelectionAllocator:
     def __init__(self, allocator: Allocator, picks: Sequence[Pick], book: str, threshold: Threshold,
-                 rebuild: Rebuild | None = None):  # fmt: skip
+                 rebuild: Rebuild | None = None, unpicked: str = NOT_CHOSEN):  # fmt: skip
+        """`unpicked`: the reason of every candidate not picked ("{book}" filled in); Book 2's blocked judge day names
+        the judge's verdict instead of reading like the AI's own veto (F5)."""
         self.allocator, self.book, self.threshold, self.rebuild = allocator, book, threshold, rebuild
+        self.unpicked = unpicked
         self.picks: dict[str, Pick] = {}
         self._seen: set[str] = set()
         self._refused: list[Attempt] = []
@@ -83,7 +86,7 @@ class SelectionAllocator:
             self._seen.add(opportunity_id)
             pick = self.picks.get(opportunity_id)
             if pick is None:
-                placed.append((candidate, Decision.NOT_CHOSEN, NOT_CHOSEN.format(book=self.book), None))
+                placed.append((candidate, Decision.NOT_CHOSEN, self.unpicked.format(book=self.book), None))
                 continue
             ready, refusal = self._terms(candidate, pick)
             if ready is None:

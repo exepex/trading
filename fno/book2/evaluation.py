@@ -15,7 +15,7 @@ from ..playbook.allocation import Allocator, Placed, StrategyTradeCounts
 from ..playbook.candidates import Candidate, CandidateBuilder, NotBuilt
 from ..playbook.evaluate import RuleEvaluator
 from ..playbook.opportunities import OpportunityFinder
-from ..playbook.selection import Pick, SelectionAllocator
+from ..playbook.selection import NOT_CHOSEN, Pick, SelectionAllocator
 from ..playbook.shadow import RealBooks
 from ..playbook.transitions import PAPER
 from ..risk.inputs import Market, RiskBook
@@ -44,8 +44,10 @@ class Book2Evaluators:
     def rule_default(self) -> RuleEvaluator:
         return RuleEvaluator(self.finder, self.builder, RuleDefaultAllocator(self.allocator), self.real)
 
-    def with_picks(self, picks: Sequence[Pick], market: Market) -> tuple[RuleEvaluator, SelectionAllocator]:
-        selection = SelectionAllocator(self.allocator, picks, BOOK2_HYBRID, binds_paper, self._rebuild(market))
+    def with_picks(self, picks: Sequence[Pick], market: Market,
+                   unpicked: str = NOT_CHOSEN) -> tuple[RuleEvaluator, SelectionAllocator]:  # fmt: skip
+        selection = SelectionAllocator(self.allocator, picks, BOOK2_HYBRID, binds_paper, self._rebuild(market),
+                                       unpicked)  # fmt: skip
         return RuleEvaluator(self.finder, self.builder, selection, self.real), selection
 
     def from_stored(self, stored: Sequence[Mapping], market: Market) -> RuleEvaluator:
