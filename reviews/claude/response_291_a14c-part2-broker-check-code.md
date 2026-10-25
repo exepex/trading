@@ -246,3 +246,12 @@ Both points are accepted, checked against the code.
 
   The story says the same. Tests: `test_after_14_50_no_line_names_a_by_hand_run` (a record failing after the stop;
   a run ending past it) and the exact not-saved line. Plant "the clock ignored": 1 failed.
+
+### Owner rule of 25 Oct: no hand-run Groww command from 09:15 to 15:35 IST
+
+A by-hand run can no longer ask the same day. Before 15:35 the rule forbids it; after 15:35 the check itself asks
+nothing (no request at or after 14:50). The earlier "unless run by hand before 14:50 ... receipts committed" ending,
+and its `_then` rule, are removed. Every failure and not-saved line now ends "today's broker figure is lost", and the
+story says the same. Tests: the exact lines, and the O1 test asserting no "rerun" and no "by hand" in the reason.
+Earlier rounds' by-hand wording above is superseded by this. The market-hours sample planned for Mon 26 Oct 13:20 IST
+is a hand-run Groww read, so it moves to after 15:35 (see the sample section).
