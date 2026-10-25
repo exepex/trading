@@ -176,3 +176,9 @@ def test_a_calls_send_time_is_taken_after_its_pacer_wait():
                                  SleepingPacer(clock))  # fmt: skip
     doc = source.take(DAY, mark)
     assert doc.index.request_sent_at == mark + timedelta(seconds=1)  # the first call: one wait, then its stamp
+
+
+def test_a16s_pace_leaves_headroom_under_three_hundred_a_minute():
+    """Judge 637.1's survivor (the fast pace back at 5 a second): 5 a second is the whole 300 a minute, with no room
+    for `prepare`'s two unpaced expiry calls or a hand-run reader; 4 leaves 60 a minute."""
+    assert PER_SECOND * 60 <= 300 - 60

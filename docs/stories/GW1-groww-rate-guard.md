@@ -135,8 +135,10 @@ it.
     80 s = 15:22:30 (`test_the_school_still_starts_by_its_limit_after_that_capture`).
   - **Not covered: E3's common retry.** On 22 Oct the first attempt (15:15-15:18:10) was incomplete and the retry ran
     15:18:24-15:21:10, already past 15:20 before GW1 (the day's snapshot was invalid). Under GW1 a retry would end
-    about 15:23:07, past 15:23, and the school would start about 15:24:30, or past 15:25 with a pause. Covering it
-    needs a later `fills_by` and school start: the orchestrator's or the owner's call.
+    about 15:23:07, past 15:23, and the school would start about 15:24:30, or past 15:25 with a pause. In short: a day
+    needing E3's retry may end past `fills_by`, so no new desk trade that day, as before GW1. The orchestrator kept
+    15:23 (25 Oct): 15:25 would push the school to TOO_LATE on more days. The value goes to the owner with the round-3
+    request, since it widens the owner's 24 Oct rerun rule.
 - No Groww reader outside `get_provider` gets the quiet windows. A new reader must be built through `get_provider`
   (MS-P0b is) or keep out of A16's marks by its own schedule. The pre-open capture (08:40-09:11) and A16b's candles
   (15:33, 2 a second) build `GrowwProvider` directly. Each runs outside A16's windows, where A16 asks nothing.
@@ -286,6 +288,7 @@ leaves A16 at 240 a minute, so its few unpaced calls (index, future, chains, can
     - the send time stamped before the pacer's wait (judge 638 addendum 1's survivor J3; now caught by
       `test_a_calls_send_time_is_taken_after_its_pacer_wait`);
     - `fills_by` back at 15:20;
+    - A16's fast pace back at 5 a second (judge 637.1's survivor; `test_a16s_pace_leaves_headroom_under_three_hundred_a_minute`);
     - `execution_snapshot` at 15:18 (no room left).
   - Wiring:
     - A4c not after NIFTY;
