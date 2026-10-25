@@ -61,3 +61,36 @@ Gates (trial merge with main; only `.md` files change): record scan clean (9,537
   are out of scope.
 - P6's window (outside 08:30-20:30 IST) clears every routine. Name the rehearsals and judge sessions too, or keep the
   switch to one merge, so that one read sees one set.
+
+## Addendum 1
+
+**Still round 1, at the new head story/doc1-clean-docs @ b91fb1422 (revision 2 and section 7), judge F: FAIL on 4
+should-fix.** I did not read judge E. bba6ad145 and b91fb1422 were committed before my verdict 163fda2fb, so they do
+not answer findings 1-3. All three still stand unchanged: DESK_DECISIONS.md as a live input and record, citations into
+moved files, and the JUDGE.md rules P7 must deliver.
+
+| Check | Result | My evidence |
+|---|---|---|
+| New counts: 37 Markdown files over 500 lines, `docs/` 23, `docs/stories/` 21 | TRUE | at 8edc21139, file names with spaces included |
+| Section 7: work in review lands in its current file; new pieces get their own file; only DOC1 moves files | SOUND | REH1 2,000, REC1 857, E3 46 lines on main, as listed |
+| The interim rule widens checks | YES, in part | documents about lane-1 work now need a lane-1 judge; before, they could go lane 2 |
+| Gates (trial merge with main) | PASS | record scan clean (9,539 files); doc-reading tests 963 passed, 13 xfailed |
+
+4. **Should fix: the interim rule in CLAUDE.md disagrees with the lane rules and with section 7 (strong evidence: the
+   texts side by side).** Agents reading different lines would act differently, which is the problem DOC1 exists to
+   fix.
+   - **(a) Lane 3.** The "Branch" section keeps "decision and status rows" in lane 3, with no judge. The new bullet
+     needs a judge PASS for "a decision ... a status or roadmap claim", and exempts only "conversation logs, judge files
+     and register rows". The two now contradict. Say which wins; the owner's own decision rows are probably meant to
+     stay lane 3.
+   - **(b) The rule-document guard.** "In the lane of the functionality it describes" can be read as moving a rule
+     document to a lower lane. Example: a JUDGE.md or CI-rule change describes lane-2 work, yet narrowing lane 1 keeps
+     it lane 1 under the guard. Fix: add the plan's own line ("a functional document's lane is never lower than its
+     code's") and "the rule-document guard still holds" to both CLAUDE.md and AGENTS.md.
+   - **(c) The limit.** "No document over 500 lines" applies at once in CLAUDE.md, but section 7 lets review work land
+     in files of up to 2,000 lines. Read literally, CLAUDE.md fails every REH1 or REC1 story edit. Fix: CLAUDE.md
+     states section 7's exception (existing files until DOC1 reaches their area; new documents under 500 lines).
+   - Minor: AGENTS.md says "a judge PASS ... in the lane", but lane 2 is the orchestrator's check. Say "its lane's
+     check".
+
+For PASS: findings 1-4 fixed in the text. Each is a few lines.
