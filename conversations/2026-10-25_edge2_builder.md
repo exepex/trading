@@ -114,3 +114,21 @@ Owner, 25 Oct 2026 (relayed in this session's task): "no proven edge: let's try 
 
 - CP1's three owner questions (30 or 20 sessions; median decided with p75 reported; the 15:00 bucket for
   close-to-close studies) and its two judges.
+
+## CP1 text round 2 (after judges 679 J and 681 B, both FAIL, nothing blocking)
+
+No owner message this round; the orchestrator relayed both judges' findings.
+- Decision (some evidence, data check on 3,768 quotes from 13-23 Oct): the pad's unit is relative × the leg's own price.
+  Leave-one-session-out median error: out-of-the-money Rs 0.113 vs Rs 0.137 for a rupee median; in-the-money Rs 2.46
+  vs Rs 2.92. The otm/itm split is kept: in-the-money paid more in 26 of 33 buckets beyond 1%; the mean error is 8% lower.
+- MeasuredPad is built per trial in the composition root and refuses at construction (three named errors). Q1 now
+  gives dates per band (most non-NIFTY buckets stay provisional into 2027). New Q4: trades before the table's first
+  session pay max(Rs 1, measured). A16 is out of scope.
+- CP1 is at 1fd94daf. slippage.py's duplicate tick floor is removed on story/edge2-slippage-floor a77e9f78 (lane 2;
+  full suite 17570 passed).
+
+## Decisions so far
+- No new EDGE2 search family (Q13 pause). CP1: no code until both judges PASS and the owner answers Q1-Q4.
+
+## Open questions
+- CP1 Q1-Q4 for the owner (in the story file).

@@ -46,3 +46,29 @@ which ledger field gives the registration date (`registered_on`, `fno/research_e
   unchanged (`ledger.py:7-8`). The Drive-receipt match is CP1's own code (criterion 7); say so.
 - **m3:** A16's 15-minute chains are not read by `CaptureReader`, which reads the 3 pm captures (`roads/capture.py:1`).
   Name A16's reader, or put the A16 slots out of scope until one exists.
+
+## Addendum 1
+
+**Round 2 of 2 at story/cp1-measured-pads `1fd94daf6` (165 lines): PASS (0 blocking, 0 should-fix, 3 minor).**
+Text only: doc-reading tests on a trial merge with main: 963 passed, 13 xfailed. I did not read judge J. My own data
+checks read the verified 15:00 captures through MS-P1b's `CaptureReader` (read-only, scratch script, deleted).
+
+| Finding | Result | My evidence |
+|---|---|---|
+| S1 unit | MET | The leg pays relative × its own price with a half-tick floor; `percentile` exists (`spreads/model.py:21`). Leave-one-session-out, recomputed: **3,768 quotes** (same). Relative vs rupee median, median absolute error: OTM Rs 0.116 vs 0.138 (text 0.113 vs 0.137), ITM Rs 2.39 vs 2.82 (text 2.46 vs 2.92). Same direction and size; the small gap is method detail |
+| Side key | MET | Beyond 1%, ITM over OTM in **26 of 33** buckets, median ratio 1.54, range 0.25-4.08 (text: 26/33, 1.5, 0.25-4) |
+| S2 Q1 per band | MET | I simulated each band from the canonical markers and sidecars (sessions already seen per underlying × band), NSE's calendar, last-Tuesday monthlies moved for holidays (Nov: 23 Nov) and NIFTY's two non-monthly weeklies: **all 12 dates match** the table |
+| S3 era | MET | Q4: before the table's first session a trade pays max(flat Rs 1, measured), so older backtests can only cost more |
+| S4 refusal input | MET | `MeasuredPad` is built only in `fno/costs_pads/wiring.py`, per trial, with no trial-less constructor. Three named errors, keyed on `registered_on` (`ledger.py:26`); criterion 8 plants a trial-less build |
+| m1, m2, m3 | MET | Bands linked to `bucket.py`; the receipt match is CP1's own check (`require_registered` checks only the protocol); A16 is out of scope with its reason |
+| Document rules | MET | 165 lines; the owner table links out; one owning document for the pad table |
+
+**Minors (no block):**
+- **m4:** "cuts the mean out-of-sample error by 8% (the median by 6%)" holds for the error *as a share of the price*.
+  I got mean 8.1% and median 5.1% better. In rupees, the unit design 1 judges by, the side split gives mean 7.0%
+  better and **median 2.0% worse** (3,450 quotes with both predictions). Say which unit. The side key still stands on
+  the 26-of-33 evidence.
+- **m5:** criterion 2 says EDGE2's second tick floor "is removed (branch `story/edge2-slippage-floor`)". No such branch
+  is on the remote (`git ls-remote`). Push it, or word it as planned.
+- **m6:** "each leg's own fill price": say the *unpadded* price (the close), so the pad is never computed on a price
+  that already contains it.

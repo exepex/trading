@@ -53,3 +53,42 @@ Narrow check of e5209d7ca and 16861f8bd (head 16861f8bd). **FAIL: 1 should-fix, 
     detail.
 - **Minor 2:** the two new CLAUDE.md lines (37 and 38) are 156 and 158 characters long. Rewrap them.
 - **Gates at 16861f8bd:** record scan clean (9,539 files); doc-reading tests 963 passed, 13 xfailed, 0 failed.
+
+## Addendum 2
+
+Narrow re-check at `02e5b5e0b` (the owner's 25 Oct answer, DESK_DECISIONS e3bbbdfeb, story O14). **FAIL: 1 should-fix,
+now a single clause.**
+
+- **The long-term rule matches the owner's words.** The owner said "an exponential backoff policy with a maximum 5
+  retries ... then we highlight and escalate to human or operator". The text says "retried with exponential backoff, at
+  most 5 retries, then escalated to a human in #fno-desk (story O14)". Matched in both CLAUDE.md and AGENTS.md.
+- **Should-fix 1 (680.1's SF1), still open for the interim.**
+  - "Until O14 is live, and after an escalation, the failed routine's own command may be run again by hand" sets no
+    count.
+  - Step 2b (lines 83-84, unchanged) still says the daily run's exits and marks retry is "once more at once, once only
+    ... never a rerun chosen later".
+  - The orchestrator says 2b is meant to stand until O14 replaces it, but no line says so. "The command's own rules
+    still hold" lists the day lock, the skipped steps and fills, not 2b's limit, which is a routine rule.
+  - A session can still read "rerun as needed" for the daily run's exits and marks today.
+  - Fix, one clause after "still hold (...)": "and for the daily run, step 2b's once-only rerun until O14 replaces it".
+    The same in the AGENTS.md line, and in the DESK row's "Until O14 is live, a human may rerun ..." if it is meant as
+    a rule.
+- **Minor 2, fixed** in CLAUDE.md (no new line over 120 characters). AGENTS.md line 121 is 122 characters: style only.
+- **Gates at 02e5b5e0b:** record scan clean (9,539 files); doc-reading tests 963 passed, 13 xfailed, 0 failed.
+
+## Addendum 3
+
+Narrow check at `f69dd5a4d`. **PASS.**
+
+- **Should-fix 1 fixed.**
+  - CLAUDE.md now ends "... a failed fills step never retried), and for the daily run step 2b's once-only rerun holds
+    until O14 replaces it".
+  - AGENTS.md has the same clause ("for the daily run, step 2b's once-only rerun holds until story O14 replaces it").
+  - The interim hand rerun and step 2b now agree: once only for the daily run's exits and marks retry; the failed
+    routine's own command otherwise.
+- **Accepted:** the DESK row stays a verbatim record of the owner's words, and CLAUDE.md is the owning text. That is
+  the rule in CLAUDE.md "Code" (lane 3, append-only).
+- **No new line over 120 characters.** The diff against main touches only CLAUDE.md and AGENTS.md.
+- **Gates at f69dd5a4d:** record scan clean (9,539 files); doc-reading tests 963 passed, 13 xfailed, 0 failed.
+
+No blocking, should-fix or minor finding is left.

@@ -95,3 +95,27 @@ catches `Exception` around slow work and is still stopped.
 `check_imports`, `check_records` clean.
 **Note:** an alarm landing between the block's end and `setitimer(0)` raises inside `finally` and leaves the previous
 handler unrestored. Harmless today (no other SIGALRM user); restore the handler first if one is ever added.
+
+## Addendum 2: round 3, the owner's narrow re-check (`f0cad75ce..eb89b9e87`)
+
+**PASS**, lane 1, judge 1 of 2: should-fix A is closed; 1 minor. The diff touches only `fno/ai_trading/time_limit.py`,
+its tests and F1t's Claims.
+
+- **Should-fix A, closed.** `DecisionTimedOut` is now a `BaseException`. The promoter catches it by name inside its
+  `try`, so it cannot reach the collector's `except Exception`. My round-2 probe, a decider retrying under
+  `except Exception` with `time_limit(0.5)`, is now stopped at 0.5 s (round 2: 2.5 s).
+  - Plant: back to `Exception` → caught (2 failed).
+  - Plant: blank `strategy_status` allowed → caught.
+  - The nested restore (`setitimer(0)` first, then the handler restore in its own `finally`) closes my round-2 note.
+    A plant un-nesting it survives, as expected: the race cannot be reproduced on purpose in a test.
+- **The reason-template test (661.1's note).** Dropping `ai_collect`'s templates is caught.
+- **Minor.** Dropping a single row, `ai:OBSERVER_LOST`, survives (383 passed). The test loops over the registry's own
+  `AI_STEPS`, so the row leaves the test too. The public log then shows "unlisted": no text leaks, but criterion 17
+  asks that an unregistered reason fail a test. Expected: loop over `fno/ai_trading/steps.py`'s templates, not the
+  registry.
+- **Gates.** Trial merge with main `9914f68da`. `config.yaml` conflicted: main sets `recommend` to 2026-10-26 beside
+  F1t's new keys. I resolved it locally by keeping both (never pushed); the branch must merge main the same way
+  before it merges. On the resolved merge: 17,964 passed, 13 xfailed, 0 failed; ruff, `check_imports` and
+  `check_records` clean. `recommend` is in `LIVE_STEPS`, so `live_ai_books` does not refuse it, and no AI book is
+  live on 26 Oct. **Plants:** 6, of which 4 were caught. The 2 survivors are the minor's row and the race-only
+  un-nesting.

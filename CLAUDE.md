@@ -32,6 +32,16 @@ cost real money later, so:
   that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to
   questions and clarifications: ask them plainly and directly.
 - The hard lines stay: no real orders, nothing illegal (no market manipulation), secrets never in files or chat.
+- **No hand-run Groww command from 09:15 to 15:35 IST (owner, 25 Oct 2026: "no human or AI session should run it
+  during 09:15–15:35 IST").** In market hours only the scheduled routines and their own steps call Groww; no live
+  Groww test, probe, download, backfill or check is run by hand then (pytest never calls Groww live), so the routines'
+  reads never meet Groww's limits (10 a second, 300 a minute, 150 sign-ins a day). Hand-run Groww reads wait until
+  after 15:35 IST. **Failed commands (owner, 25 Oct 2026):** a failed scheduled command is retried with exponential
+  backoff, at most 5 retries, then escalated to a human in #fno-desk (story O14, `DESK_DECISIONS` "Failed commands:
+  automatic retry"). Until O14 is live, and after an escalation, the failed routine's own command may be run again by
+  hand, in market hours too, so no data is lost; never a different or extra Groww command, and the command's own rules
+  still hold (the day lock, completed steps skipped, a failed fills step never retried), and for the daily run step
+  2b's once-only rerun holds until O14 replaces it.
 - **One builder per function (owner, 15 Oct 2026).** Before starting any story, fix or design change, read
   `docs/WORK_REGISTER.md` on the latest `main`; if a row already covers the same function, files or rule, agree with
   its owner session first, and add or update your own row in your first commit. Never build a second version.
