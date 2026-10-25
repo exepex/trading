@@ -200,8 +200,8 @@ def test_a_rerun_skips_every_recorded_step_and_takes_the_parts_the_killed_run_re
     assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "v4_release", "forecasts_v4_pack",
                      "book1", "reviews"]  # fmt: skip
     assert new_calls == ["card", "price_distribution", "premium_ranges", "school", "recommend",
-                         "price_distribution_scores", "price_ranges", "price_range_scores", "premium_range_scores", "v4_deadline", "candles",
-                         "close_read", "close_recheck"]  # fmt: skip
+                         "price_distribution_scores", "price_ranges", "price_range_scores", "premium_range_scores",
+                         "v4_deadline", "candles", "close_read", "close_recheck"]  # fmt: skip
     assert new_parts.processes.started == [] and alerts.sent == []
     done = steps["quotes_done"]["result"]
     assert done["status"] == STEP_OK and {n: (p["how"], p["commit"]) for n, p in done["parts"].items()} == {
