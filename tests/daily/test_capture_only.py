@@ -20,7 +20,22 @@ from fno.models import IST
 from tests.timetable.fakes import Clock
 
 from .test_candle_step import _built_steps
+
+
 from .test_v4_part import run as part_run
+
+
+def _built_runner(monkeypatch, day):
+    """The real wiring with the real config for `day` (so the AI books' live dates are read for that session)."""
+    from fno.daily import wiring
+
+    seen = {}
+    monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg, root: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
+    runner = wiring.build_day_runner(load_app_config(), day=day)
+    return runner, seen["day_steps"]
+
 
 SESSIONS = (date(2026, 10, 26), date(2026, 10, 27), date(2026, 11, 2))  # Monday, Tuesday, the next Monday
 FORECASTING_STEPS = (
@@ -33,10 +48,10 @@ CAPTURE_LIVE_FROM = {"close_read": date(2026, 10, 23), "close_recheck": date(202
 
 
 def test_every_forecasting_step_of_the_daily_run_is_not_live_on_the_first_session_and_after(monkeypatch):
-    steps = _built_steps(monkeypatch)
-    for name in FORECASTING_STEPS:
-        assert name in DAILY_RUN_STEPS and name in steps
-        for day in SESSIONS:
+    for day in SESSIONS:  # built per session: the AI books' live dates are read for that day
+        _, steps = _built_runner(monkeypatch, day)
+        for name in FORECASTING_STEPS:
+            assert name in DAILY_RUN_STEPS and name in steps
             result = steps[name].run(day).result
             assert result["status"] == STEP_NOT_LIVE, (name, day, result)
 
@@ -152,3 +167,10 @@ def test_exactly_these_workflows_are_manual_only_so_no_capture_lost_its_trigger(
     names = [p.stem for p in Path(ROOT / ".github/workflows").glob("*.yml")]
     manual = {name for name in names if _triggers(name) == {"workflow_dispatch"}}
     assert manual == {*FORECASTING_WORKFLOWS, "routine-fire-probe"}
+
+
+def test_the_built_run_gives_its_quote_parts_the_capture_key_not_the_release_key(monkeypatch):
+    """`build_day_runner` hands QuoteParts the real dates, so the v4 part is live, the release not."""
+    runner, steps = _built_runner(monkeypatch, SESSIONS[0])
+    assert runner.parts.live["v4_pack"] == date(2026, 10, 26) and runner.parts.live[V4_RELEASE_STEP] is None
+    assert steps[V4_RELEASE_STEP].step.live_from is None
