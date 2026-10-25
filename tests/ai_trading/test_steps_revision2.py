@@ -2,6 +2,7 @@
 steps' reasons are registered codes, so the public run log holds no book's text (criterion 17); a rehearsal never
 fires a routine (criterion 18)."""
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -97,19 +98,31 @@ def test_the_strategy_label_of_a_promoted_book_stays_in_the_public_run_log(tmp_p
     assert shown["strategy_labels"] == {"book2_hybrid": "strategy_not_yet_passed"}
 
 
+def step_templates() -> dict[str, str]:
+    """Every reason template `fno/ai_trading/steps.py` defines itself (its module-level string literals), read from its
+    source, never from the registry under test: a template the registry drops, or one added without a code, fails."""
+    import ast
+
+    from fno.ai_trading import steps
+
+    tree = ast.parse(Path(steps.__file__).read_text(encoding="utf-8"))
+    return {node.targets[0].id: node.value.value for node in tree.body if isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)}  # fmt: skip
+
+
 @pytest.mark.parametrize("step", ["ai_fire", "ai_collect"])
 def test_each_of_the_two_steps_maps_every_one_of_its_reasons_to_its_own_code(step):
-    """Judge 661.1's note for F1t: dropping a step's templates passed the targeted suites. Every template of each
-    step, filled with a book's private text, reads as its own `ai:` code, never the text and never `unlisted`."""
+    """Judge 661.1's note, and 651.2 and 655.2's minor: every template steps.py defines, filled with a book's private
+    text, reads as an `ai:` code of its own, never the text and never `unlisted`, and no two share a code."""
     import string
 
     from fno.daily.public_log import PublicResult, ReasonRegistry
-    from fno.daily.reason_codes import AI_STEPS, COMMON, STEP_TEMPLATES
+    from fno.daily.reason_codes import COMMON, STEP_TEMPLATES
 
-    registry = PublicResult(ReasonRegistry(COMMON, STEP_TEMPLATES))
-    for code, template in AI_STEPS:
-        fields = {
-            name: "book2_hybrid: cash 3,40,500 short" for _, name, _, _ in string.Formatter().parse(template) if name
-        }
-        shown = registry.public(step, {"status": STEP_REFUSED, "reason": template.format(**fields)})
-        assert shown["reason"] == code, (step, code)
+    registry, codes = PublicResult(ReasonRegistry(COMMON, STEP_TEMPLATES)), {}
+    for name, template in step_templates().items():
+        fields = {f: "book2_hybrid: cash 3,40,500 short" for _, f, _, _ in string.Formatter().parse(template) if f}
+        code = registry.public(step, {"status": STEP_REFUSED, "reason": template.format(**fields)})["reason"]
+        assert code.startswith("ai:"), (step, name, code)
+        codes[name] = code
+    assert len(set(codes.values())) == len(codes) == 8
