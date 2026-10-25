@@ -71,3 +71,35 @@ comments that cite `DESK_DECISIONS` by line number.
 - Delete only with the replacement in the same commit.
 - Gates on a482f2d7e in a clean worktree: record scan clean (9,537 files); doc-reading tests 963 passed, 13 xfailed,
   0 failed (no `test_groww_install_command` failure).
+
+## Addendum 1
+
+Revision 2 at `b91fb1422` (the owner's rules of 25 Oct, plus section 7), still round 1 as the orchestrator asked.
+**FAIL: SF1 and SF2 are still open, and one new should-fix.**
+
+- **New counts re-counted at 8edc21139:** 23 `docs/` files over 500 lines, 21 stories, 37 in the repository. Section
+  7's sizes hold: REH1 2,000, REC1 857, E3 46. All MET.
+- **SF1 open.** Line 59 still has `docs/decisions/` replacing "DESK_DECISIONS.md (345 rows, superseded rows removed)",
+  and "Not in scope" does not list it. Round 1's evidence stands: C5b, C4, BG1's cited row, FREEZE_v4 and
+  `ci_scope.sh`.
+- **SF2 partly answered.** Section 7's ruling ("nobody moves, splits or deletes an existing document outside DOC1")
+  helps, but two gaps remain:
+  - the register row still claims `docs/**` (and still says "under 350 lines");
+  - nothing stops a rule added on `main` between an area's scan and its switch from being dropped. Pin each scan, and
+    reconcile `<scan>..main` at P6.
+- **New should-fix 3: the interim rule contradicts the lane list it sits beside.**
+  - CLAUDE.md's new Code bullet says a change to "a decision, a rule, a status or roadmap claim" needs a judge PASS,
+    and keeps only "conversation logs, judge files and register rows" in lane 3.
+  - The Branch section still lists "decision and status rows" as lane 3 (line 212), and `tools/ci_scope.sh` still
+    treats `docs/DESK_DECISIONS.md` as lane 3.
+  - So an agent can read either rule. That is the two-documents problem DOC1 exists to remove, inside the rule that
+    governs it.
+  - It widens checks and narrows no lane-1 rule: the Rule-document guard sentence is unchanged. But it must say which
+    wins: amend the lane-3 list in the same change, and plan the `ci_scope.sh` change.
+  - AGENTS.md's version, "judged like code (a judge PASS before `main`)", also says nothing of lane 2, which has no
+    judge PASS. And it drops CLAUDE.md's qualifier "as the place a decision lives", so read alone it forbids the
+    mandatory dated conversation logs.
+- **Minor:** say in the new bullet that DESK_DECISIONS "Rule-document guard" still applies, so "the lane of the
+  functionality it describes" can never move a lane-1-narrowing rule change to lane 2.
+- **Gates at b91fb1422, clean worktree:** record scan clean (9,537 files); doc-reading tests 963 passed, 13 xfailed,
+  0 failed.
