@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from fno.school.contracts.roads import ROADS, ROADS_BY_CODE  # noqa: E402
-from fno.school.simulator.constants import TICK  # noqa: E402
+from fno.school.contracts.snapshot import SlotQuote  # noqa: E402
 from fno.school.simulator.spreads.bucket import bucket_of  # noqa: E402
 from fno.school.simulator.spreads.learner import relative_half_spread  # noqa: E402
 from fno.school.simulator.spreads.recorded import Skipped, recorded_snapshots  # noqa: E402
@@ -36,9 +36,9 @@ OUT = Path(__file__).parent / "slippage" / "summary.json"
 
 
 def half_spread(quote) -> float | None:
-    """Rupees a unit: half the bid-ask gap, floored at half a tick (MS-SIM-b's rule), for a valid two-sided quote."""
+    """Rupees a unit: MS-SIM-b's relative half-spread (its tick floor included) times the quote's own mid."""
     relative = relative_half_spread(quote)
-    return None if relative is None else max((quote.ask - quote.bid) / 2, TICK / 2)
+    return None if relative is None else relative * quote.mid
 
 
 def out_of_the_money(kind: str, strike: float, spot: float) -> bool:
@@ -104,9 +104,9 @@ def nse_rows() -> tuple[list[dict], list[str]]:
             continue
         with path.open(encoding="utf-8") as f:
             for r in csv.DictReader(f):
-                bid, ask = float(r["bid"] or 0), float(r["ask"] or 0)
-                ok = r["valid"].lower() == "true" and bid > 0 and ask >= bid
-                half = max((ask - bid) / 2, TICK / 2) if ok else None
+                valid = r["valid"].lower() == "true"  # sizes are not required, as before
+                quote = SlotQuote(float(r["bid"] or 0), float(r["ask"] or 0), None, None, None, valid, False)
+                half = half_spread(quote)
                 rows.append({"session": path.stem.split("_")[1], "strike": float(r["strike"]), "kind": r["type"],
                              "expiry": r["expiry"], "half": half})  # fmt: skip
     return rows, refused
