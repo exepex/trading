@@ -54,9 +54,12 @@ def valid_stamp(text: str) -> bool:
 def read_rows(path: Path) -> list[Row]:
     """The registry's rows; a missing file is an empty registry. A row with the wrong column count raises ValueError.
     Blank lines and a byte-order mark (a hand edit on another system) are tolerated."""
-    if not path.exists():
-        return []
-    lines = [cells for cells in csv.reader(io.StringIO(path.read_text(encoding="utf-8-sig"))) if cells]
+    return rows_from_text(path.read_text(encoding="utf-8-sig")) if path.exists() else []
+
+
+def rows_from_text(text: str) -> list[Row]:
+    """`read_rows` on a registry's text (a committed copy, story O12e)."""
+    lines = [cells for cells in csv.reader(io.StringIO(text.removeprefix("\ufeff"))) if cells]
     if not lines or tuple(lines[0]) != HEADER:
         raise ValueError(f"the first line must be {','.join(HEADER)}")
     rows = []

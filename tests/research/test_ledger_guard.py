@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from fno.research_engine.ledger import COLUMNS, LEDGER_FILE, Ledger, NotRegistered, read_ledger
+from tests.numbering.helpers import claim_block
 
 REPO_LEDGER = Path(__file__).resolve().parents[2] / LEDGER_FILE
 PROTOCOL = "research/exp/PROTOCOL.md"
@@ -23,6 +24,7 @@ def repo(tmp_path):
     git(tmp_path, "config", "user.name", "test")
     (tmp_path / "research/exp").mkdir(parents=True)
     (tmp_path / PROTOCOL).write_text("rules v1\n")
+    claim_block(tmp_path)
     git(tmp_path, "add", ".")
     git(tmp_path, "commit", "-qm", "protocol")
     return tmp_path
@@ -48,55 +50,55 @@ def freeze(root, ledger, trial_id, protocol_commit):
 def test_an_unregistered_or_uncommitted_trial_is_refused(repo):
     ledger = Ledger(repo)
     with pytest.raises(NotRegistered, match="not in"):
-        ledger.require_registered("P1")
-    ledger.register("P1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
+        ledger.require_registered("1")
+    ledger.register("1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
     with pytest.raises(NotRegistered, match="committed"):
-        ledger.require_registered("P1")  # only in the working tree
+        ledger.require_registered("1")  # only in the working tree
 
 
 def test_a_registered_trial_needs_a_frozen_unchanged_protocol(repo):
     ledger = Ledger(repo)
-    ledger.register("P1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
+    ledger.register("1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
     protocol_commit = commit(repo, "register P1")
     with pytest.raises(NotRegistered, match="no frozen protocol"):
-        ledger.require_registered("P1")
-    freeze(repo, ledger, "P1", protocol_commit)
-    assert ledger.require_registered("P1")["trial_id"] == "P1"
+        ledger.require_registered("1")
+    freeze(repo, ledger, "1", protocol_commit)
+    assert ledger.require_registered("1")["trial_id"] == "1"
     (repo / PROTOCOL).write_text("rules v2: changed after the freeze\n")
     with pytest.raises(NotRegistered, match="changed after it was frozen"):
-        ledger.require_registered("P1")  # uncommitted change
+        ledger.require_registered("1")  # uncommitted change
     commit(repo, "change rules")
     with pytest.raises(NotRegistered, match="changed after it was frozen"):
-        ledger.require_registered("P1")  # committed change
+        ledger.require_registered("1")  # committed change
 
 
 def test_a_protocol_commit_outside_history_is_refused(repo):
     ledger = Ledger(repo)
-    ledger.register("P1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
+    ledger.register("1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
     commit(repo, "register")
-    freeze(repo, ledger, "P1", "0" * 40)
+    freeze(repo, ledger, "1", "0" * 40)
     with pytest.raises(NotRegistered, match="not in history"):
-        ledger.require_registered("P1")
+        ledger.require_registered("1")
 
 
 def test_the_first_run_is_recorded_once(repo):
     ledger = Ledger(repo)
-    ledger.register("P1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
+    ledger.register("1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
     head = ledger.git.head()
-    ledger.mark_run("P1", head, date(2026, 11, 1))
-    first = next(r for r in ledger.rows() if r["trial_id"] == "P1")
-    ledger.mark_run("P1", "0" * 40, date(2026, 12, 1))
-    again = next(r for r in ledger.rows() if r["trial_id"] == "P1")
+    ledger.mark_run("1", head, date(2026, 11, 1))
+    first = next(r for r in ledger.rows() if r["trial_id"] == "1")
+    ledger.mark_run("1", "0" * 40, date(2026, 12, 1))
+    again = next(r for r in ledger.rows() if r["trial_id"] == "1")
     assert first["first_run_on"] == again["first_run_on"] == "2026-11-01" and again["run_commit"] == head
 
 
 def test_duplicates_and_bad_rows_are_refused(repo):
     ledger = Ledger(repo)
-    ledger.register("P1", "exp", "policy one", "prospective", True, PROTOCOL)
+    ledger.register("1", "exp", "policy one", "prospective", True, PROTOCOL)
     with pytest.raises(ValueError):
-        ledger.register("P1", "exp", "again", "prospective", True, PROTOCOL)
+        ledger.register("1", "exp", "again", "prospective", True, PROTOCOL)
     with pytest.raises(ValueError):
-        ledger.register("P2", "exp", "bad kind", "guess", True, PROTOCOL)
+        ledger.register("2", "exp", "bad kind", "guess", True, PROTOCOL)
 
 
 def test_the_repository_ledger_counts_experiment_1_and_keeps_history_retrospective():
@@ -139,28 +141,28 @@ def test_the_repository_ledger_counts_experiment_1_and_keeps_history_retrospecti
 
 def test_an_uncommitted_edit_to_a_registered_row_is_refused(repo):
     ledger = Ledger(repo)
-    ledger.register("P1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
+    ledger.register("1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
     protocol_commit = commit(repo, "register")
-    freeze(repo, ledger, "P1", protocol_commit)
-    assert ledger.require_registered("P1")
+    freeze(repo, ledger, "1", protocol_commit)
+    assert ledger.require_registered("1")
     text = ledger.file.read_text().replace("policy one,prospective,yes", "policy one,prospective,no")
     ledger.file.write_text(text)  # e.g. quietly dropping it from the hypothesis family
     with pytest.raises(NotRegistered, match="uncommitted"):
-        ledger.require_registered("P1")
+        ledger.require_registered("1")
     git(repo, "add", LEDGER_FILE)  # staged but not committed is still refused
     with pytest.raises(NotRegistered, match="uncommitted"):
-        ledger.require_registered("P1")
+        ledger.require_registered("1")
 
 
 def test_a_registration_only_on_another_branch_is_refused(repo):
     ledger = Ledger(repo)
     git(repo, "checkout", "-qb", "side")
-    ledger.register("P9", "exp", "side idea", "prospective", True, PROTOCOL, date(2026, 10, 12))
+    ledger.register("9", "exp", "side idea", "prospective", True, PROTOCOL, date(2026, 10, 12))
     commit(repo, "register on a side branch")
     git(repo, "checkout", "-q", "-")
-    assert not any(r["trial_id"] == "P9" for r in ledger.rows())
+    assert not any(r["trial_id"] == "9" for r in ledger.rows())
     with pytest.raises(NotRegistered, match="not in"):
-        ledger.require_registered("P9")  # the run's own history has no registration
+        ledger.require_registered("9")  # the run's own history has no registration
     git(repo, "checkout", "side", "--", LEDGER_FILE)  # row brought over without being committed here
     with pytest.raises(NotRegistered, match="uncommitted"):
-        ledger.require_registered("P9")
+        ledger.require_registered("9")
