@@ -1193,6 +1193,9 @@ from <since>)"). Tests: `tests/rehearsal/test_command_since.py` (12). Text: judg
 
 **Plants:** 8 planted, 8 caught, in a separate worktree, each restored with `git checkout --`.
 
+**Gates** (main merged in, the token kept): 17571 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
+clean.
+
 **Self-review** (an independent review agent): no blocking finding; every `since` checked again in git against the
 table and the record (first outputs 47a4ff7a8, 3decf6a60, 2428dac17, f24218f2e, 936611423, c08dde158, 5aab4ed4c,
 6bdf18007; the earlier hand and job rows rightly not counted); real runs unchanged (`routines.py` is imported only by
