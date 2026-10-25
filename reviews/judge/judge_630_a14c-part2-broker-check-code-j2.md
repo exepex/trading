@@ -110,3 +110,13 @@ escalate; to be built as O14). Expected: point to row 350 and O14.
 `tests/nse_margins`, `tests/intraday` and the provider tests: 554 passed, 1 skipped. **Plants:** 8, of which 7 were
 caught; the survivor is equivalent. **Note:** A-data-foundation.md is 2,855 lines and O1-daily-run.md 687, both over
 500; this is DOC1's work, not this change's.
+**Narrow check of the merge resolution (orchestrator's request): `ff978df29` PASS; addendum 2's minor closed.** It
+merges main (GW1 parts 5-6) into `df106dc73`.
+- `groww.py`: `GrowwProvider(config, on_sign_in_failure, quiet, allowed)`. `RateGuardedGroww(..., self._quiet)` is
+  kept, and the caller's list is added only at `ReadOnlyGroww`.
+- `providers/__init__.py`: `_groww_provider` passes `alert_sign_in_failure`, `MarkQuietWindows()` and `allowed`.
+- The default `READ_CALLS` is unchanged and holds no margin call.
+- Plants caught: quiet windows dropped from `get_provider`, and the rate guard bypassed.
+- The retry sentence now points to DESK_DECISIONS (25 Oct, row 350) and to `O14-retry-policy.md`, which exists.
+- Trial merge with main `e3f1d0572` (clean): 18,160 passed, 13 xfailed, 0 failed; ruff, format, `check_imports` and
+  `check_records` clean.
