@@ -751,7 +751,9 @@ What section 3's "08:50 and 20:05" bullet and REC1c item 5 become exact as, each
      - Every check line names its check date, in the check's own words (`check_text`).
      - Only check files dated that previous session are shown. An older check is never shown, dated or not.
      - When recorded days are still not final and no check file is dated the previous session, the section says "the
-       previous session's check did not run" and names the waiting days.
+       previous session's check did not run" and names the waiting days. (Code round 1, judge 666 m1: the words became
+       "No check of <days> is dated the previous session (<date>); still waiting.", because a check that ran and
+       failed for a day writes no file.)
      - A `data_check_failed` check is named with its problem. Neither case ever fails the edition.
    - No record yet gives one line, "no recommendation recorded yet". A record that cannot be read is named as not
      read, by its path and the exception class only.
