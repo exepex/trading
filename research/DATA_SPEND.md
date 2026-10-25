@@ -15,6 +15,7 @@ section 3.1, checked against `research/LEDGER.md` on 15 Oct 2026. A change to th
 | `spent` | Its outcomes were tested; any further test on it is exploratory |
 | `forward` | Recorded live from a date; each future day is fresh until a registered test reads it |
 | `registered` | A frozen protocol will read it; status changes when the test runs, to what it actually read |
+| `superseded` | Split into later rows that name its periods (kept, never deleted); a card that names it is refused by the factory (unknown status) |
 
 ## Register
 
@@ -35,7 +36,7 @@ section 3.1, checked against `research/LEDGER.md` on 15 Oct 2026. A change to th
 | NIFTY monthly option and future candles | Groww 15-minute candles (last trades), read-only | 2 Jan 2024 - 1 Oct 2026 | `spent` | 54 (FT1 fill timing, protocol frozen `47d1598`, run 15 Oct 2026 at `1962610`) | Spent for the 14:00-to-next-10:15 windows of the sampled contracts (`C` is the P&L of selling at the decision and buying back at the fill); the flip share read held-to-expiry P&L of these entries; the probe before the freeze read candle counts only |
 | NIFTY monthly option and future candles | Groww 15-minute candles (last trades) | 2019 - 2023 | `fresh` | none | Not read by FT1 |
 | NIFTY 15-minute quotes (A16) | Groww quotes | not yet recorded | `fresh` | none | Starts with A16 |
-| Participant open interest (A8) | NSE daily files | history | `fresh` | none | Idea O1 waits for 20 measured release days |
+| Participant open interest (A8) | NSE daily files | history | `superseded` | none | Idea O1 waits for 20 measured release days. Split on 25 Oct 2026 into the 2019 - 2024 and 2025 - 2026 rows below (EDGE2 F6); read those |
 | Participant open interest (A8) | NSE daily files | 2019 - 2024 | `exposed` | 115-120 (EDGE2 F6 discovery, predictor, run 25 Oct 2026 at `06646081`) | Split from the history row on 25 Oct 2026 for F6's discovery and held-out periods |
 | Participant open interest (A8) | NSE daily files | 2025 - 2026 | `registered` | 121-123 (EDGE2 F8 held-out side filter, read once after a judge); registered earlier by EDGE2 F6 as its held-out and never read (nothing nominated) | Its code refuses files dated after 31 Dec 2024 before the discovery results are committed |
 | NIFTY near-month future | NSE daily open and close (F&O files) | 2019 - 2024 | `spent` | 115-120 (EDGE2 F6 discovery outcome, run 25 Oct 2026 at `06646081`) | The index's moves are `exposed` (NIFTY 50 index row), so F6 is exploratory even on its held-out years |

@@ -33,10 +33,13 @@ not more]
   house's Rs 10,000 cap per trade would need a stop or an option hedge that this study did not test.
 
 **G1's "passed" for FL-H5 (trial 118) in `research/factory/gates.csv` is not a pass of this study.** The factory's
-screen takes the lower 90% bound from the plain SD over n = 1,451, but H5 trades overlap (five open at once), so the
-bound is about sqrt(5) too tight. With the protocol's Newey-West error the bound is 739 - 1.28 x 824 = -Rs 316, below
-zero; Holm fails (p 0.19) and the always-long control beats it. The gate row stays as logged (append-only); this
-paragraph is the correction. [strong evidence: arithmetic on the frozen run's figures]
+screen takes the lower 90% bound from the plain SD over n = 1,451, but H5 trades overlap (five open at once). Measured
+on the run (judge 642): the Newey-West lag-4 standard error is **1.56 times** the plain one for FL-H5 (824 against
+527), 0.95 for FD-H5 and 1.06 for CD-H5 (not "about sqrt(5)", as this file first said). With the protocol's error the
+bound is 739 - 1.28 x 824 = -Rs 316, below zero; Holm fails (p 0.19) and the always-long control beats it. **Trial
+118 is closed by the factory's own next gate:** `factory spend` logged G2 `exploratory` (3 of its 4 data sets not
+fresh), so its last gate reads `G2 exploratory`, as EDGE1's trial 94 went; the G1 row stays as logged (append-only).
+[strong evidence: arithmetic on the frozen run's figures]
 
 ## What each role takes from it
 
@@ -57,7 +60,7 @@ paragraph is the correction. [strong evidence: arithmetic on the frozen run's fi
 
 ## Proposals (lane 2, the orchestrator's call)
 
-1. The factory's G1 screen should take an overlap or dependence-corrected bound for multi-day holds (a card field such
+1. The factory's G1 screen should take an overlap or dependence-corrected bound for multi-day holds (an R1 open item) (a card field such
    as `independent_n`, or the study's own standard error), so an overlapping study cannot "pass" by counting each day
    as independent. Owner of R1's factory code decides; I build nothing there.
 2. A later pre-registered family could test the FII-change lean as a **side filter** for a defined-risk NIFTY option
@@ -68,3 +71,10 @@ paragraph is the correction. [strong evidence: arithmetic on the frozen run's fi
 - Daily opens and closes from NSE's F&O files; slippage as a fixed 1 point a side (2 reported).
 - All index futures together in NSE's participant file (NIFTY's and the other indices'), as published.
 - Always long is a control on the same days with the same costs, not a strategy: it is the market's drift.
+
+## Deviations
+
+- The G1 inputs were first appended to the six idea cards after the freeze (commit ed28d6b7), which made B4's
+  `require_registered` refuse them (judge 642 S1). The cards are restored to their frozen bytes and the inputs moved,
+  unchanged, to a sidecar beside each card (`research/ideas/<id>.inputs.md`), which the factory reads; every G1 row
+  recomputes exactly (`tests/research_edge2/test_edge2_registration.py`). No number changed.

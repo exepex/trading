@@ -60,6 +60,9 @@ weekly since 20 Nov 2024 (the only weekly still listed): WF-G0 -Rs 690 on 99 tra
   index close (checked against the expiring future where one existed).
 - BANKNIFTY's weeklies ended 13 Nov 2024; results there transfer to NIFTY's weekly by assumption only.
 - Lots before 2024: EDGE1's circular schedule (NIFTY, BANKNIFTY); the held-out lots were never used.
+- Protocol section 7 promised `research/edge2/LOT_CHECK.md` (the FINNIFTY and MIDCPNIFTY lot schedule checked
+  against NSE's circulars) before any held-out read. It was not written: the held-out was never read, and
+  `f1study/held_out_lots.py` states its lots from broker bulletins only (judge 642 m3). It is owed before any read.
 - The EWMA gate is one simple forecast; a better forecaster (v4's) was not tried, by design (one variant set).
 
 ## Post-hoc (after the run, not decided on) [reasoning only]
@@ -67,3 +70,10 @@ weekly since 20 Nov 2024 (the only weekly still listed): WF-G0 -Rs 690 on 99 tra
 The cost wall suggests where an edge, if any, could survive: structures with fewer legs per rupee of premium, or a
 cheaper exit than settlement (exercise STT on in-the-money legs). These are candidates for later pre-registered
 families, never re-tests of F1's variants on the same data.
+
+## Deviations
+
+- The G1 inputs were first appended to the six idea cards after the freeze (commit b9b23f9d), which made B4's
+  `require_registered` refuse them (judge 642 S1). The cards are restored to their frozen bytes and the inputs moved,
+  unchanged, to a sidecar beside each card (`research/ideas/<id>.inputs.md`), which the factory reads; every G1 row
+  recomputes exactly (`tests/research_edge2/test_edge2_registration.py`). No number changed.
