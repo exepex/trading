@@ -10,6 +10,7 @@ from datetime import date, time
 
 from ..config import ROOT
 from ..constants import NIFTY_SYMBOL
+from ..recommend.report_guard import with_recommend_section
 from ..research_data.calendar import SessionCalendar
 from ..school.report_entry import school_report_inputs
 from ..school.reports.guard import with_school_sections
@@ -85,5 +86,6 @@ def build_report_maker(ranges: RangeSource, forecasts, scores, calendar: Session
     today, sections = A4hTodayCloses(build_drive_cache()), build_sections(facts, sessions, official)
     pages = PageBuilder(ranges, G13bHistory(forecasts, scores), facts, sessions, official=official, today_closes=today,
                         sections=sections, levels=build_levels(calendar, sessions))  # fmt: skip
-    return with_school_sections(ReportMaker(pages, DesignRenderer(), ChromiumCamera(width=PICTURE_WIDTH)),
-                                inputs=school_report_inputs)  # fmt: skip
+    school = with_school_sections(ReportMaker(pages, DesignRenderer(), ChromiumCamera(width=PICTURE_WIDTH)),
+                                  inputs=school_report_inputs)  # fmt: skip
+    return with_recommend_section(school)  # REC1d: its own switch, outside the school's

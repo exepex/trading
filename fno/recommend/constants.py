@@ -5,6 +5,7 @@ from enum import IntEnum, StrEnum
 
 RECORD_KIND = "recommendation"
 RECORD_SCHEMA_VERSION = 1  # a layout change is a new version, never an edit of a written record
+RECOMMEND_STEP = "recommend"  # the O1 step and its `daily.live_from` key (REC1b)
 WINDOW_SESSIONS = 60  # the evening check follows a day this many sessions; a monthly option closes in about 35 days
 
 
