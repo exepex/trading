@@ -40,3 +40,15 @@ No plant let a live call through (it would reach NSE).
 
 Yes: under the mode, each index recorder and the v4 window's recorder must be its recorded form or the rehearsal
 stops. With no Groww SDK, each one's NSE fallback is refused before any call is sent. The real run is unchanged.
+
+## Addendum 1
+
+Minor 1 follow-up, commit 87ec0493a on `story/reh1qs-minors`. **PASS, 1 minor (a citation).**
+
+- **Fixed.** `builders()` has the row "NSE's 3 pm recorder" (`build_nse_quote_recorder`, required to be a
+  `RecordedRecorder`), and the planted-break count is 13. The fresh-process test now also builds it: it is
+  recorded over its `NseQuoteProvider`, whose call is refused.
+- **Plants:** M1 (the row removed) 2 failed; M2 (the recorder unwrapped in `composition.py`) 6 failed.
+- **Minor:** the story's S3 says "judge 669 m1 for REH1s". REH1s's judge E verdict is 670. Fix it with the next
+  text change.
+- Gates: trial merge 0454aa763 (story/reh1qs-minors adc5063a5 + origin/main 5c613c6b4), token kept: ruff, format (2,744 files), check_imports (2,900 files) and the record scan (9,513 files) clean; **17,528 passed, 13 xfailed, 0 failed**. Only `87ec0493a^..87ec0493a` judged; judge F not read.

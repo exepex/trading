@@ -39,3 +39,19 @@ sources get `now_ist` (`candle_wiring.py:29`, `close_wiring.py:23`), so the two 
 
 The rule matches the orchestrator's summary. The fallback never takes an answer saved after now, nor one from another
 IST day, so there is no look-ahead.
+
+## Addendum 1
+
+Minor 1 follow-up, commit 87ec0493a on `story/reh1qs-minors`. **PASS.**
+
+- **Accepted: the limit is stated, not capped.** The builder's reason holds: capping the near window at the next read
+  would need the recorded source to know A4h's timetable or which read is asking, for a rehearsal-only case. My own
+  fix offered stating it precisely as the first option.
+- **The stated boundaries are right.** I checked them against the rule (`EARLIER` 60 s, `NEAREST` 10 min) and
+  the real 23 Oct saves (15:40:07, 16:00:10):
+  - 15:41:07, the first answer exactly 60 s back: near, so "first";
+  - 15:41:08 to 15:50:09: the fallback serves "first";
+  - 15:50:10, the recheck exactly 10 min ahead: "recheck".
+  - The new `test_the_stated_limit_at_the_real_23_oct_times` pins all five points.
+- **Plants:** M3 (`EARLIER` 61 s) 1 failed; M4 (`NEAREST` 599 s) 3 failed.
+- Gates: trial merge 0454aa763 (story/reh1qs-minors adc5063a5 + origin/main 5c613c6b4), token kept: ruff, format (2,744 files), check_imports (2,900 files) and the record scan (9,513 files) clean; **17,528 passed, 13 xfailed, 0 failed**. Only `87ec0493a^..87ec0493a` judged; judge F not read.
