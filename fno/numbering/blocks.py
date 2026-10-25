@@ -34,6 +34,7 @@ BAD_ID = (
     "trial id {id!r} ({experiment}) is neither a whole number from 1 nor a Book 3 id (book3:<strategy_id> under "
     f"{BOOK3_EXPERIMENT!r})"
 )
+UNCOMMITTED = "{registry} has uncommitted changes: commit it first (the claims are read as git holds them, judge 644)"
 NO_FREE = "no free id in a block claimed for experiment {experiment!r} in {registry}: claim one ({command})"
 
 
@@ -179,8 +180,13 @@ class TrialClaims:
     registry as git holds it at HEAD, like the ledger row itself, so a block typed locally and never committed covers
     nothing (judge J)."""
 
-    def __init__(self, committed_text: Callable[[str], str | None]):
-        self._committed_text = committed_text
+    def __init__(self, committed_text: Callable[[str], str | None], is_clean: Callable[[str], bool]):
+        self._committed_text, self._is_clean = committed_text, is_clean
+
+    def _uncommitted(self) -> str | None:
+        """Refused while the registry has local changes, so what is checked is what is shared."""
+        clean = self._is_clean(LEDGER_TRIAL.registry)
+        return None if clean else UNCOMMITTED.format(registry=LEDGER_TRIAL.registry)
 
     def _blocks(self) -> list[Block]:
         text = self._committed_text(LEDGER_TRIAL.registry)
@@ -192,6 +198,9 @@ class TrialClaims:
             return None
         if not counted(trial_id):
             return BAD_ID.format(id=trial_id, experiment=experiment)
+        uncommitted = self._uncommitted()
+        if uncommitted:
+            return uncommitted
         owner = next((b for b in self._blocks() if b.covers(int(trial_id))), None)
         if owner is None:
             return NOT_CLAIMED.format(id=trial_id, registry=LEDGER_TRIAL.registry, command=CLAIM_COMMAND)
@@ -201,6 +210,9 @@ class TrialClaims:
 
     def next_free(self, experiment: str, used: set[str]) -> str:
         """The lowest unused id of a block claimed for this experiment; never one from another block."""
+        uncommitted = self._uncommitted()
+        if uncommitted:
+            raise ValueError(uncommitted)
         for block in sorted(self._blocks(), key=lambda b: b.first):
             if block.is_for(experiment):
                 free = next((n for n in range(block.first, block.last + 1) if str(n) not in used), None)

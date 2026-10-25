@@ -167,13 +167,26 @@ def test_the_next_free_id_is_the_lowest_in_the_experiments_block_and_never_anoth
         claims.next_free("edge3", set())
 
 
-def test_a_block_typed_locally_and_never_committed_covers_nothing(tmp_path):
-    """Judge J: the claim is read as git holds it, like the ledger row; an uncommitted block lets nothing through."""
+def test_a_block_typed_locally_and_never_committed_is_refused_until_committed(tmp_path):
+    """Judges J and 644: the claims are read as git holds them, and refused while the registry has local changes."""
     root = checkout(tmp_path, trials=trial(7, "edge2-f7"))
     write(root, {LEDGER_TRIAL.registry: CLAIMS + f"7-9,edge2-f7,session_y,{STAMP}\n"})  # typed, not committed
-    with pytest.raises(NotRegistered, match="trial 7 is in no block"):
+    uncommitted = "numbers/ledger-trial.csv has uncommitted changes: commit it first"
+    with pytest.raises(NotRegistered, match=uncommitted):
         Ledger(root).require_committed("7")
-    with pytest.raises(TrialNotClaimed, match="trial 8 is in no block"):
+    with pytest.raises(TrialNotClaimed, match=uncommitted):
         register(root, "8", "edge2-f7")
+    with pytest.raises(ValueError, match=uncommitted):
+        Ledger(root).claims.next_free("edge2-f7", set())
     git(root, "commit", "-qam", "the block")
     assert Ledger(root).require_committed("7")["experiment"] == "edge2-f7"
+
+
+def test_a_registry_that_exists_only_in_the_working_tree_is_refused(tmp_path):
+    root = checkout(tmp_path, trials=trial(7, "edge2-f7"))
+    git(root, "rm", "-q", "--cached", LEDGER_TRIAL.registry)
+    git(root, "commit", "-qm", "the registry untracked")
+    # untracked, so `git diff` misses it
+    write(root, {LEDGER_TRIAL.registry: CLAIMS + f"7-9,edge2-f7,session_y,{STAMP}\n"})
+    with pytest.raises(NotRegistered, match="numbers/ledger-trial.csv has uncommitted changes"):
+        Ledger(root).require_committed("7")

@@ -124,6 +124,10 @@ class Git:
     def commit_exists(self, commit: str) -> bool:
         return bool(commit) and self._yes("cat-file", "-e", f"{commit}^{{commit}}")
 
+    def is_clean(self, path: str) -> bool:
+        """No local change to `path`, tracked or untracked (`git diff` alone misses a file never committed)."""
+        return not self._out("status", "--porcelain", "--", path).strip()
+
     def unchanged_since(self, commit: str, path: str) -> bool:
         tracked = self._yes("diff", "--quiet", commit, "HEAD", "--", path)
         untouched = self._yes("diff", "--quiet", "HEAD", "--", path)
@@ -168,7 +172,7 @@ class Ledger:
     def __init__(self, root: Path, git: Git | None = None, claims: TrialClaims | None = None):
         self.root, self.git = Path(root), git or Git(Path(root))
         self.file = self.root / LEDGER_FILE
-        self.claims = claims or TrialClaims(self.git.committed_text)
+        self.claims = claims or TrialClaims(self.git.committed_text, self.git.is_clean)
 
     def rows(self) -> list[dict]:
         return read_ledger(self.file.read_text()) if self.file.is_file() else []
