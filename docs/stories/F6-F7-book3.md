@@ -419,6 +419,10 @@ should-fix findings and its minors are answered at d46379c7, unchanged here.
 11. **Judge 652 m1, accepted:** each registered version's `prompt_text(ROOT)` is checked against its file. The
     one-hex-digit plant fails.
 
+12. **Gates (round 2):** the full suite on 910f14336 (round 2 merged with F1t round 2 at 7850269ed, which carries main
+    80857781), in its own worktree: 17,345 passed, 1 skipped, 13 xfailed, 0 failed. ruff, `check_imports` and the
+    record scan are clean; every file is under 350 lines.
+
 Tests: `tests/book3/test_through_f1t.py` takes a real Book 3 trade through F1t's real `Promoter` and run check, and
 checks the label; `tests/book3/test_decider.py` covers F2's item and an uncited card. On the branch: book3, ai_trading,
 ai, playbook, books, checks, desk and daily give 1,606 passed. ruff, format and `check_imports` are clean. The full
