@@ -47,3 +47,23 @@ All four are text only: the definition of `complete` (with its plant), the timin
 - **Still old (line 1341):** T1g's header still says "Depends on: REC1b (the recommendation record and `RecommendationStatus`), T1e, T1f".
 - **Still old (line 1358):** its context still says "REC1b replaces T1's `RegistryStatus` with `RecommendationStatus` inside `RuledStatus`".
 - **Fix (lane 3 for the owner of T1g; no judge needed for the wording):** both lines name the deferred card-side REC1 step, as the footer does. The two texts then agree. Nothing else in T1g depends on REC1b's card change.
+
+## Addendum 2: round 2 (the last), the text commits a0b8ea661 and ed8dc6180 (judge K)
+
+**PASS, lane 1, text only.** 1 minor. I read only the text change, `git diff 6460a4ce3 ed8dc6180 --
+docs/stories/REC1-recommender.md`; the code commits e94a51fa0, c3fbf5e12 and 9d7a6b180 were not judged here. Doc-reading tests on ed8dc6180, Slack token set: 922 passed, 14 xfailed. No post in the
+three channels from 00:26 UTC on.
+
+| Finding | Verdict | Evidence (read) |
+|---|---|---|
+| SF1: `complete` undefined | fixed | defined positively: for `school`, `SessionRun.status == ""` and every sealed decision hash-checked; for `desk:book1`, its decision record present and hash-checked. `ok` with `school:OFF` or `NOT_A_SESSION`, `TOO_LATE` and every other status is `unavailable` with status and reason code, and "an `ok` status alone never makes a source complete". There is a new plant for "school off read as complete" |
+| SF2: the timing | fixed (m3) | the chain is written out, under the school's own `SCHOOL_STARTS_BY` 15:25. A refused school is `unavailable`. The check that the school still starts before 15:25 after GW1 is named and given to the orchestrator |
+| m1: where rung 3 is read | fixed | from the version's own rung records, never the unread source |
+| m2: the line beside the card | fixed | "Recommender (not the card)"; the two can differ; `ELIGIBLE` names the version, "for your own review, never a buy" |
+| `frozen` removed | correct | O1's statuses are `ok`, `failed`, `refused`, `not_live`, `exercised` and `not_built` (`fno/constants_operations.py`); there is no `frozen` |
+
+**m3 (minor, needs no new round):** "the school step ... starts about 15:19-15:23 (21-23 Oct)" was measured with the old
+capture end. On 23 Oct the run log shows `fills` at 15:17:51 and `quotes_done` at 15:18:28 (`journal/runs/2026-10-23.json`).
+With E3 now asking from 15:17 and ending about 15:20, the same steps start about 2.5 min later, so the school starts
+about 15:21:30-15:25:30. The top of that range is at its 15:25 limit. The orchestrator's confirmation with GW1's
+builder is the right check. When it is done, the measured start belongs in the text.
