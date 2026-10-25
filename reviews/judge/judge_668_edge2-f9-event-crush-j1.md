@@ -51,3 +51,31 @@ the Rs 2 pad check off, the 5-session floor at 0, entry on the event day, E1 as 
 
 - Gates on a trial merge with main `096024142`, committed locally (B4's guard refuses an uncommitted ledger; never
   pushed): 17,462 passed, 13 xfailed, 0 failed; ruff, format, `check_imports`, `check_records` clean.
+
+## Addendum 1: round 2 at `9c7961346` (the last round)
+
+**PASS**, lane 1: both should-fixes and both minors closed; 1 minor left (wording). The round changes only
+`F9_RESULTS.md` and `tests/research_edge2/test_f9.py`; the frozen protocol, code, events, cards and ledger are
+byte-identical to round 1.
+
+| Round-1 finding | Verdict | Evidence |
+|---|---|---|
+| S1. Control not year-matched, no deviation | FIXED | a new Deviations section and both p_event columns; the year-matched 0.011 / 0.044 / 0.0035 / 0.048 equal mine |
+| S2. The 2024 election BANKNIFTY exit unnamed | FIXED | named, with nets -2,334 / -2,275 / -1,514 and CONDOR-E1 none, as I found; election means on all trades +765 (FLY-E0), +2,041 (CONDOR-E0), -410 (FLY-E1), which equal (2 x 522 - 2,275) / 3 from my rerun's rows |
+| m3. Freeze not pinned | FIXED | `test_the_code_hash_is_the_frozen_one`: my plant (last event row dropped) is caught |
+| m4. Nomination cap untested | FIXED | `test_at_most_two_variants_are_nominated_lowest_p_first`: plants "cap 3" and "order by name" are caught |
+
+**Minor (left):** two lines were not updated.
+- The Gamma bullet still says "the worst single trades lost Rs 2,147 (FLY-E0)" with no "decided" qualifier.
+- The answer's evidence label still says "p_event 0.002-0.039".
+
+The new bullets just above correct both, so a reader is not misled. Expected: the word "decided" in the first line,
+and the year-matched range in the second.
+
+**Gates:** trial merge with main `b58ddecdb`, committed locally (never pushed): 17,538 passed, 13 xfailed, 0 failed;
+ruff, format, `check_imports`, `check_records` clean. **Plants:** 3, all caught.
+**Narrow check of the minor (orchestrator's request): `c48249edd` PASS, the last minor closed.** One commit on
+`9c7961346`, `F9_RESULTS.md` only (3 lines): the worst FLY-E0 trade is now -Rs 2,334, the incomplete 2024
+election-day exit (-Rs 2,147 among decided trades). The other variants' worst trades are unchanged; their incomplete
+losses, -2,275 and -1,514, are smaller. The label is now p_event 0.002-0.048, pooled and year-matched. Record scan
+clean; the doc-reading tests plus `test_f9.py`: 950 passed, 13 xfailed.
