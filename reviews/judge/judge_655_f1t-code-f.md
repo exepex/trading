@@ -1,0 +1,46 @@
+# Judge 655: F1t code, the AI books' trading runner (story/f1t-code @ b8f0585c)
+
+**FAIL on 1 should-fix (a test; the code is right), round 1 of 2, judge 2 of 2 (630's session the other; not read).
+Lane 1 (money: fills).** Judge F, own session (session_01A8XfbTUVgeeEpqatHaWbtP). Against F1t revision 2's passed text.
+Labels: strong, some, reasoning only.
+
+## The orchestrator's checks
+
+| Check | Result | My evidence |
+|---|---|---|
+| No AI decision reaches a fill without a sealed on-time receipt | MET | `outcome.judge` stops `LATE` unless the commitment was seen at the receipt reading and the reveal at the reveal reading (`outcome.py:83-93`); plant "seen at the reveal reading counts" caught (4) |
+| ... the judge port (NoJudge fails Book 2 closed) | MET | `NoJudge` blocks Book 2 (`no_judge.py`); a blocking verdict makes `judge_failed`, keeps only the no-trade run; `run_check` refuses any chosen trade under it; plants (NoJudge not blocking; chosen trade allowed; blocking verdict promoted) all caught |
+| ... C4 | MET | promoted runs reach E3 only as D3 runs in E3's books (`build_daily_run(..., books=(BOOK1, *ai_books))`), filled through E3 and its recorded C4 like Book 1's; E3's commit-time rule tested (15:11:59 counts, 15:12:00 late) |
+| ... the strategy label | MET, minor 1 | `strategy_label` on every promoted chosen trade (`run_check.py`) |
+| A rehearsal never fires | MET | both steps return `refused` (`ai:REHEARSAL_NO_FIRE`) before the observer starts or any trigger is called (`steps.py`); plant caught. Minor 2 on the wording |
+| No v4-frozen file changed | MET | `freeze_check.check` on the trial merge: no problems, no drift; none of F1t's 81 files is among the 149 byte-checked ones (my intersection) |
+| `fno/desk/packs.py` leaves Book 1 unchanged | MET by reading, **not pinned** | Book 1 is never in `isolated`, so its pack is built and raises exactly as before; **finding 1** |
+| The 15:11:50-15:12 gap fails safe | MET [reasoning, tests] | the last reading is at 15:11:00 + 30 s grace + 20 s `ls-remote` = 15:11:50; a book reached at or after 15:12 is `late` before promotion (plant caught); one reached at 15:11:59 whose run commits at or after 15:12 is late by E3's commit-time rule; nothing fills late |
+| 633.1: D6 components = files | MET | `tests/books/test_registered_file_components.py`: the envelope by key and hash, the constitution by its SHA-256 among the files' own hashes (byte equality, not a name); a one-byte edit of each is caught; my plant dropping the constitution check caught |
+| gates | MET | trial merge with main 795588136 (clean): **17,126 passed, 1 skipped, 13 xfailed** (token kept); ruff, format (2,705 files), `check_imports`, `check_records` (9,380 files) clean |
+
+## Findings
+
+1. **Should fix: nothing pins that Book 1's own pack failure still stops the pack step.** The Claims say "Book 1's
+   failure still stops the step, as before". My plant putting Book 1 into `isolated` (`pack_wiring.py`: `tuple(books)`)
+   passes all 669 tests in `tests/ai_trading`, `tests/ai`, `tests/books`, `tests/packs` and two daily tests, and all
+   429 in `tests/desk`, `tests/timetable`, `tests/e2e`, `tests/packs` and `tests/e2e_acceptance`. Under that plant a
+   failed Book 1 private pack would be refused alone with an alert, and Book 1 would decide without it: a change to
+   Book 1's decisions that CI would not see. Fix: one test that a Book 1 private-pack build failure still raises (the
+   pack step fails), beside the AI book's refused-alone test; the plant must then fail.
+
+## Minor
+
+1. Criterion 17b: an empty or whitespace `strategy_status` is not pinned. With the check removed, a missing key still
+   fails through `strategy_label` (refused as unreadable), but `""` would be promoted labelled "strategy not yet
+   passed" (my plant survives). Add the case.
+2. Criterion 18 says `ai_fire` "builds no RoutineTrigger". The two `RoutineFireTrigger`s are constructed at wiring time
+   (`build_decision_trigger`, only a `requests.Session`, no request); none is called in a rehearsal. Reword the
+   criterion or build them lazily.
+
+## Plants
+
+14 planted on b8f0585c: **11 caught, 2 survived (finding 1, minor 1), 1 partly equivalent** (minor 1's missing key).
+Caught: chosen trade under a blocking verdict; NoJudge not blocking Book 2; a rehearsal firing; a late collection
+promoting; the run check skipped; a commitment seen at the reveal reading counted on time; changed packs accepted; live
+a day late; the D6 constitution check dropped; a blocking verdict promoted.
