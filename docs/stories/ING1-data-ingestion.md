@@ -92,7 +92,7 @@ Shared columns come after the table (**S** = shares a process, thread or switch 
 | C11 | A4h close read and recheck (`closes read`) | NSE allIndices | 15:40, 16:00 | daily run steps `close_read`, `close_recheck` (`wiring.py:247`); also the evening routine, step 1c (CLAUDE.md:150) | raw and record Drive; repo receipts |
 | C12 | Index-close archive, closes certification (DR1-1 shadow) | NSE file, Drive | morning and evening | morning routine 1b and evening routine 1c (CLAUDE.md:139, 150-170) | Drive; repo manifests, `receipts/records/` |
 | C13 | Bhavcopy, participant OI, FII/DII (evening) | NSE | evening, before `lab close` | evening routine 1c, and the workflows C14-C16 | Drive; manifests |
-| C14 | `index-closes.yml` (21:11, 07:41, 11:41); `panel-days.yml` (21:41, 12:11) | NSE | evening and retries | GitHub Actions | Drive; manifests; **derived** `warmup_closes.csv`, panel |
+| C14 | `index-closes.yml` (21:11, 07:41, 11:41); `panel-days.yml` (21:41, 12:11; it archives the bhavcopy, lines 58-62) | NSE | evening and retries | GitHub Actions | Drive; manifests; **derived** `warmup_closes.csv`, panel |
 | C15 | `participant-oi-release.yml` (17:11, 22:45), `-watch` (every 15 min 16:37-23:22), `-sweep` (monthly) | NSE | evening | GitHub Actions | Drive; manifests; `pipeline fire` |
 | C16 | `flows-download.yml` (21:10), `flow-history.yml` (21:30, 07:15), `fo-masters.yml` (06:00, 07:45, 11:15, 18:45) | NSE, NSDL | daily | GitHub Actions | Drive; manifests |
 | C17 | `nse-margins.yml` (03:30 and catch-ups), `stress-factor.yml` (Sunday) | NSE Clearing | night, weekly | GitHub Actions | Drive; **derived** `margins.csv` |
@@ -101,10 +101,9 @@ Shared columns come after the table (**S** = shares a process, thread or switch 
 | C20 | MS-P0b capture probes (`capture-probe`) | Groww REST, NSE | 4 slots a session; **on hold** | hand or a proposed 09:50 routine | Drive |
 | C21 | A16h Groww feed probe (live feed) | GrowwFeed | by hand from 27 Oct | hand | probe note |
 
-Not captures, named so they are not confused: `forecast-capture.yml` (the v2 forecast, despite the name),
-`v4-fire.yml`, `routine-fire-probe.yml`, `postmortem-weekly.yml`, `forecast-scores.yml`, `number-alert.yml`,
-`checks.yml`, `data-checks.yml`. Watchers of ingestion: `capture-watch.yml` (O10), `recorder-watch.yml` (A16i),
-`health-check.yml` (17:51, O8).
+Not captures: `forecast-capture.yml` (the v2 forecast, despite the name), `v4-fire.yml`, `routine-fire-probe.yml`,
+`postmortem-weekly.yml`, `forecast-scores.yml`, `number-alert.yml`, `checks.yml`, `data-checks.yml`. Watchers:
+`capture-watch.yml`, `recorder-watch.yml`, `health-check.yml`.
 
 ### 3.1 Retry, failure and alerts today, per capture
 
@@ -163,6 +162,12 @@ Not captures, named so they are not confused: `forecast-capture.yml` (the v2 for
 - **M14, a future seat inside the recorder.** A16's mark-observer port (`fno/intraday/observer.py`, `wiring.py:78-82`,
   empty today) is designed for LM1 and A21 to run inside the capture process. That would put a system consumer in the
   capture's failure domain.
+- **M16, the shared composition root (judge R, verified).** The 3 pm recorders, A16, A22 and the close read build their
+  parts through `fno/composition.py` (`quotes/cli.py:53`, `intraday/wiring.py:13`, `preopen/wiring.py:10`,
+  `close_read/wiring.py`, `intraday/cli.py`, `global_cues/preopen_cli.py`). `import fno.composition` loads `books`,
+  `accounting`, `research_engine`, `nse_margins`, `market_read_models`, `analytics` and `costs` (run with `python -I`).
+  A broken system import stops the 3 pm recorders, A16 and A22. This is the deepest coupling; the one-way rule in
+  4.0 is a transitive rule, not a direct-import rule.
 - **M15, a duplicate writer.** C5 has two starters (reasoning from the schedules; I did not verify which commit won
   each day, some evidence).
 
@@ -173,7 +178,7 @@ Not captures, named so they are not confused: `forecast-capture.yml` (the v2 for
    retry (O14), failure policy, alerts, commits and status file.
 2. **System** = forecasts, v4 release, desk, school, recommender, card, scores, editions, publish, and every derived
    table. It reads ingested data only through DR1's records, O9's receipts and the verified Drive cache.
-3. **One-way rule:** ingestion code imports no system package; the system never starts, waits inside, or retries a
+3. **One-way rule:** an ingestion entry point's transitive imports hold no system package, only the shared layer; the system never starts, waits inside, or retries a
    capture. A test pins the import list (I1).
 4. **Ready** = the dataset-day's record or marker exists and verifies: `.canonical` for quote parts, DR1's record for
    migrated datasets, a receipt plus manifest row for archive files, the ledger row for A16 marks.
@@ -211,6 +216,11 @@ The existing capture code stays where it is. `fno/ingest/` adds only the job lay
   (`drive_cache.py:1-5`: receipts are the index, bytes checked).
 - `IngestOwner`: reads `ingest.owner.<dataset>` (`legacy` or `job`) from the checkout; a path that is not the owner
   refuses before its first request ("owned by <job>").
+- **Capture-side composition root** (answers M16): `fno/ingest/composition.py` builds only what ingestion needs
+  (Groww and NSE providers and stores, quote and candle recorders, alert sender, Drive, calendar). The ingestion
+  entry points import it, never `fno/composition.py`; the shared pieces both sides need (config, models, constants,
+  storage, alerts, calendar, providers) form a **shared layer**, listed in `fno/ingest/boundary.py`, that itself imports
+  no system package. Moving the builders is I2.
 - Composition root: `fno/ingest/wiring.py` builds the job table; the routines call `python -m fno ingest run <job>`
   (or `ingest day <routine>` for a routine hosting several children).
 - Alerts: the shared reporter `ReportedAlerts` moves to a neutral `fno/alerts/reported.py` (22 lines) so ingestion no
@@ -284,14 +294,17 @@ Derive jobs (system side, own schedule, start on ready): `warmup-closes` (C14 ap
   (`GW1-groww-rate-guard.md:10-13`). GW1a's guard counts per process (3 tries a day, `groww_sign_in.py`), so separate
   containers cannot see each other; protection is arithmetic plus the quiet windows, which are clock-based and hold
   across containers (`groww_quiet_windows.py:23`).
-- **Today's worst case is 38 sign-ins a normal day, 114 if every sign-in fails** (`groww_sign_in.py:9-13`): 21 for
-  A16's fires, 5 for the daily run's Groww children (NIFTY, A4c, v4, E3, A16b), 1 pre-open, 4 for "the school's slots",
-  2 by hand. O14 adds at most 12 (section 5 there): 126. (The school's 4 are conservative: `fno/school/roads/wiring.py:3`
-  says it fetches nothing from Groww; some evidence.)
+- **Today's tally (corrected, judge R should-fix 4):** a normal day is 21 (A16's fires) + 5 (daily run's Groww
+  children: NIFTY, A4c, v4, E3, A16b) + 1 pre-open + 4 ("the school's slots" in GW1a's count) + 2 by hand = 33; GW1a's
+  38 uses 10 for the daily run's children with a same-day rerun (`groww_sign_in.py:8-13`). Worst case 38 x 3 = 114, O14
+  adds at most 12 (its section 5): 126. The "school's 4" are doubtful: `fno/school/roads/wiring.py:3` says the school
+  fetches nothing, and MS-P0b's probes have 4 slots a session (`capture_probes/constants.py`), which is probably what
+  GW1a meant (some evidence; GW1's owner to confirm).
+- **With the planned jobs:** 126 + C9 (3) + a feed recorder (3) = 132. A cap of 130 would fail at I10, so K7 uses two
+  limits: normal day at most 60, worst case at most 140 (150 minus 10; reasoning only).
 - **ING1 adds no Groww process by splitting.** Moving the same children into the 3 pm routine keeps the count; only
   new jobs (C9, C20, a feed recorder) add. The budget table lives in `config.yaml` (`ingest.groww_budget`: each job's
-  `max_signins`, `max_requests_a_minute`, window); a test sums it and fails above 130 (150 minus a margin of 20,
-  reasoning only) and flags two jobs whose windows overlap without a GW1 quiet rule.
+  `max_signins`, `max_requests_a_minute`, window); a test sums it against the two limits above and flags two jobs whose windows overlap without a GW1 quiet rule.
 - A Groww sign-in failure is never retried by O14 (its section 5); unchanged.
 
 ### 4.7 Health record
@@ -302,20 +315,20 @@ Derive jobs (system side, own schedule, start on ready): `warmup-closes` (C14 ap
 - Failures also go to O10's `capture_errors.csv`; presence to DR1's completeness ledger; O13 holds each routine's
   private run log in Drive. ING1 adds only the status file, because none of those three says "job J, day D, policy P,
   n attempts, final status".
-- O8's table is split into `ingestion_expectations()` and `system_expectations()`; new ingestion rows: C7, C10, C11, C18,
-  C19, C9 when built.
+- O8's table is split into `ingestion_expectations()` and `system_expectations()`; new ingestion rows: C6 (today
+  `expectations.py:71` checks NIFTY only), C7, C8, C10, C11, C12, `fo-masters` (C16), C17, C18, C19, C9 when built.
 
 ## 5. Criteria for the builds (each with a proof that fails when its code is broken on purpose)
 
 | # | Criterion | Proof |
 |---|---|---|
-| K1 | Ingestion packages (list in `fno/ingest/boundary.py`) import no system package; a new import fails | AST test (like `tests/test_code_size.py`); plant: add `from ..forecast_v4 import terms` to a quote module |
+| K1 | From each ingestion entry point (the `python -m fno` command it runs), the **transitive** import closure holds no system package; a new import anywhere in the closure fails | import-walk test in the style of `test_freeze_walk.py`, plus a `python -I` subprocess that loads the entry point and lists `sys.modules`; plants: a direct import of `forecast_v4` in a quote module, and an import of `fno.composition` in `close_read` |
 | K2 | The system starts no capture: no `QuoteSnapshotRecorder.capture`, `attempt_now`, `record*` or Groww client in a system package | same test, system side |
 | K3 | A path that is not a dataset's owner refuses before any request | test with a fake source that counts requests (must be 0) |
 | K4 | Two jobs of different failure domains: one fails, the other's status, commit and alert are unchanged | two-job fake-clock test (O2 style) |
 | K5 | Each job commits only its own paths | existing `CommandStep` pathspec tests, per job |
 | K6 | A system step with an unready input stops with a named reason at its own deadline and fetches nothing | reader contract test with a fake `IngestedData` |
-| K7 | The Groww budget table sums under 130 and lists every Groww command | config test; plant: add a job without an entry |
+| K7 | The Groww budget table sums to at most 60 (normal day) and 140 (worst case), lists every Groww command, and shows the planned jobs | config test; plant: add a job without an entry |
 | K8 | Every alert text of an old path has a mapped alert in the new path | a table in this story plus a test that greps both texts |
 | K9 | Rehearsal serves every job (REH1) | `rehearse` day test per job |
 | K10 | Real session: the job's record is the same as the old path's (shadow) or the day's record exists and verifies (swap) | the step's own rule-8 run, section 6 |
@@ -347,16 +360,26 @@ Derive jobs (system side, own schedule, start on ready): `warmup-closes` (C14 ap
 |---|---|---|---|
 | I0 | This text | lane 1; judges R and S | nothing |
 | I1 | Pin the boundary: `ingest.owner.*` keys (default `legacy`, no behaviour change); the import test with today's M-list as an allow-list that shrinks; adopt STAB1's capture key for `v4_pack` | lane 2 (tests, config key unread by code) and the orchestrator | nothing |
-| I2 | Job kernel `fno/ingest/` (IngestJob, Policy, Runner, owner, status file, ready port and four adapters) built **unused**; alert reporter moved to `fno/alerts/` (M10) | lane 1; two judges (it calls outside services) | `fno/daily/alerts.py` becomes a re-export, removed in I9 |
-| I3 | Health split and the missing ingestion rows (C7, C10, C11, C18, C19); per-job status files written by the existing commands' wrappers; O8's owner reviews | lane 1; two judges | nothing |
+| I2 | Job kernel `fno/ingest/` (IngestJob, Policy, Runner, owner, status file, ready port and four adapters) built **unused**; the capture-side composition root and shared-layer list (M16); alert reporter moved to `fno/alerts/` (M10) | lane 1; two judges (it calls outside services) | `fno/daily/alerts.py` becomes a re-export, removed in I9 |
+| I3 | Health split and the missing ingestion rows (C6, C7, C8, C10, C11, C12, C16 `fo-masters`, C17, C18, C19); per-job status files written by the existing commands' wrappers; O8's owner reviews | lane 1; two judges | nothing |
 | I4 | **Class P, first:** C5 single owner. Measure 5 sessions of the workflow versus the daily-run part (which lands in-window, which commit won); then flip the key and disable the loser | lane 1; two judges | the loser (workflow schedule or the `nse` part) |
 | I5 | Class P: split C14, C15, C17 into archive (stays) and derive jobs `warmup-closes`, `panel-days`, `nse-span`, `oi-dry-run-fire` on the system side; derive jobs start on `ready()`. Shadow: the new derive job runs `--check` (computes, appends nothing) and must equal the old append for 5 sessions; then the key flips and the append leaves the archive workflow | lane 1 (panel and margins are records, v3 freeze); two judges each | the append steps in 3 workflows |
-| I6 | Class P: morning and evening routines lose their ingestion lines (C12, C13) to the `nse-files` workflows and the `post-close` job; DR1-1's certification shadow gets a kept host first | lane 1; two judges | prompt lines (owner edits, section 7) |
 | I7 | Class G: the "3 pm capture" routine hosts C4-C7 as isolated children (the existing `QuoteParts`, `PartLocks`, `PartMarkers` moved, not rewritten); the daily run stops starting parts and its desk steps read `.canonical` (they already wait for it, `config.yaml:163-164`). Keys flip one capture per session, NIFTY last (C4 is the pack's input) | lane 1; two judges | `StartQuoteParts`, `FinishQuoteParts`, `QuoteParts` wiring in the daily run (after 5 clean sessions) |
 | I8 | Class G: E3's execution capture (C8) becomes a `quotes-3pm` job output; the desk reads it and writes its as-seen record. E3's owner agrees; money and fills: two judges | lane 1; two judges | the `snapshot` step's capture call |
 | I9 | Class G: C10 and C11 leave the daily run for `post-close` (O14 standard policy); `daily run` ends with the desk's steps | lane 1; two judges | steps `candles`, `close_read`, `close_recheck`, `margin_check`, `quotes`, `quotes_done` from `DAILY_RUN_STEPS` |
+| I9b (was I6, judge R should-fix 2) | Class P: morning and evening routines lose their ingestion lines (C12, C13) only after `post-close` (I9) has 5 clean real sessions, because step 1c's `closes read --commit` is the A4h fallback when a desk stop skips the daily run's `close_read` (`runner.py:58-60`); DR1-1's certification shadow gets a kept host first | lane 1; two judges | prompt lines (owner edits, section 7) |
 | I10 | New captures only as jobs: C9 margin check, C20 probes, a feed recorder after A16h's probe; each starts as a job, never a daily-run step | per job | nothing |
 | I11 (last) | A16's rv and v4 flag move to the system-side `session-rv-v4`; the observer port is retired or restricted to ingestion observers; `first_v4_expiry` is replaced in the capture by a config superset rule with a pin test in the system tests. Needs the v4 freeze route (Q3) | lane 1; two judges | `v4_cutoff_flag` and the import in `intraday/wiring.py`; the import in `window_wiring.py` |
+
+**Freeze impact (judge R should-fix 3, checked in `fno/forecast_scoring/v4/freeze_classes.py`).** The v4 freeze
+records `quotes/recorder.py`, `slot.py`, `weekly.py`, `expiry_listing.py`, `market_levels.py`,
+`monthly_contracts.py` (RECORDED, lines 97-102) and byte-checks `quotes/v4_extras.py`; it walks `daily/wiring.py`,
+`constants_operations.py`, `intraday/wiring.py`, `window.py` (lines 112-141, `NOT_DECIDING`), and lists
+`fno/composition.py`. So: **I1** adds config keys read by nothing (no frozen byte); **I2** adds `fno/ingest/` and
+`fno/alerts/reported.py`, which must be classed in the walk, and edits `composition.py` (moving builders); **K3's
+refusal** edits recorded code (`recorder.py`) and so needs the route; **I4, I7, I8, I9, I9b** edit
+`daily/wiring.py` and `constants_operations.py`; **I11** edits `intraday/wiring.py` and `v4_extras.py`. Every step
+except I1 and I3 therefore needs the freeze route or a class entry, and Q3 is asked per step (section 9).
 
 **Every removal** (the right column) is its own change, after the proof of its step, reviewed by two judges, and states
 what is deleted and what test still covers the behaviour. Nothing is deleted in I0-I3.
@@ -370,7 +393,7 @@ what is deleted and what test still covers the behaviour. Nothing is deleted in 
   scheduled job, so the CLAUDE.md exception allows a hand run in market hours (strong evidence for the wording,
   reasoning only for applying it here).
 - Sessions between steps are never touched: the steps change one capture, on a day the previous steps' proof allows.
-- Data volume: no new Groww reads are added by any step (K7).
+- Data volume: no step adds a Groww read except I10's new jobs, which K7 budgets.
 
 ## 7. What the owner must create or change (routines and schedules)
 
@@ -381,7 +404,7 @@ No session creates, changes or deletes a routine (A16 checklist). By step:
    prompts, remove only the `lab open`, `lab close`, `recommend check` lines and keep steps 1b and 1c.
 2. **I4:** disable `quote-recorder-nse.yml`'s schedule or the daily run's `nse` part, whichever the measurement shows
    loses (a lane-1 code change, not a routine).
-3. **I6:** edit the morning and evening prompts: remove steps 1b and 1c.
+3. **I9b:** edit the morning and evening prompts: remove steps 1b and 1c (after I9's 5 clean sessions).
 4. **I7:** create routine "Omenix F&O 3 pm capture", every day, `CRON_TZ=Asia/Kolkata 20 14 * * *`, same environment
    as the 14:05 routine (Groww, Drive, Slack settings, push access); first line `git fetch -q origin main && git
    checkout -q --detach origin/main` (stop and post on failure), then `sh tools/routine_setup.sh --groww`, then
@@ -419,8 +442,8 @@ No session creates, changes or deletes a routine (A16 checklist). By step:
    create one routine (recommended for the first cut: it is today's host minus the desk). (b) Two routines (3 pm
    capture; post-close at 15:30), cleaner failure domains, one more thing to create and watch. Either way each job
    stays an isolated child.
-3. **Is protocol v4's freeze still counting while forecasting is off?** I11 (moving A16's v4 flag and the v4 expiry rule
-   out of the capture) edits frozen files and needs the freeze amendment route. (a) Yes, it counts: do I11 last, only
+3. **Is protocol v4's freeze still counting while forecasting is off?** Every step except I1 and I3 touches a recorded,
+   byte-checked or walked file (section 6.2, freeze impact). Asked once for all steps; the judges check each step's list. (a) Yes, it counts: do I11 last, only
    with the route (recommended). (b) No, it is paused: judges may allow the change without a route.
 
 ## 10. Gap list: the owner's requirements and where each is covered
@@ -435,10 +458,7 @@ No session creates, changes or deletes a routine (A16 checklist). By step:
 | Data capture never stops | 6.1 class G, 6.3, summary item 3 |
 | Removals judged by two judges | 6.2 |
 | Stability before speed | 6.2 order, 8 R1-R13 |
-| Inventory with mixing | 3, 3.1, 3.2 |
-| Groww budget across jobs | 4.6, K7 |
-| Late or failed capture | 4.5 |
-| Routine changes by the owner | 7 |
+| Late or failed capture; Groww budget; inventory; owner's routine changes | 4.5; 4.6, K7; 3; 7 |
 
 Out of scope with reasons: any code, config, workflow or routine change (design only); STAB1's switch (another
 builder); redesigning O14, DR1 or GW1; the certification rules of any dataset (DR1); the live-feed recorder's design
@@ -463,17 +483,17 @@ design judgement.
 | 10 | No broker key in GitHub was decided by the owner | strong | `DESK_DECISIONS.md:60, 206`; `O-operations.md:178` |
 | 11 | GitHub morning crons start 4-5 hours late | strong (14-16 Oct); the afternoon is unmeasured | `global-cues.yml:6`; `nse-margins.yml:13` |
 | 12 | Two simultaneous Groww takers lose data | strong | `claims.py:1-5` |
-| 13 | Groww budget: 38 normal, 114 worst, 126 with O14, limit 150, shared by the account | strong arithmetic from GW1a and O14 | `groww_sign_in.py:9-13`; `O14` section 5; `GW1:10-13` |
-| 14 | The school fetches nothing from Groww, so GW1a's count of its slots is conservative | some | `school/roads/wiring.py:3` |
+| 13 | Groww budget: 33 normal (38 with a rerun), 114 worst, 126 with O14, 132 with planned jobs, limit 150, shared by the account | strong arithmetic from GW1a and O14 | `groww_sign_in.py:9-13`; `O14` section 5; `GW1:10-13` |
+| 14 | The school fetches nothing from Groww; GW1a's "school slots" are probably MS-P0b's probes | some (doubtful) | `school/roads/wiring.py:3` |
 | 15 | DR1 already defines ready (records, receipts, `RecordReader`) and "one writer per dataset" | strong | `DR1-design-staging.md` sections 2, 5; `raw_library.py:3-5` |
 | 16 | `tools/check_imports.py` has no layer rule, so K1 needs a new test | strong | `tools/check_imports.py:1-40` |
-| 17 | The health table mixes ingestion and system rows and misses C7, C10, C11, C18, C19 | strong | `health/expectations.py:68-96` |
+| 17 | The health table mixes ingestion and system rows and misses C6 (NIFTY only), C7, C8, C10, C11, C12, C16, C17, C18, C19 | strong | `health/expectations.py:68-96` |
 | 18 | The target split is stable under O14's classes (windowed captures not wrapped) | strong | `O14` section 4 |
 | 19 | A job-layer package with no code moved is the smallest safe change | reasoning only | 4.1 |
 | 20 | Five sessions of shadow or clean running before a flip or a removal | reasoning only (DR1 uses the same number) | 6.1 |
-| 21 | A margin of 20 sign-ins under 150 | reasoning only | 4.6 |
+| 21 | Limits of 60 (normal) and 140 (worst case) for the budget table | reasoning only | 4.6 |
 | 22 | A per-job-day status file is needed beside O10, DR1 and O13 | reasoning only | 4.7 |
+| 24 | `fno.composition` pulls system packages into the 3 pm recorders, A16 and A22 (judge R, verified with `python -I`) | strong | `quotes/cli.py:53`; `intraday/wiring.py:13` |
 | 23 | A missed job start counts as a failed scheduled job for the hand-run exception | reasoning only | 4.4, 6.3 |
 
-**Builder self-review:** none yet (design text; independent reviewers are the judges).
-**Real output sample:** not applicable (no code).
+**Self-review:** none (design text). **Real output sample:** not applicable (no code).
