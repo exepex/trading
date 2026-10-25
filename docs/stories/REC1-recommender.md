@@ -173,7 +173,7 @@ first (327 item 9 named it a separate owner decision).
   decision of the session was read and its hash checked. For `desk:book1`: Book 1's decision record of the day is
   present and its hash checked. Everything else is `unavailable` with the step's status and reason code, for example
   `ok` with `school:OFF` (today: `school.enabled` is false and the step exits 0 having run nothing), `ok` with
-  `school:NOT_A_SESSION`, `school:TOO_LATE`, `not_live`, `not_built`, `exercised`, `failed`, `refused`, `frozen`, or
+  `school:NOT_A_SESSION`, `school:TOO_LATE`, `not_live`, `not_built`, `exercised`, `failed`, `refused` (O1's statuses; there is no `frozen`), or
   the step missing from the run log. An `ok` status alone never makes a source complete. An unavailable source contributes no candidates, and the record says so; it never
   reads as "no candidates from that source". The evening check reports an unavailable source by name, and its total
   for the day is "incomplete: <source> unavailable", never a full total. An unavailable source that holds a rung-3
@@ -251,7 +251,7 @@ two-judge rule; REC1a, REC1c, REC1d and REC1e one judge each. No merge 14:00-16:
 10. **The #fno-desk line and the sources (REC1b).** With today's main data the line reads "Real money: DO NOT TRADE
    (no version has passed)" and "Paper: NO TRADE (no_established_version)"; it carries no strike, price or strategy
    internal (a test scans it against the record's private fields); it is posted only after the receipt is pushed. The
-   step runs after `school` in `DAILY_RUN_STEPS`. A school step `not_live`, `failed`, `refused`, `frozen`, `ok` with `school:OFF` or `school:NOT_A_SESSION`, or
+   step runs after `school` in `DAILY_RUN_STEPS`. A school step `not_live`, `failed`, `refused`, `ok` with `school:OFF` or `school:NOT_A_SESSION`, or
    missing from the run log gives `school: unavailable (<status>, <reason code>)` in the record and the line, never an
    empty complete source; `complete` only when `SessionRun.status` is `""` and every sealed decision's hash checks; with a rung-3 version
    in that source the paper answer is `data_check_failed`. The card's output is byte-identical with the step on and
