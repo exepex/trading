@@ -20,7 +20,7 @@ from typing import Protocol
 from ...desk.settlement import SETTLEMENT_TIME as SESSION_CLOSE
 from ...desk.snapshot import ExecutionSnapshot
 from ...models import IST
-from ..constants import FLEET_STOPPED, SLOT_1500, ExitReason, RecordKind, RoadCode
+from ..constants import FLEET_STOPPED, SLOT_1500, SLOT_LAST_START, ExitReason, RecordKind, RoadCode
 from ..contracts.clock import Clock
 from ..contracts.dashcam import DashcamStore, DashcamStuck
 from ..contracts.decisions import Driver, SpotPoint
@@ -47,6 +47,8 @@ FINISHED = (RecordKind.OUTCOMES, RecordKind.DRIFT)
 LATE_RERUN = "rerun after 15:30, fillable may differ"  # ruling b's accepted limit, marked on the session's record
 ACCOUNT_STOP = FLEET_STOPPED + " account unreadable {reason}"  # the run's status; the CLI exits 1: an alert
 DASHCAM_STOP = FLEET_STOPPED + " {reason}"  # "dashcam stuck: stored file unverifiable ...": the CLI exits 1
+FIRST_SEAL_TOO_LATE = (FLEET_STOPPED + " too late for a first seal: {now:%H:%M:%S} IST is after the slot's last start, "
+                       "{by:%H:%M} IST on {session}; nothing sealed")  # MS-P1j3; the CLI exits 1  # fmt: skip
 CardCheck = Callable[[tuple[DecisionRecord, ...], object], tuple[str, ...]]  # (sealed decisions, their seal)
 LawsFor = Callable[[Mapping[RoadCode, SlotSnapshot]], object]  # the slot's `SafetyLaws`, built on its marks
 
@@ -84,6 +86,7 @@ class SchoolFleet:
             return SessionRun(session, mode, DASHCAM_STOP.format(reason=stuck))
 
     def _run(self, session: date, mode: RunMode) -> SessionRun:
+        started = self.clock.now()  # before the captures are read: the run's start decides, never its reading time
         roads = plan_slot(session, self.catalogue, self.snapshots, self.gate, self.rules)
         if not roads.scheduled:
             return SessionRun(session, mode, "")
@@ -92,11 +95,23 @@ class SchoolFleet:
             records, exits = self._sealed(found)
             _, refused = self._finish(roads, records, exits, found, rerun=True)
             return SessionRun(session, mode, "", records, found, warnings=(*self.card_check(records, found), *refused))
+        late = self._too_late_to_seal(session, mode, started)
+        if late:
+            return SessionRun(session, mode, late)
         settled = settle_expired(self.books, self._ids(), session)
         records, exits = self._decide(roads, session)
         seal = self.dashcam.seal(session, SLOT_1500, RecordKind.DECISIONS, (*records, *settled, *exits))
         fills, refused = self._finish(roads, records, (*settled, *exits), seal)
         return SessionRun(session, mode, "", records, seal, fills.fills, (*self.card_check(records, seal), *refused))
+
+    @staticmethod
+    def _too_late_to_seal(session: date, mode: RunMode, started: datetime) -> str:
+        """MS-P1j3: a RECORD run started after the slot's last start makes no first seal (law 6 would refuse every
+        fill, spending the session's one record); a replay, which records nothing, never stops here."""
+        last = datetime.combine(session, SLOT_LAST_START, IST)
+        if mode is not RunMode.RECORD or started <= last:
+            return ""
+        return FIRST_SEAL_TOO_LATE.format(now=started.astimezone(IST), by=SLOT_LAST_START, session=session)
 
     def _decide(self, roads: SlotRoads, session: date) -> tuple[tuple[DecisionRecord, ...], tuple[ExitRecord, ...]]:
         laws = self.laws_for(roads.marks)

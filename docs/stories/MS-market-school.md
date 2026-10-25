@@ -721,6 +721,61 @@ starts in time and runs past 15:30 (its late fills are `stale_seal`, visible; O1
 a stop mid-write is worse than a late finish); a whole rehearsal of the day through `rehearse daily` with the switch
 on (it needs the switch; the seams it rests on are criterion 8's tests and REH1's own).
 
+### MS-P1j3 The runner's first-seal cutoff · lane 1 (decides whether a session is recorded; two judges) · model tier: H · `story/ms-p1j3-first-seal-cutoff` · depends on j and j2 (on `main`)
+
+Judges 607 and 608 (MS-P1j2) made it a condition of the switch commit, and the owner switched the school on (25 Oct
+2026, through the orchestrator: "we don't want any features switched off anymore"). The daily step never starts after
+15:25 IST (j2), but `python -m fno school run` by hand can. A first run after the close seals the whole session's
+decisions, then law 6 refuses every fill as `stale_seal`: the session's one record is spent with no fill, and it
+counts in the 10-session gate's denominator. `SchoolFleet._run` marks `LATE_RERUN` only when a seal already exists.
+
+**Files owned:** `fno/school/fleet/runner.py` (the cutoff), `fno/school/constants.py` (`SLOT_LAST_START`, one value for
+the runner and the daily step), `fno/daily/wiring.py` (`SCHOOL_STARTS_BY` reads it), `tests/school/fleet/`
+(a new test file), this section.
+
+**Acceptance criteria:**
+1. **The cutoff.** In `RunMode.RECORD`, a run whose clock is after the session's 15:25:00 IST (`SLOT_LAST_START`)
+   and that finds no sealed decisions file for the session seals nothing, settles nothing, fills nothing and writes
+   no counts. Its status is "stopped: too late for a first seal: <now> IST is after the slot's last start, 15:25 IST
+   on <session>; nothing sealed", so `school run` exits 1 and the daily step's alert or the person running it sees it.
+2. **Boundary.** 15:25:00 exactly seals as today; 15:25:00.000001 is refused. A clock in another zone is compared in
+   IST; a run on a later day for a past session is refused.
+3. **What it never touches.** A session already sealed reruns exactly as today, whatever the hour (the finish and
+   `LATE_RERUN` unchanged). `RunMode.REPLAY` (`--replay`, the simulator's practice at 15:30) is never refused. A
+   closed day or a session with nothing scheduled prints its own line as today (the check comes after `plan_slot`). A
+   REH1 rehearsal is `RECORD` on the replay clock, so a rehearsed session reaching the school by 15:25 replayed time
+   seals.
+4. **One value.** The daily step's `SCHOOL_STARTS_BY` is `SLOT_LAST_START`; changing one changes both.
+
+**Gap list.** Every requirement above has a criterion. Out of scope: the switch itself (a separate commit, the
+orchestrator's); what a person does after a refusal (runbook below); a late finish of a run that started in time (j2's
+gap list); a run that started in time, settled an expired position and crashed before the seal, then rerun after
+15:25: it is refused, and the settlement stays in the ledger without its sealed exit (an earlier session's settlement
+is never sealed later, `test_a_settlement_recorded_for_an_earlier_session_is_never_sealed_again`). Rare (a crash in a
+window of seconds), visible (the stop line), and covered by the runbook's in-time rerun.
+
+**Measured risk: the run's length (dry run of 23 Oct with the switch on, rehearsal 20261024T222606Z-831b1a; one
+sample, cold Drive cache as on a new container; some evidence).** Replayed IST: start 15:19:28, decisions sealed
+15:23:56 (4 min 28 s, mostly reading the captures from Drive), fills and outcomes 15:25:16, counts 15:25:40, done
+15:25:41: 6 min 13 s in all, against the 2-4 min that set 15:25 (the 77 s replay had a warm cache). Fills land about
+5 min 50 s after the start, so a start after about 15:24 risks fills after 15:30, which law 6 refuses as `stale_seal`
+(recorded, never invented). Option kept open: `SLOT_LAST_START` at 15:22 (the orchestrator, 25 Oct: not now; 22 Oct
+started 15:23 and would have been dropped, though its fills would have landed about 15:28:50). Watch (orchestrator,
+25 Oct): any session with fills after 15:29, or a start after 15:24 on 2 of the first 5 sessions, goes to the
+orchestrator for a small round of its own. The lasting fix is the decision phase's cold Drive reads, after 26 Oct.
+
+**Runbook line.** Never run `python -m fno school run` for a session after 15:25 IST on its day: the runner refuses it
+(criterion 1) and the session is not recorded. A school step that failed or was refused is not rerun that day; the
+next session runs as normal. The one exception: a run that crashed after it began (a "stopped:" line other than "too
+late") may be rerun by hand once, `python -m fno school run --session D`, only if it is still 15:25 IST or earlier on
+D; it completes the session without doubling anything (MS-P1j's finish).
+
+**Runbook: each enabled session's times, read in one minute (no new record).** The start and end are the `school`
+step's `started_at` and `finished_at` in `journal/runs/<D>.json`. The seal and fill times are the commit times of
+"Receipts: school dashcam files (dashcam decisions <D> 15:00)" (the seal) and "(dashcam outcomes <D> 15:00)" (after
+the fills): `TZ=Asia/Kolkata git log --format='%cd %s' --date=format-local:'%H:%M:%S' | grep 'dashcam .* <D>'`.
+Note them in `conversations/<D>.md` for each of the first 5 sessions, and apply the watch rule above.
+
 ### MS-P1j4 The sections on a day with no school record · lane 1 (Slack reports, evaluation records shown) · model tier: S · `story/ms-p1j4-no-record` · depends on g and j2 (on `main`)
 
 The 23 Oct dry run with the switch on (evening rehearsal 20261024T231243Z-02bd7f) showed the 20:05 section printing
@@ -3432,6 +3487,61 @@ session is unlikely; kept as stated in the gap list. 6. A warning as the last li
 format --check` clean; `python tools/check_imports.py` clean (2650 files); `python tools/check_records.py` clean (9108
 files). `python tools/check_numbers.py` runs on `main` at merge (CLAUDE.md "Code"). The first full run (at a92c0d773)
 had one failure, G13's score-row order test, fixed at f21525614 (Files owned).
+
+### MS-P1j3 Claims (round 1, branch `story/ms-p1j3-first-seal-cutoff`; builder session_01K3PspS7VhXM39Ccyhut4S7; the SHA is in the commit carrying this text)
+
+| # | Code | Tests (`tests/school/fleet/test_first_seal_cutoff.py`) | Plants (each caught) |
+|---|---|---|---|
+| 1 Cutoff | `SchoolFleet._too_late_to_seal`, `FIRST_SEAL_TOO_LATE`; the check sits after `recover` and before `settle_expired` | `test_a_later_first_run_seals_settles_fills_and_writes_nothing_and_stops_loudly` (no file, no ledger, no counts), `test_the_message_reads_as_the_person_sees_it` | the refusal removed (5 failed) |
+| 2 Boundary | `started <= last`, in IST, on the session's own date | `test_a_first_run_by_the_last_start_seals_and_fills` (15:04, 15:25:00), the late test (15:25:00.000001, 15:45, the next day), `test_a_utc_clock_is_compared_in_ist` | `<` for `<=` (3 failed) |
+| 2b The start decides | `started` read before `plan_slot` | `test_a_run_started_by_the_last_start_seals_even_if_reading_the_captures_crosses_it` | the clock read after `plan_slot` |
+| 3 Untouched | RECORD only; after `recover`; after `plan_slot` | `test_a_replay_is_never_refused`, `test_a_session_already_sealed_reruns_after_the_last_start_as_before`, `test_a_session_with_nothing_scheduled_prints_its_own_line_whatever_the_hour` | the mode test dropped; the check before `recover`; the check before `plan_slot` (2 failed) |
+| 4 One value | `SLOT_LAST_START` in `fno/school/constants.py`; `SCHOOL_STARTS_BY` is it | `test_the_daily_step_and_the_runner_share_one_last_start`, j2's e2e and `tests/daily/test_starts_by.py` | the daily value moved to 15:30 (2 failed) |
+
+The simulator's practice runs `RunMode.REPLAY` at 15:30 (`simulator/practice/runner.py:48`), so it is never refused
+(criterion 3); a REH1 rehearsal is `RECORD` on the replay clock. A daily step started at 15:24:59 whose child reads
+its clock after 15:25:00 (Python's start takes about 1-3 s) is refused by the runner: both refuse, both alert, nothing
+is sealed (fail closed; a boundary of a few seconds, stated rather than hidden).
+
+**Real output sample** (the committed code, the fleet's test rig, a fixture session):
+`stopped: too late for a first seal: 15:45:00 IST is after the slot's last start, 15:25 IST on <session>; nothing
+sealed`; `school run` exits 1 on it (`cli.py`: any "stopped:" status), and the daily run's log code is `school:STOPPED`.
+
+**Gates at a1c4a1fe9** (the code; the Claims text on top is Markdown only): `python -m pytest -q -p no:cacheprovider -n
+auto` 16556 passed, 1 skipped, 14 xfailed (FNO_SLACK_BOT_TOKEN kept set); `ruff check` and `ruff format --check`
+clean; `check_imports` clean (2760 files); `check_records` clean (9260 files); `check_numbers` at the merge, on `main`.
+
+### MS-P1j3 Claims, round 2 (judge 627 FAIL round 1: SF1 and a minor; judge 622 PASS)
+
+- **SF1 (judge F): the rehearsal clause had no test.** Accepted: F's plant (IstClock reading the wall clock) passed
+  all 4,072 tests. Fixed by `test_a_rehearsed_past_session_seals_by_its_replayed_last_start_and_not_after`: REH1's own
+  `ReplayClock`, installed with `models.install_clock` as `rehearsal/process.py` does, started at the past session's
+  15:20 IST; the record root's `wiring.IstClock` reads it (within a minute of the replayed time, not today), the fleet
+  seals; the clock jumped to 15:26 replayed, a first seal is refused with nothing written. F's plant (`IstClock.now`
+  returning `datetime.now().astimezone()`) fails it on the clock assertion: `assert 729679.12 < 60`.
+- **Minor (judge F): the self-review line.** Round 1 had no independent review agent on j3; one ran in round 2, on
+  the diff, with no context from this builder. Its findings, each checked by reading the code and planting:
+  1. "Settles nothing" untested (should fix): accepted, the rig held no expired position.
+     `test_a_late_first_run_settles_no_expired_position` (j's `expiring_rig`): the ledger unchanged, the position still
+     open, no file for the session. Plant: `settle_expired` moved above the check, caught.
+  2. The start-decides test passed without its code (should fix): accepted. The old fake clock changed on its
+     second read, and nothing in `plan_slot` read it. Now the snapshot source moves the clock past 15:25 while the
+     captures are read. Plant: the early read removed and the clock read at the check, caught (the earlier plant kept
+     the early read, so it proved less than the round-1 table said).
+  3. The ticket ledger not checked (minor): accepted, `nothing_written` checks both ledgers.
+  4. A late run on a day whose roads all closed is now refused too (minor): accepted as criterion 1 says, pinned by
+     `test_a_late_first_run_on_a_day_whose_roads_all_closed_is_refused_too`. It costs that day's closed-road record
+     only on a manual late run; the daily step is never late.
+  5. The comparison written twice, here and in `StartsBy` (minor): rejected. `StartsBy` is O1's generic step guard
+     with any time and knows nothing of the school; what the two share is the value, and that is one constant
+     (criterion 4).
+  6. A crash between a settlement and the seal, rerun after 15:25 (minor, out of scope): stated in the gap list,
+     with the runbook's in-time rerun.
+- **F's boundary ruling** (the runner does not take the step's start time): no change.
+- **Gates at aeecdeebe** (the code of round 2; later commits are Markdown only): full suite 16559 passed, 1 skipped,
+  14 xfailed (FNO_SLACK_BOT_TOKEN kept set); ruff check and format clean; check_imports clean (2760 files);
+  check_records clean (9260 files). `SLOT_LAST_START` stays 15:25 (orchestrator, 25 Oct; the measured risk is in the
+  gap list).
 
 ### MS-P1j4 Claims (round 1, branch `story/ms-p1j4-no-record`; builder session_01K3PspS7VhXM39Ccyhut4S7; the SHA is in the commit carrying this text)
 

@@ -9,7 +9,6 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from datetime import date
-from datetime import time as time_of_day
 from pathlib import Path
 
 from ..config import ROOT
@@ -24,6 +23,7 @@ from ..constants import (
 )
 from ..desk.daily_ports import DayStep
 from ..desk.daily_run import RERUN_FINAL
+from ..school.constants import SLOT_LAST_START
 from .runner import DayRunner
 
 V4_RECORDS = "research/forecasts/v4/"  # G7's rows and M1's weather records (`fno/forecast_v4_rules/wiring.py`)
@@ -35,7 +35,7 @@ PACK_RECORD_FOLDERS = ("v4/records/live", "v4/terms", "v4/ratios", "v4/outcomes"
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
 # MS-P1j2: why a failed school step stays failed (orchestrator, 24 Oct: no retry, a named reason)
-SCHOOL_STARTS_BY = time_of_day(15, 25)  # MS-P1j2: 5 minutes before law 6's close; a run takes ~2-4 (reasoning only)
+SCHOOL_STARTS_BY = SLOT_LAST_START  # MS-P1j2/j3: the runner's own cutoff too; a run takes ~2-4 min (reasoning only)
 SCHOOL_NOT_RETRIED = "; " + RERUN_FINAL.format(why="a later run never decides the session's paper trades")
 FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, V4_PACK_FORECASTS_STEP, "card",
