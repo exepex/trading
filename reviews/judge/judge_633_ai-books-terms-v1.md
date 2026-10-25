@@ -37,3 +37,30 @@ paper results on this envelope to be negative, and do not read them as evidence 
 
 4 planted on the merged tree: **2 caught** (a 22-day constitution; an unknown envelope status), **2 survived by
 design** (a 14-day constitution; `choose_width: forbidden`), which D6's hash lock covers (minor 1).
+
+## Addendum 1
+
+**story/ai-books-terms-v1 @ 1a694643c (the approved files plus their D6 rows), judge F: PASS (1 minor). Lane 1.** It
+supersedes the hashes in minor 1 above: the files changed one comment line each ("DRAFT" → "Approved by the owner on
+25 Oct"), so their hashes changed; nothing else changed (`git diff 7d44b51e2 1a694643c -- book3 playbook`).
+
+| Check | Result | My evidence |
+|---|---|---|
+| Each D6 hash = its file's hash | MET | `sha256sum`: constitution `645a383c23999837b21fef91e32802c5affeb4798fd662809d61df1e3f38b985`, envelope `94749b4ef1b117395362ff7b84521c3dc24cdf14ffe9876e6f5ce919d0034362`; the same in `journal/versions.csv` rows `book3_ai,1` (`constitution`) and `book2_hybrid,1` (`trade_envelope:b0-monthly-sc-v1`), and the same bytes at `registered_in_commit` 1f4f16ea7 |
+| Nothing applies before 26 Oct | MET | both rows start 2026-10-26; `RegisteredComponents` takes only rows with `starts_on <= day` |
+| `fno versions check` clean | MET | on the trial merge it lists both rows; a short commit ID planted is refused |
+| Nothing trades | MET | the branch changes no code and no config; Book 2's and 3's trading code (F1t, F5, F6) is not on main; the D6 rows are read only by C4 (a Book 2/3 proposal), Book 1's version keeper (Book 1 only) and the scoreboard's file hash |
+| A merge commit, never squash or rebase | CONFIRMED | `books/versions.py:74` counts a version only when both the row's commit and `registered_in_commit` are ancestors of the decision's commit; a squash or rebase gives 1f4f16ea7 and 1a694643c new IDs, so every Book 2/3 decision would be unscored. Merge with `git merge --no-ff` (or the PR's "Create a merge commit") |
+| Content still = Q9, Q10 and 16 Oct | MET | as above (the body of judge 633) |
+
+Gates on a trial merge with main ade79b9d7 (clean): **16,570 passed, 1 skipped, 13 xfailed** (token kept); ruff, format,
+`check_imports`, `check_records` (9,293 files) clean.
+
+**Minor.** No test compares a registered component's hash with its file. My plant editing one byte of the
+constitution passed all 1,908 related tests; the envelope's hash typo was caught only by the append-only test, not by a
+hash check. After merge, an edit to either file would pass CI and make C4 refuse every Book 2 or 3 trade ("no
+constitution file matches the registered D6 component"): fail-closed, but silent to CI. Add a test that each active
+D6 row's file components equal their files' SHA-256 (as A17f pins TWSE's file), in F1t or a follow-up.
+
+**Plants (4):** the envelope's D6 hash typo (caught, append-only test); the row started 24 Oct (caught); a short
+commit ID (refused by `versions check`, 4 failed and 28 errors); one constitution byte edited (**survived**, minor).

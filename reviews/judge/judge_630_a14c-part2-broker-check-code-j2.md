@@ -56,3 +56,33 @@ None).
 - Trial merge without the SDK: 16,624 passed, 1 failed (finding 1), 1 skipped, 14 xfailed. With the SDK: 244 of 244 in
   `tests/nse_margins` and `tests/daily/test_steps.py`. ruff, format, imports and the record scan are clean. Slack token kept.
 - Open item, not a finding: the market-hours sample owed Mon 26 Oct about 10:00 IST. It is also the first real test of finding 2.
+
+## Addendum 1: round 2 at `c2ed049e6` (the last round)
+
+**PASS**, lane 1, judge 2 of 2: every round-1 finding fixed, 2 minor left (test gaps; the code is right).
+
+| Round-1 finding | Verdict | Evidence |
+|---|---|---|
+| 1. Suite red without the Groww SDK | FIXED | `broker_wiring.py` builds `GrowwProvider` and the lot library through `functools.cache` on first use. Trial merge with main `c6b1bdf22`, `growwapi` shadowed to fail on import: 16,682 passed, 13 xfailed, 1 failed (`test_feed_tls` real-SDK test; my shadow raises ImportError, which `importorskip` does not skip; fails the same on plain main, passes with the SDK). Plants "eager Groww" and "eager lots" caught |
+| 2. Exposure at one level | FIXED | `broker_compare.py` `Levels`: NIFTY read before the first basket and after the last (both paced and stopped at 14:50); expected = nearest at any level between; a rate step inside the range, or no second reading with exposure outside 0.1%, is `error`, never `mismatch`. My own run, NIFTY +0.3% during the run: charged at the first reading, the midpoint or the second all `ok`; 0.2% beyond either end `mismatch`; the row carries `nifty_before` and `nifty_after` |
+| 3. Lot read twice, undated | FIXED | one source, `BasketBuilder.lot_size` (the row builder's calculator); `broker_lot.py` reads NSE's dated lot with the school's `ArchivedLots` for the basket's expiry month, once per run; differs, missing or unreadable is `error` and nothing is sent. A20a's manifest holds the file for 21-23 Oct (fo-masters job 07:45, retry 11:15 IST) |
+| 4. Stale text | FIXED | story: third step after the 14:05 start; 44.7 s and 60.7 s measured |
+| 5. No round-2 self-review | FIXED | response 291 "Self-review of rounds 2 and 3" |
+| Judge 634's retry promise (read only) | consistent | lines end "lost unless ... run by hand before 14:50", "lost" alone after the stop; test through O1's `outcome()` and `RunLog` |
+
+**Minor 1 (rule 4): a charge at the first reading is untested.** Plant `nearest = last`: 273 of 273 passed. Every move
+test charges at the second reading. Expected: one test with a charge at the first reading (or between) under a moving
+index.
+**Minor 2: the record's two new columns are not asserted.** Plant: `as_row` writing both empty: 273 passed. Expected:
+assert `nifty_before`/`nifty_after` in the record test.
+
+**Plants:** 18 on `c2ed049e6`, 16 caught, the 2 survivors above.
+
+**Notes.**
+- With only two readings, Groww can still charge a basket at a level outside both, when NIFTY moves and comes back
+  within the minute. A false mismatch stays possible on such a day, less often than before. Watch it in the 26 Oct
+  sample (the per-basket bracket is the tighter option).
+- A late A20a archive (21 Oct: 19:46 IST) makes that day's check `error` and loses the broker figure, with O1's alert.
+  That cost is chosen on purpose (fail closed), and it is the owner's to weigh.
+- Response 291's lot paragraph still says "a same-day rerun retries"; the story and the code say by hand only.
+- Gates on the trial merge: ruff, format, `check_imports` and `check_records` clean.
