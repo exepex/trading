@@ -121,3 +121,18 @@ passed, 13 xfailed.
   the owner's own rule. The plan's section 7 is linked from the same bullet, and its ruling covers files in review.
   Still, add "(existing files: plan section 7)" after "No document over 500 lines" when the text is next touched.
 - **m2.** The DOC1 row in `docs/WORK_REGISTER.md` still says "each under 350 lines"; it should say 500.
+
+## Addendum 3
+
+**Round 2 at the head story/doc1-clean-docs @ 02dd914d1 (17393a334 + da825c6b7 + 02dd914d1), judge F: PASS, no open
+finding. Lane 1, text only.** I did not read judge E.
+
+| Item | Change | My check | Result |
+|---|---|---|---|
+| m1 (my 4c) | CLAUDE.md: "a new document never; an existing one already over 500 may still be edited until DOC1 splits it, per the plan's section 7"; AGENTS.md says the same | read; it matches section 7's ruling | **Fixed** |
+| m2 | the register row says 500 lines | read | **Fixed** |
+| Section 4, item 2 | "3 runtime reads" named | `fno/budget/wiring.py:54` reads `DECISIONS_FILE`; `validity_account.py:159` and `overrides.py:51` checked in 678.2 | **True** |
+
+Since 678.2 only these three commits changed, and only the lines above. The interim rule still widens checks only.
+Gates (trial merge with main; only `.md` files change): record scan clean (9,539 files); doc-reading tests 963
+passed, 13 xfailed. Layout note only: the new AGENTS.md line is 184 characters (many lines there are already long).
