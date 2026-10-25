@@ -769,3 +769,7 @@ the old code.
    to `any` plant fails 2 tests.
 4. **Minor 4:** the wired `build_packs` isolates Book 2 and Book 3 and never Book 1. A Book 1-only run isolates nothing.
 5. **Minor 5:** already closed at a1ed229a (equality of each D6 component to its named file).
+
+Gates (round 2): the full suite on d7162890e (round 2 merged with main 80857781), in its own worktree: 17,146 passed,
+1 skipped, 13 xfailed, 0 failed. ruff, `ruff format`, `check_imports` and the record scan are clean; every file is
+under 350 lines.
