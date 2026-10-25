@@ -39,3 +39,23 @@ coordinate with the 635 session.
 ## For round 2's close
 
 This is the last round, so the owner or the orchestrator decides. SF1 needs only the restated wrong case: one paragraph, no code. With it, I would pass the text.
+
+## Addendum 1: round 3 (granted by the owner, 25 Oct), `story/reh1n-new-quote-parts` at 80b522bf6 (judge K)
+
+**PASS, lane 1, text only.** 1 minor. The branch's change against main is `docs/stories/REH1-rehearsal-mode.md` alone.
+Doc-reading tests on 80b522bf6, Slack token set: 963 passed, 13 xfailed. No post in the three channels from 08:34 UTC
+on. I did not coordinate with the 635 session. The file's size (over 2,000 lines) is DOC1's item, as the orchestrator
+says.
+
+| Checked | Verdict | Own evidence |
+|---|---|---|
+| SF1: the wrong case was wider than stated | fixed | "The wrong cases" now names my three paths: hung (`HUNG`), not committed or not pushed, a lost container. Each is closed or named below |
+| Design 1b's facts | true | `journal/runs/<D>.json`'s `steps.quotes.inputs.parts` is `['nifty', 'nse', 'indices']` on 21 and 23 Oct. 23 Oct's "Desk run 2026-10-23 step quotes" was committed at 08:37:14 UTC (14:07:14 IST), the run's first step, before any part. `QuotePart.canonicals` holds one (dataset, stem) for `nifty`, for `nse` (NSE's `nifty`) and for `v4` (`v4_part.py:33`), and five for `indices`. So the plan can witness the single-stem parts only, as stated, and 21 Oct's listed `indices` without the weekly shows why it must not count for a multi-stem part |
+| The paths, one by one | correct | the plan's 14:07 push precedes every capture, so a hung, uncommitted or lost single-stem part is still named in it. The leftovers are named: residual 1 (no push of D's run log at all: the whole day is missing from the record, loudly) and residual 2 (a new stem inside `indices` on its first day) |
+| N3 | covers it | a planted D run log that lists `v4` with no `v4` sidecar or marker stays a failure. The plants: the log not read; read from the rehearsal's 14:05 clone; a multi-stem listing counted |
+| Gap list | done | its own row, with the residuals named |
+
+**m1 (minor):** 1b reads D's run log from the record's `main`, beyond the rehearsal's own 14:05 clone. That is safe in
+value, because the `quotes` step's entry is written once at 14:07 on D. But REH1p's point-in-time rule shows a file only
+once its commit time is at or before the replay clock. Say that the plan is read under the same rule. The quote parts
+ask from 14:29 on, after the 14:07 commit, so the outcome does not change.
