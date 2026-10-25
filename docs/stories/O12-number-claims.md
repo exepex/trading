@@ -212,8 +212,9 @@ registry; trials get the same.
   command in its words; the code writers (the factory's `register`, the evaluation freeze, Book 3) all go through it.
   A row typed straight into `ledger.csv` (the v4 rows 101-108 were) never passes `register`, so `require_committed`,
   which every run calls first (`require_registered` and the trial guard build on it), applies the same check to the
-  trial's committed row: an unclaimed trial never runs, even before CI sees the push. A block claimed on `main` reaches
-  a branch when `main` is merged into it.
+  trial's committed row: an unclaimed trial never runs, even before CI sees the push. Both read the claims as git
+  holds them at HEAD, like the ledger row itself (judge J): a block typed locally and never committed covers nothing.
+  A block claimed on `main` reaches a branch when `main` is merged into it (a merge commit, so it is committed).
 - **The evaluation freeze** stops taking "highest plus one": it takes the lowest unused id of a block claimed for its
   experiment. When there is no such block, or every such block is full, it is refused with the claim command; it
   never takes an id from another block. The id is chosen (or the freeze refused) before anything is written: today
@@ -243,7 +244,8 @@ not refused at the moment it is typed. `ledger.csv` merge conflicts stay git's.
 7. The factory's `register` takes the lowest free id of its card's experiment block, as the freeze does: its
    "the next ledger trial" rule was the same highest-plus-one (found while building; same root cause).
 8. `require_committed` refuses a committed row, typed by hand, whose id is in no block or in another experiment's
-   block (and so `require_registered` and every run do).
+   block (and so `require_registered` and every run do); a block typed into the registry but not committed covers
+   nothing for `register` or `require_committed` until it is committed (judge J).
 Plants, one at a time and restored: each check and guard above removed in turn, the freeze's and the factory's
 highest-plus-one restored, and the freeze choosing its id after writing its record (the list is in the Claims).
 
@@ -259,11 +261,12 @@ highest-plus-one restored, and the freeze choosing its id after writing its reco
   test repositories now carry a claim registry (`tests/factory/helpers.py`, `tests/evaluation/builders.py`,
   `tests/evaluation/test_breadth_protocol.py`), and `tests/factory/test_cards_anywhere.py`'s planted experiments
   became `x1-test-*` (they shared one repository's ids with `x1-test`).
-- Plants (13, each caught, restored): the uncovered-trial check, the experiment check, the overlap check, the `-`
+- Plants (14, each caught, restored): the uncovered-trial check, the experiment check, the overlap check, the `-`
   boundary of the prefix (`edge2-f60` taken by `edge2-f6`), the guard in `register`, the freeze's and the factory's
   highest-plus-one, a block claim that ignores ledger ids typed past every block; round 2 (judge 636): the freeze
   choosing its id after writing its record, Book 3's exemption under any experiment, every uncounted id exempt in
-  `register`, uncounted ids not flagged by the check, the claim check removed from `require_committed`.
+  `register`, uncounted ids not flagged by the check, the claim check removed from `require_committed`; judge J: the
+  claims read from the working tree instead of HEAD (14 in all).
 - Round 2 test changes: the B4 and trial-guard tests' ids `P1`, `P2`, `P9` became `1`, `2`, `9` in a claimed `exp`
   block (`tests/numbering/helpers.claim_block`); production ids were already whole numbers (Experiment 1 maps policy
   P1 to trial 22).
