@@ -39,10 +39,15 @@ class LiveBook1Inputs(Book1Inputs):
         if not common.is_file():
             raise InputsRefused(f"no common pack for {day}: Book 1 reads the packs (E2)")
         hashes = {"common_pack_sha256": _sha(common), "private_pack_sha256": _sha(packs.private_path(self.book, day))}
-        snapshot = self._snapshot(day, CommonPack.read(day, common))
+        return self.at_cutoff(day, CommonPack.read(day, common), self.context(day, hashes))
+
+    def at_cutoff(self, day: date, pack: CommonPack, context: Mapping[str, object]) -> Book1Day:
+        """What D2 reads from the common pack's own snapshot and the book's account, before its private pack exists
+        (story F5: Book 2's day sheet is built inside the pack step)."""
+        snapshot = self._snapshot(day, pack)
         market = market_from_snapshot(day, snapshot, self.rate, self.model)
         book, counts, shadow = self.parts(market)
-        return Book1Day(market, self.features(day, snapshot), book, counts, shadow, self.context(day, hashes))
+        return Book1Day(market, self.features(day, snapshot), book, counts, shadow, context)
 
     def _snapshot(self, day: date, pack: CommonPack) -> CutoffSnapshot:
         try:

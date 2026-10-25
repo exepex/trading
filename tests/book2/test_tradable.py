@@ -10,7 +10,11 @@ from fno.playbook.decision_inputs import PlaybookSnapshot
 from fno.playbook.registry import RegistryRow
 from tests.playbook.evaluation_builders import DAY, playbook, strategy
 
-PAPER, RESEARCH, UNREGISTERED = strategy("sc-paper"), strategy("sc-research", "research"), strategy("sc-new", "research")
+PAPER, RESEARCH, UNREGISTERED = (
+    strategy("sc-paper"),
+    strategy("sc-research", "research"),
+    strategy("sc-new", "research"),
+)
 
 
 def keys(strategies):
@@ -52,4 +56,6 @@ def test_the_view_travels_in_the_snapshot_and_book1_s_bytes_are_unchanged():
     plain = PlaybookSnapshot(files, "csv", "c" * 40)
     viewed = PlaybookSnapshot(files, "csv", "c" * 40, paused=("sc-research-v1",))
     assert "book2_paused" not in plain.to_json() and viewed.to_json()["book2_paused"] == ["sc-research-v1"]
-    assert PlaybookSnapshot.from_json(viewed.to_json()) == viewed and PlaybookSnapshot.from_json(plain.to_json()) == plain
+    assert (
+        PlaybookSnapshot.from_json(viewed.to_json()) == viewed and PlaybookSnapshot.from_json(plain.to_json()) == plain
+    )

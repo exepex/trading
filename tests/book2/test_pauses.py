@@ -7,7 +7,7 @@ from datetime import date, timedelta
 import pytest
 
 from fno.accounting.ledgers import TradeLine
-from fno.book2.pauses import PAUSES_FILE, Book2ResearchPauses, PauseTrigger, PausesRefused, ResearchPauses
+from fno.book2.pauses import PAUSES_FILE, Book2ResearchPauses, PausesRefused, PauseTrigger, ResearchPauses
 from fno.scorecard.strategy_record import ClosedTrade, StrategyRecord
 from tests.playbook.evaluation_builders import DAY, playbook, strategy
 

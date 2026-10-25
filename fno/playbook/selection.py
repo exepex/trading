@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass
 
 from ..constants import Decision
 from ..risk.inputs import Market, RiskBook
-from .allocation import Allocator, Placed, StrategyTradeCounts
+from .allocation import Allocator, Placed, StrategyTradeCounts, Threshold
 from .candidates import Candidate, NotBuilt
 
 PICKED = "picked by {book}: {reason}"
@@ -53,7 +53,7 @@ class Attempt:
 
 
 class SelectionAllocator:
-    def __init__(self, allocator: Allocator, picks: Sequence[Pick], book: str, threshold: bool,
+    def __init__(self, allocator: Allocator, picks: Sequence[Pick], book: str, threshold: Threshold,
                  rebuild: Rebuild | None = None):  # fmt: skip
         self.allocator, self.book, self.threshold, self.rebuild = allocator, book, threshold, rebuild
         self.picks: dict[str, Pick] = {}

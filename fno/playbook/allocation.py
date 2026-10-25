@@ -5,7 +5,7 @@ same rule runs for Book 1 and, separately, for each research candidate's own sha
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Protocol
 
 from ..constants import NO_TRADE_THRESHOLD_RS, UNPROVEN_BELOW_COMPLETED_TRADES, UNPROVEN_MAX_OPEN_TRADES, Decision
@@ -16,6 +16,9 @@ from .book_effects import book_after_entry
 from .candidates import Candidate
 
 SLOT_RULES, CASH_RULES = frozenset({"max_open_trades"}), frozenset({"margin_room"})
+
+
+Threshold = bool | Callable[[Candidate], bool]  # whether the no-trade threshold binds (all, none, or per candidate)
 
 
 class StrategyTradeCounts(Protocol):
@@ -39,15 +42,17 @@ class Allocator:
         book: RiskBook,
         market: Market,
         counts: StrategyTradeCounts,
-        threshold: bool = True,
+        threshold: Threshold = True,
     ) -> list[Placed]:
         """`threshold` False is the shadow forward test: the no-trade threshold binds paper allocation only, so the
-        shadow records what the rule itself would do (orchestrator, 14 Oct 2026)."""
+        shadow records what the rule itself would do (orchestrator, 14 Oct 2026). A rule per candidate (story F5,
+        Book 2 under the owner's Q11): the threshold binds Book 2's paper versions and not its research ones."""
         placed: list[Placed] = []
         chosen_today: dict[tuple[str, int], int] = {}
         for rank, candidate in enumerate(sorted(candidates, key=Candidate.rank_key), start=1):
             key = candidate.opportunity.strategy.key
-            refusal = self._before_risk(candidate, counts, chosen_today.get(key, 0), threshold)
+            binds = threshold(candidate) if callable(threshold) else threshold
+            refusal = self._before_risk(candidate, counts, chosen_today.get(key, 0), binds)
             if refusal:
                 placed.append((candidate, Decision.NOT_CHOSEN if refusal[0] else Decision.NO_TRADE, refusal[1], None))
                 continue

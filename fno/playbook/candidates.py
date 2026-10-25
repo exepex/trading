@@ -12,7 +12,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 
-from ..research_engine.structures import Chain, Structure, payoff_bounds, position_value
+from ..research_engine.structures import Structure, payoff_bounds, position_value
 from ..risk.inputs import Market, Proposal, ProposedLeg, RiskInputError, TradeTerms
 from ..risk.trade_costs import TradeCosts
 from .opportunities import Opportunity
@@ -57,29 +57,36 @@ class CandidateBuilder:
         self.structures, self.costs, self.cap, self.lot_size = dict(structures), costs, max_loss_cap, lot_size
 
     def build(self, opportunity: Opportunity, market: Market, trade_id: str) -> Candidate:
+        """The widest width of the version whose trade is tradable today, at the version's lots."""
+        spec, tried = opportunity.strategy.structure, []
+        for width in spec.widths:
+            built = self.at_terms(opportunity, market, trade_id, width, spec.lots)
+            if isinstance(built, Candidate):
+                return built
+            tried.append(f"{width:g}: {built}")
+        raise NotBuilt("no width tradable: " + "; ".join(tried))
+
+    def at_terms(self, opportunity: Opportunity, market: Market, trade_id: str, width: float,
+                 lots: int) -> Candidate | str:  # fmt: skip
+        """The trade at one width and lot count, or why it is not tradable (story F5: Book 2's chosen width or fewer
+        lots are rebuilt by the same code, never by hand)."""
         spec = opportunity.strategy.structure
         contracts = live_chain(market, opportunity.context.expiry)
-        chain: Chain = frozenset(contracts)
-        tried = []
-        for width in spec.widths:
-            legs = self.structures[spec.code].legs(chain, market.spot, width)
-            if legs is None:
-                tried.append(f"{width:g}: not listed with valid quotes")
-                continue
-            proposed = tuple(ProposedLeg(contracts[leg.contract], leg) for leg in legs)
-            proposal = Proposal(trade_id, TradeTerms(spec.code, width, spec.lots), self.lot_size, proposed)
-            try:
-                prices = proposal.entry_prices(market)
-                max_loss = self.costs.max_loss(proposal, market)
-            except RiskInputError as problem:
-                tried.append(f"{width:g}: {problem}")
-                continue
-            lowest, highest = payoff_bounds(legs)
-            if not lowest < position_value(legs, prices) < highest:
-                tried.append(f"{width:g}: bad prices (the position cannot lose or cannot win at expiry)")
-                continue
-            if max_loss <= self.cap:
-                expected = opportunity.strategy.evaluation_plan["expected_net_per_opportunity"]
-                return Candidate(opportunity, proposal, max_loss, expected)
-            tried.append(f"{width:g}: maximum loss {max_loss:.2f} above the cap {self.cap:g}")
-        raise NotBuilt("no width tradable: " + "; ".join(tried))
+        legs = self.structures[spec.code].legs(frozenset(contracts), market.spot, width)
+        if legs is None:
+            return "not listed with valid quotes"
+        proposed = tuple(ProposedLeg(contracts[leg.contract], leg) for leg in legs)
+        proposal = Proposal(trade_id, TradeTerms(spec.code, width, lots), self.lot_size, proposed)
+        try:
+            prices = proposal.entry_prices(market)
+            max_loss = self.costs.max_loss(proposal, market)
+        except RiskInputError as problem:
+            return str(problem)
+        lowest, highest = payoff_bounds(legs)
+        if not lowest < position_value(legs, prices) < highest:
+            return "bad prices (the position cannot lose or cannot win at expiry)"
+        if max_loss > self.cap:
+            return f"maximum loss {max_loss:.2f} above the cap {self.cap:g}"
+        return Candidate(
+            opportunity, proposal, max_loss, opportunity.strategy.evaluation_plan["expected_net_per_opportunity"]
+        )
