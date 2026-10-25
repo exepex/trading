@@ -212,3 +212,32 @@ def test_a_catch_up_for_a_past_day_sees_only_the_checks_made_by_then(tmp_path):
     run.run(SESSIONS[5])  # final on the 6th session
     caught_up = run.run(SESSIONS[2])  # a catch-up dated earlier still checks the day
     assert caught_up.lines[-1].startswith(f"PAPER ONLY. Recommender check for {DAY:%d %b %Y}: complete.")
+
+
+def _recorded_days(tmp_path, days):
+    """A run with a recommendation recorded on each of `days` (each with one open trade)."""
+    long = [DAY + timedelta(days=k) for k in range(0, 200) if (DAY + timedelta(days=k)).weekday() < 5]
+    run, data, alerts = harness(tmp_path)
+    for day in days:
+        record = no_trade(session=day, made_at=MADE_AT + timedelta(days=(day - DAY).days),
+                          evidence_cutoff=MADE_AT + timedelta(days=(day - DAY).days), versions=(evidence_of(CS1),),
+                          candidates=(candidate(CS1, traded=True),))  # fmt: skip
+        run.keeper.keep(record_path(day), encode(record), lambda b: None, "planted")
+    run.ports = CheckPorts(run.ports.receipts, run.ports.read, lambda a, b: [d for d in long if a <= d <= b],
+                           run.ports.lookup)  # fmt: skip
+    return run, long
+
+
+def test_more_than_60_recorded_days_are_all_checked(tmp_path):
+    """Judge 658.2 m2: the days come from the receipts, never from a 60-day slice, so none is left out."""
+    long = [DAY + timedelta(days=k) for k in range(0, 200) if (DAY + timedelta(days=k)).weekday() < 5]
+    run, long = _recorded_days(tmp_path, long[:65])
+    text = "\n".join(run.run(long[64]).lines)
+    assert all(f"{day}" in text or f"{day:%d %b %Y}" in text for day in long[:65])
+
+
+def test_a_day_recorded_after_the_check_day_is_never_checked(tmp_path):
+    """Judge 660.1 m2: a catch-up dated before a recorded day leaves that day alone."""
+    long = [DAY + timedelta(days=k) for k in range(0, 40) if (DAY + timedelta(days=k)).weekday() < 5]
+    run, long = _recorded_days(tmp_path, [long[5]])
+    assert run.run(long[2]).lines == (f"recommender check {long[2]}: no recorded day waits for a check",)
