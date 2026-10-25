@@ -25,13 +25,13 @@ NOT_ELIGIBLE = "no established version is eligible under the real-money gate, RM
 
 def recommendation_line(record: Recommendation, saved: Saved, note: str = "") -> str:
     """`note`: a sentence about the save (an adopted record), kept before the record so the line ends on it."""
-    parts = [HEAD.format(day=record.session), _real_money(record), _paper(record), _sources(record) + ".",
+    parts = [HEAD.format(day=record.session), real_money_text(record), paper_text(record), _sources(record) + ".",
              NOT_RECOMMENDED.format(count=_not_recommended(record)), *([note] if note else []),
              RECORD.format(path=saved.path, short=saved.sha256[:12])]  # fmt: skip
     return " ".join(parts)
 
 
-def _real_money(record: Recommendation) -> str:
+def real_money_text(record: Recommendation) -> str:
     if record.real_money is RealMoneyAnswer.ELIGIBLE_FOR_YOUR_OWN_REVIEW:
         return ELIGIBLE.format(version=record.eligible_version)
     if not any(v.rung is EvidenceRung.ESTABLISHED for v in record.versions):
@@ -43,7 +43,7 @@ def _real_money(record: Recommendation) -> str:
     return DO_NOT.format(why=NOT_ELIGIBLE)
 
 
-def _paper(record: Recommendation) -> str:
+def paper_text(record: Recommendation) -> str:
     if record.paper is PaperAnswer.PAPER_TRADE:
         return TRADE.format(version=record.paper_trade.version)
     return NO_TRADE.format(code=record.reason.value, text=REASON_TEXT[record.reason])
