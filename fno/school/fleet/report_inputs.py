@@ -18,6 +18,7 @@ from ..contracts.tickets import OpportunityCounts
 from ..reports.inputs import PlannedTrade
 from .counts_file import SessionCounts, opportunity_path
 from .isolate import isolated
+from .runner import FINISHED
 from .slot import plan_slot
 
 
@@ -54,6 +55,9 @@ class SealedDayInputs:
 
     def marks(self, session: date) -> tuple[str, ...]:
         return SessionCounts(self.root, None).marks(session, SLOT_1500)
+
+    def finished(self, session: date) -> bool:
+        return all(self.dashcam.find(session, SLOT_1500, kind) is not None for kind in FINISHED)
 
     def school_step(self, session: date) -> tuple[str, str] | None:
         step = RunLog.open(self.root, session).steps.get(SCHOOL_STEP)

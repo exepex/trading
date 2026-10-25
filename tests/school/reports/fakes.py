@@ -70,6 +70,7 @@ class Day:
     notes: tuple = ()
     causes: tuple = ()
     step: tuple | None = None  # the run log's (status, code) of the school step; None: no log or no step
+    done: bool = True  # the session's finish (outcomes and drift) sealed
 
     def records(self, session):
         return self.items
@@ -88,6 +89,9 @@ class Day:
 
     def school_step(self, session):
         return self.step
+
+    def finished(self, session):
+        return self.done
 
 
 def counts(driver="CS1@1", eligible=3, fillable=2, executed=1) -> OpportunityCounts:

@@ -32,7 +32,10 @@ WHY_HEADER = "Why (the instructor's words):"
 NO_RECORD = "No school record for {day}: {why}."
 STEP_WAS = "the daily run's school step was {status} ({code})"
 NO_STEP = "the daily run recorded no school step"
-INCOMPLETE = STEP_WAS + ": this record may be incomplete"  # a recorded day whose step failed (judge 645)
+# Judges 645 and 648: decisions sealed but the finish not (a stop at O1's limit, a crash, a Drive failure), or the
+# step not ok after the finish: one line, red
+INCOMPLETE = "School run incomplete for {day}: {why}; {what}."
+NOT_FINISHED, MAY_BE_INCOMPLETE = "fills and outcomes not recorded", "this record may be incomplete"
 COUNTS = "Counts (eligible / fillable / executed):"
 CANDIDATE_OUTCOMES = (Outcome.TRADE, Outcome.TICKET)
 OTHER_ROLES = (
@@ -55,7 +58,7 @@ class HowDidTodayGoSection:
         rule = [r for r in money if self._role(r) is DriverRole.RULE]
         closed_roads = {(d.road, d.decision.reason) for d in decisions if d.decision.outcome is Outcome.ROAD_CLOSED}
         candidates = sum(self._is_candidate(d) for d in decisions)
-        warning = self._step_warning(session)
+        warning = self._incomplete(session)
         banner = Banner.RED if warning else banner_for(len(closed_roads), candidates)
         lines = (
             banner_line(banner),
@@ -72,17 +75,21 @@ class HowDidTodayGoSection:
         )
         return SectionText(paper_title(TITLE), lines, banner)
 
-    def _step_warning(self, session: date) -> tuple[str, ...]:
-        """A recorded day whose school step is not ok (it sealed, then stopped): said so, red. Ok or missing (a manual
-        run) leaves the day as recorded."""
-        step = self.inputs.school_step(session)
-        if step is None or step[0] == STEP_OK:
+    def _incomplete(self, session: date) -> tuple[str, ...]:
+        """A recorded day with no sealed finish, or whose school step is not ok: said so, red. A finished day whose step
+        is ok or missing (a manual run) stays as recorded."""
+        step, finished = self.inputs.school_step(session), self.inputs.finished(session)
+        if finished and (step is None or step[0] == STEP_OK):
             return ()
-        return (INCOMPLETE.format(status=step[0], code=step[1]),)
+        what = MAY_BE_INCOMPLETE if finished else NOT_FINISHED
+        return (INCOMPLETE.format(day=session, why=self._why_of(step), what=what),)
+
+    @staticmethod
+    def _why_of(step: tuple[str, str] | None) -> str:
+        return NO_STEP if step is None else STEP_WAS.format(status=step[0], code=step[1])
 
     def _no_record(self, session: date) -> SectionText:
-        step = self.inputs.school_step(session)
-        why = NO_STEP if step is None else STEP_WAS.format(status=step[0], code=step[1])
+        why = self._why_of(self.inputs.school_step(session))
         lines = (banner_line(Banner.RED), NO_RECORD.format(day=session, why=why), *footer())
         return SectionText(paper_title(TITLE), lines, Banner.RED)
 

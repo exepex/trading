@@ -5,6 +5,7 @@ be made."""
 import json
 from dataclasses import replace
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 
@@ -22,8 +23,8 @@ from tests.school.reports import fakes as f
 TITLE = "School pilot, How did today go (Paper: no real money, no order)"
 
 
-def evening(items=(), rows=(), step=None):
-    return HowDidTodayGoSection(f.Day(tuple(items), tuple(rows), step=step)).render(f.SESSION)
+def evening(items=(), rows=(), step=None, done=True):
+    return HowDidTodayGoSection(f.Day(tuple(items), tuple(rows), step=step, done=done)).render(f.SESSION)
 
 
 @pytest.mark.parametrize(
@@ -65,21 +66,55 @@ def test_a_recorded_day_is_unchanged_when_its_step_is_ok_or_missing(step):
     assert recorded.banner is Banner.AMBER and "may be incomplete" not in "\n".join(recorded.lines)
 
 
+def incomplete(why: str, what: str) -> str:
+    return f"School run incomplete for {f.SESSION}: {why}; {what}."
+
+
 def test_a_day_that_sealed_and_then_stopped_says_so_in_red_never_a_quiet_amber_day():
-    """Judge 645's case: one sealed trade decision, no outcome or counts (`_finish` stopped), the step failed."""
-    text = evening([trade_record()], step=("failed", "school:STOPPED"))
+    """Judge 645's case: one sealed trade decision, `_finish` stopped (no outcome or counts), the step failed."""
+    text = evening([trade_record()], step=("failed", "school:STOPPED"), done=False)
     assert text.banner is Banner.RED
     assert text.lines[:2] == (
         "Banner: RED, do not trade real money today",
-        "the daily run's school step was failed (school:STOPPED): this record may be incomplete",
+        incomplete("the daily run's school step was failed (school:STOPPED)", "fills and outcomes not recorded"),
     )
 
 
-@pytest.mark.parametrize("step", [("refused", "school:TOO_LATE"), ("failed", "o1:STOPPED_AT_LIMIT")])
-def test_any_step_that_is_not_ok_on_a_recorded_day_adds_its_line_and_the_red_banner(step):
+@pytest.mark.parametrize(
+    ("step", "why"),
+    [
+        (("failed", "o1:STOPPED_AT_LIMIT"), "the daily run's school step was failed (o1:STOPPED_AT_LIMIT)"),
+        (None, "the daily run recorded no school step"),
+        (("ok", "command:ok"), "the daily run's school step was ok (command:ok)"),
+    ],
+    ids=["stopped at O1's limit", "a manual run that crashed", "a step ok with no finish"],
+)
+def test_decisions_with_no_sealed_finish_are_incomplete_in_red_whatever_the_step(step, why):
+    """Judge 648's case: the decisions sealed, the finish never (O1's limit, a crash, a Drive failure)."""
+    text = evening([trade_record()], step=step, done=False)
+    assert text.banner is Banner.RED and text.lines[1] == incomplete(why, "fills and outcomes not recorded")
+    assert any(line.startswith("Fleet total, rule drivers only: Rs +0") for line in text.lines)  # as it stands
+
+
+@pytest.mark.parametrize("step", [("refused", "school:TOO_LATE"), ("failed", "school:STOPPED")])
+def test_a_finished_day_whose_step_is_not_ok_may_be_incomplete_in_red(step):
     text = evening([trade_record(), f.net_record()], [f.counts()], step=step)
-    line = f"the daily run's school step was {step[0]} ({step[1]}): this record may be incomplete"
-    assert text.banner is Banner.RED and line in text.lines and "CS1@1 BANKNIFTY-M: 3 / 2 / 1" in text.lines
+    why = f"the daily run's school step was {step[0]} ({step[1]})"
+    assert text.banner is Banner.RED and text.lines[1] == incomplete(why, "this record may be incomplete")
+    assert "CS1@1 BANKNIFTY-M: 3 / 2 / 1" in text.lines
+
+
+def test_the_reader_s_finish_is_the_outcomes_and_drift_seals_even_empty():
+    from fno.school.constants import SLOT_1500, RecordKind
+
+    dashcam = FakeDashcam()
+    day = SealedDayInputs(dashcam, Path("/nonexistent"), f.ROLES)
+    dashcam.seal(f.SESSION, SLOT_1500, RecordKind.DECISIONS, (trade_record(),))
+    assert day.finished(f.SESSION) is False
+    dashcam.seal(f.SESSION, SLOT_1500, RecordKind.OUTCOMES, ())
+    assert day.finished(f.SESSION) is False  # the drift too
+    dashcam.seal(f.SESSION, SLOT_1500, RecordKind.DRIFT, ())
+    assert day.finished(f.SESSION) is True
 
 
 def test_a_recorded_day_with_no_counts_row_says_none_never_an_empty_line():
