@@ -203,6 +203,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             "recommend",
             LiveFrom(CommandStep(processes, recommend_decide, (), git.changed, waiting, locks), live["recommend"]),
             alerts,
+            status_alerts=False,  # the command alerts each failure itself; a raise is still alerted here
         ),  # REC1b: it commits its own receipt, so no pathspec
         "price_distribution_scores": scores(DISTRIBUTION_SCORES, receipt_pathspecs(), "price_distribution_scores"),
         "price_ranges": Alerted("price_ranges", LiveFrom(price_ranges, live["price_ranges"]), alerts),  # G13b

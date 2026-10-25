@@ -91,6 +91,13 @@ class FakeData:
     area: str = "data"
     files: dict = field(default_factory=dict)
 
+    @property
+    def drive(self) -> "FakeData":
+        return self
+
+    def get(self, drive_path: str) -> bytes | None:
+        return self.files.get(drive_path.removeprefix(f"{self.area}/"))
+
     def put(self, path: str, data: bytes) -> Receipt:
         if self.files.get(path, data) != data:
             raise RawFileConflict(path)

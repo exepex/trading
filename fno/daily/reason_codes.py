@@ -7,6 +7,9 @@ from __future__ import annotations
 from ..desk import book_versions, daily_run, daily_steps, exits, recorded_c4, trade_marking
 from ..desk.owner_timing import entry_fills, exit_fills, outcomes, pending_entries
 from ..desk.owner_timing import step as owner_timing
+from ..recommend import cli as recommend_cli
+from ..recommend import post as recommend_post
+from ..recommend import run as recommend_run
 from ..rehearsal import built_commands, live_wiring, recorded_quotes
 from ..school import cli as school_cli
 from ..school.constants import SCHOOL_OFF_LINE
@@ -99,6 +102,14 @@ STEP_TEMPLATES = {
         ("v4_release:WAITING", release_run.WAITING),
         ("v4_release:REFUSED", release_run.REFUSED),
         ("v4_release:NOT_LIVE", release_run.NOT_LIVE),
+    ),
+    "recommend": (  # REC1b: posted, already recorded, an input problem, not posted, a changed rung rule, no session
+        ("recommend:POSTED", recommend_post.HEAD),
+        ("recommend:ALREADY", recommend_run.ALREADY),
+        ("recommend:INPUT_PROBLEM", recommend_run.INPUT_PROBLEM),
+        ("recommend:NOT_POSTED", recommend_run.NOT_SAVED),
+        ("recommend:RULE_CHANGED", recommend_run.RULE_CHANGED),
+        ("recommend:NOT_A_SESSION", recommend_cli.NOT_A_SESSION),
     ),
     "school": (  # MS-P1j: its switch off, a closed day, or a loud stop (any stop's status: "stopped: <reason>")
         ("school:OFF", SCHOOL_OFF_LINE),

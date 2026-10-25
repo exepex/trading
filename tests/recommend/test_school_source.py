@@ -41,13 +41,13 @@ def test_a_school_that_ran_and_sealed_its_decisions_is_complete(tmp_path):
 
 
 @pytest.mark.parametrize(("result", "status"), [
-    ({"status": "ok", "reason": "school:OFF"}, "ok (school:OFF)"),  # today: the switch is off, the step exits 0
-    ({"status": "ok", "reason": "school:NOT_A_SESSION"}, "ok (school:NOT_A_SESSION)"),
-    ({"status": "refused", "reason": "school:TOO_LATE"}, "refused (school:TOO_LATE)"),
-    ({"status": "failed", "reason": "school:STOPPED"}, "failed (school:STOPPED)"),
-    ({"status": "not_built", "reason": "rehearsal:NOT_BUILT"}, "not_built (rehearsal:NOT_BUILT)"),
-    ({"status": "exercised", "reason": "rehearsal:EXERCISED"}, "exercised (rehearsal:EXERCISED)"),
-    (None, "missing (the school step is not in the run log)"),
+    ({"status": "ok", "reason": "school:OFF"}, "ok, school:OFF"),  # today: the switch is off, the step exits 0
+    ({"status": "ok", "reason": "school:NOT_A_SESSION"}, "ok, school:NOT_A_SESSION"),
+    ({"status": "refused", "reason": "school:TOO_LATE"}, "refused, school:TOO_LATE"),
+    ({"status": "failed", "reason": "school:STOPPED"}, "failed, school:STOPPED"),
+    ({"status": "not_built", "reason": "rehearsal:NOT_BUILT"}, "not_built, rehearsal:NOT_BUILT"),
+    ({"status": "exercised", "reason": "rehearsal:EXERCISED"}, "exercised, rehearsal:EXERCISED"),
+    (None, "missing, the school step is not in the run log"),
 ])  # fmt: skip
 def test_school_off_or_not_run_is_never_complete(tmp_path, result, status):
     """The named plant: with sealed decisions present, an `ok` school:OFF must still read unavailable."""
@@ -76,3 +76,15 @@ def test_a_sealed_file_whose_hash_does_not_match_is_an_input_failure(tmp_path):
 def test_the_not_run_reasons_are_the_school_step_s_own_codes():
     codes = {code for code, _ in STEP_TEMPLATES["school"]}
     assert codes >= NOT_RUN
+
+
+def test_an_unreadable_seal_is_an_input_failure_never_fewer_decisions(tmp_path):
+    log_school(tmp_path, {"status": "ok", "reason": "command:ok"})
+    dashcam = sealed(decision_record(DAY))
+
+    def unreadable(seal):
+        raise OSError("drive down")
+
+    dashcam.read = unreadable
+    with pytest.raises(InputFailed, match="OSError"):
+        SchoolSource(tmp_path, dashcam).read(DAY)

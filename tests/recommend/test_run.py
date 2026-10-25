@@ -2,10 +2,12 @@
 posts no recommendation, only one problem line; a changed rung rule makes no record; the #fno-desk line says it is
 the recommender's, carries no strike, price or strategy internal, and names an unavailable source."""
 
+import hashlib
 import json
 import re
 import shutil
 from dataclasses import replace
+from datetime import timedelta
 
 from fno.recommend.constants import CandidateSourceName
 from fno.recommend.gather import Header, Ports
@@ -85,19 +87,44 @@ def test_the_same_day_again_with_the_same_answer_changes_nothing():
     assert run.run(DAY).ok and data.files == before
 
 
-def test_a_different_answer_for_a_recorded_day_is_refused_and_alerted():
+def test_a_recorded_day_is_never_written_or_posted_again():
     run, data, publisher, alerts = runner()
     run.run(DAY)
-    run.ports = replace(PORTS, conditions=FakeConditions(fails="log gone"))
+    before = dict(data.files)
+    run.ports = replace(PORTS, conditions=FakeConditions(fails="log gone"))  # another answer now: it must not land
     result = run.run(DAY)
-    assert not result.ok and "a different recommendation is already recorded" in alerts.lines[-1]
+    assert result.ok and data.files == before and len(alerts.lines) == 1
+    assert result.lines == (f"recommendation for {DAY} already recorded (receipt eeeeeeeeeeee): not posted again",)
+
+
+def test_a_save_stopped_before_its_push_is_adopted_by_the_next_run():
+    """The review's case: Drive written, push refused; the next run receipts and posts the first record."""
+    run, data, publisher, alerts = runner(fails=True)
+    assert not run.run(DAY).ok and record_path(DAY) in data.files
+    first = data.files[record_path(DAY)]
+    publisher.fails = False
+    run.clock = lambda: MADE_AT + timedelta(minutes=7)  # a rerun makes other bytes; the first record stands
+    result = run.run(DAY)
+    assert result.ok and data.files[record_path(DAY)] == first
+    assert (
+        "This is the record made at 09:50 UTC, whose save stopped before its push, now receipted." in alerts.lines[-1]
+    )
+    assert alerts.lines[-1].endswith(f"Record {record_path(DAY)}, SHA-256 {hashlib.sha256(first).hexdigest()[:12]}.")
+
+
+def test_bytes_on_drive_that_are_not_the_day_s_record_are_never_written_over():
+    run, data, publisher, alerts = runner()
+    data.files[record_path(DAY)] = b'{"planted": true}'
+    result = run.run(DAY)
+    assert not result.ok and data.files[record_path(DAY)] == b'{"planted": true}'
+    assert "not its recommendation" in alerts.lines[0] and publisher.pushed == {}
 
 
 def test_an_unavailable_school_is_named_in_the_line():
-    ports = replace(PORTS, sources=(PORTS.sources[0], FakeSource(CandidateSourceName.SCHOOL, status="ok (school:OFF)")))
+    ports = replace(PORTS, sources=(PORTS.sources[0], FakeSource(CandidateSourceName.SCHOOL, status="ok, school:OFF")))
     run, *_, alerts = runner(ports=ports)
     run.run(DAY)
-    assert "school: unavailable (ok (school:OFF))" in alerts.lines[0]
+    assert "school: unavailable (ok, school:OFF)" in alerts.lines[0]
 
 
 def test_an_input_problem_is_alerted_beside_the_line_and_fails_the_step():

@@ -68,3 +68,10 @@ def test_no_run_log_or_no_quotes_done_is_an_input_failure(tmp_path):
         setup(tmp_path, {}, weather()).conditions(DAY)
     with pytest.raises(InputFailed, match="quotes_done"):
         setup(tmp_path, {"card": OK}, weather()).conditions(DAY)
+
+
+def test_a_weather_or_log_file_that_does_not_read_is_an_input_failure(tmp_path):
+    conditions = setup(tmp_path, {"quotes_done": OK}, weather())
+    conditions.weather.path(DAY).write_text("{broken")
+    with pytest.raises(InputFailed, match="does not read"):
+        conditions.conditions(DAY)

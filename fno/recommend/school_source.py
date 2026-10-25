@@ -10,19 +10,19 @@ from pathlib import Path
 from typing import Protocol
 
 from ..books.version_registry import SCHOOL_BOOK_PREFIX
-from ..desk.run_log import RunLog
+from ..constants import STEP_OK
 from ..school.constants import SLOT_1500, Outcome, RecordKind
 from ..school.contracts.records import DecisionRecord
 from ..school.contracts.seal import Seal, StaleSeal
 from .constants import CandidateSourceName, SourceState
 from .contracts import CandidateSource
-from .ports import CandidateSourcePort, InputFailed, SeenDecision, SourceReading
+from .ports import CandidateSourcePort, InputFailed, SeenDecision, SourceReading, open_run_log
 from .refs import RecordRef
 
 SCHOOL_STEP = "school"
 NOT_RUN = frozenset({"school:OFF", "school:NOT_A_SESSION"})  # `ok`, yet the school ran nothing (judge 641 SF1)
-STATUS = "{status} ({reason})"
-MISSING = "missing (the school step is not in the run log)"
+STATUS = "{status}, {reason}"  # criterion 10: (<status>, <reason code>)
+MISSING = "missing, the school step is not in the run log"
 NO_SEAL = "the school step ran but no decisions file is sealed for {day}"
 
 
@@ -41,20 +41,20 @@ class SchoolSource(CandidateSourcePort):
         self.root, self.dashcam = root, dashcam
 
     def read(self, day: date) -> SourceReading:
-        log = RunLog.open(self.root, day)
+        log = open_run_log(self.root, day)
         if not log.done(SCHOOL_STEP):
             return _unavailable(MISSING)
         result = log.result(SCHOOL_STEP)
         status, reason = result.get("status", ""), result.get("reason", "")
-        if status != "ok" or reason in NOT_RUN:
+        if status != STEP_OK or reason in NOT_RUN:
             return _unavailable(STATUS.format(status=status, reason=reason))
         seal = self.dashcam.find(day, SLOT_1500, RecordKind.DECISIONS)
         if seal is None:
             raise InputFailed(NO_SEAL.format(day=day))
         try:
             records = self.dashcam.read(seal)  # checks the file's SHA-256 against the seal
-        except StaleSeal as damaged:
-            raise InputFailed(str(damaged)) from None
+        except (StaleSeal, ValueError, OSError) as damaged:  # a damaged or unreadable seal, never fewer decisions
+            raise InputFailed(f"{seal.path}: {type(damaged).__name__}") from None
         decisions = tuple(_seen(seal, r) for r in records if isinstance(r, DecisionRecord))
         return SourceReading(CandidateSource(self.name, SourceState.COMPLETE, None), decisions,
                              (RecordRef(seal.path, seal.sha256),))  # fmt: skip

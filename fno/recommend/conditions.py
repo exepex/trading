@@ -12,10 +12,10 @@ from datetime import date
 from pathlib import Path
 
 from ..constants import STEP_OK
-from ..desk.run_log import RunLog, problem_steps
+from ..desk.run_log import problem_steps
 from ..forecast_v4_rules.records import LIVE
 from ..weather.records import WeatherRecords
-from .ports import ConditionsPort, DayConditions, InputFailed
+from .ports import ConditionsPort, DayConditions, InputFailed, open_run_log
 from .refs import RecordRef
 from .school_source import SCHOOL_STEP
 
@@ -33,14 +33,14 @@ class RunLogConditions(ConditionsPort):
         self.root, self.weather = root, weather
 
     def conditions(self, day: date) -> DayConditions:
-        log = RunLog.open(self.root, day)
+        log = open_run_log(self.root, day)
         if not log.path.is_file():
             raise InputFailed(NO_LOG.format(day=day))
         if not log.done(QUOTES_DONE):
             raise InputFailed(NO_QUOTES)
         problems = [name for name, _ in problem_steps(log.steps) if name != SCHOOL_STEP]
         weather_path = self.weather.path(day)
-        red = _weather_red(day, self.weather.for_day(day))
+        red = _weather_red(day, _weather_of(self.weather, day))
         used = (_ref(self.root, log.path), _ref(self.root, weather_path))
         return DayConditions(bool(problems), log.result(QUOTES_DONE).get("status") != STEP_OK, red, used)
 
@@ -55,6 +55,16 @@ def _weather_red(day: date, record: dict | None) -> bool:
 
 
 def _ref(root: Path, path: Path) -> RecordRef:
-    data = path.read_bytes()
-    json.loads(data)  # an unreadable file is an input failure, never a pass
+    try:
+        data = path.read_bytes()
+        json.loads(data)
+    except (OSError, ValueError) as bad:  # an unreadable file is an input failure, never a pass
+        raise InputFailed(f"{path.name} does not read ({type(bad).__name__})") from None
     return RecordRef(path.relative_to(root).as_posix(), hashlib.sha256(data).hexdigest())
+
+
+def _weather_of(weather: WeatherRecords, day: date) -> dict | None:
+    try:
+        return weather.for_day(day)
+    except (OSError, ValueError) as bad:
+        raise InputFailed(f"the weather record of {day} does not read ({type(bad).__name__})") from None

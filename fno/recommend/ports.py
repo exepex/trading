@@ -18,6 +18,16 @@ class InputFailed(Exception):
     """An input could not be read, or its hash did not match: the day's answer is data_check_failed."""
 
 
+def open_run_log(root, day: date):
+    """The day's run log; a log that does not read is an input failure, never an empty day."""
+    from ..desk.run_log import RunLog
+
+    try:
+        return RunLog.open(root, day)
+    except (OSError, ValueError, KeyError) as bad:
+        raise InputFailed(f"the run log of {day} does not read ({type(bad).__name__})") from None
+
+
 @dataclass(frozen=True)
 class SeenDecision:
     """One decision of the day as its source sealed it: the version, where it lies, whether it traded."""

@@ -19,12 +19,14 @@ from .store import DriveRecommendations, NotSaved
 
 RULE_CHANGED = "recommendation NOT made for {day}: {path} is not the pinned rung rule (a new version needs a new pin)"
 NOT_SAVED = "recommendation NOT posted for {day}: {why}"
+ALREADY = "recommendation for {day} already recorded (receipt {commit}): not posted again"
+ADOPTED = "This is the record made at {made_at:%H:%M} UTC, whose save stopped before its push, now receipted."
 INPUT_PROBLEM = "recommendation for {day}, input problem: {line}"
 
 
 @dataclass(frozen=True)
 class DayResult:
-    lines: tuple[str, ...]  # what the command prints
+    lines: tuple[str, ...]  # what the command prints; the last names the outcome for the public run log
     ok: bool  # False: the step fails, so the run's last line names it
 
 
@@ -40,13 +42,16 @@ class RecommendRun:
         gathered = gather(day, self.clock(), self.header(), self.ports)
         record = decide(gathered.facts)
         try:
-            saved = self.store.save(record)
+            stored = self.store.save(record)
         except NotSaved as failed:
             return self._fail(NOT_SAVED.format(day=day, why=failed))
-        line = recommendation_line(record, saved)
+        if stored.already:
+            return DayResult((ALREADY.format(day=day, commit=stored.saved.receipt_commit[:12]),), ok=True)
+        note = ADOPTED.format(made_at=stored.record.made_at) if stored.adopted else ""
+        line = recommendation_line(stored.record, stored.saved, note)
         problems = [INPUT_PROBLEM.format(day=day, line=p) for p in gathered.problems]
         sent = [self.alerts.send(text) for text in (line, *problems)]
-        return DayResult((line, *problems, *sent), ok=not problems)
+        return DayResult((*sent, line, *problems), ok=not problems)  # the last line names the outcome (O1's code)
 
     def _fail(self, line: str) -> DayResult:
-        return DayResult((line, self.alerts.send(line)), ok=False)
+        return DayResult((self.alerts.send(line), line), ok=False)

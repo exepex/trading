@@ -22,9 +22,10 @@ NO_PROVEN = "no version has passed"
 NOT_ELIGIBLE = "no established version is eligible under the real-money gate, RM1"
 
 
-def recommendation_line(record: Recommendation, saved: Saved) -> str:
+def recommendation_line(record: Recommendation, saved: Saved, note: str = "") -> str:
+    """`note`: a sentence about the save (an adopted record), kept before the record so the line ends on it."""
     parts = [HEAD.format(day=record.session), _real_money(record), _paper(record), _sources(record) + ".",
-             NOT_RECOMMENDED.format(count=_not_recommended(record)),
+             NOT_RECOMMENDED.format(count=_not_recommended(record)), *([note] if note else []),
              RECORD.format(path=saved.path, short=saved.sha256[:12])]  # fmt: skip
     return " ".join(parts)
 
