@@ -67,3 +67,21 @@ tests: 932 passed, 13 xfailed.
 - **m1 still open (minor).** Item 5 still defines "check missing" as "a recorded day with no check file dated after
   it". A day still open whose previous-session check did not run is not named. Define it against the previous
   session's check; this can ride the code round.
+
+## Addendum 2: the final head, story/rec1d-sections at 729a3c815 (by reading)
+**PASS holds** (text), lane 1, and m1 is closed. Two Markdown commits on 21a5ccff2, `docs/stories/REC1-recommender.md`
+only (+52 -38). Doc-reading tests: 932 passed, 13 xfailed.
+- **S1 is built as asked.**
+  - `with_recommend_section(maker, config)` in `fno/recommend/report_guard.py` wraps the lab's maker outside
+    `with_school_sections`, and `fno/school/reports/` does not change.
+  - Neither wrapper reads the other's switch.
+  - With the recommender off, the maker comes back unchanged.
+  - Criterion (a) covers all four switch pairs with golden files, and both plants ("gated by `school.reports`",
+    "always added") are named.
+- **Isolation is right.** The recommender's `try` covers its own section only, and plant (d) catches it wrapping the
+  inner maker. Its alert gives the exception class, never the message.
+- **m1 closed.** "Last evening" is the previous NSE session by the calendar. Only checks dated that session are shown,
+  each with its date. Waiting days with no such check give "the previous session's check did not run" and are named.
+  Criterion (g) has the plant.
+- The 20:05 no-record line now carries the status and reason code only, read through a `DayInputs`-shaped port
+  (criterion (h)).
