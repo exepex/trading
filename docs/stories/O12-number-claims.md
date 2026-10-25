@@ -204,9 +204,10 @@ registry; trials get the same.
 - **Reservations already given (the orchestrator, 25 Oct), written as claims in the same commit:** `109-114`
   `edge2-f1-weekly-vrp-gate` for session_01VhppcYHXq3yTJBV2UnsWSs (EDGE2 F1; its branch uses 109-114 with experiment
   `edge2-f1-weekly-vrp-gate-2026-10-25`), and `115-120` `edge2-f6` for EDGE2 F6 (reserved by the orchestrator,
-  session_01Mt6dcBU5kp2htdPN2KmiZH; F6's experiment must start `edge2-f6`), and `121-126` `edge2-f8` (EDGE2's
-  side-filter family, reserved by the orchestrator on 25 Oct after the text's first round), and `127-132` `edge2-f9`
-  (EDGE2's event IV-crush family, the orchestrator, 25 Oct, with round 3). Their time is this commit's (the
+  session_01Mt6dcBU5kp2htdPN2KmiZH; F6's experiment must start `edge2-f6`), and `121-123` `edge2-f8` (EDGE2's
+  side-filter family) and `124-127` `edge2-f9` (EDGE2's event IV-crush family), both reserved by the orchestrator on
+  25 Oct after the text's first round (first 121-126 and 127-132; narrowed the same day once `main`'s ledger reached
+  123 through the factory's old highest-plus-one, and 128-132 released). Their time is this commit's (the
   reservation's own minute was not recorded).
 - **The guard, at registration and before every run (judge 636):** `Ledger.register` refuses a trial id that is not
   counted (above), that no block in the same checkout covers, or whose block is another experiment's, with the claim
