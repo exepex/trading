@@ -44,9 +44,9 @@ def test_only_the_previous_session_s_checks_are_shown_each_dated(tmp_path):
 def test_a_day_still_waiting_with_no_check_dated_the_previous_session_is_named(tmp_path):
     store = Store(tmp_path)
     monday = store.record(traded(DAY))
-    store.check(monday, DAY)  # not known yet, and Tuesday's check did not run
+    store.check(monday, DAY)  # not known yet, and no check of it is dated Tuesday
     lines = morning(store, WEDNESDAY)
-    assert lines[-1] == "The previous session's check did not run (03 Nov 2026); still waiting: 02 Nov 2026."
+    assert lines[-1] == "No check of 02 Nov 2026 is dated the previous session (03 Nov 2026); still waiting."
     assert not any(line.startswith("Check of") for line in lines), "an older check is never shown"
 
 

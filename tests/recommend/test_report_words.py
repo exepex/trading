@@ -48,7 +48,7 @@ FIELDS["problem"] = either(*(r.pattern for r in w.ALLOWED_PROBLEMS), pattern(w.W
 FIELDS["answer"] = either(*(pattern(t) for t in (c.FAILED, c.INCOMPLETE, c.TRADED, c.NOTHING_TRADED, c.SAVED,
                                                   c.COST, w.NOT_KNOWN)))  # fmt: skip
 FIELDS["trades"] = pattern(c.COUNTS)
-LINES = (w.STANDING, w.RUNGS, w.NO_VERSIONS, w.NOTHING_YET, w.NOT_READ, w.CHECK, w.CHECK_NOT_READ, w.DID_NOT_RUN,
+LINES = (w.STANDING, w.RUNGS, w.NO_VERSIONS, w.NOTHING_YET, w.NOT_READ, w.CHECK, w.CHECK_NOT_READ, w.NOT_DATED,
          w.NO_CHECKS, w.TONIGHT, w.NO_RECORD, w.NO_RECORD_STEP, p.DO_NOT, p.ELIGIBLE, p.NO_TRADE, p.TRADE)  # fmt: skip
 ALLOWED = [re.compile(pattern(t)) for t in LINES]
 

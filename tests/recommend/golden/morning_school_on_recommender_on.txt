@@ -15,4 +15,4 @@ Recommender, PAPER ONLY
 Standing; today's answer at about 15:20. From the recommendation of 30 Oct 2026:
 Real money: DO NOT TRADE (no version has passed).
 Rungs: school:CS1@1: rung 1 (exploratory); school:N0@1: rung 0 (unproven).
-The previous session's check did not run (30 Oct 2026); still waiting: 30 Oct 2026.
+No check of 30 Oct 2026 is dated the previous session (30 Oct 2026); still waiting.
