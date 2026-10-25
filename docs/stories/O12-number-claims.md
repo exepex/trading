@@ -205,7 +205,8 @@ registry; trials get the same.
   `edge2-f1-weekly-vrp-gate` for session_01VhppcYHXq3yTJBV2UnsWSs (EDGE2 F1; its branch uses 109-114 with experiment
   `edge2-f1-weekly-vrp-gate-2026-10-25`), and `115-120` `edge2-f6` for EDGE2 F6 (reserved by the orchestrator,
   session_01Mt6dcBU5kp2htdPN2KmiZH; F6's experiment must start `edge2-f6`), and `121-126` `edge2-f8` (EDGE2's
-  side-filter family, reserved by the orchestrator on 25 Oct after the text's first round). Their time is this commit's (the
+  side-filter family, reserved by the orchestrator on 25 Oct after the text's first round), and `127-132` `edge2-f9`
+  (EDGE2's event IV-crush family, the orchestrator, 25 Oct, with round 3). Their time is this commit's (the
   reservation's own minute was not recorded).
 - **The guard, at registration and before every run (judge 636):** `Ledger.register` refuses a trial id that is not
   counted (above), that no block in the same checkout covers, or whose block is another experiment's, with the claim
@@ -213,7 +214,9 @@ registry; trials get the same.
   A row typed straight into `ledger.csv` (the v4 rows 101-108 were) never passes `register`, so `require_committed`,
   which every run calls first (`require_registered` and the trial guard build on it), applies the same check to the
   trial's committed row: an unclaimed trial never runs, even before CI sees the push. Both read the claims as git
-  holds them at HEAD, like the ledger row itself (judge J): a block typed locally and never committed covers nothing.
+  holds them at HEAD, like the ledger row itself (judge J), and both refuse while the registry has any local change,
+  tracked or untracked (`git status`; `git diff` misses a file never committed; judge 644), so what is checked is
+  what is shared.
   A block claimed on `main` reaches a branch when `main` is merged into it (a merge commit, so it is committed).
 - **The evaluation freeze** stops taking "highest plus one": it takes the lowest unused id of a block claimed for its
   experiment. When there is no such block, or every such block is full, it is refused with the claim command; it
@@ -224,7 +227,10 @@ registry; trials get the same.
 **Known limits (said plainly).** The session column is what the claimant typed: the check cannot prove who claimed a
 block, only that every trial sits in a block named for its experiment. An id typed straight into `ledger.csv` by hand
 (outside the class) is refused by `require_committed` before it runs and flagged by the check on the next push; it is
-not refused at the moment it is typed. `ledger.csv` merge conflicts stay git's.
+not refused at the moment it is typed. A block committed only on a branch (never claimed on `main`) passes that
+branch's guard; `main`'s `check_numbers` sees it only at the merge (an overlap or a block another claim already holds
+is then a finding), so the claim tool, which pushes to `main` first, is the only safe way to get a block (judge 644
+m1). `ledger.csv` merge conflicts stay git's.
 
 **Criteria.**
 1. Each finding is produced once on a planted temporary repository and absent on the clean one: an uncovered trial
@@ -244,8 +250,9 @@ not refused at the moment it is typed. `ledger.csv` merge conflicts stay git's.
 7. The factory's `register` takes the lowest free id of its card's experiment block, as the freeze does: its
    "the next ledger trial" rule was the same highest-plus-one (found while building; same root cause).
 8. `require_committed` refuses a committed row, typed by hand, whose id is in no block or in another experiment's
-   block (and so `require_registered` and every run do); a block typed into the registry but not committed covers
-   nothing for `register` or `require_committed` until it is committed (judge J).
+   block (and so `require_registered` and every run do); a registry with any local change (a block typed and not
+   committed, or a registry never committed at all) is refused by `register`, `require_committed` and the freezes'
+   id until it is committed (judges J and 644).
 Plants, one at a time and restored: each check and guard above removed in turn, the freeze's and the factory's
 highest-plus-one restored, and the freeze choosing its id after writing its record (the list is in the Claims).
 
@@ -261,12 +268,13 @@ highest-plus-one restored, and the freeze choosing its id after writing its reco
   test repositories now carry a claim registry (`tests/factory/helpers.py`, `tests/evaluation/builders.py`,
   `tests/evaluation/test_breadth_protocol.py`), and `tests/factory/test_cards_anywhere.py`'s planted experiments
   became `x1-test-*` (they shared one repository's ids with `x1-test`).
-- Plants (14, each caught, restored): the uncovered-trial check, the experiment check, the overlap check, the `-`
+- Plants (16, each caught, restored): the uncovered-trial check, the experiment check, the overlap check, the `-`
   boundary of the prefix (`edge2-f60` taken by `edge2-f6`), the guard in `register`, the freeze's and the factory's
   highest-plus-one, a block claim that ignores ledger ids typed past every block; round 2 (judge 636): the freeze
   choosing its id after writing its record, Book 3's exemption under any experiment, every uncounted id exempt in
   `register`, uncounted ids not flagged by the check, the claim check removed from `require_committed`; judge J: the
-  claims read from the working tree instead of HEAD (14 in all).
+  claims read from the working tree instead of HEAD; judge 644: the uncommitted-changes refusal removed, and local
+  changes judged by `git diff` (blind to an untracked registry) instead of `git status` (16 in all).
 - Round 2 test changes: the B4 and trial-guard tests' ids `P1`, `P2`, `P9` became `1`, `2`, `9` in a claimed `exp`
   block (`tests/numbering/helpers.claim_block`); production ids were already whole numbers (Experiment 1 maps policy
   P1 to trial 22).

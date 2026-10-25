@@ -110,6 +110,7 @@ def test_main_holds_the_history_and_both_reservations():
     assert rows["109-114"] == ("edge2-f1-weekly-vrp-gate", "session_01VhppcYHXq3yTJBV2UnsWSs")
     assert rows["115-120"] == ("edge2-f6", "session_01Mt6dcBU5kp2htdPN2KmiZH")
     assert rows["121-126"] == ("edge2-f8", "session_01Mt6dcBU5kp2htdPN2KmiZH")
+    assert rows["127-132"] == ("edge2-f9", "session_01Mt6dcBU5kp2htdPN2KmiZH")
     assert [line for line in check_numbers(ROOT) if LEDGER_TRIAL.registry in line or LEDGER in line] == []
 
 
