@@ -15,12 +15,13 @@ from tests.recommend.fakes import CLEAR, FakeConditions, FakeEligibility, FakeEv
 
 HEADER = Header("c" * 40, "d" * 64)
 CS1, DESK = "school:CS1@1", "book1_rules"
+DESK_SOURCE, SCHOOL_SOURCE = CandidateSourceName.DESK_BOOK1, CandidateSourceName.SCHOOL
 SCHOOL = (seen(CS1, True, road="#NIFTY-M"), seen(CS1, road="#BANKNIFTY-M"))
 
 
 def ports(**changes) -> Ports:
     base = Ports(
-        sources=(FakeSource(CandidateSourceName.DESK_BOOK1, (seen(DESK),)), FakeSource(CandidateSourceName.SCHOOL, SCHOOL)),
+        sources=(FakeSource(DESK_SOURCE, (seen(DESK),)), FakeSource(SCHOOL_SOURCE, SCHOOL)),
         evidence=FakeEvidence(rated=(CS1, DESK)), conditions=FakeConditions(), eligibility=FakeEligibility(),
     )  # fmt: skip
     return replace(base, **changes)
