@@ -390,10 +390,10 @@ what is deleted and what test still covers the behaviour. Nothing is deleted in 
 ### 6.3 Never losing a session's data
 
 - Each flip happens after the previous session closed and before the next opens. The old path stays scheduled (Class P)
-  or restorable by one key (Class G) until its removal.
+  or scheduled as standby, rollback a later `legacy_from` date (Class G) until its removal.
 - **No-start cover (judge S blocking 2).** An Actions witness is hours late (4.3), so it is only a second signal. Cover is
   a **dataset-day claim with a standby host:** before its first request a path commits a claim file (first push wins,
-  A16's `MarkClaims`). The new routine is primary; the old path (restorable) is standby: it tries to claim 1 minute after
+  A16's `MarkClaims`). The new routine is primary; the old path (still scheduled) is standby: it tries to claim 1 minute after
   the window opens and exits "claimed by <job>" if the primary has it, else it records. A no-start loses nothing and two
   writers never run. Takeover of a primary that died after claiming needs a heartbeat lease (reasoning only; built in
   I7). Proof: planted no-start, both-start and died-after-claim tests (standby records after the lease). Without GitHub no
