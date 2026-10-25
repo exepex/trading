@@ -16,7 +16,7 @@ from fno.providers.groww_rate_guard import (
     RateGuardedGroww,
     RateLimitPause,
 )
-from fno.providers.groww_sign_in import FIRST_WAIT, LONGEST_WAIT, TRIES_A_DAY, GrowwSignIn, GrowwSignInPaused
+from fno.providers.groww_sign_in import FIRST_WAIT, TRIES_A_DAY, GrowwSignIn, GrowwSignInPaused
 from tests.groww_sdk_fake import fake_sdk
 
 MORNING = datetime(2026, 10, 26, 8, 22, tzinfo=IST)
@@ -57,7 +57,7 @@ def test_a_failed_sign_in_is_not_tried_again_within_its_back_off():
     assert stub.tries == 2
 
 
-def test_the_back_off_doubles_to_thirty_minutes_and_stops_at_the_day_cap():
+def test_the_back_off_doubles_and_stops_at_three_tries_a_day():
     clock, stub = Clock(), SignInStub()
     guard, waits = GrowwSignIn(stub, clock), []
     for _ in range(TRIES_A_DAY):
@@ -65,7 +65,7 @@ def test_the_back_off_doubles_to_thirty_minutes_and_stops_at_the_day_cap():
             guard.client()
         waits.append(guard._next_try - clock.at)
         clock.at = guard._next_try
-    assert waits[:4] == [FIRST_WAIT, 2 * FIRST_WAIT, 4 * FIRST_WAIT, LONGEST_WAIT] and waits[-1] == LONGEST_WAIT
+    assert TRIES_A_DAY == 3 and waits == [FIRST_WAIT, 2 * FIRST_WAIT, 4 * FIRST_WAIT]
     clock.at += timedelta(hours=10)  # still the same token day (before 06:00 tomorrow)
     with pytest.raises(GrowwSignInPaused, match="no more tries until 06:00 IST"):
         guard.client()

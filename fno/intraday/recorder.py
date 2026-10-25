@@ -18,7 +18,7 @@ from ..constants import SESSION_MUHURAT
 from ..models import IST, now_ist
 from ..quotes.recorder import MUHURAT_ONLY, RECORDED_SESSION_KINDS
 from ..research_data.calendar import CalendarError, SessionCalendar
-from .claims import UNCLAIMED, ClaimResult, MarkClaims, NoClaims
+from .claims import LOST, UNCLAIMED, ClaimResult, MarkClaims, NoClaims
 from .clock import ClockCheck
 from .document import SnapshotDocument, utc_text
 from .heartbeat import Heartbeat
@@ -41,8 +41,12 @@ TAKEN_DETAIL = (
 )
 
 TAKE_FAILED, DRIVE_WRITE = "take", "drive_write"
-CLAIM_LEAD = timedelta(seconds=45)
+CLAIM_LEAD, CLAIM_RETRY = timedelta(seconds=45), timedelta(seconds=15)
 CLAIMED_BY = "claimed by another run ({run}): taken there, not here"
+NOT_CLAIMED = (
+    "claim not pushed ({detail}): not taken here, as another run may hold it unseen and two takers exceed Groww's "
+    "limit (GW1); a run whose claim landed takes it"
+)
 CLAIM_LINE = "claim {outcome}: {detail}"
 STARTED_AFTER = "started after --until {until:%H:%M}: nothing to take"
 ALREADY_PAUSE_SECONDS = 60
@@ -103,10 +107,8 @@ class IntradayRecorder:
         claim = self._claim(day, mark)
         if not claim.take:
             self._lost.add(mark)
-            detail = CLAIMED_BY.format(run=claim.holder)
-            return self._close(day, started, SlotOutcome(ALREADY, label(mark), detail, lines))
+            return self._close(day, started, _not_taken(mark, claim, lines))
         lines += [CLAIM_LINE.format(outcome=claim.outcome, detail=claim.detail)] if claim.detail else []
-        self.source.share_pace(claim.outcome == UNCLAIMED)  # GW1: two blind takers stay within Groww's limit
         wait = (mark - self.now()).total_seconds()
         if wait > 0:
             self.sleep(wait)
@@ -172,10 +174,15 @@ class IntradayRecorder:
 
     def _claim(self, day: date, mark: datetime) -> ClaimResult:
         """Claims the mark CLAIM_LEAD before it: late enough that a run dying while it waits rarely holds a mark it
-        never takes, early enough for a push to land."""
+        never takes, early enough for a push to land. A claim that did not reach GitHub is tried once more
+        CLAIM_RETRY later (a network blip), still before the mark (GW1: an unclaimed mark is not taken)."""
         wait = (mark - CLAIM_LEAD - self.now()).total_seconds()
         if wait > 0:
             self.sleep(wait)
+        claim = self.claims.claim(day, mark)
+        if claim.outcome != UNCLAIMED:
+            return claim
+        self.sleep(CLAIM_RETRY.total_seconds())
         return self.claims.claim(day, mark)
 
     def _later_mark(self, until: time) -> bool:
@@ -235,3 +242,9 @@ class IntradayRecorder:
         except Exception as exc:  # e.g. RvConflict: loud, alerted, and the commit still happens
             line = RV_FAILED.format(day=day, reason=type(exc).__name__)
             return [line, self.alerts.send(line)]
+
+
+def _not_taken(mark: datetime, claim: ClaimResult, lines: list[str]) -> SlotOutcome:
+    if claim.outcome == LOST:
+        return SlotOutcome(ALREADY, label(mark), CLAIMED_BY.format(run=claim.holder), lines)
+    return SlotOutcome(MISSED_NOW, label(mark), NOT_CLAIMED.format(detail=claim.detail), lines)

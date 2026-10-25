@@ -16,12 +16,6 @@ class IntradayQuoteSource(ABC):
         """Everything that can be done before the mark (sign-in, which expiries), so the index request goes out on
         time. Never raises: a failure is kept and reported in the next snapshot."""
 
-    def share_pace(self, shared: bool) -> None:
-        """Story GW1: `shared` when this run could not claim its mark, so another run may take it unseen; a source
-        with a rate limit then asks slowly enough that it and any other taker stay within it. Nothing to do by
-        default."""
-        return None
-
     @abstractmethod
     def take(self, session: date, mark: datetime) -> SnapshotDocument:
         """One snapshot now: the index first, then the near future, the chains and the contract quotes. Never

@@ -2,8 +2,13 @@
 
 Groww allows 150 sign-ins per 24 hours (research/school/probes/2026-10-22-p0-1-groww-chain.md). Before GW1 a failed
 sign-in left no client, so every later call signed in again: A16 alone could make 160-210 a day and lock the next
-morning out. Here a failed sign-in is remembered: no new try before its back-off (5, 10, 20, then 30 minutes apart),
-at most `TRIES_A_DAY` tries per token day, and every call in between fails at once without reaching the network."""
+morning out. Here a failed sign-in is remembered: no new try before its back-off (5, then 10 minutes), at most
+`TRIES_A_DAY` tries per process and token day, and every call in between fails at once without reaching the network.
+
+The day's worst case (judge 637 m1): about 38 processes sign in on a session day. A16's 7 fires each run up to 2h45m
+and are rerun at the tool's 2-hour limit, so up to 21 processes. The daily run's Groww children (NIFTY, A4c, v4, E3,
+A16b) make 5, and 10 with a rerun. Then the pre-open capture (1), the school's 4 slots and 2 by hand. With every
+sign-in failing all day: 38 x 3 = 114 tries, under Groww's 150 per 24 hours. A normal day: about 38."""
 
 from __future__ import annotations
 
@@ -15,8 +20,7 @@ from ..models import now_ist
 
 TOKEN_EXPIRY_TIME_IST = time(6, 0)
 FIRST_WAIT = timedelta(minutes=5)
-LONGEST_WAIT = timedelta(minutes=30)
-TRIES_A_DAY = 6
+TRIES_A_DAY = 3
 PAUSED = "Groww sign-in paused after {failures} failed tr{plural} this token day; {when}"
 NEXT_TRY = "next try at {at:%H:%M:%S} IST"
 NO_MORE_TRIES = "no more tries until 06:00 IST"
@@ -91,7 +95,7 @@ class GrowwSignIn:
     def _failed(self, now: datetime, exc: Exception) -> str:
         """Counts the failure and sets the next try; the alert line for the day's first failure, else ""."""
         self._failures += 1
-        self._next_try = now + min(FIRST_WAIT * 2 ** (self._failures - 1), LONGEST_WAIT)
+        self._next_try = now + FIRST_WAIT * 2 ** (self._failures - 1)
         if self._failures > 1:
             return ""
         return FIRST_FAILURE.format(name=type(exc).__name__, minutes=FIRST_WAIT.seconds // 60, tries=TRIES_A_DAY)

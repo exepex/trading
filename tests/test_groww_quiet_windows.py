@@ -101,3 +101,19 @@ def test_the_v4_captures_configured_start_is_outside_every_a16_quiet_window():
     clock = SleepClock(datetime.combine(MORNING.date(), start, IST))
     MarkQuietWindows(clock, clock.sleep).wait()
     assert clock.slept == [], f"quotes.windows.v4.start {start} is inside an A16 mark's quiet window"
+
+
+def test_groww_check_is_built_through_get_provider(monkeypatch):
+    """Judge 637 m2: a reader run by hand keeps out of A16's marks too."""
+    from fno.providers import groww_check
+
+    asked = []
+
+    def refuse(name, cfg):
+        asked.append(name)
+        raise RuntimeError("stop here")
+
+    monkeypatch.setattr(groww_check, "get_provider", refuse)
+    with pytest.raises(RuntimeError, match="stop here"):
+        groww_check.groww_check_lines({})
+    assert asked == ["groww"]

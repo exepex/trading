@@ -26,7 +26,8 @@ def source(api=None, provider=None, listed=LISTED, clock=None):
     clock = clock or FakeClock(ist(DAY, 10, 0))
     provider = provider or FakeGrowwProvider(api)
     pacer = RatePacer(1000, clock=lambda: 0.0, sleep=lambda s: None)
-    return GrowwIntradaySource(ReadOnlyGroww(lambda: provider.api), ExpiryPlan(lambda: listed), 75, clock.now, pacer)
+    return GrowwIntradaySource(ReadOnlyGroww(lambda: provider.api), ExpiryPlan(lambda: listed), 75, clock.now, pacer,
+                               pacer)  # fmt: skip
 
 
 def test_a_snapshot_holds_the_index_the_future_two_chains_and_every_contract_within_6_percent():

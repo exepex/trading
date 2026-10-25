@@ -78,6 +78,11 @@ class GitManifestRecorder(ManifestRecorder):
                 return self._not_committed(step, _first_line(result))
         return self._publish(len(files))
 
+    def publish(self) -> str:
+        """Pulls and pushes what is already committed, adding nothing: an A16 claim whose first push failed is on
+        GitHub only once this push lands (story GW1); "nothing new to commit" proves nothing about the remote."""
+        return self._publish(0)
+
     def _publish(self, count: int) -> str:
         """Pulls and pushes; another session pushing in between is retried (PUSH_ATTEMPTS in all)."""
         for _ in range(PUSH_ATTEMPTS):

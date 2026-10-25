@@ -175,7 +175,9 @@ def test_the_built_probe_connects_with_the_combined_roots_only_when_a_bundle_is_
             seen.append(nats_client.certifi.where())  # what the SDK's TLS context would load at connect time
 
     nats_client = _stand_in_sdk(monkeypatch, FakeFeed)
-    monkeypatch.setattr(feed_wiring, "GrowwProvider", lambda cfg: SimpleNamespace(api=object(), feed_client=object))
+    monkeypatch.setattr(
+        feed_wiring, "get_provider", lambda name, cfg: SimpleNamespace(api=object(), feed_client=object)
+    )
     env = {"SSL_CERT_FILE": str(pki / "ca.pem")} if with_bundle else {}
     feed_wiring.build_feed_probe({}, env)
     if with_bundle:
