@@ -60,3 +60,34 @@
 ## Open questions
 
 - None open with the owner. The remaining waits are the judges' verdicts.
+
+## Afternoon (builder session_01B3RARTgoiGJwBKXRCgGRe8; relayed orchestrator messages, no direct owner message)
+
+Decisions and results:
+- **F1t round 2 (judge 651):**
+  - Every finding was accepted. `ai_collect` is bounded by a hard decider time limit, so a slow AI book is `late` and
+    Book 1 is still collected on time; this is shown end to end.
+  - A rehearsal builds no trigger. The mixed-label and wired-isolation tests were added.
+  - Judge F passed it (655.1). Judge 651.1 failed it: the stop was an `Exception`, which a decider's own guard can
+    swallow.
+  - The narrow fix (`BaseException`, nested restore, blank-status test) is prepared and waits for the owner's word for
+    a third look.
+- **F6 round 2 (judge 652):**
+  - Accepted: no registered write path covers a protected file, the ledger is append-only in the decider, and the
+    prompt hash is tested.
+  - The builder found that Book 3's day sheet never reached its private pack; fixed.
+  - Judges B and E passed it.
+- **F5 code:**
+  - Built: Book 2's sheet, answer, decider, C4 unproven check, orders and exits, pauses, a D3 fix (records now name the
+    rule's own action), and O11's two Book 2 checks on the recorded day.
+  - Q12 (A) (threshold binds paper versions only) is built as an assumption; the orchestrator put Q12 to the owner.
+  - Ruling (orchestrator): the shadow-only and judge-blocked cases go in Book 2's day log, which carries the rule's
+    would-be trade, because D2's shadow does not cover every day.
+- **Found outside these stories:** E3's run log keys fill results by trade ID only, so when Book 1 and Book 2 trade the
+  same opportunity one book's fill result is lost from the log. Reported to the orchestrator.
+
+Open questions:
+- Q12 (owner): A or B.
+- The owner's word on F1t's third, narrow look.
+- Who fixes the run-log fills keying.
+- F4 must be built before Book 2 goes live: `NoJudge` blocks Book 2 every day until then.

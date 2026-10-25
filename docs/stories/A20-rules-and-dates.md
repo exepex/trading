@@ -60,7 +60,16 @@ Out, each with its reason:
    NSE file. Not in P6's market archive run: that run files snapshots under the previous session, while the ban list
    names the session it applies to. NSE writes the next session's ban list about 18:12 IST (Step 0), and GitHub
    starts this repository's morning crons 4-5 h late or drops them (judges 350, 351). So `python -m fno fo-masters`
-   runs at 07:45, 11:15 and 18:45 IST, every day:
+   runs at 06:00, 07:45, 11:15 and 18:45 IST, every day.
+   - **The 06:00 slot (orchestrator, 25 Oct 2026; A14c part 2's builder, lane 1):** A14c part 2's 14:05 broker check
+     needs the day's lot file. GitHub started the 07:45 slot at 13:03, 13:00 and 12:46 IST on 22-24 Oct, and the
+     11:15 retry at 16:09, 16:01 and 15:18, after the check. At the same lateness the 06:00 slot lands about 11:00.
+   - The copy is unchanged by the earlier time (some evidence, one change seen): NSE replaces `fo_mktlots.csv` in the
+     evening before the session it serves. On 25 Oct NSE's file read last-modified Thu 22 Oct 16:17 UTC (21:47 IST),
+     and its SHA-256 equals the copy archived for 23 Oct (`d02bbf37...`).
+   - The rules are unchanged. Lots are filed under the run's own IST date (06:00 IST is the same date). A later run
+     of the day keeps the first copy ("already archived"), so nothing is written twice. At 06:00 the ban list on NSE
+     is the run day's own session's list, filed under that date, so the stale check holds.
    - **ban list** (`SessionFiledTaker` variant): filed under the trade date it names when that date is the run day's
      own session or the next session (A7 calendar); a copy for an earlier session is refused as stale and one further
      ahead as from the future; nothing is written in either case. A session's first copy is kept.

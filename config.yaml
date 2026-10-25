@@ -224,6 +224,7 @@ daily:
     premium_range_scores: "2026-10-26"  # G13d's daily `premrange score` and seals (owner, 24 Oct: the same)
     close_read: "2026-10-23"  # story A4h's 15:40 close read: record-only for its first 5 sessions (orchestrator)
     close_recheck: "2026-10-23"  # A4h's 16:00 second read
+    recommend: null  # story REC1b: the recommender's daily record and #fno-desk line (null until the owner's go)
     # Story F1t: each AI book's first trading day (null: the book is not in the desk at all). Set by the owner only,
     # after the go-live checks in docs/stories/F1t-ai-trading-runner.md.
     book2_hybrid: null
@@ -261,7 +262,7 @@ health:
 # DESK_DECISIONS "Market school pilot: report sections and brake"), so a desk change never moves the pilot mid-count.
 school:
   enabled: true
-  reports: false
+  reports: true
   first_counted:            # set from the frozen comparison card (MS-P1h) before the first counted session
   account_rs: 2000000       # each driver version's paper account
   max_loss_rs: 10000        # one trade, every charge and pad included
