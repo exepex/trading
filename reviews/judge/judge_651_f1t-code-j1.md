@@ -57,3 +57,41 @@ string would be promoted, labelled "strategy not yet passed").
 - **Round 1's head moved (still round 1):** at `a1ed229a4` (judge F's D6 test plus a merge of main) the F1t code is
   byte-identical to `cab730a85`: findings 1-4 stand (rehearsal plant still survives, 667 passed). Minor 5 is closed:
   both components are checked by equality, and byte edits of either file or a disabled check are caught.
+
+## Addendum 1: round 2 at `7850269ed` (code `1f14e057c`; the last round)
+
+**FAIL**, lane 1, judge 1 of 2: 1 should-fix. Every round-1 finding is fixed, but the new time limit can be swallowed.
+
+| Round-1 finding | Verdict | Evidence |
+|---|---|---|
+| SF1. `ai_collect` unbounded | FIXED, with should-fix A below | `time_limit.py`: a SIGALRM timer of min(60 s, time left before 15:12 less 10 s); a stopped decider's writes are put back and the book is `late`; a run finished at or after 15:12 is undone and `late`. The e2e test has Book 1 committed at 15:11:40 and Book 2 asleep; Book 1 is collected, Book 2 is late |
+| SF2. Rehearsal guard | FIXED | no trigger is built under `rehearsal()` (`wiring.py:151-152`); plants "triggers built" and "steps not told" caught |
+| m3. Mixed label | FIXED | plant `all` to `any` caught (2 failed) |
+| m4. Book 1 isolated | FIXED | plant caught (1 failed) |
+| m5. D6 hash | FIXED | at `a1ed229a4` (note above) |
+
+The orchestrator's SIGALRM questions:
+- Main thread: yes. `fno/daily`, `fno/desk` and `fno/rehearsal` start no thread around the steps (E8's daemon read
+  thread aside), and nothing else in `fno` uses SIGALRM or `ITIMER_REAL`, so no outer timer can be cancelled.
+- Leaks into later steps: no. The timer is cleared and the handler restored in `finally`; plants removing either
+  are caught.
+- Subprocesses: `subprocess.run` kills its child when the alarm interrupts it. My run, a 3 s `sleep` under a 0.5 s
+  limit, was stopped at 0.5 s.
+
+**Should-fix A: `DecisionTimedOut` is an `Exception`, so any `except Exception` in a decider swallows the alarm.**
+The timer fires once. My run, a decider retrying slow work under `except Exception`, inside `time_limit(0.5)`: it
+caught `DecisionTimedOut`, carried on, and returned "decided" after 2.5 s. A real decider does this.
+`story/f6-on-f1t` `fno/book3/decider.py` uses `Book3Proposer`, whose `_guards` wraps parsing in `except Exception`
+(`fno/book3/proposals.py:71`): an alarm there becomes a proposal refused as "unreadable: DecisionTimedOut", and
+the decider goes on unbounded. Two outcomes follow:
+1. A decider that then finishes inside the 10 s reserve is promoted with a decision the timer distorted.
+2. One that runs on brings back round 1's failure: E3 starts late and every book, Book 1 included, loses the day.
+
+Fix: derive `DecisionTimedOut` from `BaseException` (as `KeyboardInterrupt` is). Add a test with a decider that
+catches `Exception` around slow work and is still stopped.
+
+**Plants:** 11 on `7850269ed`, all caught (my 4 round-1 survivors among them).
+**Gates:** trial merge with main `626b778bb`, token kept: 17,175 passed, 13 xfailed, 0 failed; ruff, format,
+`check_imports`, `check_records` clean.
+**Note:** an alarm landing between the block's end and `setitimer(0)` raises inside `finally` and leaves the previous
+handler unrestored. Harmless today (no other SIGALRM user); restore the handler first if one is ever added.
