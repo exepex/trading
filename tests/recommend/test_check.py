@@ -34,7 +34,7 @@ def day(*candidates, sources=None):
 
 
 def checked(record, outcomes) -> CheckRecord:
-    return check(record, "ab" * 32, CHECKED, MADE_AT, outcomes)
+    return check(record, "ab" * 32, CHECKED, MADE_AT, outcomes, last_check=False)
 
 
 def test_every_listed_candidate_is_reported_and_the_closed_ones_summed():
@@ -45,17 +45,39 @@ def test_every_listed_candidate_is_reported_and_the_closed_ones_summed():
         (DB1, CandidateState.CLOSED, -3400.0),
         (N0, CandidateState.NO_TRADE, None),
     ]
-    assert (result.closed_net, result.open_trades, result.verdict) == (-2199.5, 0, Verdict.COMPLETE)
+    assert (result.closed_so_far, result.open_trades, result.verdict) == (-2199.5, 0, Verdict.COMPLETE)
 
 
 def test_a_traded_candidate_without_its_outcome_keeps_the_day_not_known():
     result = checked(day(candidate(CS1, n=1), candidate(DB1, n=2)), Outcomes({CS1: FoundOutcome(500.0, False)}))
-    assert (result.open_trades, result.verdict, result.closed_net) == (1, Verdict.NOT_KNOWN_YET, 500.0)
+    assert (result.open_trades, result.verdict, result.closed_so_far) == (1, Verdict.NOT_KNOWN_YET, 500.0)
 
 
 def test_a_ticket_is_reported_apart_never_as_a_trade():
     result = checked(day(candidate(CS1, traded=False, n=1)), Outcomes({CS1: FoundOutcome(-700.0, True)}))
-    assert (result.results[0].state, result.results[0].net, result.closed_net) == (CandidateState.TICKET, -700.0, 0)
+    assert (result.results[0].state, result.results[0].net, result.closed_so_far) == (CandidateState.TICKET, -700.0, 0)
+
+
+def test_an_unavailable_source_with_an_open_trade_is_checked_again_and_then_incomplete():
+    """Judge 658 S3: `incomplete` is final only once the listed candidates have closed."""
+    sources = (CandidateSource(CandidateSourceName.DESK_BOOK1, SourceState.COMPLETE, None),
+               CandidateSource(CandidateSourceName.SCHOOL, SourceState.UNAVAILABLE, "ok, school:OFF"))  # fmt: skip
+    record = day(candidate("book1_rules", traded=True, n=4), sources=sources)
+    lookup = Outcomes({})
+    lookup.outcome = lambda cand, session, until: None  # the desk trade has not closed yet
+    assert checked(record, lookup).verdict is Verdict.NOT_KNOWN_YET
+
+
+def test_a_trade_still_open_at_the_last_check_is_never_closed():
+    record = day(candidate(CS1, n=1))
+    result = check(record, "ab" * 32, CHECKED, MADE_AT, Outcomes({}), last_check=True)
+    assert (result.verdict, result.problem) == (Verdict.DATA_CHECK_FAILED, "never closed in 60 sessions")
+
+
+def test_the_last_check_of_a_closed_day_is_simply_final():
+    result = check(day(candidate(CS1, n=1)), "ab" * 32, CHECKED, MADE_AT, Outcomes({CS1: FoundOutcome(5.0, False)}),
+                   last_check=True)  # fmt: skip
+    assert (result.verdict, result.problem) == (Verdict.COMPLETE, "")
 
 
 def test_an_unavailable_source_is_never_a_full_total():
@@ -74,11 +96,11 @@ def test_an_unreadable_outcome_fails_the_check_never_a_smaller_total():
 
 def test_no_candidates_is_a_complete_empty_day():
     result = checked(day(), Outcomes({}))
-    assert (result.results, result.closed_net, result.verdict) == ((), 0, Verdict.COMPLETE)
+    assert (result.results, result.closed_so_far, result.verdict) == ((), 0, Verdict.COMPLETE)
 
 
 @pytest.mark.parametrize("change", [
-    {"closed_net": 1.0}, {"open_trades": 1}, {"verdict": Verdict.COMPLETE, "unavailable_sources": ("school",)},
+    {"closed_so_far": 1.0}, {"open_trades": 1}, {"verdict": Verdict.COMPLETE, "unavailable_sources": ("school",)},
     {"checked_on": date(2026, 11, 1)},
 ])  # fmt: skip
 def test_a_check_record_whose_parts_disagree_is_refused(change):

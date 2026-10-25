@@ -13,19 +13,18 @@ from pathlib import Path
 
 from ..alerts.sender import AlertSender
 from ..storage.receipts import RECEIPT_SUFFIX
-from .check import OutcomeLookup, check
-from .check_record import CheckRecord, Verdict
+from .check import OutcomeLookup, check, unreadable
+from .check_record import FINAL, CheckRecord
 from .check_text import answer_text, trades_text
 from .codec import decode
+from .constants import WINDOW_SESSIONS
 from .contracts import RecordRefused
 from .ports import InputFailed
 from .run import DayResult
 from .store import AREA_FOLDER, record_path
 from .write_once import NotOurs, NotSaved, WriteOnce
 
-WINDOW_SESSIONS = 60  # a monthly option closes within about 35 days
 LOOKBACK_DAYS = 120  # calendar days that hold more than 60 sessions
-FINAL = frozenset({Verdict.COMPLETE, Verdict.INCOMPLETE})
 CHECK_NAME = "{day}.check.{on}.json"
 RECEIPT_MESSAGE = "Receipt: the recommender's check of {day} on {on}"
 NOT_CHECKED = "recommender check NOT made for {day}: {why}"
@@ -47,13 +46,12 @@ class CheckRun:
 
     def run(self, on: date) -> DayResult:
         lookup, lines, ok = self.ports.lookup(), [], True
-        days = self._waiting(on)
-        for day in days:
+        for day in self._waiting(on):
+            last = len(self.ports.sessions(day, on)) >= WINDOW_SESSIONS
             try:
-                lines += self._check(day, on, lookup)
+                lines += self._check(day, on, lookup, last)
             except (InputFailed, NotSaved, RecordRefused) as failed:
-                line = NOT_CHECKED.format(day=day, why=failed)
-                lines += [self.alerts.send(line), line]
+                lines += self._failed(day, on, last, str(failed))
                 ok = False
         return DayResult(tuple(lines) or (NOTHING.format(on=on),), ok)
 
@@ -61,17 +59,32 @@ class CheckRun:
         recent = self.ports.sessions(on - timedelta(days=LOOKBACK_DAYS), on)[-WINDOW_SESSIONS:]
         return [day for day in recent if self._recorded(day) and not self._final(day)]
 
-    def _check(self, day: date, on: date, lookup: OutcomeLookup) -> list[str]:
+    def _check(self, day: date, on: date, lookup: OutcomeLookup, last: bool) -> list[str]:
         data = self.ports.read(record_path(day))
         record = decode(data)
-        result = check(record, hashlib.sha256(data).hexdigest(), on, self.clock(), lookup)
-        path = _check_path(day, on)
-        kept = self.keeper.keep(path, result.to_bytes(), _vouch(day, on), RECEIPT_MESSAGE.format(day=day, on=on))
-        stands = CheckRecord.from_bytes(kept.payload)
+        result = check(record, hashlib.sha256(data).hexdigest(), on, self.clock(), lookup, last)
+        kept, stands = self._keep(result)
         if stands.verdict not in FINAL:
             return [f"recommender check {day}: {stands.verdict.value}, {stands.open_trades} trade(s) still open"]
         line = _line(record, stands, kept)
         return [self.alerts.send(line), line]
+
+    def _failed(self, day: date, on: date, last: bool, why: str) -> list[str]:
+        """A failed check is alerted and tried again next evening; at the last check it is written final as well."""
+        line = NOT_CHECKED.format(day=day, why=why)
+        lines = [self.alerts.send(line), line]
+        if last:
+            try:
+                self._keep(unreadable(day, on, self.clock(), why))
+            except NotSaved as unsaved:
+                lines += [self.alerts.send(NOT_CHECKED.format(day=day, why=unsaved))]
+        return lines
+
+    def _keep(self, result: CheckRecord):
+        day, on = result.session, result.checked_on
+        kept = self.keeper.keep(_check_path(day, on), result.to_bytes(), _vouch(day, on),
+                                RECEIPT_MESSAGE.format(day=day, on=on))  # fmt: skip
+        return kept, CheckRecord.from_bytes(kept.payload)
 
     def _recorded(self, day: date) -> bool:
         return (self.ports.receipts / f"{record_path(day)}{RECEIPT_SUFFIX}").is_file()

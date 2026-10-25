@@ -1,7 +1,7 @@
 """Where a candidate's outcome is found (story REC1c, text amendment item 3): a school candidate's `OutcomeRecord` in
 the dashcam's sealed `outcomes` files from its session to the check's day, matched on the sealed decision file's
-SHA-256, the driver and the road; a later record that corrects an earlier one wins. A desk candidate that traded has
-no outcome reader yet (none can exist before a desk version reaches `paper`): it fails loudly, never a guess."""
+SHA-256, the driver and the road, corrections resolved to one live record (judge 658 S2). A desk candidate that traded
+has no outcome reader yet (none can exist before a desk version reaches `paper`): it fails loudly, never a guess."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from ..books.version_registry import SCHOOL_BOOK_PREFIX
 from ..school.constants import SLOT_1500, RecordKind
 from ..school.contracts.records import OutcomeRecord
 from ..school.contracts.seal import StaleSeal
+from ..school.instructor.contracts import record_sha256
 from .check import FoundOutcome, OutcomeLookup
 from .constants import CandidateSourceName
 from .contracts import Candidate, source_of
@@ -19,6 +20,8 @@ from .ports import InputFailed
 from .school_source import SealedDecisions
 
 ROAD_MARK = "#"
+ORPHAN = "{key}: an outcome corrects a record that is not on file"
+TWO_LIVE = "{key}: {count} live outcomes for one candidate"
 DESK_NOT_BUILT = "{version}: a desk candidate traded, and the desk's outcome reader is not built (REC1c)"
 
 
@@ -37,7 +40,8 @@ class SealedOutcomes(OutcomeLookup):
         driver = candidate.version.removeprefix(SCHOOL_BOOK_PREFIX)
         found = [r for day in self.sessions(session, until) for r in self._outcomes(day)
                  if (r.decision_sha256, r.driver_id, r.road) == (candidate.decision.sha256, driver, road)]  # fmt: skip
-        return None if not found else FoundOutcome(found[-1].net, found[-1].is_ticket)  # the latest correction wins
+        live = _live(found, candidate.decision.path)
+        return None if live is None else FoundOutcome(live.net, live.is_ticket)
 
     def _outcomes(self, day: date) -> tuple[OutcomeRecord, ...]:
         if day not in self._read:
@@ -48,3 +52,16 @@ class SealedOutcomes(OutcomeLookup):
                 raise InputFailed(f"{seal.path}: {type(damaged).__name__}") from None
             self._read[day] = tuple(r for r in records if isinstance(r, OutcomeRecord))
         return self._read[day]
+
+
+def _live(found: list[OutcomeRecord], key: str) -> OutcomeRecord | None:
+    """Corrections resolved first (judge 658 S2): a record a later one names in `corrects` drops out. One live record
+    is the outcome; none, open; two or more, or a correction of a record that is not there, a failed check."""
+    identities = {record_sha256(r) for r in found}
+    replaced = {r.corrects for r in found if r.corrects}
+    if replaced - identities:
+        raise InputFailed(ORPHAN.format(key=key))
+    live = [r for r in found if record_sha256(r) not in replaced]
+    if len(live) > 1:
+        raise InputFailed(TWO_LIVE.format(key=key, count=len(live)))
+    return live[0] if live else None

@@ -8,6 +8,7 @@ from .check_record import CandidateState, CheckRecord, Verdict
 from .constants import PaperAnswer
 from .contracts import Recommendation
 
+FAILED = "The check failed: {problem}; no total is given."
 INCOMPLETE = "Incomplete: {sources} unavailable at decision time, so there is no full total."
 TRADED = "The recommended paper trade of {version} made Rs {net:,.2f} after costs."
 NOTHING_TRADED = "No candidate traded, so abstaining cost nothing."
@@ -17,6 +18,8 @@ COUNTS = "({closed} closed, {open} open, {quiet} no trade, {tickets} ticket(s)).
 
 
 def answer_text(record: Recommendation, check: CheckRecord) -> str:
+    if check.verdict is Verdict.DATA_CHECK_FAILED:
+        return FAILED.format(problem=check.problem)
     if check.verdict is Verdict.INCOMPLETE:
         return INCOMPLETE.format(sources=", ".join(check.unavailable_sources))
     if record.paper is PaperAnswer.PAPER_TRADE:
@@ -25,7 +28,7 @@ def answer_text(record: Recommendation, check: CheckRecord) -> str:
         return TRADED.format(version=record.paper_trade.version, net=net)
     if not any(r.state is CandidateState.CLOSED for r in check.results):
         return NOTHING_TRADED
-    total = check.closed_net
+    total = check.closed_so_far  # final here, so the day's total
     return (SAVED if total < 0 else COST).format(total=total, amount=abs(total))
 
 

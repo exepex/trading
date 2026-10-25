@@ -109,5 +109,21 @@ def test_days_older_than_60_sessions_are_left(tmp_path):
     run, data, alerts = harness(tmp_path, record=traded_day())
     run.ports = CheckPorts(run.ports.receipts, run.ports.read, lambda a, b: [d for d in long if a <= d <= b],
                            run.ports.lookup)  # fmt: skip
-    assert run.run(long[59]).lines[0].startswith(f"recommender check {DAY}")  # the 60th session still checks it
+    run.run(long[58])  # the 59th session: still open, checked again
+    final = run.run(long[59])  # the 60th: the last check, final and alerted (judge 658 S3)
+    assert alerts.lines[-1].startswith(f"PAPER ONLY. Recommender check for {DAY:%d %b %Y}: data check failed.")
+    assert "never closed in 60 sessions" in alerts.lines[-1] and final.ok
     assert run.run(long[60]).lines == (f"recommender check {long[60]}: no recorded day waits for a check",)
+
+
+def test_a_day_unreadable_at_its_last_check_is_written_final_and_alerted(tmp_path):
+    long = [DAY + timedelta(days=k) for k in range(0, 120) if (DAY + timedelta(days=k)).weekday() < 5]
+    run, data, alerts = harness(tmp_path, record=traded_day())
+    run.ports = CheckPorts(run.ports.receipts, run.ports.read, lambda a, b: [d for d in long if a <= d <= b],
+                           run.ports.lookup)  # fmt: skip
+    data.files[record_path(DAY)] = b"damaged"
+    assert not run.run(long[59]).ok
+    assert any(".check." in p for p in data.files) and alerts.lines[0].startswith(
+        f"recommender check NOT made for {DAY}"
+    )
+    assert run.run(long[60]).ok

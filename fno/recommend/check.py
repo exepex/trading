@@ -12,12 +12,13 @@ from datetime import date, datetime
 from .check_record import (
     CHECK_KIND,
     CHECK_SCHEMA_VERSION,
+    NEVER_CLOSED,
     CandidateResult,
     CandidateState,
     CheckRecord,
     verdict_for,
 )
-from .constants import SourceState
+from .constants import WINDOW_SESSIONS, SourceState
 from .contracts import Candidate, Recommendation
 
 
@@ -34,16 +35,28 @@ class OutcomeLookup(ABC):
         unreadable outcome raises `InputFailed`."""
 
 
-def check(record: Recommendation, record_sha256: str, checked_on: date, made_at: datetime,
-          lookup: OutcomeLookup) -> CheckRecord:  # fmt: skip
+def check(record: Recommendation, record_sha256: str, checked_on: date, made_at: datetime, lookup: OutcomeLookup,
+          last_check: bool) -> CheckRecord:  # fmt: skip
+    """`last_check`: the window's last session; a candidate still open then is never closed (judge 658 S3)."""
     results = tuple(_result(c, record.session, checked_on, lookup) for c in record.candidates)
     unavailable = tuple(sorted(s.name.value for s in record.candidate_sources if s.state is SourceState.UNAVAILABLE))
     closed = [r.net for r in results if r.state is CandidateState.CLOSED]
     open_trades = sum(r.state is CandidateState.OPEN for r in results)
+    problem = NEVER_CLOSED.format(sessions=WINDOW_SESSIONS) if open_trades and last_check else ""
     return CheckRecord(
         schema_version=CHECK_SCHEMA_VERSION, kind=CHECK_KIND, session=record.session, checked_on=checked_on,
-        made_at=made_at, recommendation_sha256=record_sha256, results=results, closed_net=round(sum(closed), 2),
-        open_trades=open_trades, unavailable_sources=unavailable, verdict=verdict_for(unavailable, open_trades),
+        made_at=made_at, recommendation_sha256=record_sha256, results=results, closed_so_far=round(sum(closed), 2),
+        open_trades=open_trades, unavailable_sources=unavailable, last_check=last_check, problem=problem,
+        verdict=verdict_for(unavailable, open_trades, problem),
+    )  # fmt: skip
+
+
+def unreadable(session: date, checked_on: date, made_at: datetime, problem: str) -> CheckRecord:
+    """The last check of a day whose inputs cannot be read: final and alerted, so no day leaves the window silently."""
+    return CheckRecord(
+        schema_version=CHECK_SCHEMA_VERSION, kind=CHECK_KIND, session=session, checked_on=checked_on, made_at=made_at,
+        recommendation_sha256="", results=(), closed_so_far=0.0, open_trades=0, unavailable_sources=(),
+        last_check=True, problem=problem, verdict=verdict_for((), 0, problem),
     )  # fmt: skip
 
 

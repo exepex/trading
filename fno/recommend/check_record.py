@@ -24,9 +24,14 @@ class CandidateState(StrEnum):
 
 
 class Verdict(StrEnum):
-    NOT_KNOWN_YET = "not_known_yet"
-    COMPLETE = "complete"
-    INCOMPLETE = "incomplete"  # a candidate source was unavailable at decision time: no full total exists
+    NOT_KNOWN_YET = "not_known_yet"  # a listed candidate is still open: checked again
+    COMPLETE = "complete"  # every listed candidate closed: final
+    INCOMPLETE = "incomplete"  # all closed, but a source was unavailable at decision time: no full total; final
+    DATA_CHECK_FAILED = "data_check_failed"  # never closed in the window, or an outcome unresolved: final, alerted
+
+
+FINAL = frozenset({Verdict.COMPLETE, Verdict.INCOMPLETE, Verdict.DATA_CHECK_FAILED})
+NEVER_CLOSED = "never closed in {sessions} sessions"
 
 
 @dataclass(frozen=True)
@@ -45,10 +50,12 @@ class CheckRecord(CanonicalRecord):
     checked_on: date
     made_at: datetime
     recommendation_sha256: str
-    results: tuple[CandidateResult, ...]
-    closed_net: float  # the sum over closed trades (tickets apart)
+    results: tuple[CandidateResult, ...]  # every listed candidate; empty only for a check that could not read them
+    closed_so_far: float  # the sum over the trades closed so far (tickets apart); the day's total only when final
     open_trades: int
     unavailable_sources: tuple[str, ...]
+    last_check: bool  # the check on the window's last session: whatever it finds is final
+    problem: str  # why the check is data_check_failed; empty otherwise
     verdict: Verdict
 
     def __post_init__(self):
@@ -65,16 +72,22 @@ def _problems(rec: CheckRecord) -> list[str]:
         (rec.checked_on >= rec.session, "a check before its day"),
         (all((r.net is None) == (r.state in (CandidateState.NO_TRADE, CandidateState.OPEN)) for r in rec.results),
          "a net is given exactly for closed trades and tickets"),
-        (rec.closed_net == round(sum(r.net for r in closed), 2), "the total is not the sum of the closed trades"),
+        (rec.closed_so_far == round(sum(r.net for r in closed), 2), "closed so far is not the sum of closed trades"),
         (rec.open_trades == sum(r.state is CandidateState.OPEN for r in rec.results), "the open count is wrong"),
-        (rec.verdict is verdict_for(rec.unavailable_sources, rec.open_trades), "the verdict does not follow"),
+        (type(rec.last_check) is bool and isinstance(rec.problem, str), "last_check or problem has the wrong type"),
+        (rec.verdict is verdict_for(rec.unavailable_sources, rec.open_trades, rec.problem), "the verdict differs"),
+        (bool(rec.results) or bool(rec.problem) or rec.open_trades == 0, "no results without a problem"),
+        (not (rec.open_trades and rec.last_check) or bool(rec.problem), "open at the last check must say never closed"),
         (list(rec.unavailable_sources) == sorted(set(rec.unavailable_sources)), "sources are not sorted or repeat"),
     )  # fmt: skip
     return [problem for ok, problem in checks if not ok]
 
 
-def verdict_for(unavailable: tuple[str, ...], open_trades: int) -> Verdict:
-    """The one rule both the check and its record use: an unavailable source first, then open trades."""
-    if unavailable:
-        return Verdict.INCOMPLETE
-    return Verdict.NOT_KNOWN_YET if open_trades else Verdict.COMPLETE
+def verdict_for(unavailable: tuple[str, ...], open_trades: int, problem: str) -> Verdict:
+    """The one rule the check and its record both use (judge 658 S3): a problem first, then open trades, then an
+    unavailable source; a day with an unavailable source is re-checked until its listed candidates have closed."""
+    if problem:
+        return Verdict.DATA_CHECK_FAILED
+    if open_trades:
+        return Verdict.NOT_KNOWN_YET
+    return Verdict.INCOMPLETE if unavailable else Verdict.COMPLETE

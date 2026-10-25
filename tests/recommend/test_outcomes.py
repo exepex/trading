@@ -13,6 +13,7 @@ from fno.recommend.ports import InputFailed
 from fno.recommend.refs import RecordRef
 from fno.school.constants import SLOT_1500, RecordKind
 from fno.school.fakes import FakeDashcam
+from fno.school.instructor.contracts import record_sha256
 from tests.school.instructor.builders import OTHER, ROAD, SESSIONS, decision_record, held_trade, outcome, refilled
 
 FIRST, MIDDLE, LAST = SESSIONS
@@ -87,8 +88,30 @@ def test_the_latest_correction_wins():
     dashcam = FakeDashcam()
     seal = dashcam.seal(FIRST, SLOT_1500, RecordKind.DECISIONS, (decision_record(FIRST),))
     original = outcome(seal.sha256, exit_day=MIDDLE)
-    corrected = refilled(original, 15.0, corrects="ab" * 32)
+    corrected = refilled(original, 15.0, corrects=record_sha256(original))
     dashcam.seal(MIDDLE, SLOT_1500, RecordKind.OUTCOMES, (original,))
     dashcam.seal(LAST, SLOT_1500, RecordKind.OUTCOMES, (corrected,))
     assert original.net != corrected.net
     assert lookup(dashcam).outcome(school_candidate(dashcam), FIRST, LAST).net == corrected.net
+
+
+def _two_outcomes(second):
+    dashcam = FakeDashcam()
+    seal = dashcam.seal(FIRST, SLOT_1500, RecordKind.DECISIONS, (decision_record(FIRST),))
+    original = outcome(seal.sha256, exit_day=MIDDLE)
+    dashcam.seal(MIDDLE, SLOT_1500, RecordKind.OUTCOMES, (original,))
+    dashcam.seal(LAST, SLOT_1500, RecordKind.OUTCOMES, (second(original),))
+    return dashcam
+
+
+def test_a_correction_counted_twice_fails_the_check():
+    """Judge 658 S2's plant: two live outcomes for one candidate (a 'correction' that names nothing it replaces)."""
+    dashcam = _two_outcomes(lambda original: refilled(original, 15.0))
+    with pytest.raises(InputFailed, match="2 live outcomes"):
+        lookup(dashcam).outcome(school_candidate(dashcam), FIRST, LAST)
+
+
+def test_a_correction_of_a_record_not_on_file_fails_the_check():
+    dashcam = _two_outcomes(lambda original: refilled(original, 15.0, corrects="cd" * 32))
+    with pytest.raises(InputFailed, match="not on file"):
+        lookup(dashcam).outcome(school_candidate(dashcam), FIRST, LAST)

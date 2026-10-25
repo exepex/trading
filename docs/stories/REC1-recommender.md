@@ -591,13 +591,17 @@ What changes or is made exact in the passed text for REC1c, each named:
    - The real-money line names the brake.
    - Test and plant: a rung-3, RM1-eligible version that is braked gives `DO_NOT_TRADE_REAL_MONEY`.
    - It cannot occur before rung 3. It is built now so that it is in place before rung 3 is reachable.
-2. **Where it runs** (orchestrator, 25 Oct). One step in CLAUDE.md's evening section: `python -m fno recommend
-   check`, right after `lab close` (and `release-check`).
-   - It commits only its own receipts (`receipts/data/recommend/`), in its own commit.
+2. **Where it runs** (orchestrator, 25 Oct; judge 658 S1). Step "3b" of CLAUDE.md's evening section: `python -m fno
+   recommend check`, after step 3 has committed and pushed the edition's receipts and the release logs, so it never
+   races them.
+   - Its own command commits and pushes only its own receipts (`receipts/data/recommend/`), in its own commit.
+   - Step 4's notes cover its alert, its exit 1 and any "alert NOT sent" line.
    - The CLAUDE.md line ships on REC1c's branch and is judged with it, in lane 1, because it changes a routine's
      steps. The owner's routine prompt is unchanged: it already reads that section.
    - **It never fails the evening edition.** It runs after `lab close` has posted. On its own error it alerts
      #fno-desk and exits non-zero, and the edition's receipts are committed before it, as today.
+   - **"Never fails" also covers the readers after it** (judge 658 m2): LR1's weekly section and REC1d's 08:50 section
+     read a missing or `data_check_failed` check as exactly that, by name, and post their edition all the same.
 3. **What it reads**, all sealed records; it never reads a price, and never searches the day's decisions afresh.
    - The recommendation record of the session being checked.
    - Each **listed** candidate's outcome:
@@ -605,21 +609,33 @@ What changes or is made exact in the passed text for REC1c, each named:
        files from its session up to the check's day. The record names the same `decision_sha256`, `driver_id` and
        `road`. Its `net` is after C1 costs. An outcome with `is_ticket` is reported apart, as a ticket, never as a
        trade.
+     - **One live outcome per candidate** (judge 658 S2). Corrections are resolved first: a record whose SHA-256 a
+       later record names in `corrects` is replaced and drops out. Exactly one live record means closed; none means
+       open; two or more live records, or a `corrects` naming a record that is not there, mean `data_check_failed`
+       for the day, alerted. (Partly accepted: an outcome naming the candidate's seal under another driver or road
+       is not a fault. One sealed decisions file holds every driver's decisions on every road of the session, so
+       other drivers' outcomes rightly carry the same `decision_sha256`; the match is on all three: seal, driver,
+       road.)
      - A candidate that did not trade contributes zero, shown as "no trade".
      - A desk candidate that traded: the desk's outcome reader is not built, as with REC1b's desk evidence. That
        candidate makes the check `data_check_failed` with that reason. It cannot occur before a desk version reaches
        `paper`.
 4. **What it writes.** `recommend/<YYYY>/<MM>/<day>.check.json`, written once with its receipt pushed, with:
    - per listed candidate: its key, `closed` / `open` / `no trade` / `ticket`, and its `net` when closed;
-   - the total over the closed trades, with counts of the open ones;
-   - the day's verdict: `not known yet` until every listed candidate has closed; `complete` when all have;
-     `incomplete: <source> unavailable` when a source was unavailable at decision time;
+   - `closed so far`, the sum over the closed trades, with the counts of the open ones (judge 658 m1). Until the day is
+     final it is not the day's total, and it appears in no line;
+   - the day's verdict: `not known yet` while any listed candidate is open, even when a source was unavailable;
+     `complete` when all have closed; `incomplete: <source> unavailable` when all listed candidates have closed but a
+     source was unavailable at decision time (final, written once, not re-checked; judge 658 S3); `data_check_failed`
+     when a listed candidate is still open at the 60th session's check ("never closed in 60 sessions"), final and
+     alerted (judge 658 S3), or when an outcome cannot be resolved to one live record;
    - for a `NO_TRADE` day, "abstaining saved Rs X" or "abstaining cost Rs X" once complete.
    A check of a day already checked as complete is never written again. A day still `not known yet` is checked again
    on later evenings: each check is its own write-once file, `<day>.check.<check day>.json`, so no file is ever
    rewritten.
-   - Which sessions it checks: every session with a recommendation record whose latest check is not `complete`, at
-     most 60 sessions back. A monthly option closes within about 35 days.
+   - Which sessions it checks: every session with a recommendation record whose latest check is not final
+     (`complete`, `incomplete`, `data_check_failed`), from the last 60 sessions. A monthly option closes within about
+     35 days; the 60th session's check is the last and is always final.
 5. **Where it shows.**
    - One #fno-desk line per newly completed day, "Recommender check for <day>: ...".
    - The 08:50 "Today" section shows the latest checks (REC1d). The 20:05 edition cannot show tonight's check,
