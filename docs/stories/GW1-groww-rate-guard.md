@@ -71,37 +71,41 @@ it.
    60 s retry gap follows. A16 gets the same pause (orchestrator, Q3): on a clash it loses the rest of that mark, the
    honest cost of not spending the budget the other taker needs.
 5. **Quiet windows for A16's marks (part 5; orchestrator, Q4 and Q5).** For providers built through `get_provider`
-   (the 3 pm NIFTY, `v4`, A4c and E3's execution capture) a quiet window runs from each A16 mark to 90 s after it
+   (the 3 pm NIFTY, `v4`, A4c and E3's execution capture) a quiet window runs from each A16 mark to 120 s after it
    (`fno/providers/groww_quiet_windows.py`, A16's own `marks()`). An attempt that starts inside one waits for its end
    before its first call (`GrowwProvider.expiries`, the first Groww call of every A4 attempt). Any other call inside
    one is refused unsent (`GrowwQuietWindow`). A call is never delayed after its caller stamped its send time (A4's
    frozen fetcher stamps before it asks), so every recorded time stays true: a refused call is a recorded failure,
    and its recorder's own retry follows. A16, the pre-open capture and A16b build `GrowwProvider` directly and are
-   never held. Effects: A4c's first call moves from 15:01 to 15:01:30, and E3's capture (config
-   `desk.execution_snapshot` 15:15, unchanged) asks from 15:16:30. Its record's `started_at` stays 15:15, when the
+   never held. Effects: A4c's first call moves from 15:01 to 15:02:00, and E3's capture (config
+   `desk.execution_snapshot` 15:15, unchanged) asks from 15:17:00. Its record's `started_at` stays 15:15, when the
    attempt began waiting. The `v4` capture at 14:32 is never held; the rule stays on it as a belt. A NIFTY retry
-   still running at 15:00 ends incomplete there, and the next one starts at 15:01:30. Why 90 s: A16's marks took
+   still running at 15:00 ends incomplete there, and the next one starts at 15:02:00. Why 120 s: A16's marks took
    48-58 s to record on 20-23 Oct, and 83 s at most (78 committed slot rows, `first_seen_at` minus the mark; strong
    evidence).
-6. **A run that could not claim its mark asks at half pace (part 6; orchestrator agreed for A16's and A4's absent
+6. **A run that could not claim its mark asks slowly (part 6; orchestrator agreed for A16's and A4's absent
    owners).** `IntradayQuoteSource.share_pace(shared)` (no-op by default): the recorder passes `shared` when the claim
-   is `unclaimed`, and Groww's source then paces at 2.5 a second for that mark, its own 5 a second otherwise. Two
-   blind takers then ask at 5 a second together.
+   is `unclaimed`, and Groww's source then paces at 1 a second for that mark, its own 4 a second otherwise. Any two
+   takers then ask at 5 a second or less together (4 + 1, 1 + 1), seen or unseen. See the section on round 1's head.
 
 ## Known limits (said plainly)
 
-- Part 6 is exact only when both takers are blind. If one run's claim landed (`won`, 5 a second) and the other's push
-  failed (`unclaimed`, 2.5 a second), together they ask 7.5 a second for one mark until the first 429 stops one of
-  them for a minute. That needs a GitHub failure for one run only; full safety would need A16 at 2.5 a second always
-  (a mark twice as long), which is the owner's call, not built.
 - E3's execution capture took 2 min 34 s on 23 Oct (15:15:00 to 15:17:34, its committed record). Starting at
-  15:16:30 it ends near 15:19. `desk.fills_by` (15:20) limits only a rerun that did not take the snapshot itself.
+  15:17:00 it ends near 15:19:34. `desk.fills_by` (15:20) limits only a rerun that did not take the snapshot itself.
 - No Groww reader outside `get_provider` gets the quiet windows. A new reader (for example the school's capture
   probes, MS-P0b) must be built through `get_provider` or keep out of A16's marks by its own schedule.
 - There is still no cross-process limiter. Separation is by the clock (rule 5) plus the fast stop (rule 4). Two
   processes started by hand at the same time can still exceed the cap until the first 429 stops them.
 - The sign-in cap is per process. The day's total is bounded by the number of processes, not counted across them.
-- Whether Groww's limits are per key or per account is unknown (the probe found no statement).
+- Whether Groww's limits are per key or per account is unknown (the probe found no statement). Another app or person
+  using the owner's Groww account at the same time would share the budget unseen.
+- How Groww counts "a minute" (a fixed clock minute or a sliding 60 s) is unknown. 300 a minute is read as at most 5
+  a second averaged over any 60 s, which the paces above keep in either reading.
+- **Dependency:** the `v4` capture must never start before the 14:30 mark's quiet window ends (14:32:00 with the
+  120 s window). Its first call would wait and the rest be refused. `quotes.windows.v4.start` is "14:32" on main
+  (the freeze builder, 25 Oct), and
+  `tests/test_groww_quiet_windows.py::test_the_v4_captures_configured_start_is_outside_every_a16_quiet_window` fails if it is
+  ever moved earlier (planted: "14:31" is caught).
 
 ## Acceptance
 
@@ -118,17 +122,17 @@ it.
    `withheld()` shows the name. Other errors pass through unchanged.
 5. After a 429, the next call within 60 s raises `GrowwRateLimitPause` and the stub is not called. At 60 s it is called
    again. A4's attempt with a 429 at contract 3 of 20 asks Groww 3 times, not 20.
-6. Through `get_provider`, an attempt starting at 14:30:10 asks from 14:31:30, at 15:00:00 from 15:01:30, at
-   15:01:29 one second later and at 15:15:00 from 15:16:30. At 15:01:30, 14:32:00, 09:14:59 and 15:31:30 it does not
+6. Through `get_provider`, an attempt starting at 14:30:10 asks from 14:32:00, at 15:00:00 from 15:02:00, at
+   15:01:59 one second later and at 15:15:00 from 15:17:00. At 15:02:00, 14:32:00, 09:14:59 and 15:32:00 it does not
    wait. Any other call at the waiting times is refused unsent and never delayed. A16's directly built provider is
    never held.
 7. A16's recorder asks its source for half pace on an `unclaimed` mark and for its own pace on the next one; Groww's
-   source then paces at 2.5 a second, and at its own pacer again after.
+   source then paces at 1 a second, and at its own pacer again after. The two paces sum to at most 5 a second.
 8. Each criterion fails when its code is broken on purpose (mutation per criterion). The full suite passes.
 
-## Proposal for round 2 (prepared, not pushed; orchestrator, 25 Oct)
+## Round 1's head: every taker paces for the worst pair (orchestrator, 25 Oct: a must-fix under the owner's rule)
 
-Rule 6's 7.5 a second for one rare mark breaks the owner's "in any situation". A run cannot know it is alone, so every
+The first version's pair (5 a second claimed, 2.5 unclaimed: 7.5 a second for one rare mark) broke the owner's "in any situation". A run cannot know it is alone, so every
 taker paces for the worst pair: a claimed mark at 4 a second, an unclaimed one at 1 (4 + 1 = 5 and 1 + 1 = 2, both
 within 300 a minute and 10 a second). Cost, estimated from 78 slot rows of 20-23 Oct at 5 a second (overhead about 9 s,
 216-220 quotes): a mark takes about 63 s instead of 52 (median), and about 101 s instead of 83 at worst. The quiet
@@ -154,10 +158,10 @@ Round 1, parts 1-6:
   low items, both fixed: a 429 on the next-year expiry call was swallowed by `listed_expiries`, hiding the cause
   (now re-raised); the sign-in alert was sent while the sign-in lock was held (now sent after its release). It found
   no order path, no caller broken by the wrapper and no leak of Groww's text.
-- Tests: `tests/test_groww_guard.py` (acceptance 1-6: good, bad, boundary and empty cases),
+- Tests: `tests/test_groww_guard.py` and `tests/test_groww_quiet_windows.py` (acceptance 1-6: good, bad, boundary and empty cases),
   `tests/intraday/test_o9_one_taker.py` (acceptance 7), `tests/test_groww_provider.py` (the 06:00 renewal and the
   expiry list through the new client), `tests/groww_sdk_fake.py` (a stand-in SDK that records sign-ins and calls).
-- Gates at this commit: pytest -n auto 16588 passed, 1 skipped, 14 xfailed; ruff check and format, check_imports and
+- Gates at this commit (merged with main f1a94bbeb): pytest -n auto 16617 passed, 1 skipped, 13 xfailed; ruff check and format, check_imports and
   check_records clean.
 - Mutations, each caught: no back-off check; an alert on every failure; no doubling; no day cap; `api` without the
   allow-list; no 429 translation; no pause check; Groww's text carried on; `get_provider` without the alert; without
@@ -175,5 +179,5 @@ Groww sign-in failed (ConnectionError); this process tries again after 5 minutes
 08:28:40 GrowwSignInPaused: Groww sign-in paused after 2 failed tries this token day; next try at 08:37:00 IST
 2026-10-27 25000 CE #3: GrowwRateLimited (provider message withheld) | GrowwRateLimited:429
 2026-10-27 25000 CE #4: GrowwRateLimitPaused (provider message withheld) | GrowwRateLimitPaused
-attempt at 15:00:20 waits [70.0] s; another call then: Groww call refused unsent: inside A16's 15:00 mark until 15:01:30 IST
+attempt at 15:00:20 waits [100.0] s; another call then: Groww call refused unsent: inside A16's 15:00 mark until 15:02:00 IST
 ```
