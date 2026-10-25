@@ -163,12 +163,24 @@ Plants: 10 of 10 caught.
 
 **Real read-only check of the dated lot (Drive, 25 Oct).**
 - 23 Oct's archived lot file gives NIFTY 65 for November and December, the same as `lot_sizes.NIFTY`.
-- 26 Oct's file is not archived yet, so the read gives `lot_unavailable`, as it should. A20a's job archives it from
-  07:45 IST, before Monday's 10:00 sample.
-- On 21 Oct GitHub ran that job 12 hours late (19:46 IST). If that happens again, the 14:05 check is `error`
-  "no dated NSE lot" for the day: exit 1, one alert from O1, and a same-day rerun retries. I chose fail-closed over
-  carrying a lot from another day, following the school's own rule. The cost is a possible lost broker figure on a
-  late-archive day.
+- 26 Oct's file is not archived yet, so the read gives `lot_unavailable`, as it should.
+- **When A20a's lot file really lands (corrected 25 Oct, from the fo-masters runs; strong evidence, three days).** My
+  "12 hours late on 21 Oct" above was wrong: 21 Oct 19:46 IST was the job's first run, started by hand
+  (`workflow_dispatch`). GitHub starts every scheduled slot about 4.5-5 hours late:
+
+  | Slot (IST) | Started, 22 Oct | 23 Oct | 24 Oct |
+  |---|---|---|---|
+  | 07:45 | 13:03 | 13:00 | 12:46 |
+  | 11:15 retry | 16:09 | 16:01 | 15:18 |
+  | 18:45 | 23:29 | 23:22 | 22:05 |
+
+  The day's lot file therefore lands about 13:00 IST, about one hour before the 14:05 check. The 11:15 retry always
+  lands after the check, so it never saves the day. If the 07:45 slot is more than about 6 hours late, or fails, the
+  check is `error` "no dated NSE lot" for the day: exit 1, one alert from O1, and the day's figure is lost unless the
+  check is run by hand before 14:50 (O1 never retries the step, judge 634).
+- I chose fail-closed over carrying a lot from another day, following the school's own rule. The cost is a lost
+  broker figure on a late-archive day. Moving A20a's lots slot earlier is A20a's owner's call; I put that to the
+  orchestrator, not into this branch.
 
 **Self-review of rounds 2 and 3 (quality rule 3).**
 - **Round 2's first-run shortcut** (`BrokerRecord.done`) skips the sync only when the receipts folder in git has no
@@ -211,3 +223,11 @@ counts a failed entry without `retry: true` as done (`fno/desk/run_log.py:41-43`
   by-hand run and no "rerun".
 - The deadline and record-failure line tests.
 - Plants: the old promise put back, 2 failed; the by-hand hint after 14:50, 4 failed.
+
+### Follow-up after judge 630 addendum 1 (test-only, the two surviving plants; for after the merge)
+
+- `test_a_basket_charged_at_the_first_reading_under_a_moving_index_is_ok_at_that_level`: plant `nearest = last`,
+  1 failed.
+- `test_the_record_keeps_both_nifty_readings_and_an_empty_cell_for_a_missing_one`: plant "both readings written
+  empty", 1 failed.
+- The lot paragraph above is corrected: no same-day rerun, and A20a's real slot times.

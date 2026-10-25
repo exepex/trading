@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from fno.intraday.read_only import ReadOnlyGroww, ReadOnlyViolation
+from fno.nse_margins.broker_compare import Levels
 from fno.nse_margins.broker_port import BROKER_CHECK_CALLS, BrokerAnswerProblem, GrowwBrokerMargins
 from fno.nse_margins.broker_record import BrokerRecord, BrokerResult, RecordProblem, receipt_pathspecs
 from fno.storage.data_store import DataStore
@@ -104,6 +105,20 @@ def test_the_record_is_written_once_with_its_receipt_and_read_back_as_done(tmp_p
     assert record.done(DAY) == {("SF", 100.0), ("SC", 100.0)}  # an error is asked again by a by-hand run the same day
     assert record.done(date(2026, 10, 15)) == set()
     assert receipt_pathspecs() == ("receipts/data/margins/broker_checks/",)
+
+
+def test_the_record_keeps_both_nifty_readings_and_an_empty_cell_for_a_missing_one(tmp_path):
+    """Judge 630 addendum 1, minor 2: the range each exposure was judged over is in the record."""
+    import csv
+    import io
+
+    record, drive = _record(tmp_path)
+    moving = dataclasses.replace(_result("SF", 100.0, "ok"), levels=Levels(20_050.0, 20_074.06))
+    lost = dataclasses.replace(_result("SC", 100.0, "error"), levels=Levels(20_050.0, None, "NIFTY quote: OSError"))
+    path = record.write(DAY, at(10, 0), [moving, lost, _result("BF", 100.0, "error")])
+    rows = list(csv.DictReader(io.StringIO(drive.files[path].decode())))
+    assert [(r["nifty_before"], r["nifty_after"]) for r in rows] == [("20050.00", "20074.06"), ("20050.00", ""),
+                                                                      ("", "")]  # fmt: skip
 
 
 def test_a_damaged_earlier_record_or_a_refused_write_is_a_record_problem(tmp_path):

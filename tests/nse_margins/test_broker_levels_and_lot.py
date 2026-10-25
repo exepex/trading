@@ -34,6 +34,16 @@ def test_a_move_during_the_run_is_inside_the_range_and_every_basket_is_ok():
     assert {(r.levels.before, r.levels.after) for r in record.written[0]} == {(LEVEL, MOVED)}
 
 
+def test_a_basket_charged_at_the_first_reading_under_a_moving_index_is_ok_at_that_level():
+    """The range's either end: Groww may have charged at the level before the move (judge 630 addendum 1, minor 1)."""
+    check, broker, record, *_ = make_check(at(10, 0))
+    broker.after = MOVED
+    _charged_at(broker, LEVEL)
+    check.run()
+    found = {r.structure + str(r.width): r for r in record.written[0]}["SF100.0"]
+    assert found.status == "ok" and found.exposure_expected == exposure_at(BASKETS[SF100], LEVEL)
+
+
 def test_the_same_answers_against_a_still_reading_are_mismatches():
     """Why the second reading matters: with NIFTY read still, the moved charges are beyond 0.1%."""
     check, broker, record, alerts, *_ = make_check(at(10, 0))

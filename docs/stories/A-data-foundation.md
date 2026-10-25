@@ -2081,8 +2081,10 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     `error`, with no Groww request for it, in either case:
     - the lots differ: "lot <n> differs from NSE's dated lot <m> for <expiry>": the row's figures are then for the
       wrong quantity;
-    - the day's file is not archived yet: "no dated NSE lot for <expiry> on <day>". A20a archives it from 07:45 IST;
-      a by-hand run before 14:50 asks again (above).
+    - the day's file is not archived yet: "no dated NSE lot for <expiry> on <day>"; a by-hand run before 14:50 asks
+      again (above). A20a's 07:45 IST slot is its only slot in time for the check: GitHub started it at 13:03, 13:00
+      and 12:46 IST on 22-24 Oct, about one hour before the check, while the 11:15 retry started at 15:18-16:09, after
+      it (strong evidence, three days; 21 Oct's 19:46 was the job's first, by-hand run).
     Tests: the dated lot equal, different, missing; the wiring gives the check the row builder's lot.
   - **Read-only by construction:** the Groww client is reached only through an allow-list per caller (A16's
     `ReadOnlyGroww`, agreed with A16's owner). This caller's list is `get_order_margin_details`, `get_quote` and the
