@@ -237,7 +237,8 @@ commit with `--no-verify`.
   stays lane 3: conversation logs, judge files, number claims, register rows, and the owner's dated rows in
   `docs/DESK_DECISIONS.md` (the verbatim record of the owner's words; append-only). **One functionality, one owning
   document:** describe a functionality in exactly one document and, everywhere else, give one line and a link to it.
-  **No document over 500 lines.** Update the owning document in place; never write a new dated summary or handover as
+  **No document over 500 lines** (a new document never; an existing one already over 500 may still be edited until DOC1
+  splits it, per the plan's section 7). Update the owning document in place; never write a new dated summary or handover as
   the place a decision lives (the daily conversation log stays a log, not a source of rules). The full clean-up:
   `docs/stories/DOC1-clean-docs-plan.md` (story DOC1).
 - **Text-only changes skip the full suite (owner, 23 Oct 2026: "for doc or text file changes, we don't need to run

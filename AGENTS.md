@@ -121,7 +121,7 @@ Owner, 25 Oct 2026: a document that describes how something works is reviewed li
 functionality it describes (lane 1: a judge PASS before `main`; lane 2: the orchestrator's check and the auditor).
 Conversation logs, judge files, register rows and the owner's dated rows in `docs/DESK_DECISIONS.md` stay lane 3. One
 functionality has one owning document; other documents give one line and a link to it, never a second description. No
-document over 500 lines. Update the owning document in place; never a new dated summary or handover as the place a
+document over 500 lines (an existing one already over 500 may be edited until DOC1 splits it). Update the owning document in place; never a new dated summary or handover as the place a
 decision lives. Details: CLAUDE.md "Code" and `docs/stories/DOC1-clean-docs-plan.md`.
 
 ## Code (when an agent changes code)
