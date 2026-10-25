@@ -9,6 +9,7 @@ from fno.constants import BOOK1_RULES, REVIEWS_STEP, STEP_FAILED, STEP_REFUSED
 from fno.daily.steps import FAILED_ALERT
 from fno.desk.daily_ports import CommitFailed
 from fno.desk.daily_run import RunStopped
+from fno.desk.fill_results import trade_fills
 from fno.desk.no_decision import NO_DECISION_LATE
 from fno.quotes.recorder import DATASET, RecordResult
 from tests.desk.conftest import RecordingAlerts
@@ -73,7 +74,7 @@ def test_a_failed_execution_capture_is_alerted_recorded_and_fills_nothing(tmp_pa
     out = Replay(tmp_path, monkeypatch, alerts, capture=WindowClosed).run()
     snapshot = out.log.result("snapshot")
     assert snapshot["valid"] is False and snapshot["attempts"] == [None, None]
-    assert {r["outcome"] for r in out.log.result("fills").values()} == {"not filled"}
+    assert {r["outcome"] for r in trade_fills(out.log.result("fills")).values()} == {"not filled"}
     assert alerts.sent == [SNAPSHOT_ALERT]
 
 

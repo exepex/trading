@@ -18,6 +18,7 @@ from ..daily.full_log import FULL_LOGS
 
 EXERCISED_LINE = "not live in real runs (exercised): {items}"
 PART = "{step}'s {part} part"
+SINCE = "{what} (in its routine from {since})"  # REH1r: live in real runs, but not yet in that routine on the day
 
 
 def exercised_line(steps: dict[str, dict], fixed: tuple[str, ...] = ()) -> str | None:
@@ -26,7 +27,8 @@ def exercised_line(steps: dict[str, dict], fixed: tuple[str, ...] = ()) -> str |
     for name, step in steps.items():
         result = step["result"]
         if result.get("status") == STEP_NOT_LIVE and STEP_EXERCISED in result:
-            items.append(_item(name, result[STEP_EXERCISED]))
+            what = SINCE.format(what=name, since=result["since"]) if "since" in result else name
+            items.append(_item(what, result[STEP_EXERCISED]))
         parts = result.get(EXERCISED_PARTS, {})
         items += [_item(PART.format(step=name, part=part), done) for part, done in parts.items()]
     items += fixed
@@ -41,10 +43,11 @@ def _item(what: str, done: dict) -> str:
     return f"{what} {status}: {reason}" if status != STEP_OK and reason else f"{what} {status}"
 
 
-def not_live_result(code: int, last: str) -> dict:
-    """A rehearsed routine's command not live in real runs (REH1k), in the run log's shape: its exit and last line."""
+def not_live_result(code: int, last: str, since: date | None = None) -> dict:
+    """A rehearsed routine's command not live in real runs (REH1k), or not yet in its routine (REH1r: `since`, the
+    first day it ran there), in the run log's shape: its exit and last line."""
     done = {"status": STEP_OK} if code == 0 else {"status": STEP_FAILED, "reason": last or f"exit {code}"}
-    return {"status": STEP_NOT_LIVE, STEP_EXERCISED: done}
+    return {"status": STEP_NOT_LIVE, **({"since": since.isoformat()} if since else {}), STEP_EXERCISED: done}
 
 
 def report_exercised(checkout: Path, day: date, out: Callable[[str], None], alerts: AlertSender,

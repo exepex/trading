@@ -32,3 +32,25 @@ def test_a_session_day_builds_and_runs_the_day(monkeypatch):
     monkeypatch.setattr(wiring, "build_recommend_run", lambda cfg: SimpleNamespace(
         run=lambda day: ran.append(day) or SimpleNamespace(lines=("line",), ok=True)))  # fmt: skip
     assert cmd_decide(SimpleNamespace(on=SESSION), out=lambda line: None) == 0 and ran == [SESSION]
+
+
+def test_the_check_command_prints_its_lines_and_fails_only_on_its_own_problem(monkeypatch):
+    from fno.recommend import check_wiring
+    from fno.recommend.cli import cmd_check
+
+    for ok, code in ((True, 0), (False, 1)):
+        monkeypatch.setattr(check_wiring, "build_check_run", lambda ok=ok: SimpleNamespace(
+            run=lambda day: SimpleNamespace(lines=("checked",), ok=ok)))  # fmt: skip
+        lines = []
+        assert cmd_check(SimpleNamespace(on=SESSION), out=lines.append) == code and lines == ["checked"]
+
+
+@pytest.mark.parametrize("day", [WEEKEND, HOLIDAY, MUHURAT])
+def test_the_check_writes_nothing_on_a_day_that_is_not_a_trading_session(monkeypatch, day):
+    """Self-review 6: criterion 14 for the check too."""
+    from fno.recommend import check_wiring
+    from fno.recommend.cli import cmd_check
+
+    monkeypatch.setattr(check_wiring, "build_check_run", lambda: (_ for _ in ()).throw(AssertionError("built")))
+    lines = []
+    assert cmd_check(SimpleNamespace(on=day), out=lines.append) == 0 and lines == [NOT_A_SESSION.format(day=day)]

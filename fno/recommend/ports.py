@@ -18,6 +18,11 @@ class InputFailed(Exception):
     """An input could not be read, or its hash did not match: the day's answer is data_check_failed."""
 
 
+class DataDisagrees(InputFailed):
+    """The records were read and disagree (two live outcomes, an orphan correction, an untraded decision with an
+    outcome): rereading cannot change them, so the check is final at once (judge 658.1 m1)."""
+
+
 def open_run_log(root, day: date):
     """The day's run log; a log that does not read is an input failure, never an empty day."""
     from ..desk.run_log import RunLog

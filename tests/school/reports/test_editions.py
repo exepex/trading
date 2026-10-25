@@ -177,6 +177,7 @@ def test_the_real_report_maker_is_built_through_the_school_guard(monkeypatch):
     monkeypatch.setattr(page_wiring, "build_levels", lambda *a: None)
     monkeypatch.setattr(data_wiring, "build_drive_cache", lambda *a, **k: None)
     monkeypatch.setattr(page_wiring, "with_school_sections", spy)
+    monkeypatch.setattr(page_wiring, "with_recommend_section", lambda maker: maker)  # REC1d's outer block: its own test
     assert page_wiring.build_report_maker(None, None, None, None, None) == "wrapped"
     assert isinstance(built["inner"], Stub), "the report maker goes through the school guard"
     assert built["inputs"] is school_report_inputs, "the lab passes the school's own inputs (MS-P1j)"

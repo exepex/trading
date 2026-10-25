@@ -80,7 +80,7 @@ def test_the_live_dates_come_from_config_phase_1_from_22_oct():
         "close_read": date(2026, 10, 23), "close_recheck": date(2026, 10, 23),  # A4h: record-only 5 sessions first
         "v4_pack": date(2026, 10, 26),  # G10: live Mon 26 Oct (owner, 24 Oct: "v4 pack live Monday - Option A")
         "forecasts_v4_pack": date(2026, 10, 26),  # G7b: live with the v4 freeze (orchestrator, 25 Oct)
-        "recommend": None,  # REC1b: off until the owner's go
+        "recommend": date(2026, 10, 26),  # REC1b: live from Mon 26 Oct (owner's standing rule, via the orchestrator)
     }  # fmt: skip
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
