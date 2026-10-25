@@ -49,7 +49,7 @@ class CheckRun:
         for day in self._recorded_days(on):
             last = len(self.ports.sessions(day, on)) >= WINDOW_SESSIONS
             try:  # each day on its own: one unreadable file never stops the others (self-review, blocking)
-                if not self._final(day):
+                if not self._final(day, on):
                     lines += self._check(day, on, lookup, last)
             except DataDisagrees as disagree:  # read and contradictory: final at once (judge 658.1 m1)
                 lines += self._failed(day, on, True, str(disagree))
@@ -94,8 +94,10 @@ class CheckRun:
                                 RECEIPT_MESSAGE.format(day=day, on=on))  # fmt: skip
         return kept, _check_record(kept.payload)
 
-    def _final(self, day: date) -> bool:
-        checks = sorted(self._folder(day).glob(f"{day.isoformat()}.check.*.json{RECEIPT_SUFFIX}"))
+    def _final(self, day: date, on: date) -> bool:
+        """Only checks made on or before `on` count (judge 660 m1): a catch-up for a past day sees what existed then."""
+        files = self._folder(day).glob(f"{day.isoformat()}.check.*.json{RECEIPT_SUFFIX}")
+        checks = sorted(f for f in files if _checked_on(f.name) <= on)
         if not checks:
             return False
         latest = checks[-1].relative_to(self.ports.receipts).as_posix().removesuffix(RECEIPT_SUFFIX)
@@ -110,6 +112,11 @@ class CheckRun:
 
     def _folder(self, day: date) -> Path:
         return self.ports.receipts / AREA_FOLDER / f"{day:%Y}" / f"{day:%m}"
+
+
+def _checked_on(receipt_name: str) -> date:
+    """The check day in `<day>.check.<on>.json.sha256`."""
+    return date.fromisoformat(receipt_name.removesuffix(f".json{RECEIPT_SUFFIX}").rsplit(".", 1)[-1])
 
 
 def _day_of(name: str) -> date | None:

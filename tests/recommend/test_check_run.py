@@ -204,3 +204,11 @@ def test_a_read_error_is_retried_not_written_final(tmp_path):
     assert not run.run(SESSIONS[1]).ok and not any(".check." in p for p in data.files)
     run.ports = good
     assert run.run(SESSIONS[2]).lines[0].startswith(f"recommender check {DAY}: not_known_yet")
+
+
+def test_a_catch_up_for_a_past_day_sees_only_the_checks_made_by_then(tmp_path):
+    """Judge 660 m1: a later final check must not hide the day from a run dated before it."""
+    run, data, alerts = harness(tmp_path, {CS1: FoundOutcome(5.0, False)}, record=traded_day())
+    run.run(SESSIONS[5])  # final on the 6th session
+    caught_up = run.run(SESSIONS[2])  # a catch-up dated earlier still checks the day
+    assert caught_up.lines[-1].startswith(f"PAPER ONLY. Recommender check for {DAY:%d %b %Y}: complete.")

@@ -695,3 +695,22 @@ by the round-2 work above. The rest are fixed at ca2e8358:
   version reaches `paper`.
 - The 20:05 edition never shows the same day's check, because the check runs after it.
 - REC1d (the 08:50 section) and REC1e (LR1) read these files; they are not built here.
+
+### REC1c Claims, code round 2 (judge 658.1 J: 1 should-fix and 1 minor; judge 660 K: the same should-fix and 1 minor; all accepted)
+
+- **S1 (J and K):** a missed evening on the 60th session dropped a day silently.
+  - `_recorded_days` now reads every receipted recommendation up to the check day, however old, not a calendar
+    window. A day 60 or more sessions old gets `last=True`, so its next evening's check is final: `data_check_failed`,
+    "never closed in 60 sessions", alerted.
+  - J's plant "the last evening missed" is `test_the_last_evening_missed_still_ends_the_day_final`.
+- **J m1:** records that disagree are written final at once, with one alert: two live outcomes, an orphan correction,
+  an untraded decision with an outcome. They raise `DataDisagrees`, a subclass of `InputFailed`. Read errors are still
+  retried and are final only at the last check. Tests: `test_records_that_disagree_are_written_final_at_once` and
+  `test_a_read_error_is_retried_not_written_final`.
+- **K m1:** a catch-up with `--on <past day>` counts only the check files made on or before that day (`_checked_on`
+  from the file name). Test: `test_a_catch_up_for_a_past_day_sees_only_the_checks_made_by_then`.
+- `_recorded`, now unused, is removed (no dead code).
+- **Plants this round: 4, all caught:** windowed days ("the last evening missed"), a disagreement retried, a read error
+  written final, later checks counted. Tests: 335 in `tests/recommend`.
+- **Known cost:** each evening reads the latest check of every receipted day. It is cheap through the verified Drive
+  cache, and grows by one small read per session.
