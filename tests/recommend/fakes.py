@@ -1,5 +1,6 @@
 """Fake ports for REC1b's tests: each answers what it is given, or fails like a real unreadable input."""
 
+import hashlib
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
@@ -17,7 +18,10 @@ from fno.recommend.ports import (
 )
 from fno.recommend.refs import RecordRef
 from fno.recommend.rungs import EvidenceReports, ForwardOutcome
-from tests.recommend.builders import sha
+from fno.storage.raw_store import RawFileConflict
+from fno.storage.receipt_publisher import PushedReceipt
+from fno.storage.receipts import Receipt
+from tests.recommend.builders import MADE_AT, sha
 
 CLEAR = DayConditions(False, False, False, (RecordRef("journal/runs/2026-11-02.json", sha(30)),))
 
@@ -78,3 +82,46 @@ class FakeEligibility(EligibilityPort):
 
     def eligible(self, day: date) -> frozenset[str]:
         return self.names
+
+
+@dataclass
+class FakeData:
+    """O9's DataStore: write-once by path."""
+
+    area: str = "data"
+    files: dict = field(default_factory=dict)
+
+    def put(self, path: str, data: bytes) -> Receipt:
+        if self.files.get(path, data) != data:
+            raise RawFileConflict(path)
+        self.files[path] = data
+        return Receipt(f"{self.area}/{path}", hashlib.sha256(data).hexdigest(), len(data), MADE_AT.isoformat(),
+                       "test", "run")  # fmt: skip
+
+
+@dataclass
+class FakePublisher:
+    """Commits and pushes a receipt for a file of `data`; `fails` refuses the push like a remote that said no."""
+
+    data: FakeData
+    pushed: dict = field(default_factory=dict)
+    fails: bool = False
+
+    def publish(self, drive_path: str, what: str) -> PushedReceipt:
+        if self.fails:
+            raise RuntimeError("push refused")
+        file = self.data.files[drive_path.removeprefix(f"{self.data.area}/")]
+        self.pushed[drive_path] = PushedReceipt("e" * 40, MADE_AT, hashlib.sha256(file).hexdigest())
+        return self.pushed[drive_path]
+
+    def published(self, drive_path: str) -> PushedReceipt | None:
+        return self.pushed.get(drive_path)
+
+
+@dataclass
+class RecordingAlerts:
+    lines: list = field(default_factory=list)
+
+    def send(self, text: str) -> str:
+        self.lines.append(text)
+        return "alert sent to #fno-desk"
