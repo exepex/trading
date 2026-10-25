@@ -875,6 +875,9 @@ the full log:
   (about 2414; the 21 Oct table has 2414 rows), which cannot end inside O1's 10 minutes. Not REH1o's: the issuer now
   runs as its step was made live to; the day before the table existed cannot be exercised quickly. It is exercised,
   never the day's failure; `price_range_scores` then STOPPED on its empty folder (G13d's side note, the same class).
+  The stated limit (the orchestrator, 24 Oct; corrected in REH1q's commit from pass 2's 21 Oct replay): it holds for
+  every replayed day THROUGH 21 Oct, not only before it, as 21 Oct's own close table was committed after that day's
+  `price_ranges` step; from 22 Oct a table is in the record.
 - The day's own result is unchanged: "day done with problems: quotes_done" is REH1n's (the weekly part on 19 Oct).
 - #fno-desk: the exercised line, labelled "*DRY RUN, 2026-10-19 replay, not a real trading day*".
 
@@ -964,6 +967,49 @@ already states for manifest rows).
   82997 bytes (before: `RawQuoteMissing`); the same with the reviewed code at the final head.
 - The sample ran on 96dcc1d97; the review's changes after it keep the rule for these files (all five are Groww
   files with sidecars added by first-parent commits on main), and the direct read was repeated on the final code.
+
+### REH1q: a scheduled read pushed later than the day's still gets the day's answer (story and code in one round)
+
+Lane 1 (it changes what a rehearsal serves from the real record): two judges, one round. Builder
+session_01GAACYjcfHWkC3hp33iiMXV, branch `story/reh1q-scheduled-reads`. The orchestrator, 25 Oct: "REH1q: GO ... a
+scheduled read serves the latest answer the day fetched at or before now, on the same day, and otherwise the nearest
+ahead within 10 minutes. Paced reads stay unchanged."
+
+#### Finding (strong evidence: pass 2's run, the record's manifest)
+
+- `daily run --rehearse --day 2026-10-21` from main 4e8be7b72 (run 20261025T020059Z-d4978f) ended "day done with
+  problems: quotes_done, candles"; the real 21 Oct's `candles` was ok. The rehearsal's answer: "rehearsal:NOT_RECORDED
+  Groww 15m 2026-09-21..2026-10-19 at 2026-10-21T15:35:43...: the day fetched no such answer near then".
+- `research/data/manifests/groww-candles/nifty-15m.csv`: the real day asked for that window at 15:33:06.77 and saved
+  it at 15:33:11.36 (`fetched_at`); its `price_ranges` was not live, so it reached `candles` on time. The rehearsal
+  exercised `price_ranges` (ten replay minutes, REH1o's stated limit), so `candles` asked at 15:35:43, 2 min 32 s
+  after the answer; `serving.is_near` serves only a minute back (and ten minutes ahead). An exercised step's time
+  pushed a live step out of its serving window; any long exercised step can do this to a later scheduled read.
+
+#### Design
+
+- `fno/rehearsal/serving.py`, `scheduled_pick(now, answers)`: the earliest answer saved near now (a minute back to ten
+  ahead: REH1g's rule, unchanged), else the latest answer of the same IST day saved at or before now; never a later
+  day's, never another day's from behind, and never one saved more than ten minutes after now.
+- Why the near window comes first, not "the latest before now" (the first form of this rule, measured wrong before
+  any code): the day's 16:00 recheck saved its answer seconds after it asked (16:00:04), so at 16:00:00 the latest
+  answer before now is 15:40's; the near window serves the recheck its own answer, and the fallback serves the
+  latest before now only when the day's own read is out of reach.
+- `recorded_candles` and `recorded_closes` use it; their "not recorded" texts say the new rule. Paced reads
+  (`ServedOnce`: cues, pre-open) are unchanged, and the replay clock is not touched for exercised steps (the
+  orchestrator).
+- FREEZE_v4.md (`story/v4-freeze`): the three files are in none of its tables.
+
+#### Criteria (tests in `tests/rehearsal/test_scheduled_reads.py`, with `test_serving.py` and `test_recorded_closes`)
+
+- **Q1. The 21 Oct candles case** (the real manifest): a read at 15:35:43 gets the 15:33:11 answer; a read 3 minutes
+  before it waits for it; more than ten minutes before, with nothing earlier, nothing. Plant: no fallback.
+- **Q2. The recheck gets its own answer:** at 16:00:00 the 16:00:04 answer, at 16:20 still that one, never 15:40's;
+  the 15:40 read gets the first. Plants: the latest-before-now first (the measured wrong rule); the near window
+  picking its latest; the closes on `is_near` alone.
+- **Q3. Never a later day's, nor another day's from behind.** Plant: any day from behind.
+- **Q4. Ahead stays bounded at ten minutes** (the boundary itself served, a tick past not) and an answer saved after
+  now is never served from behind. Plant: any time of the day from behind.
 
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
