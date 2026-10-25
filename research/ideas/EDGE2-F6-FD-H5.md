@@ -33,10 +33,4 @@ hypothesis: yes
 measurement: no
 data_sets: ["Participant open interest (A8) | NSE daily files | 2019 - 2024", "Participant open interest (A8) | NSE daily files | 2025 - 2026", "NIFTY near-month future | NSE daily open and close (F&O files) | 2019 - 2024", "NIFTY near-month future | NSE daily open and close (F&O files) | 2025 - 2026"]
 measures: "mean net per trade after the futures charges and a 1-point pad, one lot (protocol sections 4-6)"
-gross: {kind: measured, mean: 963.6521443158638, sd: 20019.885381766733, n: 1469, source: "EDGE2 F6 discovery, research/edge2/f6/discovery.json (run at 06646081, code 48250512); exploratory; H5 trades overlap, so n overstates the independent count"}
-tail: {probability: 0.0, loss: 0.0, in_gross: yes}
-cost: {measured: 657.5879917072702, source: "EDGE2 F6 discovery, mean futures charges plus the 1-point pads, same file"}
-sd_per_trade: 20015.88114911603
-frequency_per_year: 245.0
-pass_level: 0.05
 ```
