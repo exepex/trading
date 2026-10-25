@@ -61,3 +61,21 @@ it (finding 1).
 
 - The C5 double writer (M15) and the C8 move (I8) are well framed; I8 needs E3's owner and two judges, as written.
 - Q1 (b) would put the Groww key on a new host: a secrets question the owner must decide with that risk stated. It is stated.
+
+## Addendum 1
+
+Round 2 at c9e988f7681cd358131f8ce777a4687a017b27eb (story text 637d9555; 499 lines), judged by reading. **PASS**,
+lane 1, judge 1 of 2: no blocking or should-fix finding left from my round 1. I did not judge Judge S's findings;
+the merge also needs S's PASS.
+
+| # | Finding | Result | Evidence |
+|---|---|---|---|
+| 1 | Shared composition root (blocking) | Accepted | M16 states it; 4.0 item 3 is now a transitive rule; 4.1 adds `fno/ingest/composition.py` and a shared layer that itself imports no system package; K1 is an import walk plus a `python -I` `sys.modules` check; I2 builds the root |
+| 2 | I6 before I9 | Accepted | now I9b, after `post-close` has 5 clean sessions, with the `runner.py:58-60` reason; section 7 item 3 matches |
+| 3 | v4 freeze scope | Accepted | freeze-impact paragraph matches `freeze_classes.py` (recorder and A4 files RECORDED 97-102, `composition.py` line 111, walked roots); Q3 asked for every step except I1 and I3 |
+| 4 | Groww budget | Accepted | 33 normal, 38 with the rerun, 114 worst, 126 with O14, 132 with C9 and a feed recorder; K7 limits 60 and 140 (margin labelled reasoning only); MS-P0b's 4 slots confirmed at `capture_probes/constants.py:41` |
+| 5 | Health gaps | Accepted | I3 and 4.7 now list C6, C7, C8, C10, C11, C12, C16, C17, C18, C19 |
+| 6 | Bhavcopy in panel-days | Accepted | C14 row names `panel-days.yml:58-62` |
+
+Notes: with K7's worst case at 132 of 140, any further Groww job after I10 needs a budget decision first. I3's claim
+of no freeze impact should be rechecked by I3's judges against the files it actually edits.
