@@ -36,7 +36,10 @@ as the coordinator of those sessions."
 
 This section owns the rule; `CLAUDE.md` and `AGENTS.md` link here.
 
-- **Models:** builders, implementers and executors run on Sonnet 5.5; reviewers and judges on Opus 5.5.
+- **Models:** builders, implementers and executors run on Sonnet 5.5; reviewers and judges on Opus 5.5. Executors are
+  the orchestrator-created sessions that carry out a task (a build, a run, a clean-up step). Scheduled routines are not
+  these: each keeps its registered model (the Book 2 and 3 routines run Opus 5.5, `F1-G5-owner-checklist.md`; another
+  model makes every day "model_mismatch"). Changing a routine's model is the owner's decision.
 - **One session each:** every builder and every judge (and reviewer) is its own separate, trackable session, created
   by the orchestrator. Never a subtask or subagent inside another session, and a session never judges its own work.
 - **The orchestrator coordinates:** it creates the sessions, names each story's judge or judges, and decides nothing
@@ -49,7 +52,10 @@ This section owns the rule; `CLAUDE.md` and `AGENTS.md` link here.
   two judges review one change, the second does not read the first's verdict before writing its own.
 - **Removals and clean-ups need two independent judges** (owner, 25 Oct 2026: "every removal and cleanup needs to be
   reviewed thoroughly by a judge and independent judge"): any change that deletes or retires code, data, documents or
-  rules, in any lane, merges only after both PASS, each with its own judge file and the two-round limit below.
+  rules merges only after both PASS, each with its own judge file and the two-round limit below. This overrides the
+  lane table's review column and the one-judge default of "Other lane-1 changes" below. Out of scope, as routine
+  upkeep and not removals: a scheduled job's own data paths, conversation logs, judge files, number claims, and
+  register rows deleted under the Work Register's own rule. Hand-deleting recorded data is a removal.
 
 ## For each lane-1 story
 
@@ -102,7 +108,9 @@ the second judge when it routes the change.
    code starts.
 2. **Gap list:** each requirement of the design is covered by a named criterion or listed out of scope with its reason;
    a requirement in neither list is a blocking finding.
-3. **Builder self-review:** a review of the diff by a separate reviewer session (Opus 5.5, asked by the builder directly); the Claims section says what they found and
+3. **Builder self-review:** a review of the diff by a separate reviewer session (Opus 5.5, created by the
+   orchestrator at the builder's request and contacted directly); the Claims section says what
+   it found and
    what was fixed or why not.
 4. **Broken-code proof:** each criterion names its code and a test that fails when that code is broken on purpose. The
    judge still plants its own.
