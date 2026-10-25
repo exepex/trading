@@ -60,3 +60,28 @@ unclaimed 2/s, claimed 5/s, no sharing, v4 at 14:31, no quiet check, day cap 60,
 - "Any situation" needs a limiter shared across processes: a hand-run Groww command, or another app on the account,
   shares the budget unseen. For the owner: accept, or no hand-run Groww command 09:15-15:35 IST.
 - Nothing found in parts 1-4. If part 1 must be on `main` before Mon 08:22 IST, a head of parts 1-4 alone is quick.
+
+## Addendum 1: round 2 at 33f34e571 (the last round)
+
+**Parts 1-4: PASS. Parts 5-6: FAIL, finding 1 open.** Judge I, own session. Under the two-round rule, the owner
+decides parts 5-6.
+
+| Item | Verdict | My evidence |
+|---|---|---|
+| 638.1 E3 against C3's 15:20 window | NOT FIXED | `config.yaml` is not in the diff (`desk.fills_by` still 15:20). The story still says "`desk.fills_by` (15:20) limits only a rerun" (line 114). E3 still asks from 15:17:00 and ends 15:19:35-15:19:57 on the four recorded durations; any 60 s pause or retry is refused by C3 (`snapshot_checks.py:30`). The orchestrator's decision (move `fills_by` to about 15:23, check every reader, keep the school's start under 15:25) is not in this head |
+| 638.2 no end to a claimed mark | FIXED, another way | Pacing is set by the clock: 4/s only until `FAST_LEAD` (1 s) before mark + 120 s, then 1/s (`groww_source._pacer_now`). Every call is paced before its send time is stamped. With only one taker (below), A16 after its window is 1/s, so with any one other reader (2.5/s at most) the total is 3.5/s. J1 (fast pace kept) caught |
+| One taker per mark | MET | An unclaimed run takes nothing (`ClaimResult.take` is `outcome == WON`); the claim is retried once after 15 s, and an earlier unpushed commit is pushed with `publish()` before it counts. J2, J5, J6 caught |
+| Sign-ins | MET | 3 tries a day per process, back-off 5 then 10 min; worst case 38 × 3 = 114 under 150 (the builder's process count, reasoning). J4 (30 tries) caught |
+| Hand readers through `get_provider` | MET | `groww-check` and the feed probe's REST client get the quiet windows. J7 caught |
+
+## Plants (round 2)
+
+9 on 33f34e571: J1, J2, J4, J5, J6 and J7 caught. J9 (the unpushed "nothing to commit" counted as published) is
+equivalent, since `publish()` never returns that outcome. Two survived, both minor test gaps; the code is right:
+- J3: the pacer's wait moved after the send stamp, so A16's recorded send times would be early by up to 1 s.
+- J8: `FAST_LEAD` set to 0, so a fast start could fall just after the window.
+
+## Gates
+
+33f34e571 merged with main d6438bafa as 56877c005: ruff, format, `check_imports` and `check_records` clean. pytest -n
+auto (FNO_SLACK_BOT_TOKEN kept): **16796 passed, 13 xfailed, 0 failed** (564 s). No post on #fno-desk in the window.

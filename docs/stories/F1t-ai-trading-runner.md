@@ -735,3 +735,37 @@ Minor findings, also fixed:
   - Book 3 `late` ("commitment not on the remote at 15:10:00 (first seen 15:11:00)").
   - Alert line: "AI books not promoted: book3_ai late: commitment not on the remote at 15:10:00 (first seen 15:11:00);
     no trade today for these".
+
+### Code round 2 (judge 651; story/f1t-code, 25 Oct 2026)
+
+Every finding is accepted: each was reproduced from the judge's plant or repro, then fixed with a test that fails on
+the old code.
+
+1. **Should-fix 1, `ai_collect` is bounded (strong evidence: the judge's 95 s repro, rebuilt as an end-to-end test).**
+   - Each decider now runs under a hard real-time limit: the time left before E3's 15:12 deadline, less a 10 s reserve,
+     and at most 60 s (`fno/ai_trading/time_limit.py`; `collect.py` `_decider_seconds`).
+   - The reserve covers the run check, the git snapshots, the outcome record and the step's commit and push, which
+     must all land before 15:12 for E3 to count the run (reasoning only: a push takes a few seconds).
+   - Stopped by the limit, the promoter puts every write path back and the book is `late`, never `refused`.
+   - A book reached within the reserve is `late` with no decider call.
+   - A run that finishes at or after 15:12 (possible where no alarm can be set, outside the main thread) is undone and
+     `late`.
+   - The daily run is one thread, so the limit is a `SIGALRM` timer in that thread.
+   - Tests:
+     - `test_a_slow_ai_decider_is_stopped_late_and_book1_is_still_collected_on_time`, on E3's real daily run: Book 1
+       commits a real run, and Book 2's decider would sleep 30 s and then move the clock 95 s. Book 2 is stopped in
+       about 2 s and is `late`, with its run put back, and E3 collects Book 1's `r1` on time.
+     - Without the limit, the same test runs 30 s and fails.
+     - Also `test_time_limit.py`, the promoter's restore test, and three boundary tests in `test_review_fixes.py`
+       (11 s left promotes; 10 s left is `late` with no call; finished at 15:12:05 is undone).
+   - Cost: a decider now has about 30-45 s on a normal day (readings at 15:10:00 and 15:11:00). That is within F5's and
+     F6's 30 s budget. A reading as late as 15:11:50 makes the day `late`, which is the designed failure.
+2. **Should-fix 2, a rehearsal builds no trigger.**
+   - `build_ai_steps` builds no `RoutineTrigger` when `rehearsal()` is set. The steps' own guard stays, read at each
+     run.
+   - Test, on the real wiring with the real mode (`in_this_process`) and a spy factory: no trigger is built and both
+     steps refuse. In a real run both triggers are built. The judge's plant (`rehearsing = lambda: False`) now fails it.
+3. **Minor 3:** the label's mixed case. Research plus paper reads "strategy not yet passed", in both orders. The `all`
+   to `any` plant fails 2 tests.
+4. **Minor 4:** the wired `build_packs` isolates Book 2 and Book 3 and never Book 1. A Book 1-only run isolates nothing.
+5. **Minor 5:** already closed at a1ed229a (equality of each D6 component to its named file).

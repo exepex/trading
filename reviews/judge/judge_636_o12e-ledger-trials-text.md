@@ -47,3 +47,29 @@ non-`book3:` non-numeric id accepted (2); the run gate without the block check (
   unchanged from O12.
 - 115-120 `edge2-f6` is reserved by the orchestrator, not by a builder. That is fine, since F6's experiment must
   start `edge2-f6`.
+
+## Addendum 1: round 2 (the last), text and code, head `cb6ceb79b` (judge 1 of 2)
+
+**PASS, lane 1.** No blocking or should-fix finding left.
+
+| Item | Verdict | Evidence |
+|---|---|---|
+| Round-1 finding 1, freeze writes before choosing | FIXED | `freeze.py` `_claimed_trial` runs before `path.write_text`. My plant (the choice moved after the write) fails `test_the_evaluation_freeze_without_a_free_id_in_its_block_is_refused_before_writing` (2 cases) |
+| Round-1 finding 2, too wide an exemption | FIXED | `blocks.py` `is_book3`: `book3:\S+` only under `book3_ai strategies` (= `TRIAL_FAMILY`, `book3/registry.py:30`); ids must match `[1-9]\d*`. Plants R1 (any experiment) and R2 (leading zero) caught |
+| Round-1 finding 3, hand-typed rows | FIXED | `require_committed` applies `TrialClaims.problem`. Plant R5 caught (`test_a_row_typed_by_hand_outside_its_block_never_runs`) |
+| Round-1 finding 4, prefix boundary | FIXED | `Block.is_for`: the name itself or the name + `-`. Plant R4 caught |
+| Seeds equal main's ledger | MET | trial merge with main: the 16 `existing` rows equal my recomputed runs of `research/ledger.csv` exactly (108 rows); `check_numbers`: clean |
+| No write-once record edited | MET | `research/ledger.csv` has no diff against main; `seed_pins.json` adds `ledger-trial` and keeps the four pins as they were; the registry only gains rows |
+| Every existing trial still runs | MET | `require_committed` on all 108 rows of the merged tree: 0 refusals |
+| Criterion 7, the factory | MET | `registration.py` `_next_claimed`; plant R6 (`next_free` crossing blocks) caught by 8 tests |
+| Claim tool | MET | plant R8 (block start ignoring ledger ids) caught; plant R7 (overlap check off) caught |
+| Test changes | MET | `P1`/`P2`/`P9` renamed to claimed whole numbers, experiments renamed; no assertion removed or loosened |
+
+**Gates (trial merge with main, clean):** ruff, format, imports, check_records and check_numbers clean; full suite
+16786 passed, 13 xfailed, 0 failed. **Plants:** 8, all caught.
+
+**Notes (not findings):**
+- The guard reads the checkout's own `numbers/ledger-trial.csv`. A block row added by hand on a branch, never
+  claimed on `main`, passes there until the merge, where an overlap is flagged or git conflicts on the registry. This
+  is the same residual as O12's review numbers.
+- The 121-126 `edge2-f8` reservation sits after 115-120 with no overlap.

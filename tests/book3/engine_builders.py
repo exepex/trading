@@ -13,9 +13,10 @@ import yaml
 
 from fno.book3.constitution import COMPONENT
 from fno.book3.decider import Book3Decider
-from fno.book3.evaluation import Book3Evaluators, day_sheet
+from fno.book3.evaluation import Book3Evaluators
 from fno.book3.proposals import Book3Proposer
 from fno.book3.registry import Provenance
+from fno.book3.sheet import Book3Sheet
 from fno.book3.strategies import Book3Strategies
 from fno.books.book1 import Book1Day, Book1Inputs
 from fno.books.version_registry import VersionRegistry, VersionRow
@@ -28,6 +29,7 @@ from fno.checks.validity_listing import NseListing
 from fno.checks.wiring import validity_modes
 from fno.composition import DESK_DECISION_TIME
 from fno.constants import BOOK3_AI
+from fno.desk.common_pack import CommonPack
 from fno.playbook.decision_run import DecisionRun
 from fno.playbook.decision_store import DecisionStore
 from fno.quotes.recorder import DATASET
@@ -160,16 +162,16 @@ def proposal(text: str, supersedes: str = "") -> dict:
     return {"spec": text, "supersedes": supersedes, "reason": "a new idea"}
 
 
+def book3_sheet(root: Path, today: date = DAY) -> Book3Sheet:
+    """Book 3's pack-step sheet on the test's registry, D2 and inputs (the same code the decider re-runs)."""
+    return Book3Sheet(Book3Strategies(registry(root, today=today)), evaluators(),
+                      lambda day, common: FixedInputs().day(day), Git(root).head, widths)  # fmt: skip
+
+
 def sheet_for(root: Path, today: date = DAY) -> dict:
-    """The day sheet as the pack step would build it (the same code the decider re-runs)."""
-    tradable = Book3Strategies(registry(root, today=today)).on(today, Git(root).head())
-    rules, _ = evaluators().with_picks(())
-    inputs = FixedInputs().day(today)
-    evaluation = rules.evaluate(today, tradable.snapshot.playbook(), inputs.market, inputs.features, inputs.book,
-                                inputs.counts, inputs.shadow)  # fmt: skip
-    return day_sheet(
-        today, evaluation, tradable.snapshot.commit, {COMMON_OPPORTUNITIES[0]["opportunity_id"]: (300, 200)}
-    )
+    """The day sheet as the pack step builds it."""
+    common = CommonPack(today, {"opportunities": COMMON_OPPORTUNITIES})
+    return dict(book3_sheet(root, today).sheet(BOOK3_AI, today, common))
 
 
 def accepted(root: Path, the_decision: dict, sheet: dict | None = None, **changes) -> Accepted:
