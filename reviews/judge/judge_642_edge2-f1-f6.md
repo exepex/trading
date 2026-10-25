@@ -53,3 +53,36 @@ window, client fade, pads, 2 nomination conditions, GST, roll). Survivors in m1.
   first window, nothing in the second; neither study holds Slack code.
 - My F6 rerun once died on a Drive "connection reset" (ChunkedEncodingError, no retry); the second try passed. That is
   the storage layer, not this story.
+
+## Addendum 1: round 2 (the last), story/edge2-f8-fii-side-spread at 56031075 (F1, F6 and F8)
+**PASS**, lane 1: S1 and S2 are closed; 6 minor, none blocking. Trial merge with main 3b1ffcdd (7802738c): 16,868
+passed, 1 skipped, 13 xfailed; ruff, format, check_imports (2,810), check_records (9,380) and check_numbers clean.
+- **S1 closed** (1c47c871). The 12 cards are back to their frozen text; `require_registered` passes for every trial
+  101-123. The new `test_each_frozen_edge2_card_is_unchanged_since_its_freeze` catches my plant (a G1 line added to
+  card 109).
+- **S2 closed** (67d383f4). An appended G1 row gives 118 `screened_out`: net -316.2 = 1397.2 - 1.2816 x 823.7 - 657.7,
+  and the first row stays as logged.
+  - The factory acts on the last row (`GateLog.last`, read by `GateOrder.ready`), so `factory spend` can no longer run
+    on 118; `factory report` prints "last gate G1 screened_out".
+  - `GateOrder.row` still returns the first G1 row, but every gate that reads it needs 118 to have passed first.
+- **F8 is MET with my evidence.**
+  - Push log: freeze d38baa12 at 00:16:09Z, then the discovery commit eedfa040 at 00:16:58. `code_hash()` f4fd512c at
+    the freeze and at the head; protocol and cards unchanged since 1f69681c.
+  - My rerun gives discovery.json identical except `head`: side averages -282, -219 and -388; P0W10 futile below
+    -300, as the frozen rule says.
+  - Discovery imports no participant-OI code and prices only 2019-2024 cycles. The 2025-26 NIFTY option prices it
+    loads are F1's, already spent.
+  - DATA_SPEND keeps participant OI 2025-26 `fresh`. Trials 121-123 sit in O12e's block `edge2-f8`.
+- **Plants: 13 of 14 caught.**
+  - Caught: futility -400; the side average from puts only; the gross bar; Holm on p_side; the RC1 call count; the
+    forward at the close; entry at the close; the pad; the put side; the seal; the distance; the frozen-card edit; the
+    118 row dropped (by the gate log's history check).
+  - Survived: the forward's put-leg volume filter (V7).
+- **Minor, none blocking:**
+  - (a) Round 1's m1-m4 are not done; they carry over.
+  - (b) F6_RESULTS.md:37 still says "about sqrt(5) too tight"; the measured ratio is 1.56.
+  - (c) F8_RESULTS.md's Answer still says P0W5 and P5W5 "go to the held-out read ... which waits for a lane-1 judge",
+    and discovery.json lists both as `nominated`, so `study_f8.py heldout` would open the seal. **This PASS is not
+    that judge's pass: the read stays waived by the orchestrator.** Say so in the Answer and in F8_FREEZE.md.
+  - (d) V7 needs a test.
+- Slack, with the token set (1792889088-1792889784): nothing in any channel.
