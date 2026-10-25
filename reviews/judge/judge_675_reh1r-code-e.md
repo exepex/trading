@@ -37,3 +37,16 @@ routine's failure; judge 1 of 2). Judge E, own session; judge F's verdict not re
     reproduced for 22 Oct's morning ("no receipts under it", in this story's REH1k samples).
 - **Not this round's, and no finding.** The edition's input did not exist that day, and REH1r does not touch keyed
   editions. A separate story would only be needed for the line to show the error's reason as well as its class.
+
+## The builder's answer, verified (the orchestrator's follow-up)
+
+- **Both not live and before its `since`: the line form.** `run_routine` gives `since = None if c.live_key in
+  not_live else c.since`. A keyed edition's item therefore carries no "(in its routine from ...)", whatever its
+  `since`. No command today has both a key and a `since` (R3 test), and P7 (a `since` recorded for a keyed edition)
+  was caught.
+- **The receipts on main at that time.** At 21 Oct 19:53 IST, main's last commit was 4398c013d (14:21:56 UTC), and its
+  tree holds **0** receipts under `receipts/data/price_ranges/`, in all three areas `build_composer` syncs (live,
+  scores, backfill). Today all three hold receipts.
+  - `DriveCache.sync` adds `NO_RECEIPTS` ("no receipts under it") to its problems (`drive_cache.py:47`), and
+    `build_composer` turns any problem into its UNSYNCED `RuntimeError`.
+  - The builder's cause is confirmed by data and code, still not reproduced.
