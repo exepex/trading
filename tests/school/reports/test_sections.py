@@ -84,8 +84,9 @@ def test_the_evening_shows_each_rule_trades_net_the_counts_and_the_labelled_flee
     assert "Control (not in the fleet total): N0@1 BANKNIFTY-M net Rs -50" in lines
 
 
-def test_an_empty_day_says_none_and_is_red():
-    text = evening()
+def test_a_recorded_day_with_no_trade_says_none_and_is_red():
+    """MS-P1j4: "none ... Rs +0" only for a session that has a sealed record (g's empty-day test, now on a record)."""
+    text = evening([closed_record()])
     lines = "\n".join(text.lines)
     assert (
         text.banner is Banner.RED
@@ -136,7 +137,11 @@ def test_a_rule_drivers_trade_keeps_the_evening_amber_whatever_the_controls_do()
 WHY = "CS1@1 BANKNIFTY-M: net Rs -140; why: wrong direction (also: costs ate the edge); hard road"
 
 
-def with_why(*causes, records=()):
+RECORDED = (closed_record(),)
+
+
+def with_why(*causes, records=RECORDED):
+    """A recorded session (MS-P1j4: one with no sealed record renders the no-record section instead)."""
     return HowDidTodayGoSection(f.Day(tuple(records), (), (), tuple(causes))).render(f.SESSION)
 
 
@@ -144,7 +149,7 @@ def test_the_instructors_lines_are_shown_verbatim_under_a_header_after_the_count
     lines = with_why(WHY, records=[trade_record(), f.net_record("CS1@1", -140.0)]).lines
     at = lines.index("Why (the instructor's words):")
     assert lines[at + 1] == WHY
-    counts_at = lines.index("Counts (eligible / fillable / executed):")
+    counts_at = next(i for i, line in enumerate(lines) if line.startswith("Counts (eligible / fillable / executed):"))
     assert counts_at < at < next(i for i, line in enumerate(lines) if line.startswith("Fleet total")), (
         "after the counts, before the fleet total"
     )
@@ -152,7 +157,7 @@ def test_the_instructors_lines_are_shown_verbatim_under_a_header_after_the_count
 
 def test_no_instructor_lines_means_no_header_and_no_change():
     assert "Why (the instructor's words):" not in "\n".join(with_why().lines)
-    assert with_why().lines == evening().lines
+    assert with_why().lines == evening([closed_record()]).lines
 
 
 def test_a_line_about_a_control_or_a_measurement_only_driver_is_left_out_of_the_why_lines():
