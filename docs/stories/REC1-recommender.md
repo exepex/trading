@@ -40,10 +40,14 @@ Gaps: no single recommendation; no confidence rule; no write-once recommendation
 
 Made by `python -m fno recommend decide` as the daily-run step `recommend`, right after `school` (orchestrator's
 ruling, 25 Oct: the record must hold the school's sealed decisions of the day, or the evening check of a `NO_TRADE`
-is biased by omission, judge 620 S3). That is about 15:27-15:30 IST once GW1 moves the desk's fills to about 15:23
-(measured today: the card at 15:18-15:22, the school's replay 77 s). Its timing never depends on the market being
-open: it reads sealed records only, so it runs when reached on a session day and is never refused for being after
-15:30. A muhurat-only session gets none (as T1). Each recommendation holds two separate answers:
+is biased by omission, judge 620 S3). The chain (judge 641 SF2, orchestrator's correction): E3's capture ends (asked from 15:17,
+ending about 15:20), then `quotes_done`, then the school step, which starts about 15:19-15:23 (21-23 Oct) under its
+own `SCHOOL_STARTS_BY` of 15:25 (`fno/daily/wiring.py`) and takes up to 6 min 13 s on a cold cache (MS-P1j's 23 Oct
+rehearsal; 77 s warm), then `recommend`: about 15:25-15:30 IST. GW1's later `desk.fills_by` (about 15:23) widens C3's
+window and is not expected to move the capture's end; the orchestrator confirms with GW1's builder that the school's
+start stays before 15:25. If the school is refused (`school:TOO_LATE`) or does not run, the record's school source is
+`unavailable` (section 5), never complete. The recommend step's own timing never depends on the market being open:
+it reads sealed records only, so it runs when reached on a session day and is never refused for being after 15:30. A muhurat-only session gets none (as T1). Each recommendation holds two separate answers:
 
 - **Real money.** `DO_NOT_TRADE_REAL_MONEY` unless at least one version is both eligible under RM1 (section 4) on that
   day and at rung 3; then `ELIGIBLE_FOR_YOUR_OWN_REVIEW`, naming the version and pointing to its RM1 report. If RM1 and
@@ -98,8 +102,12 @@ so a reader can recount it.
 ### 3. Where it goes (one record, every surface reads it)
 
 - **#fno-desk line (REC1b; orchestrator's ruling, 25 Oct).** After the record's receipt is pushed, the step posts one
-  short message to #fno-desk through the existing alert sender (`FNO_SLACK_BOT_TOKEN`; no new Slack sender), for
-  example: "PAPER ONLY. Recommendation for 02 Nov 2026. Real money: DO NOT TRADE (no version has passed). Paper: NO
+  short message to #fno-desk through the existing alert sender (`FNO_SLACK_BOT_TOKEN`; no new Slack sender). It
+  says it is the recommender's answer, not the card's (judge 641 m2): the card above it shows the desk's own status
+  ("NO TRADE (no_approved_strategy)") and the two can differ, for example a `PAPER_TRADE` line beside a card that
+  stays NO TRADE until T1 slice B. An `ELIGIBLE_FOR_YOUR_OWN_REVIEW` line names the version (a version ID such as
+  `school:CS1@1` is not a strategy internal) and says "for your own review, never a buy". For
+  example: "PAPER ONLY. Recommender (not the card) for 02 Nov 2026. Real money: DO NOT TRADE (no version has passed). Paper: NO
   TRADE (no_established_version). Candidates: desk 1, school 42. Paper, not a recommendation: 16 trades of unproven
   versions. Record <receipt path>, SHA-256 <first 12>." It names no strike, price or strategy internal. A source
   that is unavailable is named ("school candidates: unavailable (not_live)"). No receipt pushed: no line, one problem
@@ -160,11 +168,17 @@ first (327 item 9 named it a separate owner decision).
   decision saw it: each version's and control's decision record (version, path, SHA-256), traded or not, in one
   sorted list; an empty list is written as empty, never left out.
 - **Candidate sources (orchestrator's ruling, 25 Oct).** The record also lists each candidate source (`desk:book1`,
-  `school`) with its status: `complete`, or `unavailable` with the source step's status (for example `not_live`,
-  `failed`, `refused`, `frozen`). An unavailable source contributes no candidates, and the record says so; it never
+  `school`) as `complete` or `unavailable`. **`complete` is defined positively** (judge 641 SF1): the source's own
+  record shows it ran. For `school`: the run's `SessionRun.status` is `""` (it ran the session), and every sealed
+  decision of the session was read and its hash checked. For `desk:book1`: Book 1's decision record of the day is
+  present and its hash checked. Everything else is `unavailable` with the step's status and reason code, for example
+  `ok` with `school:OFF` (today: `school.enabled` is false and the step exits 0 having run nothing), `ok` with
+  `school:NOT_A_SESSION`, `school:TOO_LATE`, `not_live`, `not_built`, `exercised`, `failed`, `refused`, `frozen`, or
+  the step missing from the run log. An `ok` status alone never makes a source complete. An unavailable source contributes no candidates, and the record says so; it never
   reads as "no candidates from that source". The evening check reports an unavailable source by name, and its total
   for the day is "incomplete: <source> unavailable", never a full total. An unavailable source that holds a rung-3
-  version makes the paper answer `data_check_failed` (a recommendation cannot rest on decisions it could not read);
+  version makes the paper answer `data_check_failed`; whether a version is at rung 3 is read from its own rung records
+  (its counted outcomes and reports, section 2), never from the source that could not be read (judge 641 m1) (a recommendation cannot rest on decisions it could not read);
   while no version is at rung 3 it changes neither answer. This adds one field to REC1a's record (`candidate_sources`,
   required, sorted), made in REC1b before any record is written, so the schema stays version 1.
 - **Evening check:** `python -m fno recommend check` in the evening routine after `lab close` writes
@@ -237,10 +251,12 @@ two-judge rule; REC1a, REC1c, REC1d and REC1e one judge each. No merge 14:00-16:
 10. **The #fno-desk line and the sources (REC1b).** With today's main data the line reads "Real money: DO NOT TRADE
    (no version has passed)" and "Paper: NO TRADE (no_established_version)"; it carries no strike, price or strategy
    internal (a test scans it against the record's private fields); it is posted only after the receipt is pushed. The
-   step runs after `school` in `DAILY_RUN_STEPS`. A school step `not_live`, `failed`, `refused` or `frozen` gives
-   `school: unavailable (<status>)` in the record and the line, never an empty complete source; with a rung-3 version
+   step runs after `school` in `DAILY_RUN_STEPS`. A school step `not_live`, `failed`, `refused`, `frozen`, `ok` with `school:OFF` or `school:NOT_A_SESSION`, or
+   missing from the run log gives `school: unavailable (<status>, <reason code>)` in the record and the line, never an
+   empty complete source; `complete` only when `SessionRun.status` is `""` and every sealed decision's hash checks; with a rung-3 version
    in that source the paper answer is `data_check_failed`. The card's output is byte-identical with the step on and
-   off (golden file). Plant: an unavailable school written as `complete` with no candidates; a test fails.
+   off (golden file). The line says "Recommender (not the card)" and names an eligible version. Plants: an unavailable school
+   written as `complete` with no candidates; "school off" (`ok`, `school:OFF`) read as complete; each fails a test.
 11. **Candidate set from day one (S3, judge 620.1; REC1a).** The codec round-trips the candidate set (version, path,
    SHA-256; empty written as empty) and `evidence_cutoff`; a record without either is refused by the codec. Plant:
    the candidate field made optional; a test fails. The release-1 record of a recorded day carries both.
@@ -439,3 +455,16 @@ Changed from the passed text, each from the ruling:
   - This adds the required field `candidate_sources` to REC1a's record. It is made before any record exists, so the
     schema stays version 1.
 - REC1b's files and dates are in the parts table (26-29 Oct). Live target unchanged: Mon 2 Nov.
+
+**Round 2 of the amendment (judge 641: 2 should-fix, 2 minor, all accepted; SF2 with the orchestrator's correction):**
+- **SF1.** `complete` is now defined positively: the source's own record shows it ran (`SessionRun.status == ""`
+  with every sealed decision hash-checked; Book 1's decision record present and hash-checked). `ok` with
+  `school:OFF` or `NOT_A_SESSION`, and every other status, is `unavailable` with its status and reason code. New
+  plant: "school off read as complete" (section 5, criterion 10).
+- **SF2.** The arithmetic is fixed. The chain is capture end (~15:20), then `quotes_done`, then school (starting
+  15:19-15:23 under `SCHOOL_STARTS_BY` 15:25; up to 6 min 13 s cold), then `recommend` at about 15:25-15:30. A refused
+  school (`TOO_LATE`) is `unavailable`. The orchestrator confirms with GW1's builder that the school's start stays
+  before 15:25.
+- **m1.** The rung-3 test reads the version's own rung records, never the unread source.
+- **m2.** The line says "Recommender (not the card)"; the card shows the desk's status, and the two can differ.
+  `ELIGIBLE` names the version, "for your own review, never a buy".
