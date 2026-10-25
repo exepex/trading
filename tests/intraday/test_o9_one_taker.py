@@ -138,11 +138,12 @@ def test_two_runs_racing_for_one_mark_exactly_one_wins_and_the_loser_keeps_the_w
     assert claims_in(b, "run-b").claim(DAY, ist(DAY, 9, 30)).outcome == WON  # the next mark is b's to take
 
 
-def test_a_run_that_cannot_reach_github_takes_the_mark_anyway(tmp_path):
+def test_a_run_that_cannot_reach_github_does_not_take_the_mark(tmp_path):
+    """Story GW1: it cannot know whether another run holds the mark, and two takers exceed Groww's limit."""
     origin, a, _ = origin_with_two_clones(tmp_path)
     git(a, "remote", "set-url", "origin", str(tmp_path / "missing.git"))
     result = claims_in(a, "run-a").claim(DAY, ist(DAY, 9, 15))
-    assert result.outcome == UNCLAIMED and result.take and "NOT committed" in result.detail
+    assert result.outcome == UNCLAIMED and not result.take and "NOT committed" in result.detail
 
 
 INTRADAY = "research/data/intraday"
@@ -156,6 +157,31 @@ def run_committers(folder, run_id, shared=True):
     ledger = OwnedPathsCommitter(folder, folder / INTRADAY, ("slots/",), label="intraday slots",
                                  keep_remote_on_conflict=True, run_paths=claims_paths if shared else ())  # fmt: skip
     return GitMarkClaims(folder / CLAIMS, claims, run_id, lambda: datetime(2026, 10, 16, 9, 14, 15)), ledger
+
+
+def test_a_retried_claim_counts_only_once_github_has_it(tmp_path):
+    """GW1 round 2 review: a retry of a claim committed but not pushed is `won` only after its push lands; with
+    GitHub still out it stays `unclaimed` (it once read "nothing new to commit" as pushed)."""
+    origin, a, _ = origin_with_two_clones(tmp_path)
+    claims = claims_in(a, "run-a")
+    git(a, "remote", "set-url", "origin", str(tmp_path / "missing.git"))
+    mark = ist(DAY, 9, 15)
+    assert [claims.claim(DAY, mark).outcome for _ in range(2)] == [UNCLAIMED, UNCLAIMED]
+    git(a, "remote", "set-url", "origin", str(origin))
+    assert claims.claim(DAY, mark).outcome == WON
+    assert json.loads(git(origin, "show", f"main:{CLAIMS}/{DAY:%Y-%m-%d}/0915.json"))["run_id"] == "run-a"
+
+
+def test_a_retried_claim_that_meets_another_runs_pushed_claim_is_lost(tmp_path):
+    origin, a, b = origin_with_two_clones(tmp_path)
+    mark = ist(DAY, 9, 15)
+    git(a, "remote", "set-url", "origin", str(tmp_path / "missing.git"))
+    claims_a = claims_in(a, "run-a")
+    assert claims_a.claim(DAY, mark).outcome == UNCLAIMED
+    assert claims_in(b, "run-b").claim(DAY, mark).outcome == WON
+    git(a, "remote", "set-url", "origin", str(origin))
+    result = claims_a.claim(DAY, mark)
+    assert (result.outcome, result.holder, result.take) == (LOST, "run-b", False)
 
 
 def test_a_claim_lost_to_a_network_blip_never_blocks_the_runs_later_pushes(tmp_path):
@@ -202,3 +228,35 @@ def test_a_dry_run_claims_nothing_and_a_live_run_shares_its_paths_with_the_ledge
     ledger = wiring._sync(None, NoAlertSender("test")).committer  # the other side shares the claims folder (judge 247)
     assert ledger.run_paths == (wiring._repository_path(wiring.CLAIMS_FOLDER) + "/",)
     assert isinstance(wiring._sync(tmp_path, NoAlertSender("test")), NoSync)
+
+
+class Unclaimed(MarkClaims):
+    """The 09:15 claim fails `failures` times (GitHub unreachable), every other claim lands."""
+
+    def __init__(self, clock, failures: int):
+        self.clock, self.failures, self.asked = clock, failures, []
+
+    def claim(self, day: date, mark: datetime) -> ClaimResult:
+        self.asked.append((f"{mark:%H:%M}", self.clock.now()))
+        if mark == ist(DAY, 9, 15) and len(self.asked) <= self.failures:
+            return ClaimResult(UNCLAIMED, "", "claim NOT committed")
+        return ClaimResult(WON, "me")
+
+
+def test_an_unclaimed_mark_is_not_taken_and_the_next_claimed_one_is(tmp_path):
+    """Story GW1: two claim failures in a row: 09:15 is not taken and says why; 09:30 is taken."""
+    clock = FakeClock(ist(DAY, 9, 5))
+    recorder, source_, *_ = build(tmp_path, clock)
+    recorder.claims = claims = Unclaimed(clock, failures=2)
+    outcomes = recorder.run(time(9, 35))
+    assert [f"{m:%H:%M}" for m in source_.taken] == ["09:30"]
+    assert outcomes[0].status == "missed" and "claim not pushed" in outcomes[0].detail
+    assert claims.asked[:2] == [("09:15", ist(DAY, 9, 14, 15)), ("09:15", ist(DAY, 9, 14, 30))]  # retried once
+
+
+def test_a_claim_that_lands_on_its_retry_takes_the_mark(tmp_path):
+    clock = FakeClock(ist(DAY, 9, 5))
+    recorder, source_, *_ = build(tmp_path, clock)
+    recorder.claims = Unclaimed(clock, failures=1)
+    recorder.run(time(9, 20))
+    assert [f"{m:%H:%M}" for m in source_.taken] == ["09:15"]

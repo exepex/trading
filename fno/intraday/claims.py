@@ -2,7 +2,9 @@
 mark taken by two runs lost 74-87 of about 224 quotes (Groww code 429), every mark taken by one run lost none. Before a
 mark a run commits a claim file to GitHub; git's push decides atomically (the second push meets the first one's file
 and keeps it, the committer's first-push-wins rule), so exactly one run sees its own claim. A run that cannot claim at
-all (GitHub unreachable, push refused) takes the mark anyway: a duplicate costs quotes, a gap loses the mark."""
+all (GitHub unreachable, push refused) does not take the mark (story GW1): it cannot know whether another run holds
+it, and two takers exceed Groww's 300 a minute. A16's fires overlap, so another run whose push lands takes it; a mark
+is lost only when every living run fails to claim it."""
 
 from __future__ import annotations
 
@@ -17,7 +19,7 @@ from ..storage.manifest_commit import COMMITTED_AS, NOTHING_AS, ManifestRecorder
 
 CLAIM_MESSAGE = "Claim: A16 mark ({what})"
 CLAIM_LABEL = "claim"
-WON, LOST, UNCLAIMED = "won", "lost", "unclaimed"  # unclaimed: the claim could not be made; the run takes the mark
+WON, LOST, UNCLAIMED = "won", "lost", "unclaimed"  # unclaimed: the claim could not be made; the run does not take it
 
 
 @dataclass(frozen=True)
@@ -28,7 +30,7 @@ class ClaimResult:
 
     @property
     def take(self) -> bool:
-        return self.outcome != LOST
+        return self.outcome == WON
 
 
 class MarkClaims(ABC):
@@ -58,6 +60,8 @@ class GitMarkClaims(MarkClaims):
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_text(json.dumps({"run_id": self.run_id, "claimed_at": self.clock().isoformat()}) + "\n")
         outcome = self.committer.commit(f"{day:%Y-%m-%d} {mark.astimezone(IST):%H:%M}")
+        if outcome == NOTHING_AS.format(label=CLAIM_LABEL):
+            outcome = self.committer.publish()  # committed by an earlier try: it counts only once pushed (GW1)
         holder = _holder(file)
         if holder == self.run_id and not _published(outcome):
             return ClaimResult(UNCLAIMED, "", outcome)  # never reached GitHub: another run may hold it unseen
@@ -65,9 +69,9 @@ class GitMarkClaims(MarkClaims):
 
 
 def _published(outcome: str) -> bool:
-    """The committer pushed the claim, or found it already committed and pushed."""
-    pushed = COMMITTED_AS.format(label=CLAIM_LABEL, count=1)
-    return outcome == pushed or outcome == NOTHING_AS.format(label=CLAIM_LABEL)
+    """The committer pushed the claim now, or pushed the checkout holding it (an earlier try's commit, or one already
+    on GitHub): after that push the file is the copy GitHub keeps."""
+    return outcome in (COMMITTED_AS.format(label=CLAIM_LABEL, count=1), COMMITTED_AS.format(label=CLAIM_LABEL, count=0))
 
 
 def _holder(file: Path) -> str:

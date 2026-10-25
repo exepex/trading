@@ -22,6 +22,7 @@ from ..constants import ENV_GROWW_ACCESS_TOKEN, ENV_GROWW_API_KEY, ENV_GROWW_API
 from ..intraday.read_only import ReadOnlyGroww
 from ..models import IST, OptionChain, OptionQuote, QuoteBook, now_ist
 from .base import Provider
+from .groww_quiet_windows import NoQuietWindows, QuietWindows
 from .groww_rate_guard import GrowwRateLimited, RateGuardedGroww, RateLimitPause
 from .groww_sign_in import GrowwSignIn
 
@@ -123,12 +124,13 @@ def listed_expiries(api, underlying: str, today: date) -> list[date]:
 
 class GrowwProvider(Provider):
     """Every caller gets `api`: the read-only allow-list over a client that signs in once per token day without a
-    storm and stops for a minute after a 429 (story GW1a). The raw SDK client leaves this class only for the feed probe
-    (`feed_client`), whose SDK feed needs it."""
+    storm, stops for a minute after a 429 and, when given `quiet`, makes no call inside A16's marks (story GW1). The
+    raw SDK client leaves this class only for the feed probe (`feed_client`), whose SDK feed needs it."""
 
     name = "groww"
 
-    def __init__(self, config: dict, on_sign_in_failure: Callable[[str], None] | None = None):
+    def __init__(self, config: dict, on_sign_in_failure: Callable[[str], None] | None = None,
+                 quiet: QuietWindows | None = None):  # fmt: skip
         super().__init__(config)
         try:
             from growwapi import GrowwAPI
@@ -136,7 +138,8 @@ class GrowwProvider(Provider):
             raise RuntimeError("Install the Groww SDK first: pip install growwapi") from exc
         self.GrowwAPI = GrowwAPI
         self._sign_in = GrowwSignIn(lambda: self.GrowwAPI(self._token()), on_failure=on_sign_in_failure)
-        guarded = RateGuardedGroww(self._sign_in.client, RateLimitPause())
+        self._quiet = quiet or NoQuietWindows()
+        guarded = RateGuardedGroww(self._sign_in.client, RateLimitPause(), self._quiet)
         self._api = ReadOnlyGroww(lambda: guarded)
 
     @property
@@ -164,6 +167,7 @@ class GrowwProvider(Provider):
         raise RuntimeError(CREDENTIALS_MISSING)
 
     def expiries(self, underlying: str) -> list[date]:
+        self._quiet.wait()  # every A4 attempt asks this first: it starts after an A16 mark's quiet window
         return listed_expiries(self.api, underlying, now_ist().date())
 
     def chain(self, underlying: str, expiry: date) -> OptionChain:

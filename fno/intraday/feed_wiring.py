@@ -19,7 +19,7 @@ from types import SimpleNamespace
 
 from ..config import ROOT
 from ..models import now_ist
-from ..providers.groww import GrowwProvider
+from ..providers import get_provider
 from .feed_gate import alongside_gate, catch_up_gate
 from .feed_probe import FeedProbe
 from .feed_universe import INDICES, universe
@@ -48,7 +48,7 @@ def build_feed_probe(cfg: dict, env: Mapping[str, str] = os.environ) -> tuple[Fe
     ca_file = feed_ca_file(env, Path(tempfile.mkdtemp(prefix="feed-ca-")))
     if ca_file:
         trust_for_feed(nats_client, ca_file)
-    provider = GrowwProvider(cfg)
+    provider = get_provider("groww", cfg)  # GW1: its REST client keeps out of A16's marks
     feed = ReadOnlyFeed(open_feed(lambda: GrowwFeed(provider.feed_client()), FEED_CONNECT_SECONDS))
     return FeedProbe(feed, now_ist, clock_module.sleep), provider.api
 

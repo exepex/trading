@@ -551,10 +551,11 @@ hindsight. The owner ruled (DESK_DECISIONS, 24 Oct, "1 - A" and "2 - yes"):
 
 *(A, the stopped run, judge 570.2's point 3).* After a stop (decision 47), the fills step has no log entry, so a rerun
 runs it. `_too_late` refuses it when two things hold: the run did not record the day's snapshot itself
-(`DailyRun.ran_here`), and the clock is past `fills_by`. The limit is 15:20:00 itself: a start at 15:20:00 fills, and
-15:20:01 is refused.
+(`DailyRun.ran_here`), and the clock is past `fills_by`. The limit is `fills_by` itself: 15:23:00 since the owner's 25 Oct
+decision (story GW1; it was 15:20:00). A start at 15:23:00 fills, and 15:23:01 is refused. The 15:20 times below are
+the values when this was built.
 - The refusal is logged `refused` (done for the day; even a clock set back never runs the fills). One alert:
-  "step fills REFUSED: it is HH:MM:SS, past fills_by 15:20, in a run that did not take the day's snapshot: no fills by
+  "step fills REFUSED: it is HH:MM:SS, past fills_by 15:23, in a run that did not take the day's snapshot: no fills by
   this run (fail closed); trades recorded before the stop stay in their accounts, check them".
 - The public log's code is `desk:FILLS_LATE` (`reason_codes.py`). Round 2's `NEEDS_*` reasons get codes too. Before,
   they showed "unlisted".
@@ -563,7 +564,7 @@ runs it. `_too_late` refuses it when two things hold: the run did not record the
   took the snapshot fills at its prices with no choice in between, even when its own commit ends past 15:20 (on 22 Oct
   the snapshot step ended at 15:21:23). A wall-clock limit on that run would lose a valid day to a slow push.
   - On real days fills started at 15:17:51 to 15:18:12 (19, 21 and 23 Oct, `journal/runs`).
-  - A valid snapshot must itself finish by 15:20:00 (`SnapshotInWindow`).
+  - A valid snapshot must itself finish by `fills_by`, now 15:23:00 (`SnapshotInWindow`).
 - **The limit is on the step's start.** Its account writes may end a few seconds later, at the snapshot's prices.
 
 *(B) The immediate rerun* (`fno/daily/runner.py`, `CLAUDE.md` step 2b). A Slack alert that was sent is never printed,

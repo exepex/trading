@@ -209,7 +209,7 @@ as a proposal.
 New package `fno/intraday/` (each file under 350 lines):
 - `IntradayQuoteSource` (interface, design 2.1): `take(day, slot) -> SnapshotDocument`; one adapter
   `GrowwIntradaySource` (read-only SDK calls `get_quote`, `get_option_chain` plus the existing `GrowwProvider` sign-in
-  and expiries; parallel quotes at most 4 workers, about 5 a second).
+  and expiries; parallel quotes at most 4 workers, paced as [GW1](GW1-groww-rate-guard.md) rule 6 says).
 - `ReadOnlyGroww` (allow-list wrapper, criterion 10): the only Groww object the source holds. The index source time
   uses the quote's `last_trade_time`, else the end of the latest 1-minute index candle (Definitions).
 - `ExpiryPlan`: which two expiries (nearest listed; nearest monthly by `PointInTimeMonthlies` with A4's NSE-file

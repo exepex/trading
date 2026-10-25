@@ -62,7 +62,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - Common pack first try 14:58, retried until 15:10.
   - Decision deadline 15:12.
   - Execution snapshot 15:15.
-  - Fills and exits finished by 15:20.
+  - Fills and exits finished by 15:23 (15:20 until 25 Oct 2026: the owner moved it with story GW1, as E3's capture now
+    asks from 15:17:00, after A16's 15:15 quiet window; `docs/stories/GW1-groww-rate-guard.md`).
   - Account lock lease 60 seconds.
 
   Scoring at the snapshot and at the fill (story G10):
@@ -72,7 +73,7 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 
   These are the values in `config.yaml` `desk.timetable` today (E3, "proposed until S1"). They are confirmed or
   changed by this rule: before the freeze, at least 10 sessions of measured run times. Each step's slot must then be
-  at least the measured 95th-percentile duration plus 60 seconds. If that cannot hold before 15:20, the owner
+  at least the measured 95th-percentile duration plus 60 seconds. If that cannot hold before `fills_by` (15:23), the owner
   chooses which step moves.
 - **Status:** proposal, owner decides
 - **Reason:** Design 13.5 asks for times "calibrated with A4 and measured run times". None are measured yet, since
@@ -494,7 +495,7 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 | Pack time, retried until (`desk.timetable.pack`, `pack_wait_until`) | 14:58, 15:10 | `timetable` | keep, then calibrate by the measured-run rule |
 | Decision deadline (`desk.timetable.decision_deadline`) | 15:12 | `timetable` | keep, then calibrate |
 | Execution snapshot (`desk.timetable.execution_snapshot`) | 15:15 | `timetable` | keep, then calibrate |
-| Fills by (`desk.timetable.fills_by`) | 15:20 | `timetable` | keep, then calibrate |
+| Fills by (`desk.timetable.fills_by`) | 15:23 (owner, 25 Oct, GW1; was 15:20) | `timetable` | keep, then calibrate |
 | Lock lease (`desk.timetable.lock_lease_seconds`) | 60 s | `timetable` | keep |
 | `desk.timetable.status` | "proposed until S1" | `frozen_files` | becomes "frozen in evaluation protocol v1" at the freeze |
 

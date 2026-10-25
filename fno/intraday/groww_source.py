@@ -3,16 +3,18 @@ name, nothing else. A failure is kept by its exception class name only (an excep
 
 Order inside a snapshot: the index quote first (the realised variance's input, sent right at the mark; with the
 1-minute candle fallback when Groww gives the index no time), then the near future, the two chains, and one quote per
-contract within 6% of the index level, at most 4 at a time and 5 a second (step 0's measured limit)."""
+contract within 6% of the index level, at most 4 at a time and 4 a second, and nothing asked after the mark's quiet
+window (story GW1)."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
-from ..models import now_ist
+from ..models import IST, now_ist
 from ..providers.groww import _payload, listed_expiries, parse_groww_chain, parse_groww_quote_book
+from ..providers.groww_quiet_windows import QUIET_SECONDS
 from .document import CallRecord, SnapshotDocument
 from .expiry_plan import UNDERLYING, Expiries, ExpiryPlan
 from .index_reading import CANDLE_SYMBOL, QUOTE_BASIS, candle_reading, candle_window, quote_reading
@@ -23,7 +25,10 @@ from .source import IntradayQuoteSource
 SPOT_BAND = 0.06  # strikes within 6% of the index level (design 2.1)
 INDEX_SYMBOL = "NIFTY"
 FUTURE_SYMBOL = "NIFTY{expiry:%y}{month}FUT"  # e.g. NIFTY26OCTFUT (step 0: the form get_quote accepts)
-WORKERS, PER_SECOND = 4, 5
+# GW1: A16 asks only inside its mark's quiet window, where every other Groww reader is refused, and at 4 a second, so
+# its few unpaced extras never take a long mark over 300 a minute. Step 0 measured 5 a second clean with 4 workers.
+WORKERS, PER_SECOND = 4, 4
+WINDOW_ENDED = "QuietWindowEnded"  # not asked: the mark's quiet window had ended (judge 638 finding 2)
 CALL_TIMEOUT_SECONDS = 10  # a hung call is a failure, never a stuck loop
 QUOTES_RETRIED = "quotes_retried:{count}"
 MAX_CODE_LENGTH = 12  # Groww's error codes are short words (e.g. 429); anything longer is not kept
@@ -43,6 +48,7 @@ class GrowwIntradaySource(IntradayQuoteSource):
                  clock: Callable[[], datetime] = now_ist, pacer: RatePacer | None = None):  # fmt: skip
         self.client, self.plan, self.lot_size, self.clock = client, plan, lot_size, clock
         self.pacer = pacer or RatePacer(PER_SECOND)
+        self._window_end = datetime.max.replace(tzinfo=IST)  # set by each `take`
         self._expiries: dict[date, Expiries] = {}
         self._prepare_notes: list[str] = []
 
@@ -55,6 +61,7 @@ class GrowwIntradaySource(IntradayQuoteSource):
                 self._prepare_notes.append(f"prepare {step}: {type(exc).__name__}")
 
     def take(self, session: date, mark: datetime) -> SnapshotDocument:
+        self._window_end = mark + timedelta(seconds=QUIET_SECONDS)
         index = self._call("index", lambda api: api.get_quote(trading_symbol=INDEX_SYMBOL, exchange=api.EXCHANGE_NSE,
                            segment=api.SEGMENT_CASH, timeout=CALL_TIMEOUT_SECONDS))  # fmt: skip
         doc = SnapshotDocument(self.name, UNDERLYING, session, mark, index, None, None,
@@ -122,7 +129,12 @@ class GrowwIntradaySource(IntradayQuoteSource):
         return self._expiries[session]
 
     def _call(self, name: str, request, meta: dict | None = None) -> CallRecord:
+        """Every call of a mark is paced, and none starts once the mark's quiet window has ended: it is recorded as a
+        failure, unasked, as the other readers are let in then (GW1; a late or long mark ends there too)."""
+        self.pacer.wait()
         sent = self.clock()
+        if sent >= self._window_end:
+            return CallRecord(name, sent, None, None, WINDOW_ENDED, meta or {})
         try:
             payload = _payload(request(self.client))
         except Exception as exc:  # name and code only: an exception's text could carry a credential
@@ -160,7 +172,6 @@ class GrowwIntradaySource(IntradayQuoteSource):
             return CallRecord(f"quote {contract['expiry']} {contract['strike']:g} {contract['type']}", self.clock(),
                               None, None, "NoTradingSymbol", contract)  # fmt: skip
         symbol = contract["symbol"]
-        self.pacer.wait()
         return self._call(f"quote {symbol}", lambda api: api.get_quote(trading_symbol=symbol,
                           exchange=api.EXCHANGE_NSE, segment=api.SEGMENT_FNO, timeout=CALL_TIMEOUT_SECONDS),
                           contract)  # fmt: skip

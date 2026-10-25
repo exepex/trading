@@ -9,7 +9,7 @@ AUTO_PROVIDER = "auto"
 
 def get_provider(name: str, config: dict) -> Provider:
     """`auto` uses Groww when its credentials are set (the owner's PC) and the free NSE website otherwise. A Groww
-    provider built here alerts its failed sign-in (story GW1a); A16 builds its own."""
+    provider built here alerts its failed sign-in and keeps out of A16's marks (story GW1); A16 builds its own."""
     name = (name or "nse").lower()
     if name == AUTO_PROVIDER:
         return _auto_provider(config)
@@ -42,8 +42,9 @@ def _auto_provider(config: dict) -> Provider:
 
 def _groww_provider(config: dict) -> Provider:
     from .groww import GrowwProvider
+    from .groww_quiet_windows import MarkQuietWindows
 
-    return GrowwProvider(config, alert_sign_in_failure)
+    return GrowwProvider(config, alert_sign_in_failure, MarkQuietWindows())
 
 
 def alert_sign_in_failure(line: str) -> None:
