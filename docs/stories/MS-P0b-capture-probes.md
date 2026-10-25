@@ -213,13 +213,13 @@ grow, keep or stop, per source.
 
 ### Code round 1 (builder session_01KJLFK1oqfytQkHapDCHJh9; branch `story/ms-p0b-capture`, SHA in the commit carrying this text)
 
-**Status: not ready to merge.** `fno/capture_probes/wiring.py` reads a 429 only through GW1's `is_rate_limit` and
-`GrowwRateLimitPaused` (`fno/providers/groww_rate_guard.py`, names confirmed by GW1's builder,
-session_01GsPm29fZzfH3DiErKAdBVk, 24 Oct; the project's one 429 detector, orchestrator's ruling) and builds Groww
-through `get_provider("groww", cfg)`, so GW1's sign-in guard, quiet windows and 60 s pause apply too. GW1's code is
-on its branch (5d5d054ae), not on `main`: on this branch alone `tools/check_imports.py`, `tests/test_import_graph.py`
-and one probe test fail on that import. Merged with GW1's branch in a scratch worktree, the imports are clean and
-2,044 tests pass (`tests/capture_probes`, the school boundary, the import graph).
+**Status: ready for the judge.** GW1a (parts 1-4) is on `main` (merge 21cbee0ee, judges 649 and 650 PASS) and is
+merged into this branch. The probe reads a 429 only through GW1's `is_rate_limit` and `GrowwRateLimitPaused`
+(`fno/providers/groww_rate_guard.py`; the project's one 429 detector, orchestrator's ruling) and builds Groww through
+`get_provider("groww", cfg)`: GW1's sign-in guard (3 tries a process a day) and read-only client apply. GW1's quiet
+windows (`GrowwQuietWindow`) are not on `main`; the probe's slots sit outside A16's marks by their own times (section 4).
+Gates on the merged tree: full suite 16,969 passed, 1 skipped, 13 xfailed; `ruff check fno tests tools`,
+`tools/check_imports.py` and `tools/check_records.py` clean.
 
 | # | Criterion | Code | Tests (good, bad, boundary, empty) |
 |---|---|---|---|
@@ -235,7 +235,7 @@ and one probe test fail on that import. Merged with GW1's branch in a scratch wo
 | 9 | Write-once | `archive.py` | `test_rows_and_records.py`, `test_slot.py` (conflict named, failed write counted) |
 | 10 | No secret or price | `answers.py` (class names only), `counts.py` | `test_rows_and_records.py` (every printed, posted and committed line against the made-up prices and secret words) |
 | 11 | Own paths only | `publish.py` `RepoPathsCommitter` | `test_rows_and_records.py` (a recording git: `add` and `commit` name only the three owned paths, never `--no-verify`) |
-| 12 | Gates | | `ruff check fno tests tools` clean; `tests/capture_probes` 114 passed; school boundary tests pass; full suite on round-1 code before the move: 16,749 passed, 5 failed (the school boundary, fixed by the move, and the GW1 import) |
+| 12 | Gates | | on the tree merged with `main` (GW1a in): full suite 16,969 passed, ruff, imports and record scan clean; `tests/capture_probes` 115 passed |
 | 13 | Output sample | below | |
 
 **Self-review** (one independent review agent on the diff): 2 blocking, 3 should-fix and 4 minor findings, all
