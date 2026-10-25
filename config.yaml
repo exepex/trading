@@ -245,7 +245,7 @@ health:
 # DESK_DECISIONS "Market school pilot: report sections and brake"), so a desk change never moves the pilot mid-count.
 school:
   enabled: true
-  reports: false
+  reports: true
   first_counted:            # set from the frozen comparison card (MS-P1h) before the first counted session
   account_rs: 2000000       # each driver version's paper account
   max_loss_rs: 10000        # one trade, every charge and pad included
