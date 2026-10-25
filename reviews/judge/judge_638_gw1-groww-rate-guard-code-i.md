@@ -132,3 +132,32 @@ f21269ea9 merged with main 4ac8b39cf as a scratch merge (never pushed). Results:
 - A14c part 2's `margins stress-broker-check` (daily step from 14:05, read-only Groww) is not on main yet. It must
   build its provider through `get_provider`, or it can meet the 14:15 mark at A16's 4 a second.
 - The rate-table test is arithmetic over constants. Its teeth are the orderings test and the window tests.
+
+## Addendum 3: narrow re-check of the text fixes at c182a3aa2 (owner, DESK_DECISIONS line 351)
+
+**PASS, lane 1, with 2 minors.** Judge I, own session, independent of K. Scope: only the c182a3aa2 diff on f21269ea9.
+It changes 4 Markdown files and one docstring.
+
+| 638.2 item | Verdict | My evidence |
+|---|---|---|
+| PROTOCOL.md 15:20 | FIXED | Lines 65 and 498 say 15:23 with the owner's reason. Line 76 now says "before `fills_by` (15:23)". Not frozen: its status line is "DRAFT, not frozen", `research/evaluation/` holds no freeze record, and no freeze file names it. The book-3 constitution names it by path; it hashes only its own bytes |
+| O1's rerun limit | FIXED | "The limit is `fills_by` itself: 15:23:00", with 15:23:00 filling and 15:23:01 refused. That matches `daily_run.py:256` with the config at 15:23. The alert text matches the template (`{by:%H:%M}`) |
+| A16's pace in two documents | FIXED | A16:212 now links GW1 rule 6; `groww_source.py:30` is `PER_SECOND = 4` as GW1 says |
+| Sign-in-cap repeat (minor) | FIXED | It is a link to GW1a `#known-limits`; the heading exists. Round 1's parts 1-4 claims link to GW1a `#claims`, which also exists |
+| `groww_quiet_windows.py` docstring | MET | Text only: "4 a second, close to 300 a minute"; no code changed |
+
+Minors (do not block):
+- `O1-daily-run.md:596-599` still say "a rerun after 15:20" and "at most 15:20:00 less the snapshot ... about 5
+  minutes". These lines fall under the new "15:20 times below are the values when this was built" marker. But the
+  hindsight they describe is now about 8 minutes, a fact for the owner; one line would state it.
+- `E-paper-desk.md:493` "fills by 15:20" is E3's build-time design text ("proposed" times); a link to the config
+  would remove the drift.
+
+## Gates (addendum 3)
+
+c182a3aa2 merged with main as a scratch merge (never pushed), because a `.py` file changed. Results:
+- ruff check clean; 2749 files formatted; `check_imports` clean; `check_records` clean (9550 files).
+- pytest -n auto with FNO_SLACK_BOT_TOKEN kept: **17614 passed, 13 xfailed, 0 failed** (633 s).
+- No post on #fno-desk, #fno-forecast or #fno-intraday in that window.
+
+With 638.2's code verdict (every item MET), GW1 parts 5-6 pass judge I.
