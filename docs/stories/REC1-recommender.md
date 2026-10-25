@@ -714,3 +714,42 @@ by the round-2 work above. The rest are fixed at ca2e8358:
   written final, later checks counted. Tests: 335 in `tests/recommend`.
 - **Known cost:** each evening reads the latest check of every receipted day. It is cheap through the verified Drive
   cache, and grows by one small read per session.
+
+### REC1d text amendment (before code; for the judge, pending the orchestrator's yes on the placement)
+
+What section 3's "08:50 and 20:05" bullet and REC1c item 5 become exact as, each named:
+
+1. **Placement (agreement asked 25 Oct; MS-P1g's owner session is gone, so the orchestrator answers for it).**
+   - The recommender's block is its own `ReportSection` per edition in `fno/recommend/report_section.py`. It reads
+     only through REC1's receipted readers: the recommendation record, and the check files with their receipts.
+   - `fno/school/reports/` gains only this: each edition maps to a tuple of sections, rendered in order, each
+     isolated. A failing section gives its own `failure_alert`, and the others still post. `build_school_maker` takes
+     an optional `extra` mapping from edition to sections, built by a builder the caller passes in, the same way it
+     passes `inputs`. The reports package imports nothing from `fno/recommend/`.
+   - `fno/forecast_lab/page_wiring.py` changes only its reserved call, to pass `extra=`. This needs the FL1 owner's
+     agreement.
+2. **When it shows.** Only with `school.reports` on, and from `daily.live_from.recommend`. With either off, both
+   editions are byte-identical to today: MS-P1g's golden files are unchanged, and a new test proves it.
+3. **08:50, "Recommender, PAPER ONLY":**
+   - The standing real-money answer and each rated version's rung, from the latest recommendation record before
+     today, labelled "standing; today's answer at about 15:20" and naming that record's day.
+   - Then the latest check of each day checked last evening, in the check's own words (`check_text`).
+   - A day whose check is missing (a recorded day with no check file dated after it) is named "check missing". A
+     `data_check_failed` check is named with its problem. Neither ever fails the edition.
+   - No record yet gives one line, "no recommendation recorded yet". A record that cannot be read is named as not
+     read, by its path and the exception class only.
+4. **20:05, "Recommender, PAPER ONLY":**
+   - Today's two answers with their codes, in REC1b's line words, without the receipt part.
+   - Then one fixed line: "tonight's check runs after this edition; it is on #fno-desk and in tomorrow's 08:50".
+     REC1c item 5 already states that the 20:05 edition cannot show tonight's check.
+   - On a session with no record (the step did not run or did not post), it says "no recommendation recorded for
+     <day>", naming the run log's `recommend` status when there is one.
+5. **Words.** The section names no strike, price or strategy internal, only what REC1b's line and REC1c's check text
+   already allow. No line carries a record hash: the edition is not a record.
+6. **Criteria for REC1d**, each with a plant:
+   - (a) The flag-off golden files are byte-identical. Plant: the section is always added.
+   - (b) A missing check and a `data_check_failed` check are each named, and the edition still posts. Plant: a raised
+     reader error is swallowed silently.
+   - (c) The morning never shows today's record as standing. Plant: `<=` in place of `<`.
+   - (d) One failing section never removes the school's section. Plant: one shared `try`.
+   - (e) An empty history gives the "no recommendation recorded yet" line.
