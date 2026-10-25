@@ -20,8 +20,6 @@ from fno.models import IST
 from tests.timetable.fakes import Clock
 
 from .test_candle_step import _built_steps
-
-
 from .test_v4_part import run as part_run
 
 
