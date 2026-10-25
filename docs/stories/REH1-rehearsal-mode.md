@@ -1015,6 +1015,9 @@ for 23 Oct, the replay clock at 14:05): exit 0, no line (every service its rehea
 planted unwrapped: "rehearsal guard: BANKNIFTY's 3 pm recorder is QuoteSnapshotRecorder, not its rehearsal form", the
 same for FINNIFTY, MIDCPNIFTY and NIFTY weekly, exit 1.
 
+**Gates** (main merged in, the token kept): 17436 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
+clean.
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
