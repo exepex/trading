@@ -19,10 +19,3 @@ fetched_at,path,url,form,sha256,size_bytes
 2026-10-22T06:09:02.644066+05:30,eia/petroleum/brent-spot-daily/2026/10/22/060902_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
 2026-10-22T06:58:03.766721+05:30,eia/petroleum/brent-spot-daily/2026/10/22/065803_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
 2026-10-22T19:35:25.731413+05:30,eia/petroleum/brent-spot-daily/2026/10/22/193525_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
-2026-10-23T06:06:53.207211+05:30,eia/petroleum/brent-spot-daily/2026/10/23/060653_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,ed3ff1fbeca6d083523e6599905f012c88123d35ea7b8a624394c29d356963a0,453783
-2026-10-23T06:56:47.907124+05:30,eia/petroleum/brent-spot-daily/2026/10/23/065647_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
-2026-10-23T19:18:20.408624+05:30,eia/petroleum/brent-spot-daily/2026/10/23/191820_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
-2026-10-24T06:05:13.956760+05:30,eia/petroleum/brent-spot-daily/2026/10/24/060513_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
-2026-10-24T07:02:26.926636+05:30,eia/petroleum/brent-spot-daily/2026/10/24/070226_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
-2026-10-24T18:25:36.334682+05:30,eia/petroleum/brent-spot-daily/2026/10/24/182536_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
-2026-10-25T05:47:15.362684+05:30,eia/petroleum/brent-spot-daily/2026/10/25/054715_RBRTED.htm,https://www.eia.gov/dnav/pet/hist/RBRTED.htm,,b08a5da163af25dc5c49c5549a834617fef1c0920ec30ce2cd069d35132885c8,452765
