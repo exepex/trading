@@ -105,7 +105,8 @@ def test_the_school_step_prints_school_off_and_builds_nothing(monkeypatch):
 
 
 def test_a_lab_edition_without_a_live_date_builds_no_composer_reads_no_record_and_exits_clean(monkeypatch):
-    """`lab open` and `lab close` at 08:38 and 19:53: not live, so no Drive sync of G13b's records, no record read."""
+    """`lab open` and `lab close` at 08:38 and 19:53: not live, so no Drive sign-in, no Drive sync of G13b's
+    records, no record read."""
     from fno.forecast_lab import wiring
     from fno.forecast_lab.constants import EVENING, MORNING
 
@@ -114,7 +115,7 @@ def test_a_lab_edition_without_a_live_date_builds_no_composer_reads_no_record_an
 
     nothing = SimpleNamespace(posted=forbidden, alerted=forbidden, report=forbidden)
     monkeypatch.setattr(wiring, "build_composer", forbidden)
-    monkeypatch.setattr(wiring, "records", lambda edition, env=None: nothing)
+    monkeypatch.setattr(wiring, "records", forbidden)  # building the records signs in to Drive
     monkeypatch.setattr(wiring, "build_forecast_poster", lambda env=None: nothing)
     monkeypatch.setattr(wiring, "build_alert_sender", lambda: nothing)
     for edition in (MORNING, EVENING):

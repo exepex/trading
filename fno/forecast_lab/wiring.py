@@ -19,7 +19,7 @@ from .composers import EveningComposer, MorningComposer
 from .confirm import Confirmation
 from .constants import EVENING, MORNING, MORNING_BY, REPORT_AREAS
 from .delivery import NoReportPoster, ReportPoster, SlackFilesPoster
-from .edition_run import Composer, Edition, EditionRun, LazyComposer
+from .edition_run import Composer, Edition, EditionRun, LazyComposer, LazyRecords
 from .g13b_adapter import G13bCloses, G13bRanges
 from .match import MatchSection
 from .official_closes import ArchivedCloses
@@ -121,10 +121,10 @@ def build_edition(edition: str, env=os.environ) -> EditionRun:
 
     live, notes = lab_live(load_app_config(), env)
     note_this_process(notes.get(edition))  # REH1k: one edition per process
-    composer = LazyComposer(lambda: build_composer(edition, env, live)[0])  # STAB1: no Drive sync unless it reports
+    composer = LazyComposer(lambda: build_composer(edition, env, live)[0])  # STAB1: no Drive call unless it reports
     cutoff = MORNING_BY if edition == MORNING else None
     sessions = RegularSessions(build_session_calendar())
-    return EditionRun(Edition(edition, live[edition], cutoff), composer, records(edition, env),
+    return EditionRun(Edition(edition, live[edition], cutoff), composer, LazyRecords(lambda: records(edition, env)),
                       build_forecast_poster(env), build_alert_sender(), sessions.is_regular, now_ist)  # fmt: skip
 
 

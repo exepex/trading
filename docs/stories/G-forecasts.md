@@ -1905,7 +1905,9 @@ round 1: before `candles`, so A4h's two reads stay last).
 sits before E3's `versions` and `pack` (14:58), so it adds no wait before the desk. G7b's `forecasts_v4_pack` comes
 right after `v4_release` (it reads the released pack) and before `versions`; it commits before 15:10. **Live switch:** one new key,
 `daily.live_from.v4_pack`, gates the `v4` part, `v4_release` and `v4_deadline` together (null on the branch; a not-live
-day records `not_live` for each and starts no capture). Each new step gets its reason codes in O1's closed set
+day records `not_live` for each and starts no capture). **STAB1 (owner, 25 Oct 2026, forecasting off): `v4_pack` gates
+the `v4` capture part only; `v4_release` and `v4_deadline` have their own key, `daily.live_from.v4_release`, null**
+(`docs/stories/STAB1-capture-only.md`). Each new step gets its reason codes in O1's closed set
 (`fno/daily/reason_codes.py`) and appears in O8's health window like every step. CLAUDE.md's "Daily desk routine"
 gains one line for the `v4` part and its hand-fix `git add` line; NIFTY's hand-fix line is narrowed with it (criterion
 2).

@@ -69,7 +69,7 @@ cancels orders.
 capture will never stop").** The weather, v4 forecast, v4 release and 15:10 check, pack-derived rows, card, price
 distribution, price and premium ranges and their scores, recommendation, AI and school steps record `not_live` or
 "school off" (`config.yaml`: `daily.live_from`, `school`); the quote parts (the `v4` window capture too), the margin
-check, the candle catch-up and A4h's close reads run as before, and `day done` is the normal ending. Never switch a
+check, A16b's candles and A4h's closes run as before, and `day done` is the normal ending. Never switch a
 forecasting step on by hand; that is the owner's decision and a judged change.
 1. `sh tools/routine_setup.sh --groww` (story O7: installs into every Python the routine and the commit hook can call,
    checks each imports the packages, turns on the public-record scan, story O5, and prints "routine setup ok").

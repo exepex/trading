@@ -75,6 +75,37 @@ class Composer(ABC):
     def compose(self, day: date, now: datetime) -> WrittenReport: ...
 
 
+class LazyRecords(ReportRecords):
+    """Builds the real records (which sign in to Drive) on their first use, never before: an edition that is not live
+    or not a session reads and writes none, so it makes no Drive call (STAB1)."""
+
+    def __init__(self, build: Callable[[], ReportRecords]):
+        self.build, self.records = build, None
+
+    def _real(self) -> ReportRecords:
+        if self.records is None:
+            self.records = self.build()
+        return self.records
+
+    def report(self, day: date) -> WrittenReport | None:
+        return self._real().report(day)
+
+    def write_report(self, day: date, report: WrittenReport) -> None:
+        self._real().write_report(day, report)
+
+    def posted(self, day: date) -> bool:
+        return self._real().posted(day)
+
+    def mark_posted(self, day: date, outcome: str) -> None:
+        self._real().mark_posted(day, outcome)
+
+    def alerted(self, day: date) -> bool:
+        return self._real().alerted(day)
+
+    def mark_alerted(self, day: date, outcomes: list[str]) -> None:
+        self._real().mark_alerted(day, outcomes)
+
+
 class LazyComposer(Composer):
     """Builds the real composer (a Drive sync of G13b's records) on its first report, never before: an edition that is
     not live, not a session or already posted builds nothing and cannot fail on Drive (STAB1)."""
