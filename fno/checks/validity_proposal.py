@@ -45,6 +45,9 @@ class ValidityProposal:
     rule_default: BookTerms | None = None
     eligible: frozenset[tuple[str, int]] = frozenset()  # Book 2: D2's versions that fired with a valid candidate
     strategy_id: str = ""  # Book 3 (story D5): the registered strategy the trade uses
+    # Book 2 (story F5): the version's completed and open paper trades as the decision run read them (E5's records,
+    # replayed from `inputs.json`), for C4's own unproven check; None when the adapter gives none (fails closed)
+    version_counts: tuple[int, int] | None = None
 
     @property
     def units(self) -> int:

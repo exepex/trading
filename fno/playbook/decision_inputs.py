@@ -12,21 +12,20 @@ from pathlib import Path
 
 from ..research_engine.features import DecisionContext, FeatureValue
 from .allocation import StrategyTradeCounts
+from .book2_playbook import Book2Playbook
 from .decision_codec import book_from_json, book_to_json, market_from_json
 from .documents import strategy_from_text
 from .evaluate import LiveFeatureValues
 from .loader import Playbook
+from .opened_playbook import OpenedPlaybook
 from .registry import parse_rows
 from .schema import Strategy
+from .schema import version_id as strategy_key
 from .shadow import ShadowAccount, ShadowBooks
 
 
 def context_key(context: DecisionContext) -> str:
     return f"{context.expiry.isoformat()}|{context.entry_day.isoformat()}|{context.exit_day.isoformat()}"
-
-
-def strategy_key(name: str, version: int) -> str:
-    return f"{name}-v{version}"
 
 
 class RecordingFeatures(LiveFeatureValues):
@@ -110,10 +109,30 @@ class PlaybookSnapshot:
     files: Mapping[str, str]
     registry_csv: str
     commit: str
+    opens: Mapping[str, str] | None = None  # F6: "<name>-v<n>" -> ISO day it opened; registry text kept as a record
+    paused: tuple[str, ...] | None = None  # F5: Book 2's view; its research pauses by the day ("<name>-v<n>")
 
     def playbook(self) -> Playbook:
         strategies = tuple(strategy_from_text(text, name) for name, text in sorted(self.files.items()))
-        return Playbook(strategies, tuple(parse_rows(self.registry_csv)))
+        if self.opens is not None:
+            opened = {key: date.fromisoformat(day) for key, day in self.opens.items()}
+            return OpenedPlaybook(strategies, opens={s.key: opened[strategy_key(*s.key)] for s in strategies})
+        rows = tuple(parse_rows(self.registry_csv))
+        if self.paused is not None:
+            stopped = frozenset(s.key for s in strategies if strategy_key(*s.key) in set(self.paused))
+            return Book2Playbook(strategies, rows, paused=stopped)
+        return Playbook(strategies, rows)
+
+    def to_json(self) -> dict:
+        opens = {"opens": dict(sorted(self.opens.items()))} if self.opens is not None else {}
+        paused = {"book2_paused": sorted(self.paused)} if self.paused is not None else {}  # Book 1's bytes unchanged
+        return {"files": dict(sorted(self.files.items())), "registry_csv": self.registry_csv, "commit": self.commit,
+                **opens, **paused}  # fmt: skip
+
+    @classmethod
+    def from_json(cls, data: Mapping) -> PlaybookSnapshot:
+        paused = tuple(data["book2_paused"]) if "book2_paused" in data else None
+        return cls(data["files"], data["registry_csv"], data["commit"], data.get("opens"), paused)
 
 
 @dataclass(frozen=True)
@@ -125,23 +144,29 @@ class DayInputs:
     book: dict = field(default_factory=dict)
     counts: dict = field(default_factory=dict)
     shadow: dict = field(default_factory=dict)
+    selection: tuple = ()  # an AI book's picks (F6), each Pick.to_json(); none for Book 1, whose bytes stay unchanged
+    # Book 2 (F5): the rule's own action per opportunity ("trade" or "no trade", the day under `no_trade`), from D2's
+    # rule-default evaluation, so a record of an AI choice names the rule it departed from; None elsewhere
+    rule_defaults: Mapping[str, str] | None = None
 
     def to_json(self) -> dict:
+        picks = {"selection": list(self.selection)} if self.selection else {}
+        picks |= (
+            {"book2_rule_defaults": dict(sorted(self.rule_defaults.items()))} if self.rule_defaults is not None else {}
+        )
         return {
             "day": self.day.isoformat(),
-            "playbook": {"files": dict(sorted(self.playbook.files.items())), "registry_csv": self.playbook.registry_csv,
-                         "commit": self.playbook.commit},  # fmt: skip
+            "playbook": self.playbook.to_json(),
             "market": self.market, "features": self.features, "book": self.book, "counts": self.counts,
-            "shadow": self.shadow,
+            "shadow": self.shadow, **picks,
         }  # fmt: skip
 
     @classmethod
     def from_json(cls, data: dict) -> DayInputs:
-        snapshot = PlaybookSnapshot(
-            data["playbook"]["files"], data["playbook"]["registry_csv"], data["playbook"]["commit"]
-        )
+        snapshot = PlaybookSnapshot.from_json(data["playbook"])
         return cls(date.fromisoformat(data["day"]), snapshot, data["market"], data["features"], data["book"],
-                   data["counts"], data["shadow"])  # fmt: skip
+                   data["counts"], data["shadow"], tuple(data.get("selection", ())),
+                   data.get("book2_rule_defaults"))  # fmt: skip
 
     def replay_arguments(self) -> tuple:
         """The arguments of `RuleEvaluator.evaluate`, rebuilt from the stored inputs."""

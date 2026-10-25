@@ -101,14 +101,33 @@ class Strategy:
         return tuple(dict.fromkeys(FEATURES[c.feature].live_version for c in self.entry_conditions))
 
 
+def version_id(name: str, version: int) -> str:
+    """The one spelling of a version's ID: its file name's stem, D3's input keys, Book 3's `strategy_id` (F6)."""
+    return f"{name}-v{version}"
+
+
 def file_name(name: str, version: int) -> str:
-    return f"{name}-v{version}.yaml"
+    return f"{version_id(name, version)}.yaml"
 
 
 def parameters_sha256(document: dict) -> str:
     """SHA-256 of the parsed rule (not the file's bytes: a comment or spacing edit is not a parameter change)."""
     rule = {key: value for key, value in document.items() if key not in LIFECYCLE_FIELDS}
     canonical = json.dumps(rule, sort_keys=True, separators=(",", ":"), default=str, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def rule_sha256(strategy: Strategy) -> str:
+    """SHA-256 of what code trades by (story F6): the structure code, widths, lots, the expiry window and time exit,
+    and the entry conditions in any order. Names, descriptions and free-text fields are left out, so a copied rule
+    with new words, other number spellings or reordered conditions has the same key (`parameters_sha256` covers all of
+    them and the name). Only the time exit binds a trade; text exits other than "none" are refused where it matters."""
+    spec, expiry = strategy.structure, strategy.structure.expiry
+    conditions = sorted((c.feature, c.operator, str(c.threshold)) for c in strategy.entry_conditions)
+    rule = {"code": spec.code, "widths": sorted(float(w) for w in spec.widths), "lots": spec.lots,
+            "expiry": [expiry.kind, expiry.min_days, expiry.max_days, expiry.exit_days_before_expiry],
+            "conditions": conditions}  # fmt: skip
+    canonical = json.dumps(rule, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 

@@ -10,6 +10,8 @@ from dataclasses import replace
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING, Protocol
 
+from ..book3.registry import strategy_id_of
+from ..constants import BOOK3_AI
 from ..models import IST
 from ..playbook.decision_validity import ValidityResult
 from .data_checks import CaptureRecord
@@ -50,6 +52,7 @@ def proposal_of(
         terms.structure, terms.width, terms.lots, candidate.proposal.lot_size, _legs(outcome, market),
         candidate.max_loss, bool(outcome.risk and outcome.risk.ok), named.parameters_sha256, strategy,
         frozenset(s.key for s in playbook.approved_on(day)),
+        strategy_id=strategy_id_of(named.name, named.version) if book == BOOK3_AI else "",
     )  # fmt: skip
 
 
@@ -76,10 +79,14 @@ class BookTradeValidator:
         cutoff = datetime.combine(day, self.cutoff, IST)
         before = tuple(proposal_of(self.book, day, o, market, playbook, cutoff) for o in earlier)
         own = proposal_of(self.book, day, outcome, market, playbook, cutoff)
-        proposal = replace(own, earlier=before, eligible=eligible, **account_inputs(book))
+        proposal = replace(own, earlier=before, eligible=eligible, **account_inputs(book), **self.extra(outcome))
         report = self.checker.check(proposal, self.captures.record(day))
         reason = "; ".join(f"{r.name}: {r.reason}" for r in report.failures)
         return ValidityResult(report.ok, report.record(), reason, report)
+
+    def extra(self, outcome: Outcome) -> dict:
+        """What a book's own validator adds to the proposal (Book 2's rule default and counts, story F5); none here."""
+        return {}
 
     def log_failures(self, day: date, results: Mapping[str, ValidityResult]) -> None:
         """Each report in the book's failure log (a pass writes nothing); the run calls it after writing its records."""

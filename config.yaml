@@ -225,6 +225,22 @@ daily:
     close_read: "2026-10-23"  # story A4h's 15:40 close read: record-only for its first 5 sessions (orchestrator)
     close_recheck: "2026-10-23"  # A4h's 16:00 second read
     recommend: null  # story REC1b: the recommender's daily record and #fno-desk line (null until the owner's go)
+    # Story F1t: each AI book's first trading day (null: the book is not in the desk at all). Set by the owner only,
+    # after the go-live checks in docs/stories/F1t-ai-trading-runner.md.
+    book2_hybrid: null
+    book3_ai: null
+
+# Story F1t: the AI books' decision timetable, proposed until S1 freezes it from measured run times (like
+# desk.timetable). A fire starting after latest_fire is not sent; a commitment counts only if on the remote at
+# receipt_deadline; the routine reveals from reveal_from; a reveal counts only if on the remote at reveal_deadline,
+# which must be before desk.timetable.decision_deadline (the promotion deadline).
+ai_books:
+  decision_timing:
+    status: proposed until S1
+    latest_fire: "15:07:00"
+    receipt_deadline: "15:10:00"
+    reveal_from: "15:10:10"
+    reveal_deadline: "15:11:00"
 
 # Story FL1-1d: the forecast lab's two report editions to #fno-forecast, each from its own owner routine (`lab open`
 # at 08:38 IST, `lab close` at 19:53 IST), live only from these dates; null: not live (design signed off: DESK_DECISIONS

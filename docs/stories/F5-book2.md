@@ -327,3 +327,146 @@ version and a new version number starts again at 0; judge 633's note on `b0-mont
 Merge order: F5's code merges after F1t's code (the `AcceptedDecision`, run check and label) and F6's
 `SelectionAllocator`.
 
+
+### Code round 1 (story/f5-code, 25 Oct 2026)
+
+Branch `story/f5-code`, stacked on `story/f6-on-f1t` (F6 round 2, which carries F1t round 2); it merges after both.
+
+**Built, by criterion:**
+1. **Sheet (1):** `Book2Sheet` (`fno/book2/sheet.py`) is the pack step's `BookSheet` for Book 2. It runs D2 at the cutoff
+   on Book 2's own account and view, using Book 1's reader's `at_cutoff`. The sheet lists every opportunity with its
+   version's `strategy_status` and `widths`, the rule default with its built terms, `eligible` and Book 2's pauses. It
+   goes into the private pack under `evaluation` (`SHEETS[book2_hybrid]`, built on first use inside the per-book
+   guard). Timed at 12 versions: about 0.08 s, against the 5 s budget.
+2. **Answer (2):** `check_decision` (standard library only) checks the slots one to one against the rule default, the
+   F4 evidence shape and the action against the slots. Two slots may not take one opportunity, and a `follow_rule`
+   slot takes its default.
+3. **Envelope actions (3):** each slot goes through D4's own `AuthorityEnvelope` and `resolve` (`fno/book2/slots.py`):
+   - allowed: the choice is picked;
+   - shadow-only: the account takes the rule default and the choice is kept;
+   - forbidden: the choice is still picked, so C4's `EnvelopeMode` blocks it on its own and its record reads "no trade,
+     blocked by C4".
+
+   Tests cover follow_rule, no_trade, choose_width, reduce_lots, choose_strategy, shadow-only and forbidden.
+4. **C4 (4, 10, 13):** `EnvelopeMode` gains an independent `unproven` check. Under 20 completed paper trades a version
+   may hold at most one open trade, counting the trades that passed C4 earlier the same day.
+   - The counts come from C4's adapter through a new `extra(outcome)` hook. They are asked exactly as D2's allocator
+     asks them, and a replay reads the recorded counts, so it reproduces every result.
+   - Without counts the check fails closed.
+   - Book 1's `PlaybookMode` is untouched.
+   - The C4 rule default for each pick is its slot's default terms from D2's rule-default evaluation, never the AI's
+     (judge 260), and is stored with the pick in `inputs.json`.
+5. **Records and replay (5):** every record passes `validate_record`, and D3's replay with Book 2's validator returns
+   no difference. `authority_check` is the envelope's verdict per slot.
+   - **A D3 gap fixed for Book 2 (strong evidence: `RecordBuilder` wrote `rule_default` = the book's own action):** a
+     vetoed default read "rule default: no trade". `DayInputs` now carries Book 2's rule action per opportunity
+     (`book2_rule_defaults`, written only when present, so Book 1's bytes are unchanged), and `RecordBuilder` and the
+     replay use it.
+   - So a veto reads rule default "trade" and chosen "no trade": the paired comparison scoreboard A needs.
+6. **No tradable version (6):** an empty sheet gives the day's "no trade" record.
+7. **C4 failure never fills (7)** and **orders and exits (9):** `Book2Orders` is Book 1's `ReplayedOrders`, rebuilt from
+   the stored picks, their defaults and the recorded counts.
+   - A choose_width run orders the rebuilt width.
+   - Blocked choices are never ordered; for a shadow-only choice the default is ordered.
+   - Any edit of `inputs.json` refuses every order.
+   - Exits are Book 1's `PlaybookExitRules` over Book 2's records, from the version file the run read.
+8. **Timing (8):** `decide()` on the test day: 0.125 s, measured (budget 30 s). F1t's hard time limit bounds a slow day.
+9. **Judge (11):** with `judge_blocks` the run picks nothing (no chosen trade, `judge` set), and the day log keeps the
+   rule default as the shadow.
+10. **Q11 (13) and pauses (14):** Book 2's view and its research pauses (part 1). `Book2ResearchPauses` joins E6's
+    `reviews` step only while Book 2 is live, and `research_pauses.csv` is committed by that step.
+    `research_pauses.csv` is append-only and never back-dated (judge 632.1): a rewritten earlier row or a row dated
+    before the last one refuses the read (`PausesRefused`), with tests.
+11. **Label refusal (15):** Book 2's decider refuses a chosen record without `served.strategy_status`. Tested with
+    F1t's check never reached.
+12. **Through F1t:** real Book 2 days pass F1t's real `Promoter` and run check, labelled "strategy not yet passed"
+    (research picked), "strategy passed" (paper only) or "" (no trade). A judge-blocked day passes F1t's block check.
+
+**Q12, an assumption awaiting the owner (orchestrator, 25 Oct):**
+- Text amendment, one line: *for Book 2 only, the no-trade threshold binds paper versions only* (`binds_paper`). A
+  research version Book 2 may trade is allocated as D2's shadow test allocates it. Without this, D2 would refuse every
+  research candidate for its missing estimate and Q11 would trade nothing.
+- **What (A) measures:** whether Book 2's AI veto and width choices improve on a rule known to lose about Rs 386 per
+  opportunity (b0-monthly-sc's research record). That comparison is the only thing that makes paper-trading a known
+  loser worth anything.
+- The records now hold what the comparison needs: per opportunity, the rule's action next to Book 2's, and in the day
+  log each slot's default terms and choice.
+- The rule's own result on the same days comes, first, from D2's existing shadow of the same research version, joined
+  by day and opportunity ID. Checked in the code: `Playbook.shadow_on` gives every registered research candidate, and
+  Book 1's run evaluates each one alone in its own shadow book (`fno/playbook/evaluate.py:52`).
+- **The shadow does not cover every day (strong evidence: code read):** that shadow book has its own one-open-trade
+  limit and its own C2. On a day it already holds an open trade of the version, it trades nothing, while Book 2's
+  account may still be offered the default.
+- So, per the ruling, the day log also carries the rule's would-be proposal for every slot (`rule_trade`: the sheet's
+  legs, width, lots and maximum loss), including the judge-blocked defaults. Any vetoed or blocked day can then be
+  priced later from the day's recorded quotes.
+- **Not built here:** the scoreboard view that lists vetoed days against that shadow result. That belongs to the
+  scoreboard's story; F5 only records the inputs.
+- If the owner says (B), it is a one-line change (`binds_paper` → `True`).
+
+**Deviations and choices to check:**
+- **Shadow records, ruled by the orchestrator (25 Oct): accepted, with one condition.** Both cases (a shadow-only
+  choice, and the rule default on a judge-blocked day) are recorded in Book 2's day log
+  (`journal/book2_hybrid/ai_days/<day>.json`), not as D3 `mode: shadow` records, so no shadow fill path exists that
+  nobody owns. The condition, that the rule's own result on those days be available, is met as described under Q12
+  above (D2's shadow where it traded, and `rule_trade` in the day log for every day). Envelope v1 allows every action,
+  so the shadow-only case cannot occur under v1.
+- `served.strategy_status` is run-level in D3: a run that picks any research version is labelled `research`
+  (conservative: a paper trade in the same run then also reads "strategy not yet passed").
+- **The prompt stays neutral on the rule's record** (it says what `research` means, not "this rule loses Rs 386").
+  Telling the AI the rule loses would make the veto a reaction to the prompt rather than to the market. Reasoning
+  only; the owner may prefer otherwise.
+- **Shared code touched, each a small refactor with the callers' tests green:**
+  - F6's fired-packs check moved to `fno/ai_trading/fired_packs.py`, shared by both deciders.
+  - F6's `_parts` became `account_parts(root, market, book)`.
+  - D2's `CandidateBuilder.build` now loops over the new `at_terms`, with the same messages; Book 1's tests are
+    unchanged.
+  - The allocator's `threshold` may be a per-candidate rule.
+  - The test margin fixture gained a width-50 row.
+- **Until F4's code lands, `NoJudge` blocks Book 2 every day** (F1t's rule, F4 owner decision 16 Oct). Switched on
+  today, Book 2 would record "judge unavailable", no trade, every day. F4 must be built before Book 2's live date.
+
+13. **O11 (12):** both of Book 2's strict xfails are real checks now, on the recorded day of 16 Oct
+    (`tests/e2e_acceptance/book2_replay.py`):
+    - Book 2's private pack carries `Book2Sheet`.
+    - A follow-the-rule answer goes through F1t's real `Promoter` and run check into Book 2's real decider, C2 and C4
+      (the version's envelope registered in D6).
+    - E3's daily run collects run `r1`, fills its 4 legs with `Book2Orders`, reviews the exit ("held") with Book 2's
+      exit rules and marks the trade, with no alert.
+    - `Replay.daily_run` was split into `books()`, `orders()` and `commands()` for this, with no behaviour change.
+    - Book 3's half stays a strict xfail under F6 (`test_book3_fills_and_exits_in_the_daily_run`). O11 went from 13
+      xfails to 12.
+    - F1t's sealing is not in this replay; its own end-to-end test covers it on E3's real run.
+
+**A defect found by the replay, outside F5 (reported, not fixed here):** E3's `fills` result in the run log is keyed by
+trade ID alone (`fno/desk/daily_steps.py:185`).
+- Book 1 and Book 2 taking the same opportunity, the normal follow-the-rule day, give the same trade ID, so the run
+  log keeps only one book's fill result.
+- On 16 Oct both books filled 4 legs, and the log shows one entry.
+- Each account's fill records are correct and each failure is still alerted. Only the run log and what reads it lose a
+  line.
+- Fix proposed for its owner (E3's run log, lane 1): key the result by book as `decisions`, `exits` and `trade_marks`
+  already are. That touches the run-log schema read by about ten test files.
+
+**Independent review (25 Oct, a separate reviewer on 467413243), each finding checked against the code:**
+1. Accepted, fixed: after the envelope, a shadow-only slot takes its default, so two picks could name one opportunity.
+   D2 would then trade the first while C4 paired the last pick's rule default. The decider now refuses the day when two
+   resolved picks name one opportunity (test). This cannot happen under envelope v1.
+2. Accepted, fixed: a judge-blocked day's records read "not chosen by book2_hybrid", like an AI veto. Every record now
+   reads "no trade, judge failed" or "no trade, judge unavailable", from the verdict file (criterion 11; tests).
+   `SelectionAllocator` takes the unpicked reason; Book 3 is unchanged.
+3. **Ruled by the orchestrator (25 Oct): intended.** A forbidden `no_trade` still trades nothing (D4's `resolve`:
+   account `None`). The envelope can only narrow the AI's choices, never widen them into a trade: it fails toward no
+   trade.
+4. Known limit, kept: the replay reproduces the run from `inputs.json` by reading the stored rule actions and each
+   pick's stored default, not by recomputing the rule default. The counts are recorded only for the versions sent to
+   the allocator. The inputs hash in every record catches any edit, but a decider bug in the rule default would replay
+   clean. The sheet check at decision time (D2 recomputed and compared) is the guard.
+5. Known, as stated above: the run label is conservative (a research pick refused by C2 or C4 still labels the run
+   `research`). A forbidden trade of an opportunity whose rule did not fire is no built candidate, so it is recorded
+   in the day log's `attempted_picks` and `authority_check`, not as a C4 block.
+
+**Gates (code round 1):** the full suite on 4cc4b288 (on F6 round 2 e805c646, which carries F1t round 2 and main
+80857781), in its own worktree: 17,512 passed, 1 skipped, 12 xfailed, 0 failed. ruff, `ruff format`, `check_imports`
+and the record scan are clean; every file is under 350 lines. F1t's prepared narrow fix (c1501a68) is not in this
+branch yet: it merges in once that fix is pushed.

@@ -11,6 +11,7 @@ from datetime import date
 
 from ..books.versions import DecisionFacts
 from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, Decision
+from .decision_inputs import strategy_key
 from .decision_validity import BLOCKED, ValidityResult
 from .outcomes import DayEvaluation, Outcome
 
@@ -71,9 +72,16 @@ class RecordBuilder:
 
     def __init__(
         self, book: str, run_id: str, context: Mapping[str, object],
-        validity: Mapping[str, ValidityResult] | None = None,
+        validity: Mapping[str, ValidityResult] | None = None, rule_defaults: Mapping[str, str] | None = None,
     ):  # fmt: skip
+        """`rule_defaults`: Book 2's rule action per opportunity (F5); without it the rule default is the action."""
         self.book, self.run_id, self.context, self.validity = book, run_id, dict(context), dict(validity or {})
+        self.rule_defaults = rule_defaults
+
+    def _rule_default(self, opportunity_id: str, action: str) -> str | None:
+        if self.book == BOOK3_AI:
+            return None
+        return action if self.rule_defaults is None else self.rule_defaults.get(opportunity_id, "no trade")
 
     def _blocked(self, outcome: Outcome) -> ValidityResult | None:
         result = self.validity.get(outcome.opportunity.opportunity_id)
@@ -107,14 +115,21 @@ class RecordBuilder:
         candidate = "built" if outcome.candidate else outcome.reason
         base = self._base(outcome.opportunity.opportunity_id, outcome.opportunity.mode, files[strategy.file_name])
         return {
-            **base, "features": record["features"],
+            **base, **self._strategy(strategy), "features": record["features"],
             "rule_result": {"fired": not record["unmet_conditions"], "unmet_conditions": record["unmet_conditions"]},
             "structure": record["trade"], "expected": _expected(outcome), "risk": record["risk"],
             "validity": {"c4": c4.record if c4 else None, "candidate": candidate},
             "decision": {"action": action, "outcome": record["decision"], "reason": reason},
             "alternatives": [_summary(o) for o in outcomes if o is not outcome],
-            "rule_default": action if self.book != BOOK3_AI else None, "chosen_action": action, "reason": reason,
+            "rule_default": self._rule_default(opportunity_id, action), "chosen_action": action, "reason": reason,
         }  # fmt: skip
+
+    def _strategy(self, strategy) -> dict:
+        """Book 3 trades many registered strategies in one run, so each opportunity record names its own (F6)."""
+        if self.book != BOOK3_AI:
+            return {}
+        return {"strategy_id": strategy_key(strategy.name, strategy.version),
+                "strategy_spec_sha256": strategy.parameters_sha256}  # fmt: skip
 
     def _day(self, evaluation: DayEvaluation) -> dict:
         chosen = [o.opportunity.opportunity_id for o in evaluation.chosen if not self._blocked(o)]
@@ -125,7 +140,7 @@ class RecordBuilder:
             "expected": None, "risk": None, "validity": None,
             "decision": {"action": action, "outcome": action, "reason": reason},
             "alternatives": [_summary(o) for o in evaluation.outcomes],
-            "rule_default": action if self.book != BOOK3_AI else None, "chosen_action": action, "reason": reason,
+            "rule_default": self._rule_default(NO_TRADE_ID, action), "chosen_action": action, "reason": reason,
         }  # fmt: skip
 
 
