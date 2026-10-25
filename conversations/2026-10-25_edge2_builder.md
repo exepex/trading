@@ -36,3 +36,22 @@ Owner, 25 Oct 2026 (relayed in this session's task): "no proven edge: let's try 
 - Next family: F7 as planned, or a family using the FII-change lean as the side filter of a defined-risk NIFTY weekly
   spread (orchestrator's call).
 - R1 factory: a dependence-corrected G1 bound for multi-day holds (proposal to its owner).
+
+## F8 (later)
+
+- Orchestrator chose a side-filter family (F8, block edge2-f8, trials 121-123; F7 parked). Registered before any
+  option price was read; discovery (spreads alone, no OI read) at d38baa12: every 2-leg NIFTY weekly credit spread
+  loses on both sides (side averages -Rs 219 to -388); P0W10 futile; P0W5 and P5W5 kept
+  (`research/edge2/F8_DISCOVERY.md`).
+- Open: whether to spend participant OI 2025-26 on F8's held-out read (my recommendation: keep it unread; low prior,
+  low power); judge J on the branch.
+
+## Judge J round 1 and F8's closure
+
+- Judge J's early findings on F1+F6: S1 (cards edited after their freeze: restored to their frozen bytes, guard test
+  added) and S2 (trial 118's live G1 pass: a correcting appended row). Both accepted by the orchestrator.
+- Orchestrator chose option 2 for F8: participant OI 2025-26 stays unread; F8 closed as "spread fails unfiltered;
+  filter untested"; 124-126 unused.
+- One head for judge J round 2: story/edge2-f8-fii-side-spread at 56031075 (the F6 fixes re-applied on F8's line:
+  the gate log's append-only check reads history linearly, so a merge of parallel appends fails it).
+- Next-search candidates (event IV crush, weekly calendar) sent to the orchestrator; no discovery until J passes.

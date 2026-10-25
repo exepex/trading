@@ -52,3 +52,35 @@ removed; unreachable while the positive rule holds (no order name matches `get_*
 - Independence: while reading the judge README's format I saw the index row of judge 630 (the other judge). Finding 4
   was in my notes before that; finding 1 I then checked myself with the run above. Nothing else of it was read.
 - Gates first failed 2 + 9 errors in a shallow clone (freeze tests); after `git fetch --unshallow` all passed.
+
+## Addendum 1: round 2 (the last), head `c2ed049e6`
+
+**FAIL, lane 1** (1 should-fix, 1 minor). Every round-1 finding is fixed. The new should-fix comes from the dated-lot
+check added for judge 630. After this round the owner decides (two-round rule).
+
+| Round-1 finding | Verdict | Evidence |
+|---|---|---|
+| 1 Suite without the SDK | FIXED | `broker_wiring.py` builds Groww on first use (`functools.cache`). Full suite on a trial merge with main c709f11c3, `growwapi` blocked for every xdist worker by a PYTHONPATH shim: 16682 passed, 1 failed, `test_feed_tls`, a shim artifact (my first shim raised ImportError; `importorskip` skips only ModuleNotFoundError). With a ModuleNotFoundError shim that test skips: 264 passed, 1 skipped. Plant Q5 (eager provider) caught |
+| 2 Retry promise | FIXED | `broker_check.py` `LOST`/`BY_HAND`; story Idempotent bullet; O1 text. The test feeds the real output through `outcome()` and `RunLog`: done, no retry. Plant Q4 caught |
+| 3 Step time text | FIXED | story: "runs this step third ... right after the routine's 14:05 IST start and before the weather" |
+| 4 One NIFTY level | FIXED | `Levels` before and after; a rate step inside the range is `error`. Plants Q1, Q2, Q7, Q8 caught |
+| 5 Self-review | FIXED | response 291, "Self-review of rounds 2 and 3" |
+
+**New findings**
+
+1. **Should fix: the dated-lot check can lose the whole day, and the text says the lot file comes earlier than it does.**
+   The check needs the day's own `fo_mktlots.csv` (`school/roads/lots.py`: no carry-over). Otherwise every basket is
+   `error` "no dated NSE lot" with no request, and the day is lost. The story (A-data-foundation.md:2084) says "A20a
+   archives it from 07:45 IST". On main, the manifest commits for the day's file are 21 Oct 19:46 IST (0dedeff7b),
+   22 Oct 13:03 IST (277f31a37) and 23 Oct 13:00 IST (534438dad): never by 07:45, and once after the 14:05 step. Also,
+   response 291:169 still says "a same-day rerun retries", which is the round-1 error again. Fix: state the measured
+   arrival times and the loss risk in the text, and correct the claims' sentence. Then either the owner accepts losing
+   a day when the file is late, or the check gets a source that is there by 14:05. Examples: O1 archives the lot file
+   before `margin_check`, or the previous session's archived file is used for the basket's month, labelled. Test
+   whichever is chosen.
+2. Minor: `NOT_SAVED` always says "by hand before 14:50", even when the run itself ended past 14:50. A by-hand run's
+   receipts are committed by no step: the line or the text should say to commit `receipts/data/margins/broker_checks/`.
+
+**Gates (trial merge with main c709f11c3):** ruff, format, imports and check_records clean; full suite with the SDK
+16683 passed, 13 xfailed, 0 failed. **Plants:** 8 new (Q1-Q8), all caught.
+Open item, unchanged: the market-hours sample on Mon 26 Oct.

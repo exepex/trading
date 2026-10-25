@@ -43,6 +43,14 @@
   and (A) for Book 2. Done: D6 rows on story/ai-books-terms-v1 (1a694643; must merge with a merge commit), and F5's
   revision for Q11 (a369d4f0).
 
+- F1t text revision 2 PASSED (judges 621.2, 623.1). The F1t code was re-ported onto main and reviewed by two
+  independent agents; their 5 should-fix findings were fixed. Full suite 16,921 passed. The head cab730a8 (PR #157) is
+  with the judges.
+- F4 text round 2 (judge 628): 1ca9b691. F5 Q11 round 2 (judge 632's two blocking findings, accepted after checking
+  the code): 27aa4610.
+- Found and reported: only 10 s between the last receipt reading (15:11:50) and E3's 15:12 deadline. A slow day is
+  late, never a trade; the test fire measures it.
+
 ## Decisions so far
 
 - F1t's code is re-ported onto main after the text PASS, never merged blind; F6 is re-judged after F1t's port; F5's
