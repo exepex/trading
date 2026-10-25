@@ -102,7 +102,7 @@ area: one scanner, one reviewer, one writer, two judges; at most three areas at 
    forecast routines", "Pre-open capture (story A22)"). Those sections stay in CLAUDE.md, word for word, until the
    owner re-pastes new prompts; DOC1 never changes a stored prompt.
 2. 95 test files read documents (`grep -rlE "docs/|\.md['\"]" tests`); `DESK_DECISIONS.md` is named on 44 lines in
-   `fno/` and `tools/` (1 runtime read) and in 20 test files, and is cited as "line/row N" 138 times. Each move updates
+   `fno/` and `tools/` (3 runtime reads: `fno/budget/wiring.py:54`, `fno/checks/validity_account.py:159`, `fno/risk/overrides.py:51`) and in 20 test files, and is cited as "line/row N" 138 times. Each move updates
    its readers in the same merge, and the full gates run.
 2b. **Citations:** before each P6 switch a citation check lists every repository path a file cites (Markdown, code,
    config, workflows, judge reports); each must resolve on the switched tree or appear in `docs/README.md`'s old-to-new
