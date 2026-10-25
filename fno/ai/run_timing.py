@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from .book_run import BookRun
@@ -41,12 +41,15 @@ class RunTiming:
     transport: SubmissionTransport
     clock: Callable[[], datetime]
     session_id: str  # empty outside a cloud session: the start is noted, the publish refused
+    run: str = ""  # story F1t: "decision" for a book's trading decision run (its own work files and timing file)
+    path_of: Callable[[date, str], str] = timing_path  # where the run's timing is published
 
     def _started(self, pointer: BookRun) -> Path:
         return self._work(STARTED_FILE, pointer)
 
     def _work(self, name: str, pointer: BookRun) -> Path:
-        return self.root / WORK_FOLDER / name.format(day=pointer.day.isoformat(), book=pointer.book)
+        book = f"{pointer.book}_{self.run}" if self.run else pointer.book
+        return self.root / WORK_FOLDER / name.format(day=pointer.day.isoformat(), book=book)
 
     def sealed(self, pointer: BookRun) -> None:
         """When the run sealed (its first seal: a commitment is written once)."""
@@ -79,7 +82,7 @@ class RunTiming:
             raise ValueError(NO_START)
         if not self.session_id:
             raise ValueError(NO_SESSION)
-        path = timing_path(pointer.day, pointer.book)
+        path = self.path_of(pointer.day, pointer.book)
         if self.transport.existing(path) is not None:
             return f"timing already published: {path}"
         started = json.loads(started_file.read_text(encoding="utf-8"))["started_at"]

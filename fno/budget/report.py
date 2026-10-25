@@ -28,7 +28,7 @@ class MonthMeter:
     allocation: Allocation
     cap: CapReading
     usage_rows: list[dict]
-    missing_captures: list[tuple[str, str, str]]
+    missing_captures: list[tuple[str, str, str, str]]  # (day, book, session link, run)
     needs_owner_yes: list[str]
     unknown_items: list[str]
     allocation_warnings: list[str]

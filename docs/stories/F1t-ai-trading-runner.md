@@ -669,3 +669,127 @@ Round 2 (answers to judges 621 and 623, all accepted; each fix is text):
   reveal race.
 - 621 m2 / 623 minor: the unreadable meter is a deliberate fail-open on cost only (orchestrator, 25 Oct). It costs
   minutes, never a trade.
+
+### Code round (story/f1t-code, 25 Oct 2026)
+
+**What was built:** the 16 Oct code re-ported onto `main` (never a blind merge of its 4,810-commit-old branch), plus
+revision 2's items. Decisions run on G11's `RunTerms` (`fno/ai_trading/terms.py`); `fno/ai`'s chain is reused with no
+new parameter.
+
+**Departures from the text, each forced by the v4 freeze (`FREEZE_v4.md` hashes `fno/constants.py` and
+`fno/ai/{versions,fire,outcome,scoring_gate,stop_rule,run_terms,answer,envelope,seal,submissions,timing,
+transcript_audit,audit_plan,draw_seed,coverage,rules,paths,pointer,receipts}.py`; none of them is in this diff):**
+- `model_misreported` is not a new breach kind in `fno/ai/transcript_audit.py`. It is F1t's own record
+  (`fno/ai_trading/model_audit.py`, `python -m fno ai-trading model-audit`), and `decision_stop_reason` counts it
+  beside the transcript breaches (two in 20 decision days, under one version).
+- The decision timing path is F1t's own (`fno/ai_trading/paths.py: timing_path`), passed to `RunTiming`.
+- `LevelBudgetStop` lives in `fno/ai_trading/budget.py`, implementing G11's `BudgetStop` interface.
+
+**Smaller departures:**
+- The strategy label is in the outcome record and the run log's `strategy_labels` (as words the public log keeps).
+  A promoted day sends no alert, so no alert line can carry it.
+- The reason codes are eight, not five: `ai:DONE`, `ai:CONFIG` and `ai:BUDGET_UNREAD` are added.
+- A `fire_unknown` session is audited by its link (`audit-record --session`), as in the 16 Oct code. The weekly
+  draw reads frozen `fired_sessions`, which counts only `fired: true`.
+
+**The code round's two independent reviews (25 Oct). Every should-fix is fixed, each with a test in
+`tests/ai_trading/test_review_fixes.py`, `tests/packs/test_book_sheet.py` or `tests/ai/test_fire_once.py`:**
+- **Late collection:** `ai_collect` reaching a book at or after E3's deadline records `late` and promotes nothing
+  (boundary 15:11:59 promotes).
+- **Failure reasons:** a failure's public reason keeps only the exception type; the message goes to the private run
+  log.
+- **A failure after promotion:** a failed outcome write after promotion puts the run back (`Promotion.undo`).
+- **Exposure:** exposure is judged over every live book's reveal, including a book recorded by an earlier run.
+- **An AI book's pack:** an AI book whose private pack cannot be built is refused alone, with one alert naming only
+  the error type. Book 1's failure still stops the step, as before.
+- **The fire log:** it commits through its own pending marker (`.pending_ai_fire.json`, E5b's pattern). A push that
+  fails turns each `firing` entry into `not_fired` ("the fire log could not be pushed before firing"), so a rerun
+  never calls it `fire_unknown`.
+
+Minor findings, also fixed:
+- the collection window is checked at load (reveal deadline + 50 s before E3's deadline);
+- with no AI book live, the AI settings are not read (`not_live`);
+- the budget meter fails open on any error;
+- the observer reads the publish branch;
+- `served.ai_decision_version` is checked by name (F6's key) and `run_id` equals the run folder;
+- relative paths are the repository's;
+- a type hint in `fno/budget/report.py` is corrected.
+
+**Kept, with the reason:**
+- `served_model_check` compares through `fno/ai/outcome.py:model_check`, which ignores a `[1m]` context suffix. It is
+  the same model and the forecasts' own rule; a different model name is still `model_mismatch`.
+- A rerun after a failed commit relies on E3's `PendingCommitter` recovery to commit the files already written; the
+  step's files go through the run's own committer.
+- An observer left running by a killed parent can write a second reading per deadline. Receipts take the first
+  valid reading, so the outcome is unchanged (known limit).
+- The 10 s between the last reading (15:11:50) and E3's 15:12 deadline is tight. It is checked at load, and the
+  non-counted test fire measures it. A slow day is `late`, never a trade.
+
+**Gates and sample:**
+- Full suite on the code head eebc9dc8 (its own worktree): 16,921 passed, 1 skipped, 14 xfailed. This Claims commit
+  is Markdown only.
+- ruff, `ruff format` and `check_imports` are clean; every file is under 350 lines.
+- Real output sample (criterion 15; fixture day, committed code, no post):
+  - Book 2 `promoted` ("run 2026-10-19-r1 committed for E3's deadline"; served `claude-opus-5-5`, source
+    `session_tool`, check `match`; commitment seen 15:10:00, reveal 15:11:00).
+  - Book 3 `late` ("commitment not on the remote at 15:10:00 (first seen 15:11:00)").
+  - Alert line: "AI books not promoted: book3_ai late: commitment not on the remote at 15:10:00 (first seen 15:11:00);
+    no trade today for these".
+
+### Code round 2 (judge 651; story/f1t-code, 25 Oct 2026)
+
+Every finding is accepted: each was reproduced from the judge's plant or repro, then fixed with a test that fails on
+the old code.
+
+1. **Should-fix 1, `ai_collect` is bounded (strong evidence: the judge's 95 s repro, rebuilt as an end-to-end test).**
+   - Each decider now runs under a hard real-time limit: the time left before E3's 15:12 deadline, less a 10 s reserve,
+     and at most 60 s (`fno/ai_trading/time_limit.py`; `collect.py` `_decider_seconds`).
+   - The reserve covers the run check, the git snapshots, the outcome record and the step's commit and push, which
+     must all land before 15:12 for E3 to count the run (reasoning only: a push takes a few seconds).
+   - Stopped by the limit, the promoter puts every write path back and the book is `late`, never `refused`.
+   - A book reached within the reserve is `late` with no decider call.
+   - A run that finishes at or after 15:12 (possible where no alarm can be set, outside the main thread) is undone and
+     `late`.
+   - The daily run is one thread, so the limit is a `SIGALRM` timer in that thread.
+   - Tests:
+     - `test_a_slow_ai_decider_is_stopped_late_and_book1_is_still_collected_on_time`, on E3's real daily run: Book 1
+       commits a real run, and Book 2's decider would sleep 30 s and then move the clock 95 s. Book 2 is stopped in
+       about 2 s and is `late`, with its run put back, and E3 collects Book 1's `r1` on time.
+     - Without the limit, the same test runs 30 s and fails.
+     - Also `test_time_limit.py`, the promoter's restore test, and three boundary tests in `test_review_fixes.py`
+       (11 s left promotes; 10 s left is `late` with no call; finished at 15:12:05 is undone).
+   - Cost: a decider now has about 30-45 s on a normal day (readings at 15:10:00 and 15:11:00). That is within F5's and
+     F6's 30 s budget. A reading as late as 15:11:50 makes the day `late`, which is the designed failure.
+2. **Should-fix 2, a rehearsal builds no trigger.**
+   - `build_ai_steps` builds no `RoutineTrigger` when `rehearsal()` is set. The steps' own guard stays, read at each
+     run.
+   - Test, on the real wiring with the real mode (`in_this_process`) and a spy factory: no trigger is built and both
+     steps refuse. In a real run both triggers are built. The judge's plant (`rehearsing = lambda: False`) now fails it.
+3. **Minor 3:** the label's mixed case. Research plus paper reads "strategy not yet passed", in both orders. The `all`
+   to `any` plant fails 2 tests.
+4. **Minor 4:** the wired `build_packs` isolates Book 2 and Book 3 and never Book 1. A Book 1-only run isolates nothing.
+5. **Minor 5:** already closed at a1ed229a (equality of each D6 component to its named file).
+
+Gates (round 2): the full suite on d7162890e (round 2 merged with main 80857781), in its own worktree: 17,146 passed,
+1 skipped, 13 xfailed, 0 failed. ruff, `ruff format`, `check_imports` and the record scan are clean; every file is
+under 350 lines.
+
+### Narrow re-check after round 2 (judges 651.1 and 655.1; prepared, pushed only on the owner's word)
+
+1. **651.1 should-fix and 655.1 m2, accepted (strong evidence: the plant below):** `DecisionTimedOut` subclassed
+   `Exception`, so a decider's own `except Exception` swallowed the stop. F6's `Book3Proposer._guards` has one, and
+   the decider would then run on unbounded.
+   - It now derives from `BaseException`, as `KeyboardInterrupt` does; the promoter catches it by name.
+   - The timer is cleared first and the old handler is restored in a nested `finally`, so an alarm landing inside the
+     cleanup still restores it.
+   - Tests: a block and a promoted decider that each catch `Exception` around slow work are still stopped in under 2 s;
+     the old handler comes back after a stop.
+   - Plant: back on `Exception`, 2 tests fail.
+2. **655 m1, accepted:** an empty or blank `strategy_status` on a chosen trade refuses the book-day.
+   - The code already refused it (`run_check.py`, `status.strip()`); the test was missing.
+   - An empty string is refused earlier, by D3's own record check (non-empty `served` text). Whitespace passes D3 and
+     is refused by F1t's run check. The test pins both.
+3. **Judge 661.1's note for F1t (from F5's judge B), accepted:** dropping a step's reason templates passed the targeted
+   suites. A new test fills every `ai:` template of each of the two steps with a book's private text and checks that it
+   reads as its own code, never the text and never `unlisted`. Plants: dropping `ai_collect`'s templates fails it, and
+   so does dropping `ai_fire`'s.
