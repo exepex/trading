@@ -86,3 +86,24 @@ as a trade; a candidate not listed but matched; the abstention line before compl
 - **Plants: 17 of 17 caught (Z1-Z17).** Run in their own worktree with PYTHONDONTWRITEBYTECODE=1.
 - Slack, with the token set (1792894919-1792895449): only REH1 "DRY RUN ... replay" posts in #fno-desk, as before.
   None comes from `tests/recommend`.
+
+## Addendum 2: code round 2 (the last), story/rec1c-evening-check at 33f0252db
+**PASS**, lane 1: S1 and m1 closed; 1 minor. Trial merge with main 48acc7d3 (1158d830): 17,431 passed, 1 skipped,
+13 xfailed; ruff, format, check_imports (2,884 files), check_records (9,473) and check_numbers clean.
+- **S1 closed.** `_recorded_days` now reads every receipted recommendation up to the check day, however old. A day 60
+  or more sessions back gets `last` on the next evening that runs.
+  - My probe again (window shrunk to 5, the 5th session's evening missed): the next run writes final
+    `data_check_failed` "never closed in 5 sessions" and alerts it; the evening after says nothing waits.
+  - My plant M1b (old days dropped by session count) is caught by `test_the_last_evening_missed_still_ends_the_day_final`.
+- **m1 closed.** `DataDisagrees` (two live outcomes, an orphan correction, an untraded mismatch) is final at once;
+  read errors stay retried. My M2 is caught.
+- **K's m1** holds as well: a past-day `--on` counts only check files made by then. My M3 is caught.
+- **Plants: 20 of 21 caught.** Z1-Z17 are caught again on the new code, as are M1b, M2 and M3.
+  - M1 survives: it keeps only the last 60 *recorded* days. In live use every session is recorded, so that would
+    bring the round-1 bug back, but no test has more than 60 recorded days.
+  - **m2 (minor, test only):** add one test with more than 60 receipted days, each with a final check or with an old
+    open day.
+- Note: each evening reads the latest check file of every recorded day through the verified Drive cache, so the reads
+  grow by about 250 a year. Cheap now; worth a "final" index once it matters.
+- Slack, with the token set (1792896399-1792896956): only REH1 "DRY RUN ... replay" posts in #fno-desk and
+  #fno-forecast, as before.
