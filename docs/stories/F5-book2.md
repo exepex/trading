@@ -464,3 +464,8 @@ trade ID alone (`fno/desk/daily_steps.py:185`).
 5. Known, as stated above: the run label is conservative (a research pick refused by C2 or C4 still labels the run
    `research`). A forbidden trade of an opportunity whose rule did not fire is no built candidate, so it is recorded
    in the day log's `attempted_picks` and `authority_check`, not as a C4 block.
+
+**Gates (code round 1):** the full suite on 4cc4b288 (on F6 round 2 e805c646, which carries F1t round 2 and main
+80857781), in its own worktree: 17,512 passed, 1 skipped, 12 xfailed, 0 failed. ruff, `ruff format`, `check_imports`
+and the record scan are clean; every file is under 350 lines. F1t's prepared narrow fix (c1501a68) is not in this
+branch yet: it merges in once that fix is pushed.
