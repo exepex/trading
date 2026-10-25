@@ -11,6 +11,7 @@ from datetime import date
 
 from ..books.versions import DecisionFacts
 from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, Decision
+from .decision_inputs import strategy_key
 from .decision_validity import BLOCKED, ValidityResult
 from .outcomes import DayEvaluation, Outcome
 
@@ -107,7 +108,7 @@ class RecordBuilder:
         candidate = "built" if outcome.candidate else outcome.reason
         base = self._base(outcome.opportunity.opportunity_id, outcome.opportunity.mode, files[strategy.file_name])
         return {
-            **base, "features": record["features"],
+            **base, **self._strategy(strategy), "features": record["features"],
             "rule_result": {"fired": not record["unmet_conditions"], "unmet_conditions": record["unmet_conditions"]},
             "structure": record["trade"], "expected": _expected(outcome), "risk": record["risk"],
             "validity": {"c4": c4.record if c4 else None, "candidate": candidate},
@@ -115,6 +116,13 @@ class RecordBuilder:
             "alternatives": [_summary(o) for o in outcomes if o is not outcome],
             "rule_default": action if self.book != BOOK3_AI else None, "chosen_action": action, "reason": reason,
         }  # fmt: skip
+
+    def _strategy(self, strategy) -> dict:
+        """Book 3 trades many registered strategies in one run, so each opportunity record names its own (F6)."""
+        if self.book != BOOK3_AI:
+            return {}
+        return {"strategy_id": strategy_key(strategy.name, strategy.version),
+                "strategy_spec_sha256": strategy.parameters_sha256}  # fmt: skip
 
     def _day(self, evaluation: DayEvaluation) -> dict:
         chosen = [o.opportunity.opportunity_id for o in evaluation.chosen if not self._blocked(o)]

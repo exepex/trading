@@ -28,8 +28,9 @@ def build_book1(cfg: dict, root: Path = ROOT, files=None) -> Book1:
     from .book1_inputs import LiveBook1Inputs
 
     inputs = LiveBook1Inputs(root, build_quote_store(), cfg["risk_free_rate"], Black76(),
-                             lambda day, snapshot: _features(cfg, day, snapshot), lambda market: _parts(root, market),
-                             lambda day, hashes: _context(root, day, hashes))  # fmt: skip
+                             lambda day, snapshot: cutoff_features(cfg, day, snapshot),
+                             lambda market: _parts(root, market),
+                             lambda day, hashes: run_context(root, day, hashes))  # fmt: skip
     committer, decided = build_book1_commits(root)
     from ..desk.wiring import start_shadow_books
 
@@ -81,7 +82,8 @@ def build_book1_exit_rules(root: Path = ROOT, alerts: AlertSender | None = None)
                              alerts or build_alert_sender())  # fmt: skip
 
 
-def _features(cfg: dict, day: date, snapshot):
+def cutoff_features(cfg: dict, day: date, snapshot):
+    """D2's live 15:00 feature values on the day's canonical snapshot (Book 1, and Book 3's decider, F6)."""
     from ..composition import load_research_data
     from ..playbook.wiring import build_live_feature_values
     from ..research_engine.cycles import cycle_rows
@@ -104,15 +106,15 @@ def _parts(root: Path, market) -> tuple:
     return load_risk_book(root, BOOK1_RULES, market, terms), counts, build_shadow_books(market, shadow_terms, root)
 
 
-def _context(root: Path, day: date, hashes: Mapping[str, str]) -> dict:
-    """D3's run context for Book 1: the code and config it runs, its D6 version and the packs it read; the AI books'
-    fields stay null (D3's schema allows it for Book 1)."""
+def run_context(root: Path, day: date, hashes: Mapping[str, str], book: str = BOOK1_RULES) -> dict:
+    """D3's run context for a book (Book 1; Book 3's decider adds its own fields, F6): the code and config it runs, its
+    D6 version and the packs it read; the AI books' fields stay null (D3's schema allows it for Book 1)."""
     from ..books.versions import Versions
     from ..composition import build_version_registry
     from ..playbook.history import PlaybookGit
 
     git = PlaybookGit(root)
-    active = Versions(build_version_registry(root).rows(), git).active_version(BOOK1_RULES, day)
+    active = Versions(build_version_registry(root).rows(), git).active_version(book, day)
     config = hashlib.sha256((root / "config.yaml").read_bytes()).hexdigest()
     return {"code_commit": git.head(), "config_sha256": config, "version_id": active.version_id if active else None,
             **hashes}  # fmt: skip

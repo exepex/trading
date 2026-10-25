@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import date
 from pathlib import Path
 
@@ -40,17 +40,21 @@ def file_hashes(snapshot: PlaybookSnapshot) -> dict[str, str]:
 
 
 class DecisionRun:
-    def __init__(self, evaluator: RuleEvaluator, store: DecisionStore, validator: TradeValidator | None = None):
-        self.evaluator, self.store, self.validator = evaluator, store, validator
+    def __init__(self, evaluator: RuleEvaluator, store: DecisionStore, validator: TradeValidator | None = None,
+                 selection: Sequence[Mapping] = ()):  # fmt: skip
+        """`selection`: the AI book's picks the evaluator's allocator was built with, stored with the inputs (F6)."""
+        self.evaluator, self.store, self.validator, self.selection = evaluator, store, validator, tuple(selection)
 
     def decide(
         self, day: date, snapshot: PlaybookSnapshot, market: Market, features: LiveFeatureValues, book: RiskBook,
         counts: StrategyTradeCounts, shadow: ShadowBooks, context: Mapping[str, object],
     ) -> Path:  # fmt: skip
-        """`context` gives the run's hashes and links (RUN_CONTEXT); `served` is computed here, never passed in."""
+        """`context` gives the run's hashes and links (RUN_CONTEXT). `served` names the playbook and config itself; an
+        AI book's context may add its own (its prompt, constitution or envelopes), never replace those two."""
         playbook = snapshot.playbook()
         evaluation, data = self._evaluate(day, snapshot, market, features, book, counts, shadow)
-        served = {"playbook": playbook_digest(playbook, day), "config": str(context["config_sha256"])}
+        own = {"playbook": playbook_digest(playbook, day), "config": str(context["config_sha256"])}
+        served = {**dict(context.get("served") or {}), **own}  # an AI book adds its own (F5, F6); these two always win
         run_context = {**{k: context.get(k) for k in RUN_CONTEXT}, "inputs_sha256": sha256_hex(data),
                        "registry_commit": snapshot.commit, "served": served}  # fmt: skip
         run_id = self.store.next_run_id(day)
@@ -78,7 +82,7 @@ class DecisionRun:
         playbook = snapshot.playbook()
         evaluation = self.evaluator.evaluate(day, playbook, market, seen_features, book, seen_counts, seen_shadow)
         inputs = DayInputs(day, snapshot, market_to_json(market), seen_features.seen, book_to_json(book),
-                           seen_counts.seen, seen_shadow.to_json())  # fmt: skip
+                           seen_counts.seen, seen_shadow.to_json(), self.selection)  # fmt: skip
         return evaluation, canonical_json(inputs.to_json())
 
 

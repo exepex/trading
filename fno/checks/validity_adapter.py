@@ -10,6 +10,8 @@ from dataclasses import replace
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING, Protocol
 
+from ..book3.registry import strategy_id_of
+from ..constants import BOOK3_AI
 from ..models import IST
 from ..playbook.decision_validity import ValidityResult
 from .data_checks import CaptureRecord
@@ -50,6 +52,7 @@ def proposal_of(
         terms.structure, terms.width, terms.lots, candidate.proposal.lot_size, _legs(outcome, market),
         candidate.max_loss, bool(outcome.risk and outcome.risk.ok), named.parameters_sha256, strategy,
         frozenset(s.key for s in playbook.approved_on(day)),
+        strategy_id=strategy_id_of(named.name, named.version) if book == BOOK3_AI else "",
     )  # fmt: skip
 
 
