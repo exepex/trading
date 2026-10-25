@@ -20,7 +20,7 @@ until the owner sets `daily.live_from.margin_check`).
 | Read-only by construction: `ReadOnlyGroww` with this caller's list `get_order_margin_details`, `get_quote`, `SEGMENT_FNO`, `SEGMENT_CASH`, `EXCHANGE_NSE` | `broker_port.py` | `test_this_caller_s_list_meets_the_positive_rule_and_lets_no_other_name_through`, `test_the_wiring_gives_the_check_only_this_caller_s_read_only_client` |
 | Record: one write-once O9 file per run, `data/margins/broker_checks/<as_of>/<HHMMSS IST>.csv`, one row per basket; receipt under `receipts/` | `broker_record.py` | `test_the_record_is_written_once_with_its_receipt_and_read_back_as_done` |
 | O1 commits this check's receipts only (`receipt_pathspecs()`), replacing `stress_broker_check.csv` | `fno/daily/wiring.py` | `tests/daily/test_steps.py` (the step's command and pathspec) |
-| Idempotent: `ok` and `mismatch` are done; `error` is asked again only by a same-day rerun; a damaged earlier record refuses (exit 1) | `BrokerRecord.done` | `test_a_rerun_asks_only_what_is_not_done_and_a_done_day_asks_nothing`, `test_a_damaged_earlier_record_or_a_refused_write_is_a_record_problem` |
+| Idempotent: `ok` and `mismatch` are done; `error` is asked again only by a same-day rerun (superseded in round 3: O1 never retries the step, judge 634; only a by-hand run asks again); a damaged earlier record refuses (exit 1) | `BrokerRecord.done` | `test_a_rerun_asks_only_what_is_not_done_and_a_done_day_asks_nothing`, `test_a_damaged_earlier_record_or_a_refused_write_is_a_record_problem` |
 | Mismatch: a finding, exit 0, its own #fno-desk line "...differ beyond tolerance for <baskets>: review the stress factor"; the run log keeps the send result | `_finish` | tolerance tests; `test_a_mismatch_and_an_error_together_alert_the_finding_and_exit_1` |
 | Failure: exit 1, the reason last, no own alert (O1 sends the step's line); only an exception's class name is kept | `_failed`, `_one` | `test_a_broker_failure_is_an_error_row_exit_1_and_no_own_alert` [basket, index] (a planted "secret" in the text never appears) |
 | No A14 row for the day: "nothing written: ...", exit 0 (O1 records refused) | `run` | `test_no_a14_row_for_the_day_is_a_refusal_o1_records` |
@@ -48,7 +48,7 @@ A read-only script (not the command, which is market hours only) ran the same pa
 | Finding | Check | Fix | Test |
 |---|---|---|---|
 | **Blocking:** the margin request had no timeout; the SDK's signature `get_order_margin_details(segment, orders, timeout=None)` waits forever, so a hang held O1's run up to its 10-minute limit and lost the run's answers | read the installed SDK | `timeout=10`, as the quote has | the adapter test asserts both timeouts (mutation caught) |
-| A mismatch was not alerted when the record failed, and the line said "not checked" | reproduced | the line says "checked but not saved"; no finding is alerted for data that did not land (a same-day rerun asks again) | `test_a_record_that_cannot_be_written_or_read_exits_1` |
+| A mismatch was not alerted when the record failed, and the line said "not checked" | reproduced | the line says "checked but not saved"; no finding is alerted for data that did not land (superseded in round 3: only a by-hand run asks again, judge 634) | `test_a_record_that_cannot_be_written_or_read_exits_1` |
 | Drive's and google-auth's exception text went into the line | read | class name only, except this repository's own refusals (`BasketProblem`, `RecordProblem`, `MarginOutsideModel`) | the same test ("503" never printed) |
 | An index failure hid a basket's own reason | reproduced | a row whose basket failed keeps its own reason | `test_an_index_failure_keeps_each_basket_s_own_reason` |
 | A malformed width or missing Drive settings gave a traceback, not a line | reproduced | keys parsed inside the guarded block; Drive (store, cache, SPAN file) built on first use | `test_a_malformed_row_is_a_failure_line_not_a_traceback`, `test_before_09_30_the_check_needs_no_drive_or_groww_settings` |
@@ -189,7 +189,7 @@ Plants: 10 of 10 caught.
 - **Round 2's REH1j test edits:** the example changed meaning only; the REH1 owner was told.
 - **Found and fixed in round 3:** `RawFileLibrary` keeps no copy, so a lot read per basket would have downloaded the
   lot file from Drive 15 times a run. `NseDatedLot` now reads once per run and expiry; a failed read raises and is not
-  remembered, so a same-day rerun reads again (tested).
+  remembered, so a by-hand run reads again (tested).
 - **Checked, no change:**
   - The second quote is paced and stopped at 14:50 like every request. A run started at 14:49:5x gets "deadline"
     for it, and then the first-reading rule applies.
@@ -231,3 +231,18 @@ counts a failed entry without `retry: true` as done (`fno/desk/run_log.py:41-43`
 - `test_the_record_keeps_both_nifty_readings_and_an_empty_cell_for_a_missing_one`: plant "both readings written
   empty", 1 failed.
 - The lot paragraph above is corrected: no same-day rerun, and A20a's real slot times.
+
+### Judge 634 addendum 1 (round 2 FAIL: one should-fix, one minor), answered on this follow-up branch
+
+Both points are accepted, checked against the code.
+- **Point 1.** The response 291 line 634 saw was on c2ed049e6; this branch had already fixed it (3dfaa02f4). The two
+  earlier mentions of a same-day rerun (rounds 1 and 2) are now marked as superseded. The story's lot paragraph gives
+  the measured times, names the loss risk, and names the fix: A20a's 06:00 IST slot on `story/a20-lots-early-slot`.
+- **Point 2.** `NOT_SAVED`, like `FAILED`, now picks its ending through one rule (`_then`):
+  - at or after 14:50 (by the clock, or with the 14:50 stop among the reasons), only "today's broker figure is
+    lost";
+  - before then, the by-hand run *and* "its receipts (receipts/data/margins/broker_checks/) committed", since O1
+    commits them only for its own step.
+
+  The story says the same. Tests: `test_after_14_50_no_line_names_a_by_hand_run` (a record failing after the stop;
+  a run ending past it) and the exact not-saved line. Plant "the clock ignored": 1 failed.

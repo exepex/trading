@@ -22,7 +22,7 @@ from ..alerts.sender import AlertSender
 from .broker_basket import Basket, BasketBuilder, BasketProblem, todays_rows
 from .broker_compare import ERROR, MISMATCH, Levels, compare
 from .broker_port import BrokerMargins
-from .broker_record import BrokerRecord, BrokerResult, RecordProblem
+from .broker_record import RECEIPTS, BrokerRecord, BrokerResult, RecordProblem
 from .calculator import ExposureRule, MarginOutsideModel
 from .span_file import read_span_file
 
@@ -33,8 +33,11 @@ NOTHING = "margin check {day}: nothing to check ({count} baskets already checked
 CHECKED = "margin check {day}: {ok} ok, {mismatch} mismatch, {error} error; record {path}"
 MISMATCHED = "; mismatch: {baskets}"
 LOST = "today's broker figure is lost"  # O1 never retries the step (judge 634)
-BY_HAND = LOST + " unless `python -m fno margins stress-broker-check` is run by hand before 14:50"
-NOT_SAVED = "margin check {day}: {count} basket(s) checked but not saved ({reason}); " + BY_HAND
+BY_HAND = LOST + (
+    " unless `python -m fno margins stress-broker-check` is run by hand before 14:50 and its receipts"
+    f" ({RECEIPTS}) committed"
+)  # O1 commits them only for its own step
+NOT_SAVED = "margin check {day}: {count} basket(s) checked but not saved ({reason}); {then}"
 MISMATCH_LINE = "Omenix F&O margin check: Groww and A14 differ beyond tolerance for {baskets}: review the stress factor"
 FAILED = "margin check {day}: {count} basket(s) not checked ({reason}); {then}"
 DEADLINE, NO_FILE = "deadline", "the day's SPAN file is not in the archive"
@@ -81,7 +84,7 @@ class BrokerMarginCheck:
         try:
             path = self.parts.record.write(day, started, results)
         except Exception as exc:  # the answers did not land: no finding is alerted
-            self.print_line(NOT_SAVED.format(day=day, count=len(results), reason=_named(exc)))
+            self.print_line(NOT_SAVED.format(day=day, count=len(results), reason=_named(exc), then=self._then()))
             return 1
         return self._finish(day, results, path)
 
@@ -191,9 +194,13 @@ class BrokerMarginCheck:
         return 0
 
     def _failed(self, day: date, count: int, reason: str) -> int:
-        then = LOST if DEADLINE in reason.split("; ") else BY_HAND  # past 14:50 no run can ask again
-        self.print_line(FAILED.format(day=day, count=count, reason=reason, then=then))
+        self.print_line(FAILED.format(day=day, count=count, reason=reason, then=self._then(reason)))
         return 1
+
+    def _then(self, reason: str = "") -> str:
+        """What can still be done: nothing at or after 14:50 (no run may ask then; judge 634), else a by-hand run."""
+        past = self.clock().time() >= STOPS or DEADLINE in reason.split("; ")
+        return LOST if past else BY_HAND
 
     def _done(self, line: str) -> int:
         self.print_line(line)

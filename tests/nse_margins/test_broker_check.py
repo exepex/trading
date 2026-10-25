@@ -123,7 +123,7 @@ def test_a_record_that_cannot_be_written_or_read_exits_1():
     assert check.run() == 1 and alerts.sent == []
     assert printed[-1] == ("margin check 2026-10-14: 6 basket(s) checked but not saved (RuntimeError); today's broker "
                            "figure is lost unless `python -m fno margins stress-broker-check` is run by hand before "
-                           "14:50")  # fmt: skip
+                           "14:50 and its receipts (receipts/data/margins/broker_checks/) committed")  # fmt: skip
     check, broker, *_, printed, _ = make_check(at(11, 0), record=MemoryRecord(done=OSError("Drive answered 503")))
     assert check.run() == 1 and broker.asked == [] and "(OSError)" in printed[-1] and "503" not in printed[-1]
 
@@ -153,6 +153,16 @@ def test_an_index_failure_keeps_each_basket_s_own_reason():
     assert check.run() == 1
     details = [r.detail for r in record.written[0]]
     assert "is not reproduced" in details[0] and set(details[1:]) == {"NIFTY quote: ConnectionError"}
+
+
+def test_after_14_50_no_line_names_a_by_hand_run():
+    """Judge 634 addendum 1: a record that fails after the stop, or a run ending past it, offers nothing that cannot
+    be done any more."""
+    check, *_, printed, _ = make_check(at(14, 49, 55), record=MemoryRecord(refuse=RuntimeError("x")))
+    assert check.run() == 1 and printed[-1].endswith("not saved (RuntimeError); today's broker figure is lost")
+    check, broker, *_, printed, _ = make_check(at(14, 49, 59))
+    broker.fail[SF100] = ConnectionError("x")
+    assert check.run() == 1 and printed[-1].endswith("; today's broker figure is lost")
 
 
 def test_a_malformed_row_is_a_failure_line_not_a_traceback():
