@@ -56,3 +56,26 @@ Strong evidence: the record.
 
 FAIL. One date is wrong by the record, and the source rule that produced it needs one more bound. Both minors are
 wording.
+
+## Addendum 1
+
+Round 2 of 2, at `07f561343` (text only: the diff from 4066fdfdb changes only `docs/stories/REH1-rehearsal-mode.md`).
+**PASS.** Judge F not read.
+
+- **Should-fix 1, fixed.**
+  - `data-librarian index-close` is now 23 Oct.
+  - Design 2 states the bound: "the later of ... the CLAUDE.md commit ... and the routine's own first run", citing
+    `conversations/2026-10-22.md`.
+  - The evidence commit 3decf6a60 is "Morning forecast receipts 2026-10-23", at 23 Oct 03:15 UTC (08:45 IST), the
+    first morning output I found in round 1.
+  - R3 gains the boundary: 22 Oct exercised, 23 Oct the routine's. That is testable.
+  - The other rows are unchanged and still meet the new bound. The evening task existed by 22 Oct's 19:53, its first
+    output was at 19:54, and the pre-open's first outputs are on 23 Oct.
+- **Minor 1, fixed.** The `lab close` row cites 5c3195ba0 (22 Oct 04:14 IST) and says why 6eced93c2 does not count.
+- **Minor 2, fixed.** The rule counts only the routine's own output and names the three earlier rows. Their commit
+  times check out: 70a0ff55a at 21 Oct 21:37 IST, 238f8e2c9 at 22 Oct 01:05, 71ec37be2 at 01:34, and the routine's
+  936611423 at 22 Oct 19:54. The job names given for them are not in those commits' messages, so I could not check
+  them; no date depends on them.
+- **Gates:** record scan clean (9,476 files). Doc-reading tests: 932 passed, 13 xfailed, 0 failed.
+
+No blocking, should-fix or minor finding is left. The code round must hold each constant to these rows (R3).
