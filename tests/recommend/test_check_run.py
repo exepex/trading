@@ -160,3 +160,47 @@ def test_a_damaged_check_file_is_that_day_s_problem(tmp_path):
     data.files[f"recommend/2026/11/{DAY}.check.{SESSIONS[1]}.json"] = b"{broken"
     result = run.run(SESSIONS[2])
     assert not result.ok and "does not read" in alerts.lines[-1]
+
+
+def test_the_last_evening_missed_still_ends_the_day_final(tmp_path):
+    """Judge 658.1 S1's plant: no check ran on the 60th session; the next evening still writes the final verdict."""
+    long = [DAY + timedelta(days=k) for k in range(0, 140) if (DAY + timedelta(days=k)).weekday() < 5]
+    run, data, alerts = harness(tmp_path, record=traded_day())
+    run.ports = CheckPorts(run.ports.receipts, run.ports.read, lambda a, b: [d for d in long if a <= d <= b],
+                           run.ports.lookup)  # fmt: skip
+    run.run(long[10])
+    run.run(long[70])  # sessions 11-69 missed, the 60th among them
+    assert any("never closed in 60 sessions" in line for line in alerts.lines)
+    assert run.run(long[71]).lines == (f"recommender check {long[71]}: no recorded day waits for a check",)
+
+
+def test_records_that_disagree_are_written_final_at_once(tmp_path):
+    """Judge 658.1 m1: rereading cannot change contradictory records, so the first evening ends the day."""
+    from fno.recommend.ports import DataDisagrees
+
+    run, data, alerts = harness(tmp_path, record=traded_day())
+
+    class Disagreeing(Outcomes):
+        def outcome(self, cand, session, until):
+            raise DataDisagrees("2 live outcomes for one candidate")
+
+    run.ports = CheckPorts(run.ports.receipts, run.ports.read, run.ports.sessions, lambda: Disagreeing({}))
+    assert not run.run(SESSIONS[1]).ok
+    assert any(".check." in p for p in data.files)
+    assert run.run(SESSIONS[2]).lines == (f"recommender check {SESSIONS[2]}: no recorded day waits for a check",)
+
+
+def test_a_read_error_is_retried_not_written_final(tmp_path):
+    run, data, alerts = harness(tmp_path, record=traded_day())
+
+    class Unreadable(Outcomes):
+        def outcome(self, cand, session, until):
+            from fno.recommend.ports import InputFailed
+
+            raise InputFailed("drive down")
+
+    good = run.ports
+    run.ports = CheckPorts(good.receipts, good.read, good.sessions, lambda: Unreadable({}))
+    assert not run.run(SESSIONS[1]).ok and not any(".check." in p for p in data.files)
+    run.ports = good
+    assert run.run(SESSIONS[2]).lines[0].startswith(f"recommender check {DAY}: not_known_yet")

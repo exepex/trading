@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 
 from ..alerts.sender import AlertSender
@@ -20,12 +20,11 @@ from .check_text import answer_text, trades_text
 from .codec import decode
 from .constants import WINDOW_SESSIONS
 from .contracts import RecordRefused
-from .ports import InputFailed
+from .ports import DataDisagrees, InputFailed
 from .run import DayResult
 from .store import AREA_FOLDER, record_path
 from .write_once import NotOurs, NotSaved, WriteOnce
 
-LOOKBACK_DAYS = 120  # calendar days that hold more than 60 sessions
 CHECK_NAME = "{day}.check.{on}.json"
 RECEIPT_MESSAGE = "Receipt: the recommender's check of {day} on {on}"
 NOT_CHECKED = "recommender check NOT made for {day}: {why}"
@@ -52,14 +51,20 @@ class CheckRun:
             try:  # each day on its own: one unreadable file never stops the others (self-review, blocking)
                 if not self._final(day):
                     lines += self._check(day, on, lookup, last)
+            except DataDisagrees as disagree:  # read and contradictory: final at once (judge 658.1 m1)
+                lines += self._failed(day, on, True, str(disagree))
+                ok = False
             except (InputFailed, NotSaved, RecordRefused) as failed:  # RecordRefused covers a damaged check file
                 lines += self._failed(day, on, last, str(failed))
                 ok = False
         return DayResult(tuple(lines) or (NOTHING.format(on=on),), ok)
 
     def _recorded_days(self, on: date) -> list[date]:
-        recent = self.ports.sessions(on - timedelta(days=LOOKBACK_DAYS), on)[-WINDOW_SESSIONS:]
-        return [day for day in recent if self._recorded(day)]
+        """Every receipted recommendation up to `on`, however old (judge 658.1 S1): a missed evening never lets a day
+        leave the window without its final check; a day already final is skipped by its latest check."""
+        folder = self.ports.receipts / AREA_FOLDER
+        names = (p.name.removesuffix(f".json{RECEIPT_SUFFIX}") for p in folder.rglob(f"*.json{RECEIPT_SUFFIX}"))
+        return sorted(d for d in (_day_of(name) for name in names) if d is not None and d <= on)
 
     def _check(self, day: date, on: date, lookup: OutcomeLookup, last: bool) -> list[str]:
         data = self._read(record_path(day))
@@ -72,7 +77,8 @@ class CheckRun:
         return [self.alerts.send(line), line]
 
     def _failed(self, day: date, on: date, last: bool, why: str) -> list[str]:
-        """A failed check is alerted and tried again next evening; at the last check it is written final as well."""
+        """A failed check is alerted; a read error is tried again next evening, and at the last check, or for records
+        that disagree, it is written final as well."""
         line = NOT_CHECKED.format(day=day, why=why)
         lines = [self.alerts.send(line), line]
         if last:
@@ -87,9 +93,6 @@ class CheckRun:
         kept = self.keeper.keep(_check_path(day, on), result.to_bytes(), _vouch(day, on),
                                 RECEIPT_MESSAGE.format(day=day, on=on))  # fmt: skip
         return kept, _check_record(kept.payload)
-
-    def _recorded(self, day: date) -> bool:
-        return (self.ports.receipts / f"{record_path(day)}{RECEIPT_SUFFIX}").is_file()
 
     def _final(self, day: date) -> bool:
         checks = sorted(self._folder(day).glob(f"{day.isoformat()}.check.*.json{RECEIPT_SUFFIX}"))
@@ -107,6 +110,14 @@ class CheckRun:
 
     def _folder(self, day: date) -> Path:
         return self.ports.receipts / AREA_FOLDER / f"{day:%Y}" / f"{day:%m}"
+
+
+def _day_of(name: str) -> date | None:
+    """`2026-11-02` names a recommendation; a check's receipt (`<day>.check.<on>`) names none."""
+    try:
+        return date.fromisoformat(name)
+    except ValueError:
+        return None
 
 
 def _check_record(data: bytes) -> CheckRecord:

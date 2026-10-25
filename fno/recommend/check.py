@@ -20,7 +20,7 @@ from .check_record import (
 )
 from .constants import WINDOW_SESSIONS, SourceState
 from .contracts import Candidate, Recommendation
-from .ports import InputFailed
+from .ports import DataDisagrees
 
 MISMATCH = "{key}: an untraded decision has a trade's outcome"
 
@@ -75,7 +75,7 @@ def _result(candidate: Candidate, session: date, until: date, lookup: OutcomeLoo
     if candidate.traded:
         return CandidateResult(*key, CandidateState.CLOSED if found else CandidateState.OPEN, found and found.net)
     if found is not None:  # an untraded decision with a trade's outcome: the records disagree
-        raise InputFailed(MISMATCH.format(key=candidate.decision.path))
+        raise DataDisagrees(MISMATCH.format(key=candidate.decision.path))
     if lookup.ticket(candidate, session):  # an open ticket keeps the day open, so it is reported once it closes
         return CandidateResult(*key, CandidateState.OPEN, None)
     return CandidateResult(*key, CandidateState.NO_TRADE, None)

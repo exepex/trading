@@ -16,7 +16,7 @@ from ..school.instructor.contracts import record_sha256
 from .check import FoundOutcome, OutcomeLookup
 from .constants import CandidateSourceName
 from .contracts import Candidate, source_of
-from .ports import InputFailed
+from .ports import DataDisagrees, InputFailed
 from .school_source import SealedDecisions
 
 ROAD_MARK = "#"
@@ -76,8 +76,8 @@ def _live(found: list[OutcomeRecord], key: str) -> OutcomeRecord | None:
     identities = {record_sha256(r) for r in found}
     replaced = {r.corrects for r in found if r.corrects}
     if replaced - identities:
-        raise InputFailed(ORPHAN.format(key=key))
+        raise DataDisagrees(ORPHAN.format(key=key))
     live = [r for r in found if record_sha256(r) not in replaced]
     if len(live) > 1:
-        raise InputFailed(TWO_LIVE.format(key=key, count=len(live)))
+        raise DataDisagrees(TWO_LIVE.format(key=key, count=len(live)))
     return live[0] if live else None
