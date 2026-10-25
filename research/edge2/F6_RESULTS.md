@@ -35,8 +35,9 @@ not more]
 **G1's "passed" for FL-H5 (trial 118) in `research/factory/gates.csv` is not a pass of this study.** The factory's
 screen takes the lower 90% bound from the plain SD over n = 1,451, but H5 trades overlap (five open at once), so the
 bound is about sqrt(5) too tight. With the protocol's Newey-West error the bound is 739 - 1.28 x 824 = -Rs 316, below
-zero; Holm fails (p 0.19) and the always-long control beats it. The gate row stays as logged (append-only); this
-paragraph is the correction. [strong evidence: arithmetic on the frozen run's figures]
+zero; Holm fails (p 0.19) and the always-long control beats it. The first gate row stays as logged (append-only);
+a correcting G1 row (`screened_out`, net -Rs 316.2 on the Newey-West bound, `supersedes=passed_2026-10-24`) is appended
+after it, so the machine record's last gate for 118 is `screened_out` (judge J's S2). [strong evidence: arithmetic on the frozen run's figures]
 
 ## What each role takes from it
 
@@ -68,3 +69,9 @@ paragraph is the correction. [strong evidence: arithmetic on the frozen run's fi
 - Daily opens and closes from NSE's F&O files; slippage as a fixed 1 point a side (2 reported).
 - All index futures together in NSE's participant file (NIFTY's and the other indices'), as published.
 - Always long is a control on the same days with the same costs, not a strategy: it is the market's drift.
+
+## Deviations
+
+- The G1 inputs were first appended to the six idea cards after the freeze (commit ed28d6b7), which made B4's
+  `require_registered` refuse them (judge J's S1). The cards are restored to their frozen text; the inputs stay in
+  history at ed28d6b7 and the gate rows are unchanged. No number changed.

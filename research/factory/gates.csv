@@ -86,3 +86,4 @@ trial_id,gate,outcome,on,commit,numbers
 121,G0,idea,2026-10-25,a5cc130fcff9c0ce4405b8c9f5efd77270922e62,
 122,G0,idea,2026-10-25,a5cc130fcff9c0ce4405b8c9f5efd77270922e62,
 123,G0,idea,2026-10-25,a5cc130fcff9c0ce4405b8c9f5efd77270922e62,
+118,G1,screened_out,2026-10-25,a5cc130fcff9c0ce4405b8c9f5efd77270922e62,bound=341.5;expected=1397.2;cost=657.7;tail=0.0;net=-316.2;se=823.7;correction=newey_west_lag4;supersedes=passed_2026-10-24
