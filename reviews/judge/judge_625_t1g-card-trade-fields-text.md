@@ -43,3 +43,16 @@
 ## Gates
 
 Doc-reading tests at 6a503b37e, with `FNO_SLACK_BOT_TOKEN` kept: 922 passed, 14 xfailed; record scan clean.
+
+## Addendum 1: round 2 at 99d766e45 (diff 6a503b37e..99d766e45)
+
+**PASS, lane 1** (Judge I, own session). The diff changes only `T-cards.md` (T1g).
+
+| Item | Verdict | My evidence |
+|---|---|---|
+| 625.1 should-fix | FIXED | I reproduced the builder's claim with the pinned validator: `getFnoCard_india_none` with the status set to TRADE or WATCH is refused on exactly `evidence/rung`, `price_of_staying_out` and `trade`, while `india_trade` and `india_watch` validate. Criterion 5 now splits in two. (a) The delivery file's own fields, through `card_from_delivery` starting from the example for its status; the example's trade part is labelled and never read as the day's trade. This is P1's test file, agreed by the orchestrator in its owner's place. (b) The Drive record's `trade` and `evidence` against the pinned `FnoCardTrade` and `evidence` schemas, with a missing `max_loss` refused. The publish path is Out. Plants P6b and P6c |
+| Note: "the status's reason" | FIXED | criterion 4 |
+| Note: a failed WATCH | FIXED | now `data_check_failed` too, with the reason stated (T1 criterion 2, one rule for both statuses). Stricter than my note asked, and correct |
+| Note: the rung-0 rule | FIXED | recorded as the builder's decision, open to the orchestrator or the owner |
+
+Doc-reading tests at 99d766e45, with `FNO_SLACK_BOT_TOKEN` kept: 922 passed, 14 xfailed.

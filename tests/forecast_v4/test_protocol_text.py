@@ -14,9 +14,25 @@ from fno.forecast_v4 import terms
 TEXT = (Path(__file__).resolve().parents[2] / "research/forecasts/PROTOCOL_v4.md").read_text(encoding="utf-8")
 
 
-def test_the_protocol_is_a_draft_until_its_freeze_record_exists():
-    assert "**Status: DRAFT, not frozen.**" in TEXT
-    assert not (Path(__file__).resolve().parents[2] / "research/forecasts/FREEZE_v4.md").exists()
+def test_the_owners_signed_wordings_w1_to_w8_are_in_the_text():
+    """Owner, 25 Oct 2026 (DESK_DECISIONS "The owner's seven answers"): W1, W2, W5, W6, W7 signed as written in
+    G-forecasts.md; W3 and W8 decided on 24 Oct; W4 dropped."""
+    text = " ".join(TEXT.split())
+    for wording in ("**V2's and V3's intraday versions (W7, signed with the freeze):**",
+                    "V4 (W6, signed with the freeze): when the pack holds an expiry with at least 5 scored sessions",
+                    "**Realised side (W1, signed with the freeze):** V4's `RV_s` is A16's intraday `RV_s`",
+                    "**A live two-sided quote (W5, signed with the freeze; 1.4 and 1.5):** bid > 0 and ask >= bid",
+                    "**The forward (W2, signed with the freeze):** V5's `F` is the pack's future of `e` at mid",
+                    "**Two premium-adjusted yardsticks for the intraday measure (W3;",
+                    "**Yardstick (A)'s history (W8;", "labelled `backfill_window`"):  # fmt: skip
+        assert wording in text, wording
+    assert "V4: when A16 records weekly ATM quotes" not in text  # W6 replaces the line written before the pack
+
+
+def test_the_protocol_states_its_final_text_status():
+    """Story G6 freeze, criterion 10: true before and after the record exists (the freeze check reads the record)."""
+    assert "**Status: final text.** Frozen by `research/forecasts/FREEZE_v4.md` (section 10)" in TEXT
+    assert "DRAFT" not in TEXT.split("\n", 3)[2]
 
 
 @pytest.mark.parametrize("name", [*V4_QUESTIONS, *V4_SLOTS])
@@ -80,13 +96,14 @@ def test_revision_7_states_the_regime_caveat_for_every_member_and_test_a():
 def test_the_days_clock_and_x_in_the_text_match_the_code():
     """Story G10: section 1.6's times, X and its provenance are the numbers `terms.py` runs."""
     rows = (
-        f"| {terms.V4_CAPTURE_START:%H:%M:%S} | The pack's capture starts",
+        f"| {terms.V4_CAPTURE_START:%H:%M:%S} | The pack's capture window opens; the capture starts inside it",
         f"| {terms.V4_PACK_WINDOW_END:%H:%M:%S} | **The pack's cutoff:**",
         f"| {terms.V4_DEADLINE:%H:%M:%S} | **One deadline:**",
         f"| {terms.V4_COMMON_SNAPSHOT:%H:%M} | **Common snapshot**",
     )  # each row of 1.6's table pinned to its own constant (judge 411: a moved deadline must fail)
     assert all(row in TEXT for row in rows), [row for row in rows if row not in TEXT]
-    assert "observed by 14:40:00 IST on `d`,\ncaptured from 14:30:00" in TEXT and "after 15:10:00" in TEXT
+    assert "observed by 14:40:00 IST on `d`,\ncaptured in the window that opens at 14:30:00" in TEXT
+    assert "after 15:10:00" in TEXT and "the capture starts inside it, at 14:32:00, after A16's 14:30 mark" in TEXT
     assert f"**X = {terms.MOVED_AFTER_CUTOFF_X!r}**" in TEXT
     frozen = json.loads(
         (Path(__file__).resolve().parents[2] / "research/forecasts/v4_moved_after_cutoff.json").read_text()

@@ -53,3 +53,8 @@ Note for the code round: the reservation adds a push before each slot, so up to 
 must stay within the story's own paths (criterion 11).
 
 Doc-reading tests at 9fcb60682, with `FNO_SLACK_BOT_TOKEN` kept: 922 passed, 14 xfailed; record scan clean.
+
+The head moved to 073b8b9e7 after this addendum: one sentence records the orchestrator's ruling that there is one 429
+detector for the project, owned by the Groww rate-safety builder (`GrowwRateLimited`), and that P0b imports it. It is
+consistent with the note above, and nothing else changed (`git diff 9fcb60682 073b8b9e7`: 3 lines in
+`MS-P0b-capture-probes.md`). **PASS holds at 073b8b9e7**; doc-reading tests there: 922 passed, 14 xfailed.

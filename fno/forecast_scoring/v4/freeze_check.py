@@ -20,6 +20,7 @@ CONFIG_RATE = re.compile(r"""\[\s*["']risk_free_rate["']\s*\]|get\(\s*["']risk_f
 AI_REGISTRATION = "fno/ai/"  # G11's shared files, hashed in their own table (owner, 21 Oct 2026 (3); judge 597.1 m2)
 INTACT, NOT_CHECKED, BROKEN = "v4 freeze: intact", "v4 freeze NOT CHECKED: {why}", "v4 freeze BROKEN: {problems}"
 DRIFT = "recorded file changed since the freeze: {path} ({reason})"
+BYTE_HEADING, RECORDED_HEADING = "## Frozen files (checked byte for byte)", "## Recorded, not byte-checked"
 
 
 @dataclass(frozen=True)
@@ -73,10 +74,20 @@ def recorded(root: Path) -> str:
     return "\n".join([*head, *rest, "", "### AI registration (G11's shared files)", "", *head, *ai])
 
 
+def section(record: str, heading: str) -> str:
+    """The record's part under `heading`, up to the next top-level heading: the disclosure's tables have the same row
+    shape as the byte-checked table and must never be read as pins. A bare table (no heading) is read whole."""
+    start = record.find(heading)
+    if start < 0:
+        return record
+    end = record.find("\n## ", start + len(heading))
+    return record[start : end if end >= 0 else len(record)]
+
+
 def problems(root: Path, record: str) -> list[str]:
     """Every difference between the record's byte-checked table and the repository: a file changed or gone, and a file
     now in a byte-checked folder that the record does not list (a new rule added after the freeze). Empty: intact."""
-    pinned = dict(ROW.findall(record))
+    pinned = dict(ROW.findall(section(record, BYTE_HEADING)))
     found = []
     for path, digest in sorted(pinned.items()):
         if not (root / path).is_file():
@@ -89,7 +100,7 @@ def problems(root: Path, record: str) -> list[str]:
 
 def drift(root: Path, record: str) -> list[str]:
     """The recorded files whose bytes differ from the record's (or are gone): printed on every report, never a break."""
-    pinned = dict(RECORDED_ROW.findall(record))
+    pinned = dict(RECORDED_ROW.findall(section(record, RECORDED_HEADING)))
     changed = [p for p, d in sorted(pinned.items()) if not (root / p).is_file() or sha256(root / p) != d]
     return [DRIFT.format(path=p, reason=RECORDED.get(p, "no longer recorded")) for p in changed]
 
@@ -107,7 +118,8 @@ def protocol_problems(record: str, git: Git) -> list[str]:
     if not touching or touching[-1] != commit:
         return [f"protocol commit {commit[:10]} is not the last commit that changed {PROTOCOL}"]
     text = git.committed_text(PROTOCOL, commit)
-    if text is None or hashlib.sha256(text.encode("utf-8")).hexdigest() != dict(ROW.findall(record)).get(PROTOCOL):
+    pinned = dict(ROW.findall(section(record, BYTE_HEADING))).get(PROTOCOL)
+    if text is None or hashlib.sha256(text.encode("utf-8")).hexdigest() != pinned:
         return [f"{PROTOCOL} at the protocol commit {commit[:10]} is not the text the record pins"]
     return []
 
