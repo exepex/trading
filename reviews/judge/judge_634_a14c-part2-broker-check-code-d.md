@@ -84,3 +84,30 @@ check added for judge 630. After this round the owner decides (two-round rule).
 **Gates (trial merge with main c709f11c3):** ruff, format, imports and check_records clean; full suite with the SDK
 16683 passed, 13 xfailed, 0 failed. **Plants:** 8 new (Q1-Q8), all caught.
 Open item, unchanged: the market-hours sample on Mon 26 Oct.
+
+## Addendum 2: the follow-up the owner approved (25 Oct), `story/a14c-part2-followup` at `df106dc73`
+
+**PASS, lane 1** (2 minor). I judged the delta c2ed049e6..df106dc73 commit by commit; judge M works apart.
+
+| Commit | Verdict | Evidence |
+|---|---|---|
+| 3dfaa02f4 (630.1 minors) | MET | tests for the range's first end and the record's NIFTY columns |
+| 99d0a211f (634.1) | MET | the story names A20a's measured slot times (07:45 started 12:46-13:03 IST; 11:15 at 15:18-16:09), the loss risk, and the 06:00 slot (judge 656) as the fix; `_then`: at or after 14:50 (clock or deadline) only "lost". Plant: clock check dropped, caught |
+| 5748ff107 | MET | O1's paragraph is now one line and a link to the owning A14c text (owner's one-document rule) |
+| 371f308ed + 9e2c535e2 | MET | the by-hand path is "rerun this same command before 14:50, commit its receipts". That matches DESK_DECISIONS 349 (owner: "if a scheduled command is failed, then a manual run should be allowed ... instead of missing data") and CLAUDE.md "How to work". The step's own command is what failed, and O1's rerun skips it (step 2b unaffected) |
+| b195ad9a4 (BLOCKING fix) | MET | after GW1a, `GrowwProvider.api` is itself a `ReadOnlyGroww` with the recorder's list, so the old double wrap refused `get_order_margin_details` on every basket. The fix: `get_provider("groww", cfg, BROKER_CHECK_CALLS)`, with `allowed` passed to GW1's guarded client (default unchanged). The real-chain test (fake SDK, sign-in and 429 guards in place) asks one margin request and refuses order and account calls. Plants: the old wiring, `allowed` dropped in `get_provider`, `allowed` dropped in `GrowwProvider`; all caught |
+| df106dc73 | MET | the default list never holds the margin call (test); plant: the default list widened, caught by 3 tests |
+
+**Gates (trial merge with main, clean):** ruff, format, imports, check_records and check_numbers clean; with the
+SDK 18063 passed, 13 xfailed, 0 failed; without it (a ModuleNotFoundError shim for every worker) 18062 passed,
+1 skipped, 0 failed. **Plants:** 5, all caught.
+
+**Minor (do not hold the merge):**
+1. The by-hand text omits the rule's own limit: until O14 is live, or after O14's escalation (CLAUDE.md). Add those
+   words when O14 lands.
+2. `fno/providers/groww_sign_in.py`'s sign-in budget counts 5 daily-run Groww children (10 with a rerun), so
+   `margin_check` is missing: 6 and 12, worst case about 40 x 3 = 120, still under 150. GW1's owner should correct
+   the count.
+
+Note: a conflict with GW1 parts 5-6 in `fno/providers/__init__.py` and `groww.py` is expected. The second merge
+keeps both parameters and reruns the real-chain test.
