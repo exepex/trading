@@ -142,3 +142,12 @@ def test_decide_takes_at_most_thirty_seconds_on_the_test_day(tmp_path):
     elapsed = time.perf_counter() - started
     print(f"Book 2 decide() on the test day: {elapsed:.3f} s")
     assert elapsed < 30
+
+
+def test_with_no_tradable_version_book2_writes_the_day_s_no_trade_record(tmp_path):
+    """Criterion 6: an empty playbook view gives an empty sheet, no slot, and D3's day record "no trade"."""
+    root = repository(tmp_path)  # the envelopes exist; Book 2 has no tradable version today
+    out = decider(root, docs=()).decide(accepted(decision([]), sheet=sheet_for(docs=())))
+    [day_record] = [json.loads(p.read_text()) for p in out.run.glob("no_trade*.json")]
+    assert (day_record["chosen_action"], day_record["rule_default"]) == ("no trade", "no trade")
+    assert day_record["authority_check"] == "the rules offered no trade: nothing to check"
