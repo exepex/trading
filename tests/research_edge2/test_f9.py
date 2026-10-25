@@ -125,3 +125,20 @@ def test_the_ordinary_day_control_samples_whole_days():
 def test_nomination_needs_all_four_conditions(changes, expected):
     r = {"holm": True, "p_event": 0.05, "mean_net_pad2": 1.0, "mean_gross": 900.0, **changes}
     assert summary.eligible(r) is expected
+
+
+def test_the_code_hash_is_the_frozen_one():
+    """Judge 668 m3: dropping an event row or editing the frozen code changes code_hash() and fails here."""
+    import re
+
+    import study_f9
+
+    frozen = re.search(r"Study code SHA-256 .*\| `([0-9a-f]{64})` \|", (study_f9.HERE / "F9_FREEZE.md").read_text())
+    assert frozen and study_f9.code_hash() == frozen.group(1)
+
+
+def test_at_most_two_variants_are_nominated_lowest_p_first():
+    """Judge 668 m4."""
+    passing = {"holm": True, "p_event": 0.01, "mean_net_pad2": 10.0, "mean_gross": 900.0}
+    rows = {f"V{i}": {**passing, "p": p} for i, p in enumerate((0.004, 0.001, 0.003, 0.002))}
+    assert summary.nominated(rows) == ["V1", "V3"]
