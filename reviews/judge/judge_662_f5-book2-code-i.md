@@ -51,3 +51,25 @@ bytes. G1-G5 cover the label refusal, the judge wording, `rule_trade`, the judge
 - Until F4 lands, `NoJudge` blocks Book 2 every day ("judge unavailable"), as the Claims say. F4 must merge before
   Book 2's live date.
 - The run-level label is conservative: a paper pick in a run that also picks research reads "strategy not yet passed".
+
+## Addendum 1: round 2 at bc146b720 (the last round)
+
+**PASS, lane 1**, merge on condition (below). Judge I, own session. F5's change since da5808026 is `pauses.py` and
+`decision_wiring.py` (the full history check), two tests, and the Claims.
+
+| Item | Verdict | My evidence |
+|---|---|---|
+| 662.1 plant list and output sample | FIXED | 26 plants, one row per criterion with its result; real samples of the 16 Oct replay's day log and records, and of a judge-blocked day |
+| B's 661 m1, full-history pause check | MET | every committed version must be a prefix of the next and of the file now; the history is `commits_touching` (oldest first, `git log --reverse`, `ledger.py:104-106`); a real-git test. R1 (last version only) and R2 (wiring to the last commit) caught |
+| B's 661.1 S1, the stops in the real daily run | MET | `build_day_runner` with `book2_hybrid` set holds `Book2ResearchPauses` and commits `research_pauses.csv`. R3 and R4 (each wiring function returning nothing) caught |
+
+**Condition for the merge.** bc146b720 does not merge cleanly with `main` 2331b7a93. The conflict is one line in
+`config.yaml`: `main` set `daily.live_from.recommend: "2026-10-26"`, while the branch keeps `null` beside its new AI
+keys. For my gates I resolved it in a scratch tree only: `main`'s date plus the branch's null `book2_hybrid` and
+`book3_ai` keys and its `ai_books` block. That commit was made with the hook off, was never pushed, and the worktree
+was removed. The builder makes that same merge on the branch; the orchestrator checks the merged `config.yaml` keeps
+`recommend: "2026-10-26"` and both AI books null.
+
+Gates on that trial tree (fda97ab30; FNO_SLACK_BOT_TOKEN kept): ruff, format, `check_imports` (3001) and
+`check_records` (9598) clean; pytest -n auto **18191 passed, 12 xfailed, 0 failed** (622 s). No post on #fno-desk in
+the window.
