@@ -32,3 +32,29 @@ passed, 1 skipped, 12 xfailed** (token kept).
 ## Plants
 
 13 planted on the exact head, 13 caught (each named above).
+
+## Addendum 1
+
+**Merge re-check at story/f5-code `da5808026` (main merged through F1t `f0cad75ce` and F6 `e5fefd8ac`): B1 MET;
+verdict still FAIL, now 1 should-fix (new, my round-1 miss) and the open m1. Still round 1 of 2.**
+
+| Check | Result | My evidence |
+|---|---|---|
+| B1: merge with main | MET | `git merge-tree` of origin/main `30f1e6839` and the head: clean. Main's side kept: `recommend` in `LIVE_STEPS` and `daily.live_from`, `SCHOOL_STEP` and REC1b's templates in `reason_codes.py`; F1t's `ai_fire`/`ai_collect`, `ai_books` and the AI keys added beside them |
+| F5 code unchanged | MET | F5's own delta from its merge base, file by file, is identical in round 1 and now except `docs/stories/F5-book2.md` (Claims 3: the D4 ruling, text only) and one expected step-list string in `tests/health/test_desk_and_data_checks.py` (now with `recommend`) |
+| Full gates, trial merge with main `30f1e6839` (token kept) | MET | ruff, format (2,834), imports (2,989), record scan (9,582), numbers clean; **18,099 passed, 1 skipped, 12 xfailed** |
+| Plants on the merged wiring | 2 of 4 caught | `recommend` dropped from `LIVE_STEPS`: 2 failed (caught). Three survived the daily, book2, playbook, checks and health tests: `ai_collect` templates dropped (F1t's code, not F5's; for F1t's judges), and the two F5 plants below, which also pass the **full suite** (18,099 passed each) |
+
+**S1, should-fix (F5, `fno/daily/wiring.py:81-95`):** nothing pins that Book 2's research pauses run in the daily
+run. Plant 1: `book2_reviews` always returns `()`, so on a Book 2 live day the review is never built and **no
+research-loss stop (632 B2) ever fires**. Plant 2: `book2_review_paths` returns `()`, so a pause row is written but
+not committed by the reviews step, and the cloud container loses it. Both pass all 18,099 tests. My round-1 B2 MET
+rested on `Book2ResearchPauses` and its tests, not on this wiring; I did not plant here in round 1. Fix: a daily-run
+test with `daily.live_from.book2_hybrid` set that shows the pauses review in the step and `PAUSES_FILE` among its
+committed paths, and neither when Book 2 is not live. Nothing is live yet (`book2_hybrid: null`), so no record is
+affected today.
+
+**m1 (open, as agreed for round 2):** `ResearchPauses.rows()` compares only with the last committed text, so a
+committed edit of an earlier row passes.
+
+Next round (2 of 2, the last): S1 with its test, m1, then the full gates and these plants again.
