@@ -123,7 +123,7 @@ class Collector:
     def __init__(self, statuses):
         self.statuses, self.called_at = statuses, None
 
-    def collect(self, day, books, deadlines):
+    def collect(self, day, books, deadlines, late_at=None):
         from fno.ai_trading.collect import Collected
 
         return Collected({b: {"status": s, "reason": "why"} for b, s in self.statuses.items()}, ())

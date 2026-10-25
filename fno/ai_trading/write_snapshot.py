@@ -72,8 +72,9 @@ def _under(root: Path, paths: Sequence[str]) -> list[Path]:
 
 
 def is_under(root: Path, path: Path, paths: Sequence[str]) -> bool:
-    """True when `path` is one of `paths` or inside one of them (no `..` or link can escape)."""
-    resolved = Path(path).resolve()
+    """True when `path` is one of `paths` or inside one of them (no `..` or link can escape); a relative `path` is the
+    repository's, never the current directory's."""
+    resolved = (Path(root) / path).resolve()
     return any(resolved == (Path(root) / p).resolve() or resolved.is_relative_to((Path(root) / p).resolve())
                for p in paths)  # fmt: skip
 

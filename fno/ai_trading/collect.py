@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from ..ai.fire_once import NOT_FIRED, FireOnceLog
@@ -19,18 +19,19 @@ from ..ai.submissions import Submission, read_submission
 from ..desk.common_pack import CommonPack
 from ..desk.pack_items import canonical_json, sha256_hex
 from ..desk.private_pack import ALLOWED_FOLDERS, PrivatePack
+from ..models import now_ist
 from .figures import private_figures, redact
-from .outcome import ACCEPTED, JUDGE_FAILED, PROMOTED, REFUSED, DayOutcome, Deadlines, Judged, judge, seen_at
+from .outcome import ACCEPTED, JUDGE_FAILED, LATE, PROMOTED, REFUSED, DayOutcome, Deadlines, Judged, judge, seen_at
 from .paths import fired_path, observations_path
 from .ports import AcceptedDecision, AnalystCards, DayPacks, JudgeCase, JudgeStep, consulted_units
 from .promote import Promoter, Promotion
 from .records import OutcomeRecords
-from .run_check import strategy_label
 from .versions import DecisionRegistry, VersionRefused
 
 NO_ENTRY = "no fire log entry for the day"
 PACKS_MISSING = "the day's packs could not be read: {why}"
-FAILED = "the collection failed for this book: {error}"
+FAILED = "the collection failed for this book: {error}"  # the type only: a message could quote a pack figure
+STARTED_LATE = "ai_collect reached this book at {now:%H:%M:%S}, at or after E3's decision deadline: a run would be late"
 PACKS_CHANGED = "the day's packs are not the ones fired (their SHA-256 differs from the fire log's labels)"
 CARDS_CHANGED = "the analyst cards read now are not the ones fired (their SHA-256 differs)"
 BLOCKED = "the judge's verdict blocks ({status}: {reason}); the no-trade run {run_id} is committed, no trade today"
@@ -49,18 +50,20 @@ class Collected:
 class DecisionCollector:
     def __init__(self, root: Path, history: RepoHistory, registry: DecisionRegistry, promoter: Promoter,
                  packs: DayPacks, cards: AnalystCards, refresh: Callable[[], None], terms: RunTerms,
-                 judge_step: JudgeStep):  # fmt: skip
+                 judge_step: JudgeStep, clock: Callable[[], datetime] = now_ist):  # fmt: skip
         self.root, self.history, self.registry, self.promoter = Path(root), history, registry, promoter
         self.terms = terms  # the decision run's: where its commitments and reveals are
-        self.judge_step = judge_step
+        self.judge_step, self.clock, self.late_at = judge_step, clock, None
         self.packs, self.cards, self.refresh, self.records = packs, cards, refresh, OutcomeRecords(root)
 
-    def collect(self, day: date, books: Sequence[str], deadlines: Deadlines) -> Collected:
+    def collect(self, day: date, books: Sequence[str], deadlines: Deadlines, late_at=None) -> Collected:
+        """`late_at`: E3's decision deadline; a book reached at or after it is `late`, never promoted."""
         self.refresh()
+        self.late_at = late_at
         receipts = ObservedPushes(ObservationFile(self.root / observations_path(day)).read(), self.history)
         fired = FireOnceLog(self.root, fired_path(day), lambda paths, message: None, lambda: None).read()
         pending = [book for book in books if not self.records.exists(day, book)]
-        submissions = {book: self._submission(day, book, receipts) for book in pending}
+        submissions = {book: self._submission(day, book, receipts) for book in books}  # every live book: exposure
         early = {book for book, sent in submissions.items() if isinstance(sent, Submission) and sent.reveal
                  and seen_at(receipts, sent.reveal.commit) == deadlines.receipt}  # fmt: skip
         paths: list[Path] = []
@@ -70,8 +73,9 @@ class DecisionCollector:
                 if not isinstance(submissions[book], Submission):
                     raise submissions[book]
                 paths += self._one(day, book, entry, submissions[book], receipts, deadlines, sorted(early - {book}))
-            except Exception as failure:  # noqa: BLE001 - recorded with its reason and named in the step's alert
-                outcome = DayOutcome(book, REFUSED, FAILED.format(error=f"{type(failure).__name__}: {failure}"),
+            except Exception as failure:  # noqa: BLE001 - recorded with its type and named in the step's alert
+                print(f"F1t collection of {book} failed: {type(failure).__name__}: {failure}")  # private run log only
+                outcome = DayOutcome(book, REFUSED, FAILED.format(error=type(failure).__name__),
                                      entry.get("labels", {}).get("version", ""))  # fmt: skip
                 paths.append(self.records.write(day, outcome, entry.get("labels", {}), ()))
         return Collected({book: self.records.read(day, book) for book in books}, tuple(paths))
@@ -92,10 +96,17 @@ class DecisionCollector:
         if facts is not None:
             outcome = judge(book, facts, receipts, deadlines, others)
         cards = self._cards(day, outcome, labels) if outcome.status == ACCEPTED else {}
+        if outcome.status == ACCEPTED and self.late_at is not None and self.clock() >= self.late_at:
+            outcome.stop(LATE, STARTED_LATE.format(now=self.clock()))
         accepted = outcome.status == ACCEPTED
         promotion, verdict = self._promote(day, book, entry, outcome, cards) if accepted else (None, ())
         outcome.reason = redact(outcome.reason, facts.private if facts else set())  # public record and alert
-        written = self.records.write(day, outcome, labels, consulted_units(cards), promotion)
+        try:
+            written = self.records.write(day, outcome, labels, consulted_units(cards), promotion)
+        except Exception:
+            if promotion is not None:
+                promotion.undo()  # never a run on disk without its record: put back, then refused (review, 25 Oct)
+            raise
         return [written, *verdict, *(promotion.paths if promotion else ())]
 
     def _facts(self, day, book, entry, labels, submission) -> Judged | None:
@@ -127,7 +138,7 @@ class DecisionCollector:
             outcome.stop(JUDGE_FAILED, reason)
         else:
             outcome.status, outcome.reason = PROMOTED, f"run {promotion.run_id} committed for E3's deadline"
-            outcome.strategy_label = strategy_label(self.root / promotion.paths[0])
+            outcome.strategy_label = promotion.strategy_label
         return promotion, (self.root / judged.path,)
 
     def _cards(self, day: date, outcome: DayOutcome, labels: dict) -> dict:

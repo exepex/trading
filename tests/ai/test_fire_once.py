@@ -86,16 +86,6 @@ def test_a_trigger_refusal_is_not_fired_with_its_reason(tmp_path):
     assert (log["book2_hybrid"]["state"], log["book2_hybrid"]["reason"]) == (NOT_FIRED, "HTTP 429")
 
 
-def test_a_failed_first_commit_fires_nothing(tmp_path):
-    def refuses(paths, message):
-        raise RuntimeError("push rejected")
-
-    fires = []
-    with pytest.raises(RuntimeError, match="push rejected"):
-        FireOnceLog(tmp_path, PATH, refuses, lambda: NOW).fire(PLAN, fires.append, "F1t fire")
-    assert fires == []
-
-
 def test_nothing_to_fire_still_commits_the_log_and_calls_nothing(tmp_path):
     recorder = Recorder(tmp_path)
     plan = {"book2_hybrid": {"version": "v2", "reason": "not live"}}
@@ -109,3 +99,20 @@ def test_a_file_that_is_not_a_fire_log_is_refused(tmp_path):
     (tmp_path / PATH).write_text(json.dumps({"book2_hybrid": {"fired": True}}))
     with pytest.raises(FireLogRefused, match="every entry needs a state"):
         FireOnceLog(tmp_path, PATH, Recorder(tmp_path).commit, lambda: NOW).read()
+
+
+def test_a_fire_log_that_cannot_be_pushed_fires_nothing_and_says_so_never_firing(tmp_path):
+    fires = []
+
+    def refused(paths, message):
+        raise RuntimeError("push rejected 3 times")
+
+    log = FireOnceLog(tmp_path, PATH, refused, lambda: NOW).fire(PLAN, lambda name: fires.append(name) or {}, "F1t")
+    assert (
+        fires == []
+        and log["book2_hybrid"]["state"] == NOT_FIRED
+        and "could not be pushed" in log["book2_hybrid"]["reason"]
+    )
+    assert log["book3_ai"]["reason"] == "budget stop"  # a book not to fire keeps its own reason
+    again = FireOnceLog(tmp_path, PATH, refused, lambda: NOW).fire(PLAN, lambda name: fires.append(name), "F1t")
+    assert fires == [] and again == log  # a rerun fires nothing and never calls it fire_unknown

@@ -12,7 +12,7 @@ from pathlib import Path
 from ..constants import Decision, PlaybookStatus
 from ..playbook.decision_record import RecordError, validate_record
 from ..playbook.decision_store import INPUTS_FILE, SUMS_FILE, DecisionStore
-from .ports import AcceptedDecision, DecidedRun
+from .ports import SERVED_VERSION, AcceptedDecision, DecidedRun
 from .write_snapshot import is_under
 
 PASSED, NOT_YET_PASSED = "strategy passed", "strategy not yet passed"
@@ -31,7 +31,12 @@ def run_problems(
     edited = DecisionStore.edited(decided.run)
     problems += [f"files changed after the run was written: {', '.join(edited)}"] if edited else []
     for record in _records(decided.run):
-        problems += [f"{record.name}: {p}" for p in record_problems(json.loads(record.read_text("utf-8")), accepted)]
+        content = json.loads(record.read_text("utf-8"))
+        problems += [f"{record.name}: {p}" for p in record_problems(content, accepted)]
+        if content.get("run_id") != decided.run.name:
+            problems.append(
+                f"{record.name}: run_id is {content.get('run_id')!r}, not the run folder {decided.run.name!r}"
+            )
     return problems
 
 
@@ -54,8 +59,8 @@ def record_problems(record: dict, accepted: AcceptedDecision) -> list[str]:
     problems = [
         f"{key} is {record.get(key)!r}, not {value!r}" for key, value in expected.items() if record.get(key) != value
     ]
-    if accepted.version not in record["served"].values():
-        problems.append("served does not name the decision version")
+    if record["served"].get(SERVED_VERSION) != accepted.version:
+        problems.append(f"served.{SERVED_VERSION} is not the decision version {accepted.version!r}")
     if (record.get("judge") or "") != accepted.judge:
         problems.append(f"judge is {record.get('judge')!r}, not the verdict file {accepted.judge!r}")
     if _chosen(record) and accepted.judge_blocks:

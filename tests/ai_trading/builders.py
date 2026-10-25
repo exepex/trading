@@ -35,7 +35,7 @@ from fno.playbook.decision_store import DecisionStore
 from tests.ai.fakes import git
 
 DAY = date(2026, 10, 19)
-TERMS = decision_terms(DecisionTiming(time(15, 7), time(15, 10), time(15, 10, 10), time(15, 11)))  # config's
+TERMS = decision_terms(DecisionTiming(time(15, 7), time(15, 10), time(15, 10, 10), time(15, 11), time(15, 12)))
 MODEL = "claude-opus-5-5"
 PROMPTS = {BOOK2_HYBRID: "agents/decision/book2_hybrid_test_v1.md", BOOK3_AI: "agents/decision/book3_ai_test_v1.md"}
 FILL_PRICE, CASH, STRIKE = "1,23,456.75", "3,40,500", "25150"  # account figures; the strike is also public
@@ -117,7 +117,7 @@ def answer(root: Path, book: str = BOOK2_HYBRID, **kwargs) -> dict:
     return complete_answer(draft(**kwargs), labels_of(pointer(root, book)))
 
 
-def record(book: str, run_id: str, accepted: AcceptedDecision, **changes) -> dict:
+def record(book: str, run_id: str, accepted: AcceptedDecision, /, **changes) -> dict:
     """A valid D3 record of the decider's run (every three-book field the book must fill is filled)."""
     nullable = NULLABLE[book] | {"version_id", "judge", "owner_override", "forecasts"}
     fields = {key: None for key in BODY + THREE_BOOK}
@@ -127,7 +127,7 @@ def record(book: str, run_id: str, accepted: AcceptedDecision, **changes) -> dic
                                                          "registry_commit", "strategy_file_sha256"), "h"),
                "book": book, "common_pack_sha256": accepted.common_pack.sha256,
                "private_pack_sha256": accepted.private_pack.sha256, "model_served": accepted.model_reported,
-               "session_id": accepted.session, "served": {"decision_version": accepted.version},
+               "session_id": accepted.session, "served": {"ai_decision_version": accepted.version},
                "judge": accepted.judge or None}  # fmt: skip
     return fields | changes
 

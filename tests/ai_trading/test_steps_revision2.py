@@ -86,7 +86,7 @@ def test_the_strategy_label_of_a_promoted_book_stays_in_the_public_run_log(tmp_p
     from fno.daily.reason_codes import COMMON, STEP_TEMPLATES
 
     class Labelled(Collector):
-        def collect(self, day, books, deadlines):
+        def collect(self, day, books, deadlines, late_at=None):
             return Collected({"book2_hybrid": {"status": "promoted", "reason": "r", "strategy_label":
                                                "strategy not yet passed"}}, ())  # fmt: skip
 

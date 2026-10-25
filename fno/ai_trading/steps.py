@@ -62,6 +62,13 @@ class ConfigRefused(DayStep):
         return StepOutcome({}, {"status": STEP_FAILED, "reason": CONFIG_WRONG.format(reason=self.reason)})
 
 
+class NotLive(DayStep):
+    """Both steps on a day with no AI book live: `not_live`, and nothing built from the AI settings is read."""
+
+    def run(self, day: date) -> StepOutcome:
+        return _not_live()
+
+
 class ObserverHandle:
     """The remote observer child, shared by the two steps (O1 builder, 16 Oct: never left running after the run).
     `ai_collect` reports how it ended and stops it; an exit hook stops it if the run ends before `ai_collect`."""
@@ -143,7 +150,7 @@ class AiCollectStep(DayStep):
         self._await_last_reading(day, deadlines.reveal)
         ended = self.observer.report()
         self.observer.stop()
-        collected = self.collector.collect(day, books, deadlines)
+        collected = self.collector.collect(day, books, deadlines, self.timing.late_at(day))
         problems = {
             b: f"{r['status']}: {r['reason']}" for b, r in collected.outcomes.items() if r["status"] != PROMOTED
         }

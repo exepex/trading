@@ -15,11 +15,12 @@ from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
 
+from ..constants_operations import PUBLISH_BRANCH
 from .observed_receipts import Observation, ObservationFile
 
 LS_REMOTE_SECONDS = 20
 MIN_SLEEP_SECONDS = 0.01
-REMOTE, BRANCH = "origin", "refs/heads/main"
+REMOTE, BRANCH = "origin", f"refs/heads/{PUBLISH_BRANCH}"  # where every run publishes (O1), as the collector pulls
 
 
 class RemoteHeadFailed(RuntimeError):

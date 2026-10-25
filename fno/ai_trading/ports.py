@@ -16,6 +16,8 @@ from pathlib import Path
 from ..desk.common_pack import CommonPack
 from ..desk.private_pack import PrivatePack
 
+SERVED_VERSION = "ai_decision_version"  # the D3 `served` key naming the decision version (F6's code uses it already)
+
 
 @dataclass(frozen=True)
 class DayPacks:

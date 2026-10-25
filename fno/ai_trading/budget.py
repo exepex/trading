@@ -27,6 +27,6 @@ class LevelBudgetStop(BudgetStop):
         month = f"{day:%Y-%m}"
         try:
             reading = self.meter(month, day)
-        except (ValueError, OSError, KeyError) as why:
-            return BudgetCheck("", NO_READING.format(month=month, why=why))
+        except Exception as why:  # noqa: BLE001 - any unreadable meter (a null `budget:` too) fails open on cost only
+            return BudgetCheck("", NO_READING.format(month=month, why=f"{type(why).__name__}: {why}"))
         return BudgetCheck(LEVEL_STOP.format(month=month) if reading.cap.level == BUDGET_STOP else "", "")

@@ -2,6 +2,8 @@
 failed check puts every write path back to its state just before `decide()` (agreed with F6), including a shared
 ledger row written earlier, and records the evidence."""
 
+from pathlib import Path
+
 import pytest
 
 from fno.ai_trading.promote import Promoter
@@ -41,7 +43,8 @@ def test_a_good_run_is_promoted_with_its_files(tmp_path):
     ({"private_pack_sha256": "0" * 64}, "private_pack_sha256 is"),
     ({"model_served": "claude-sonnet-5-5"}, "model_served is"),
     ({"session_id": "another"}, "session_id is"),
-    ({"served": {"playbook": "p"}}, "served does not name the decision version"),
+    ({"served": {"playbook": "p"}}, "served.ai_decision_version is not the decision version"),
+    ({"run_id": "2026-10-19-r9"}, "not the run folder"),
 ])  # fmt: skip
 def test_a_run_that_fails_the_check_is_never_kept(tmp_path, changes, why):
     promotion = promote(tmp_path, FakeDecider(tmp_path, changes=changes))
@@ -149,3 +152,11 @@ def test_git_status_renames_in_either_column_and_spaces_are_parsed(tmp_path):
     git(tmp_path, "mv", "c d.txt", "e f.txt")
     (tmp_path / "new file.txt").write_text("y")
     assert GitWorktree(tmp_path).changed() == {"e f.txt", "new file.txt"}
+
+
+def test_a_relative_path_is_the_repository_s_whatever_the_current_directory(tmp_path, monkeypatch):
+    from fno.ai_trading.write_snapshot import is_under
+
+    monkeypatch.chdir(tmp_path.parent)
+    assert is_under(tmp_path, Path("journal/book2_hybrid/x.json"), ("journal/book2_hybrid/",))
+    assert not is_under(tmp_path, Path("journal/book3_ai/x.json"), ("journal/book2_hybrid/",))

@@ -42,6 +42,7 @@ class BookParts:
 PartsBuilder = Callable[[dict, Path, AlertSender], BookParts]
 BOOK_PARTS: dict[str, PartsBuilder] = {}  # F5 and F6 add their book's builder here
 JUDGE_STEP: Callable[[Path], JudgeStep] | None = None  # F4 sets its builder here (`fno/judge/wiring.py`)
+FIRE_LOG_MARKER = ".pending_ai_fire.json"  # the fire log's pending commit, beside the run's own marker
 
 
 def build_decision_trigger(book: str, env=os.environ) -> RoutineTrigger:
@@ -91,9 +92,18 @@ def ai_day_steps(
         books, wrong = (), str(refused)
     parts = build_book_parts(cfg, root, alerts, books)
     live_on = lambda run_day: books if run_day == day else ()  # noqa: E731 - the books live on the built day
+    if not books and not wrong:  # nothing live: not_live, whatever the AI settings say (a bad timetable waits too)
+        return books, not_live_steps(), parts
     steps = config_refused(wrong) if wrong else build_ai_steps(cfg, root, live_on, parts, processes, waiter, git,
                                                                 committer, clock)  # fmt: skip
     return books, steps, parts
+
+
+def not_live_steps() -> dict:
+    from ..constants import AI_COLLECT_STEP, AI_FIRE_STEP
+    from .steps import NotLive
+
+    return dict.fromkeys((AI_FIRE_STEP, AI_COLLECT_STEP), NotLive())
 
 
 def config_refused(reason: str) -> dict:
@@ -139,13 +149,14 @@ def build_ai_steps(
         return config_refused(str(wrong))
     terms, packs, cards = decision_terms(timing), build_day_packs(root), cards or NoAnalystCards()
     triggers = {book: build_decision_trigger(book, env) for book in ROUTINES}
-    budget, commit = LevelBudgetStop(build_month_meter), PendingCommitter(committer, root).commit  # E3's recovery
+    marker = PendingCommitter(committer, root, FIRE_LOG_MARKER)  # its own marker, never the run's (E5b's pattern)
+    budget, commit = LevelBudgetStop(build_month_meter), marker.commit
     firer = DecisionFirer(root, REGISTRY, triggers, budget, packs, cards, build_record_scanner(), commit, clock, terms)
     deciders = {book: book_parts.decider for book, book_parts in parts.items()}
     pull = lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.target)  # noqa: E731 - O1 publish branch
     judge_step = (JUDGE_STEP or NoJudge)(root)  # F4 sets JUDGE_STEP when its code lands; until then never a trade
     collector = DecisionCollector(root, RepoHistory(root), REGISTRY, Promoter(root, deciders), packs, cards, pull,
-                                  terms, judge_step)  # fmt: skip
+                                  terms, judge_step, clock)  # fmt: skip
     observer, rehearsing = ObserverHandle(), lambda: rehearsal() is not None  # REH1: a rehearsal never fires
     return {
         AI_FIRE_STEP: AiFireStep(root, firer, timing, live, processes, observer, rehearsing),

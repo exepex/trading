@@ -16,7 +16,7 @@ CHOSEN = {"action": "trade", "outcome": "chosen", "reason": "IV rich"}
 
 
 def chosen(day, status="research"):
-    return {"decision": CHOSEN, "served": {"decision_version": "", "strategy_status": status}}
+    return {"decision": CHOSEN, "served": {"ai_decision_version": "", "strategy_status": status}}
 
 
 def collected(tmp_path, judge=None, decider_changes=None, late=()):
@@ -41,7 +41,7 @@ class VersionedDecider(FakeDecider):
     def decide(self, accepted):
         changes = dict(self.changes)
         if "served" in changes:
-            changes["served"] = {**changes["served"], "decision_version": accepted.version}
+            changes["served"] = {**changes["served"], "ai_decision_version": accepted.version}
         self.changes = changes
         return super().decide(accepted)
 

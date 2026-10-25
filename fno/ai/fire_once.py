@@ -15,6 +15,7 @@ from pathlib import Path
 
 FIRING, FIRED, NOT_FIRED, FIRE_UNKNOWN = "firing", "fired", "not_fired", "fire_unknown"
 UNKNOWN_REASON = "the container stopped during the fire (between the trigger call and its record): not fired again"
+NOT_PUSHED = "the fire log could not be pushed before firing ({error}): nothing was fired"
 
 Commit = Callable[[Sequence[Path], str], object]  # commits and pushes these paths; raises when it cannot
 FireOne = Callable[[str], dict]  # fires one routine: {"fired": True, "session": ...} or {"fired": False, "reason": ...}
@@ -47,7 +48,14 @@ class FireOnceLog:
         log = {name: self._planned(entry) for name, entry in planned.items()}
         self._write(log)
         to_fire = [name for name, entry in log.items() if entry["state"] == FIRING]
-        self.commit((self.file,), f"{message}: about to fire {', '.join(to_fire) or 'none'}")
+        try:
+            self.commit((self.file,), f"{message}: about to fire {', '.join(to_fire) or 'none'}")
+        except Exception as failed:  # noqa: BLE001 - no trigger is called: each entry says so, never `firing`
+            reason = NOT_PUSHED.format(error=type(failed).__name__)
+            log = {n: e | {"state": NOT_FIRED, "fired": False, "reason": reason} if n in to_fire else e
+                   for n, e in log.items()}  # fmt: skip
+            self._write(log)
+            return log
         for name in to_fire:
             log[name] = self._fired(log[name], name, fire_one)
             self._write(log)

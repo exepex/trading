@@ -141,7 +141,9 @@ def test_a_failure_reading_one_book_s_submission_is_that_book_s_refused_record(t
 
     monkeypatch.setattr(collect, "read_submission", broken)
     outcomes = day.collect().outcomes
-    assert outcomes["book3_ai"]["status"] == REFUSED and "OSError: git log failed" in outcomes["book3_ai"]["reason"]
+    assert outcomes["book3_ai"]["status"] == REFUSED and outcomes["book3_ai"]["reason"].endswith(
+        ": OSError"
+    )  # the type only: a message could quote a figure
     assert outcomes["book2_hybrid"]["status"] == PROMOTED
 
 

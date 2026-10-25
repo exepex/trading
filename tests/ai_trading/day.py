@@ -101,11 +101,11 @@ class Day:
         reading = Observation(deadline, started, started + timedelta(seconds=1), head, "" if head else "failed")
         ObservationFile(self.root / observations_path(DAY)).append(reading)
 
-    def collect(self, books=BOOKS):
+    def collect(self, books=BOOKS, late_at=None):
         promoter = Promoter(self.root, self.deciders)
         collector = DecisionCollector(self.root, RepoHistory(self.root), self.registry, promoter, self.packs,
-                                      self.cards, lambda: None, TERMS, self.judge)  # fmt: skip
-        return collector.collect(DAY, books, DEADLINES)
+                                      self.cards, lambda: None, TERMS, self.judge, self.clock)  # fmt: skip
+        return collector.collect(DAY, books, DEADLINES, late_at)
 
     def _commit(self, paths, message):
         git(self.root, "add", *[str(p) for p in paths])

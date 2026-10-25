@@ -58,4 +58,5 @@ def build_packs(root: Path = ROOT, refresh: Callable[[], None] = lambda: None, f
 
     keep, alerts = (files or build_private_files(root)).push, alerts or build_alert_sender()
     return WrittenPacks(build_common_pack_builder(root), build_private_pack_builder(root), PackStore(root),
-                        DESK_DECISION_TIME, tuple(books), refresh, keep, SHEETS, alerts)  # fmt: skip
+                        DESK_DECISION_TIME, tuple(books), refresh, keep, SHEETS, alerts,
+                        tuple(b for b in books if b != BOOK1_RULES))  # fmt: skip  # F1t: AI books refused alone

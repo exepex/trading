@@ -24,6 +24,8 @@ journal/runs/.pending_commit.json
 journal/runs/.pending_commit.json.tmp
 journal/runs/.pending_book1.json
 journal/runs/.pending_book1.json.tmp
+journal/runs/.pending_ai_fire.json
+journal/runs/.pending_ai_fire.json.tmp
 journal/runs/.parts/
 journal/runs/.full/
 journal/runs/.own/
