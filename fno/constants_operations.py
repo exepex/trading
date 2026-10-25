@@ -75,6 +75,7 @@ DAILY_RUN_STEPS = (
     "price_distribution",  # story G13: reads the committed 3 pm chains, nothing reads it, so after the card
     "premium_ranges",  # story G13d: from G13's record, at once (sealed by 15:30; the command refuses after it)
     SCHOOL_STEP,  # MS-P1j: the five roads' 15:00 slot; after G13d (seconds), as both refuse after 15:30 (law 6)
+    "recommend",  # REC1b: the day's one recommendation, after the school so its sealed decisions are candidates
     "price_distribution_scores",  # G13's scores: outcomes lag one session (NSE's close file lands in the evening)
     "price_ranges",  # story G13b: the 15:45 ranges from the same chains, after G13
     "price_range_scores",  # G13b's scores and seals; the same one-session lag

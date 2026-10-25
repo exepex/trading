@@ -45,6 +45,7 @@ from .price_distribution.cli import add_pricedist_parser
 from .price_ranges.cli import add_pricerange_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
+from .recommend.cli import add_recommend_parser
 from .record_store.cli import add_records_parser
 from .rehearsal.cli import add_rehearse_parser
 from .research_data.calendar import CalendarError
@@ -271,6 +272,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_flows_parser(sub)
     add_preopen_parser(sub)
     add_school_parser(sub)
+    add_recommend_parser(sub)
     return p
 
 

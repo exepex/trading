@@ -6,16 +6,19 @@ from datetime import UTC, date, datetime
 from fno.recommend.constants import (
     RECORD_KIND,
     RECORD_SCHEMA_VERSION,
+    CandidateSourceName,
     EvidenceRung,
     NoTradeReason,
     PaperAnswer,
     RealMoneyAnswer,
+    SourceState,
 )
-from fno.recommend.contracts import Candidate, Recommendation
+from fno.recommend.contracts import Candidate, CandidateSource, Recommendation
 from fno.recommend.refs import RecordRef
 from fno.recommend.rungs import RUNG_RULE_SHA256, EvidenceReports, VersionEvidence
 
 DAY = date(2026, 11, 2)
+COMPLETE = tuple(CandidateSource(name, SourceState.COMPLETE, None) for name in sorted(CandidateSourceName))
 MADE_AT = datetime(2026, 11, 2, 9, 50, tzinfo=UTC)  # 15:20 IST
 
 
@@ -35,6 +38,7 @@ def no_trade(**changes) -> Recommendation:
         inputs=(RecordRef("playbook/registry.csv", sha(8)),),
         versions=(evidence_of("school:CS1@1", EvidenceRung.EXPLORATORY), evidence_of("school:N0@1")),
         candidates=(candidate("school:CS1@1", EvidenceRung.EXPLORATORY), candidate("school:N0@1", traded=False, n=2)),
+        candidate_sources=COMPLETE,
         real_money=RealMoneyAnswer.DO_NOT_TRADE_REAL_MONEY, eligible_version=None, paper=PaperAnswer.NO_TRADE,
         paper_trade=None, reason=NoTradeReason.NO_ESTABLISHED_VERSION,
     )  # fmt: skip
