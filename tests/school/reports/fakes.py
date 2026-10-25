@@ -48,6 +48,7 @@ def net_record(driver="CS1@1", net=137.7, ticket=False) -> OutcomeRecord:
 class Today:
     days: tuple[RoadDay, ...] = field(default_factory=open_roads)
     trades: tuple[PlannedTrade, ...] = field(default_factory=lambda: (plan(),))
+    failed: tuple[str, ...] = ()
 
     def roads(self, session):
         return self.days
@@ -58,6 +59,9 @@ class Today:
     def source(self, session):
         return session - timedelta(days=1)
 
+    def not_planned(self, session):
+        return self.failed
+
 
 @dataclass
 class Day:
@@ -65,6 +69,8 @@ class Day:
     rows: tuple = ()
     notes: tuple = ()
     causes: tuple = ()
+    step: tuple | None = None  # the run log's (status, code) of the school step; None: no log or no step
+    done: bool = True  # the session's finish (outcomes and drift) sealed
 
     def records(self, session):
         return self.items
@@ -80,6 +86,12 @@ class Day:
 
     def why(self, session):
         return self.causes
+
+    def school_step(self, session):
+        return self.step
+
+    def finished(self, session):
+        return self.done
 
 
 def counts(driver="CS1@1", eligible=3, fillable=2, executed=1) -> OpportunityCounts:

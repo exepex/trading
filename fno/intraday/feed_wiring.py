@@ -49,8 +49,8 @@ def build_feed_probe(cfg: dict, env: Mapping[str, str] = os.environ) -> tuple[Fe
     if ca_file:
         trust_for_feed(nats_client, ca_file)
     provider = GrowwProvider(cfg)
-    feed = ReadOnlyFeed(open_feed(lambda: GrowwFeed(provider.api), FEED_CONNECT_SECONDS))
-    return FeedProbe(feed, now_ist, clock_module.sleep), ReadOnlyGroww(lambda: provider.api)
+    feed = ReadOnlyFeed(open_feed(lambda: GrowwFeed(provider.feed_client()), FEED_CONNECT_SECONDS))
+    return FeedProbe(feed, now_ist, clock_module.sleep), provider.api
 
 
 def feed_ca_file(env: Mapping[str, str], folder: Path) -> str | None:

@@ -59,8 +59,9 @@ def test_it_is_the_pilots_own_fleet_class_with_the_practice_rules(tmp_path):
     assert built.clock.now().hour == 15 and built.clock.now().minute == 30
 
 
-def test_it_runs_even_though_the_pilots_switch_is_off(tmp_path):
-    assert CFG["school"]["enabled"] is False  # the pilot's switch stays off in the file
+@pytest.mark.parametrize("enabled", [False, True], ids=["pilot off", "pilot on"])
+def test_it_runs_whatever_the_pilots_switch_says(tmp_path, monkeypatch, enabled):
+    monkeypatch.setitem(CFG["school"], "enabled", enabled)
     run = fleet(tmp_path).run(sb.SESSION, RunMode.REPLAY)
     assert run.status != SCHOOL_OFF_LINE and run.decisions
 

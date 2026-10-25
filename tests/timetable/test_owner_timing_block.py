@@ -19,6 +19,7 @@ from fno.constants import (
 from fno.desk.daily_ports import DayStep
 from fno.desk.daily_steps import StepOutcome
 from fno.desk.exit_rules import TimeExit
+from fno.desk.fill_results import trade_fills
 from fno.desk.records import DeskRecords
 from tests.desk.builders import at
 
@@ -53,11 +54,11 @@ def run_with(root, tmp_path, alerts, status: str | None):
 @pytest.mark.parametrize("status", [STEP_FAILED, STEP_REFUSED])
 def test_failed_or_refused_fills_block_every_books_new_entries(root, tmp_path, alerts, status):
     log = run_with(root, tmp_path, alerts, status)
-    assert "t1" not in log.result("fills")
+    assert "t1" not in trade_fills(log.result("fills"))
     assert f"today's owner-timing fills {status} (fixture)" in log.result("fills")[BOOK1_RULES]["reason"]
     assert log.done("exits") and not fills(root)
 
 
 @pytest.mark.parametrize("status", [STEP_OK, STEP_NOT_LIVE, None], ids=["ran", "not live", "not run"])
 def test_fills_that_ran_or_did_not_run_block_nothing(root, tmp_path, alerts, status):
-    assert run_with(root, tmp_path, alerts, status).result("fills")["t1"]["outcome"] == OUTCOME_OPENED
+    assert trade_fills(run_with(root, tmp_path, alerts, status).result("fills"))["t1"]["outcome"] == OUTCOME_OPENED

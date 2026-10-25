@@ -94,9 +94,13 @@ def test_an_edition_with_no_section_is_passed_through():
     assert made.text == (GOLDEN / "morning.txt").read_text()
 
 
-def test_the_real_config_has_the_flag_off(monkeypatch):
-    maker = lab_maker("morning")
-    assert with_school_sections(maker) is maker
+def test_the_real_config_has_the_reports_on():
+    """The owner's switch (25 Oct 2026, with MS-P1j4); the flag-off behaviour stays pinned on an explicit off
+    configuration (`test_with_the_flag_off_the_edition_is_byte_identical_...`), never on the file."""
+    from fno.config import load_app_config
+    from fno.school.settings import school_settings
+
+    assert school_settings(load_app_config()).reports is True
 
 
 def test_a_failure_alert_never_repeats_the_exceptions_message():
@@ -173,6 +177,7 @@ def test_the_real_report_maker_is_built_through_the_school_guard(monkeypatch):
     monkeypatch.setattr(page_wiring, "build_levels", lambda *a: None)
     monkeypatch.setattr(data_wiring, "build_drive_cache", lambda *a, **k: None)
     monkeypatch.setattr(page_wiring, "with_school_sections", spy)
+    monkeypatch.setattr(page_wiring, "with_recommend_section", lambda maker: maker)  # REC1d's outer block: its own test
     assert page_wiring.build_report_maker(None, None, None, None, None) == "wrapped"
     assert isinstance(built["inner"], Stub), "the report maker goes through the school guard"
     assert built["inputs"] is school_report_inputs, "the lab passes the school's own inputs (MS-P1j)"

@@ -1,6 +1,7 @@
 """Story O7: every routine sets up through tools/routine_setup.sh, which installs with the interpreter it checks."""
 
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -8,6 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SETUP = ROOT / "tools" / "routine_setup.sh"
 ROUTINE_DOCS = ("CLAUDE.md", "AGENTS.md", "README.md")
 BARE_PIP = re.compile(r"(?<!-m )\bpip3? install\b")
+SCRIPT_TOOLS = ("sh", "git", "date")  # every outside command the script runs, besides the interpreters
 
 
 def _code_lines(path: Path) -> list[str]:
@@ -45,9 +47,24 @@ def test_the_3pm_routine_and_readme_name_the_script():
     assert "sh tools/routine_setup.sh --groww" in (ROOT / "README.md").read_text(encoding="utf-8")
 
 
+def _sandbox(tmp_path: Path) -> tuple[Path, Path]:
+    """A PATH with only the script's tools (no real interpreter, so nothing is ever installed into this machine's
+    Python) and a git repository of its own (so `git config` never writes the real checkout's config). Without it the
+    real `/usr/bin/python` was found too and really installed, under parallel tests even over the system packages."""
+    tools, repo = tmp_path / "bin", tmp_path / "repo"
+    tools.mkdir()
+    for tool in SCRIPT_TOOLS:
+        (tools / tool).symlink_to(shutil.which(tool))
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    return tools, repo
+
+
 def _run_setup_with_fake_python(tmp_path: Path, plain_install_works: bool, repeat_works: bool):
-    """Runs the real script with a stand-in `python3` that logs its pip calls and answers the probe and the import."""
-    fake = tmp_path / "python3"
+    """Runs the real script with a stand-in `python3`, the only interpreter on its PATH, that logs its pip calls and
+    answers the probe and the import."""
+    tools, repo = _sandbox(tmp_path)
+    fake = tools / "python3"
     log = tmp_path / "calls.log"
     fake.write_text(
         "#!/bin/sh\n"
@@ -62,15 +79,22 @@ def _run_setup_with_fake_python(tmp_path: Path, plain_install_works: bool, repea
     )
     fake.chmod(0o755)
     env = {
-        "PATH": f"{tmp_path}:/usr/bin:/bin",
+        "PATH": str(tools),
         "HOME": str(tmp_path),
         "LOG": str(log),
         "PLAIN_EXIT": "0" if plain_install_works else "1",
         "REPEAT_EXIT": "0" if repeat_works else "1",
     }
-    result = subprocess.run(["sh", str(SETUP)], capture_output=True, text=True, env=env, cwd=ROOT, check=False)
+    result = subprocess.run(["sh", str(SETUP)], capture_output=True, text=True, env=env, cwd=repo, check=False)
     calls = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
     return result, calls
+
+
+def test_the_setup_under_test_reaches_only_the_stand_in_and_its_own_repository(tmp_path):
+    result, _ = _run_setup_with_fake_python(tmp_path, plain_install_works=True, repeat_works=False)
+    assert result.stdout.startswith(f"routine setup ok: {tmp_path / 'bin' / 'python3'} (")
+    hooks = subprocess.run(["git", "config", "core.hooksPath"], cwd=tmp_path / "repo", capture_output=True, text=True)
+    assert hooks.stdout.strip() == ".githooks"
 
 
 def test_setup_repeats_over_system_packages_when_the_plain_install_fails(tmp_path):
