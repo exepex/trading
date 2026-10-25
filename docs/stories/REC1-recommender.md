@@ -756,6 +756,8 @@ What section 3's "08:50 and 20:05" bullet and REC1c item 5 become exact as, each
      stale check is ever shown as today's (orchestrator, 25 Oct).
    - On a session with no record (the step did not run or did not post), it says "no recommendation recorded for
      <day>", naming the run log's `recommend` status when there is one.
+   - That status is read through a port, in the shape of MS-P1j4's `DayInputs.school_step`, never by opening the run
+     log inside the section (MS-P1j's builder, 25 Oct).
 7. **Words and their guard (condition 4).**
    - The section names no strike, price, range or strategy internal. Its only amounts are the check's after-cost
      rupee totals, which REC1c already posts to #fno-desk.
@@ -766,7 +768,8 @@ What section 3's "08:50 and 20:05" bullet and REC1c item 5 become exact as, each
 8. **Tests on an explicit config (condition 5).** `config.yaml` has `school.reports: true`, so every new test passes
    its own config and never builds the real school inputs.
 9. **Criteria for REC1d**, each with a plant:
-   - (a) With every switch off, the golden files are byte-identical. Plant: the recommender's section always added.
+   - (a) With every switch off, the golden files are byte-identical, both with `extra=None` and with the real `extra`
+     builder passed in with its switch off (MS-P1j's builder). Plant: the recommender's section always added.
    - (b) Each switch alone shows only its own section. Plant: the recommender gated on `school.reports`.
    - (c) A missing check and a `data_check_failed` check are each named, and the edition still posts. Plant: a raised
      reader error is swallowed silently.
