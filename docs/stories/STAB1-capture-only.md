@@ -41,7 +41,9 @@ capture part (and the day-label start used by the scoring code, which no longer 
 Groww 15-minute marks (A16), candle catch-up (A16b), the 3 pm NIFTY and NSE quotes, `record-indices`, the `v4`-window
 quote capture, pre-open (A22, global cues), closes reads and rechecks (A4h), NSE files (bhavcopy, participant OI,
 FII/DII, index closes), Drive archiving, margins data and the margin check, market-publish, health check, capture-watch,
-recorder-watch, `lab release-check`, `records certify closes`, Book 1's desk steps (see Open question 1).
+recorder-watch, `lab release-check`, `records certify closes`, and the Book 1, 2 and 3 desk (`versions`, `pack`, `decisions`,
+`snapshot`, `fills`, `exits`, `trade_marks`, `book1`, E6's reviews): owner, 25 Oct 2026 (DESK_DECISIONS "Correction: Books 1, 2
+and 3 stay"): nothing working is removed, and none of these forecasts or reads a forecast.
 
 ## Criteria
 
@@ -58,9 +60,10 @@ recorder-watch, `lab release-check`, `records certify closes`, Book 1's desk ste
 
 ## Open questions for the owner (via the orchestrator)
 
-1. Book 1's rule-based paper desk (`desk book1`, fills, exits, marks) is retired by DESK_DECISIONS 25 Oct but its
-   removal is a later judged story; it forecasts nothing and reads no forecast, so STAB1 leaves it running. Switching
-   it off is a separate decision.
+1. `postmortem-weekly.yml` also built a weekly data-health summary besides the forecast scores and the AI routine; with
+   its Saturday schedule removed, nothing posts that summary. Keep it off, or split the data-health part out later?
+2. Protocol v4 is frozen with slots starting 26 Oct (`research/forecasts/FREEZE_v4.md`); with forecasting off every v4
+   slot day would be a miss if v4 is ever restarted. Annotate the freeze record, or leave it as history?
 
 ## Claims
 

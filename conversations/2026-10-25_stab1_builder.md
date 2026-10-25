@@ -25,12 +25,13 @@ session_01Bv9Bn74EaHNNYAen66KsLp and Q session_01R97adLHpBi5iPjJiQQvhWE. Branch 
     nothing when not live. `recommend check` had no switch; it prints "not live" without one.
   - The health check expected the v2 forecast records and the AI books' sealed forecasts every session; those
     expectations are off (they would have alerted "missed" from Monday).
-- Book 1's rule desk (`desk book1`, fills, exits, marks) is left running: it forecasts nothing and reads no forecast;
-  its removal is the later judged story the 25 Oct DESK_DECISIONS row names.
+- The Book 1, 2 and 3 desk (`desk book1`, fills, exits, marks) is left running and untouched: it forecasts nothing and
+  reads no forecast, and the owner's correction of 25 Oct (DESK_DECISIONS "Correction: Books 1, 2 and 3 stay") says
+  nothing working is removed. The orchestrator relayed it to this builder in two messages (the desk stays; the morning
+  and evening routines keep their capture commands, only `lab open` and `lab close` are gated).
 
 ## Open questions
 
-1. Book 1's paper desk: leave running until its removal story, or switch it off too? (Owner's call.)
-2. `postmortem-weekly` also reported data health; with it off, nothing posts a weekly data-health summary. Keep it off?
-3. The v4 protocol is frozen with slots effective 26 Oct; with forecasting off every v4 slot day is a miss if v4 is ever
+1. `postmortem-weekly` also reported data health; with it off, nothing posts a weekly data-health summary. Keep it off?
+2. The v4 protocol is frozen with slots effective 26 Oct; with forecasting off every v4 slot day is a miss if v4 is ever
    restarted. Does the owner want the v4 freeze record annotated?
