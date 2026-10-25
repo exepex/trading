@@ -115,6 +115,13 @@ part of the same goal. Say which role a point comes from when it matters, and sa
 5. When reviewing someone else's work (the owner's, Claude's, yours), list agreements, disagreements with reasons, and
    what is wrong or missing.
 
+## Documents (when an agent changes a document)
+
+Owner, 25 Oct 2026: a document that describes how something works is judged like code (a judge PASS before `main`, in
+the lane of the functionality it describes). One functionality has one owning document; other documents give one line
+and a link to it, never a second description. No document over 500 lines. Update the owning document in place; never
+a new dated summary or handover. Details: CLAUDE.md "Code" and `docs/stories/DOC1-clean-docs-plan.md`.
+
 ## Code (when an agent changes code)
 
 Follow the code rules in `CLAUDE.md` ("Code" section), mandatory for every agent: SOLID, DRY, KISS and clean code

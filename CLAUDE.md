@@ -230,6 +230,13 @@ commit with `--no-verify`.
   `python tools/check_imports.py` must pass before pushing code changes; format with `ruff format`. On `main` (after
   `git pull --no-rebase origin main`, never on a story branch alone: claim rows live on `main`),
   `python tools/check_numbers.py` must pass too. When the gates run: `docs/JUDGE.md`, "Merge procedure".
+- **Functional documents are judged like code (owner, 25 Oct 2026: "let us make our documentation review strong like
+  we have for code").** A change to a document that describes how something works (a design, a story, a decision, a
+  rule, a status or roadmap claim) needs a judge PASS before `main`, in the lane of the functionality it describes;
+  conversation logs, judge files and register rows stay lane 3. **One functionality, one owning document:** describe a
+  functionality in exactly one document and, everywhere else, give one line and a link to it. **No document over 500
+  lines.** Update the owning document in place; never write a new dated summary or handover as the place a decision
+  lives. The full clean-up and its rules: `docs/stories/DOC1-clean-docs-plan.md` (story DOC1).
 - **Text-only changes skip the full suite (owner, 23 Oct 2026: "for doc or text file changes, we don't need to run
   tests").** When every changed file is Markdown (`git diff --name-only <base> | grep -v '\.md$'` prints nothing),
   the gates are the commit hook's record scan, `python tools/check_numbers.py` on `main` and, unless every file is a

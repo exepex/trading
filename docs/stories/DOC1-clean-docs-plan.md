@@ -12,8 +12,9 @@ is moved or deleted until two judges pass this plan and the owner approves it.
 > their which document they read, they make wrong decisions."
 
 Evidence that the problem is real (strong evidence, counted on main 25 Oct):
-- 1,296 Markdown files. `docs/` alone holds 108 files and 44,865 lines; 33 of them are over 350 lines, the largest
-  5,057 (`docs/HANDOVER_2026-10-16.md`). `docs/stories/` has 75 files, 31 over 350 lines.
+- 1,296 Markdown files. `docs/` alone holds 108 files and 44,865 lines; 23 of them are over 500 lines (33 over
+  350), the largest 5,057 (`docs/HANDOVER_2026-10-16.md`). `docs/stories/` has 75 files, 21 over 500 lines. Across the
+  repository 37 Markdown files are over 500 lines.
 - The same subject lives in several places that disagree. Book 2: `DESK_DESIGN.md` section 12 (AI inside an envelope
   around Book 1's strategies) against the owner's 13 Oct words in `DESK_DECISIONS.md` line 29 ("the AI team analyses
   and researches inside rule-based limits"), recorded as "already matches" without a check.
@@ -27,16 +28,28 @@ superseded text is never removed. Judges check code against a story, never a sto
 
 ## 2. Target: what main holds when DOC1 is done
 
-Principles:
-1. **One subject, one current document.** It says what is true now, not how it got there. History is git.
-2. **No document over 350 lines** (the owner's file-size rule applied to documents); a test enforces it.
-3. **The owner's intent is written down per area and approved by the owner**, with the owner's exact words and dates.
+Principles (owner, 25 Oct 2026: "let us make our documentation review strong like we have for code ... We do not
+care much about the structural issues as long as the functionality and the functional documentation is correct ...
+no document is more than 500 lines ... each concrete document is responsible for a specific type of functionality,
+and other documents simply a reference to that document"):
+1. **One functionality, one owning document.** Each functionality (for example Book 1's daily decision, the school's
+   safety laws, the real-money gate) is described in exactly one document, which says what is true now. Every other
+   document that mentions it gives one line and a link to the owner document, never a second description. History is
+   git.
+2. **No document over 500 lines**; a test enforces it. Functional documents are grouped by category (the folders below).
+3. **Functional correctness first.** Judges check that each functional statement is true (against the owner's intent
+   and the code), that no functionality has two owner documents, and that every reference points to the owner. Layout
+   and style findings are minors only.
+4. **Document changes are judged like code** (from now on, not only in DOC1): a change to a functional document needs a
+   judge PASS before main, in the lane of the functionality it describes; a functional document's lane is never lower
+   than its code's.
+5. **The owner's intent is written down per area and approved by the owner**, with the owner's exact words and dates.
    Every design and story must cite the intent line it serves; judges check the story against it.
-4. **Update in place; never a new dated summary.** A decision that changes replaces the old line in its subject
+6. **Update in place; never a new dated summary.** A decision that changes replaces the old line in its subject
    document. No handovers, no daily summaries as a source of truth.
-5. **One entry point:** `docs/README.md` lists every current document and its single purpose.
+7. **One entry point:** `docs/README.md` lists every current document and its single purpose.
 
-Layout (each folder holds files under 350 lines):
+Layout (categories; each file under 500 lines):
 
 | Folder | Holds | Replaces |
 |---|---|---|
@@ -66,11 +79,11 @@ records; `docs/README.md` says they are history, not a source of truth for decis
 | P0 plan | orchestrator | this file | two judges PASS, owner approves |
 | P1 scan | one scanner agent per area, read-only, in parallel | lists every statement about the area (rule, decision, design, status) in every document and log, with file, line, date and author (owner or session) | the scan file names every document it read fully, searched, or skipped |
 | P2 reconcile | one reviewer agent per area, independent of its scanner | marks each statement current / superseded (by what) / conflicting / unknown; checks status claims against the code on main and real records | conflicts and unknowns become owner questions, never guesses |
-| P3 owner gate | owner | reads the area's intent page (under 350 lines, plain words, quotes) and its question list; confirms or corrects | owner's "approved" for that area |
-| P4 write | one writer agent per area | writes the area's new documents from the approved intent and the reconciled table | under 350 lines each; every superseded statement accounted for |
+| P3 owner gate | owner | reads the area's intent page (under 500 lines, plain words, quotes) and its question list; confirms or corrects | owner's "approved" for that area |
+| P4 write | one writer agent per area | writes the area's new documents from the approved intent and the reconciled table; names each functionality's owner document | under 500 lines each; every superseded statement accounted for; no functionality described twice |
 | P5 judge | two judges per area (existing judge sessions, independent) | check each new document against the intent page, the reconciled table and the code; plant check: a judge removes a current rule from the new document and confirms the reconcile table exposes it | both PASS (two rounds at most, then the owner decides) |
 | P6 switch | orchestrator | one merge per area: new documents in, replaced files removed, links and doc-reading tests updated, `docs/README.md` updated | full gates; switched outside 08:30-20:30 IST so no routine reads a half-switched set |
-| P7 rule | orchestrator, two judges | CLAUDE.md and AGENTS.md slimmed to point at `docs/README.md`; the update-in-place rule; a test that every Markdown file under `docs/` is under 350 lines and listed in the index | both PASS, owner approves |
+| P7 rule | orchestrator, two judges | CLAUDE.md and AGENTS.md slimmed to point at `docs/README.md`; the update-in-place rule; tests that every Markdown file under `docs/` is under 500 lines and listed in the index, and that the index names one owner document per functionality | both PASS, owner approves |
 
 Order: Book 1 and the market school first (the audit in progress), then Book 2 and Book 3, then the rest. Agents per
 area: one scanner, one reviewer, one writer, two judges; at most three areas at once.
@@ -100,4 +113,6 @@ area: one scanner, one reviewer, one writer, two judges; at most three areas at 
 ## 6. Claims (for the judges)
 
 - Every number in section 1 was counted on main at 8edc21139 with `git ls-files` and `wc -l`.
-- No file is changed by this commit except this plan and its register row.
+- Revision 2 (owner, 25 Oct): 500-line limit, one owning document per functionality, functional correctness first,
+  documents judged like code. The interim rule is added to CLAUDE.md ("Code") and AGENTS.md ("Documents") in this
+  branch so every session follows it before DOC1 finishes; no routine section of CLAUDE.md is changed.
