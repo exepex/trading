@@ -26,14 +26,26 @@ def builders() -> dict[str, tuple[Callable[[], object], tuple[type, ...]]]:
     from ..cards.wiring import build_card_clocks, build_card_poster
     from ..composition import build_alert_sender, build_quote_recorder
     from ..config import load_app_config
+    from ..constants import RECORDED_INDEX_OPTIONS
     from ..forecast_lab.wiring import build_forecast_poster
     from ..intraday.clock_wiring import build_clock_check
+    from ..quotes.index_wiring import build_index_quote_recorders
+    from ..quotes.weekly import WEEKLY_NAME
+    from ..quotes.window import V4_WINDOW
+    from ..quotes.window_wiring import build_window_quote_recorder
     from ..storage.raw_source import NseDailyFoSource
     from ..storage.wiring import build_nse_source, build_owner_drive
     from .preopen_wiring import RehearsalClockCheck
     from .recorded_archive import RecordedArchiveSession
     from .recorded_quotes import RecordedRecorder
 
+    def index_recorder(name: str):
+        return lambda: build_index_quote_recorders(load_app_config())[name]
+
+    indices = {
+        f"{name}'s 3 pm recorder": (index_recorder(name), (RecordedRecorder,))
+        for name in (*RECORDED_INDEX_OPTIONS, WEEKLY_NAME)
+    }  # fmt: skip; REH1s: A4c's and A4f's
     return {
         "the owner's Drive": (build_owner_drive, (DryrunDrive, type(None))),
         "the #fno-desk alerts": (build_alert_sender, (LabelledAlerts,)),
@@ -43,6 +55,11 @@ def builders() -> dict[str, tuple[Callable[[], object], tuple[type, ...]]]:
         "NSE's archive session": (lambda: build_nse_source(NseDailyFoSource).session, (RecordedArchiveSession,)),
         "A16's clock check": (build_clock_check, (RehearsalClockCheck,)),  # REH1c
         "the card's clocks": (build_card_clocks, (RehearsalCardClocks,)),  # T1f
+        **indices,
+        "the v4 window's recorder": (
+            lambda: build_window_quote_recorder(load_app_config(), V4_WINDOW),
+            (RecordedRecorder,),
+        ),  # fmt: skip; REH1s: A4e's, G10's capture
     }
 
 

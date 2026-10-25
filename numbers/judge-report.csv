@@ -636,3 +636,9 @@ number,name,session,claimed_at_utc
 666,judge_666_rec1d-code-k.md,session_01Sikvmfgvs25V6W2XotPYPX,2026-10-25T04:09:19Z
 667,judge_667_rec1d-code-j.md,session_013gvtjtZJEjpki7qkbzU5kK,2026-10-25T04:11:26Z
 668,judge_668_edge2-f9-event-crush-j1.md,session_01RDKd8Qvn7HsgD1J6ohK5c2,2026-10-25T04:25:43Z
+669,judge_669_reh1q-scheduled-reads-e.md,session_01Sp5rJyPberRttZaJ4WwW26,2026-10-25T04:41:38Z
+670,judge_670_reh1s-guard-recorders-e.md,session_01Sp5rJyPberRttZaJ4WwW26,2026-10-25T04:41:43Z
+671,judge_671_reh1q-scheduled-reads-f.md,session_01A8XfbTUVgeeEpqatHaWbtP,2026-10-25T04:46:36Z
+672,judge_672_reh1s-guard-recorders-f.md,session_01A8XfbTUVgeeEpqatHaWbtP,2026-10-25T04:46:43Z
+673,judge_673_reh1r-command-since-text-e.md,session_01Sp5rJyPberRttZaJ4WwW26,2026-10-25T04:51:42Z
+674,judge_674_reh1r-command-since-text-f.md,session_01A8XfbTUVgeeEpqatHaWbtP,2026-10-25T04:51:56Z

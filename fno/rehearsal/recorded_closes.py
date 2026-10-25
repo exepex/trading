@@ -1,7 +1,8 @@
 """A4h's index-list read in a rehearsal (story REH1b), behind its `CloseListSource`: the answer NSE gave on the day,
 read back from the real record. The real reader saved its raw answer seconds after asking, so the answer served is the
-day's first recorded raw answer saved near now (`serving.is_near`), once the replay clock reaches its save time:
-the 15:40 read gets the first answer, the 16:00 recheck the recheck. Any other moment is not recorded."""
+day's first recorded raw answer saved near now (`serving.scheduled_pick`), once the replay clock reaches its save
+time: the 15:40 read gets the first answer, the 16:00 recheck the recheck; a read pushed later than the day's gets the
+latest answer of the day saved before it (REH1q). A moment before the day's first answer is not recorded."""
 
 from __future__ import annotations
 
@@ -11,10 +12,13 @@ from datetime import date, datetime
 
 from ..close_read.source import CloseListSource
 from ..storage.receipts import ReceiptFolder
-from .serving import is_near
+from .serving import scheduled_pick
 
 RAW_SUFFIX = ".raw.json"
-NOT_RECORDED = "rehearsal:NOT_RECORDED NSE's index list at {at}: no recorded answer saved within 10 minutes of it"
+NOT_RECORDED = (
+    "rehearsal:NOT_RECORDED NSE's index list at {at}: no recorded answer saved before it that day, nor within 10 "
+    "minutes after"
+)
 
 
 class RecordedAnswerMissing(RuntimeError):
@@ -28,7 +32,7 @@ class RecordedCloseList(CloseListSource):
 
     def answer(self) -> tuple[dict, bytes]:
         now = self.now()
-        found = self._nearest_after(now, now.date())
+        found = self._served(now, now.date())
         if found is None:
             raise RecordedAnswerMissing(NOT_RECORDED.format(at=now.isoformat()))
         path, saved = found
@@ -39,9 +43,9 @@ class RecordedCloseList(CloseListSource):
             raise RecordedAnswerMissing(NOT_RECORDED.format(at=now.isoformat()))
         return json.loads(raw), raw
 
-    def _nearest_after(self, now: datetime, day: date) -> tuple[str, datetime] | None:
+    def _served(self, now: datetime, day: date) -> tuple[str, datetime] | None:
         prefix = f"data/closes/{day:%Y}/{day:%m}/{day.isoformat()}."
         saved = [(r.path, datetime.fromisoformat(r.written_at)) for r in self.receipts.under(prefix.rsplit("/", 1)[0])
                  if r.path.startswith(prefix) and r.path.endswith(RAW_SUFFIX)]  # fmt: skip
-        later = sorted((at, path) for path, at in saved if is_near(now, at))
-        return (later[0][1], later[0][0]) if later else None
+        picked = scheduled_pick(now, ((at, path) for path, at in saved))
+        return (picked[1], picked[0]) if picked else None

@@ -81,3 +81,22 @@ Owner, 25 Oct 2026 (relayed in this session's task): "no proven edge: let's try 
   spread is about Rs 0.03-0.65 a unit, under C1's Rs 1 pad; next-month and FINNIFTY/MIDCPNIFTY next-month quotes are
   much wider or missing (`research/edge2/SLIPPAGE_NOTE.md`). No EDGE result is re-read with new pads.
 - Open: an owner question on a measured, per-bucket pad in C1 (lane 1); the fills-against-mid section from Monday.
+
+## Close of the day's work
+
+- F9 passed judge 668 (round 2 plus a text minor) and is merged (2391b8bd). Four families, 19 trials, no edge; every
+  held-out set unread.
+
+## Decisions so far
+
+- Owner, 25 Oct 2026: "no proven edge: let's try to find them using dry runs". Searched F1 (weekly VRP gate), F6
+  (participant OI on futures, research only), F8 (FII-side credit spreads; held-out waived by the orchestrator) and F9
+  (event IV crush): no edge after costs in any; nothing nominated.
+- F7 parked; calendars wait for a verified payoff and margin model; the wide-wing condor declined (orchestrator).
+- A descriptive slippage note: C1's Rs 1 pad looks conservative for NIFTY/BANKNIFTY near-month OTM legs.
+
+## Open questions
+
+- Q13 to the owner: keep searching option rules at one lot, or pause (no new family until answered).
+- Owner: should C1's pad become a measured, per-bucket figure (lane 1)?
+- R1's owner: the inputs sidecar for result-derived G1 inputs and a dependence-corrected G1 bound.

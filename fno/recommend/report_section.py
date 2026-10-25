@@ -20,11 +20,11 @@ from .post import paper_text, real_money_text
 from .report_words import (
     CHECK,
     CHECK_NOT_READ,
-    DID_NOT_RUN,
     NO_CHECKS,
     NO_RECORD,
     NO_RECORD_STEP,
     NO_VERSIONS,
+    NOT_DATED,
     NOT_KNOWN,
     NOT_READ,
     NOTHING_YET,
@@ -106,7 +106,7 @@ class MorningSection:
             except Unread as unread:
                 lines.append(CHECK_NOT_READ.format(day=day, on=previous, path=unread.path, kind=unread.kind))
         if waiting:
-            lines.append(DID_NOT_RUN.format(on=previous, days=", ".join(f"{d:%d %b %Y}" for d in waiting)))
+            lines.append(NOT_DATED.format(on=previous, days=", ".join(f"{d:%d %b %Y}" for d in waiting)))
         return lines or [NO_CHECKS.format(on=previous)]
 
     def _check_line(self, day: date, on: date) -> str:
