@@ -33,10 +33,4 @@ hypothesis: yes
 measurement: no
 data_sets: ["NIFTY weekly options | NSE daily closes | Feb 2019 - 9 Oct 2026", "BANKNIFTY weekly options | NSE daily closes | 2019 - 13 Nov 2024", "FINNIFTY weekly options | NSE daily closes | first weekly - Nov 2024", "MIDCPNIFTY weekly options | NSE daily closes | first weekly - Nov 2024"]
 measures: "mean net per trade after C1's charges and the Rs 1 pad, one lot, held to settlement (protocol sections 7-9)"
-gross: {kind: measured, mean: 230.78596866096865, sd: 5981.485051879846, n: 702, source: "EDGE2 F1 discovery, research/edge2/f1/discovery.json (run at 270959dd, code 9cbe34ce); exploratory, spent data"}
-tail: {probability: 0.0, loss: 0.0, in_gross: yes}
-cost: {measured: 336.22202542024286, source: "EDGE2 F1 discovery, mean C1 charges plus the Rs 1 entry pads, same file; exploratory"}
-sd_per_trade: 5994.235730257904
-frequency_per_year: 90.58
-pass_level: 0.05
 ```
