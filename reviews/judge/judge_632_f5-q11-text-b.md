@@ -47,3 +47,28 @@ judge I. Doc-reading tests: 922 passed, 14 xfailed (token kept); record scan cle
 4. **Minor m1:** the label's refusal depends on F1t revision 2, which is not on main. Name it as a merge-order
    dependency (F5's code merges after it), or have F5's own C4 or D3 check refuse a chosen research trade without
    `strategy_status`.
+
+## Addendum 1: round 2 (the last), head 27aa46107 (text only)
+
+**PASS (1 minor). Lane 1.** Doc-reading tests: 922 passed, 14 xfailed (token kept); record scan clean. I did not read
+judge I.
+
+| 632 | Ruling | My evidence |
+|---|---|---|
+| B1 paused versions | FIXED | `book2_tradable` = `approved_on(day)` (`paper` at the start and through the day; never `paused`, `retired` or drifted) plus `shadow_on(day)` still `research` through the day, minus Book 2's pauses; criterion 13 adds the paused-that-day and retired cases |
+| B2 E6 pauses | FIXED | `Book2ResearchPauses`, one more `Review` in E6's reviews step (the interface exists, `fno/daily/reviews.py:37`), on Book 2's own closed trades from the first. The thresholds equal E6's exactly: a single loss at or beyond `catastrophic_loss_rs` (E6: `net <= -cap`), and a cumulative net at or below `-CUMULATIVE_CAPS` x cap with `CUMULATIVE_CAPS = 3` (`scorecard/pauses.py:33, 113`), imported, never copied; boundaries on both sides in criterion 14 |
+| SF1 where the set is replaced | FIXED | `Book2Playbook` (`approved_on` = `book2_tradable`, `shadow_on` empty) is passed to `RuleEvaluator.evaluate` and to C4's `validity_adapter.py:52`; Book 1 keeps the plain `Playbook`; no shadow is evaluated twice |
+| m1 label | FIXED | F5's own `DecisionRefused` (criterion 15, tested with F1t's check stubbed), plus the merge order after F1t |
+
+**The orchestrator's three checks:**
+- **No same-day re-entry after a pause.** The pause is written in the reviews step, after decisions and fills; a rerun
+  skips recorded steps and never retries fills (`RETRIED_ON_RERUN` = exits, marks); from the row's day the version
+  leaves `book2_tradable`. Excluding it for the whole day of the change is the same rule `approved_on` follows, so a
+  rebuild of a day gives one answer.
+- **Point in time.** Rows are read by their day (`on or before the day`), as the registry's dates are, so a rebuild is
+  deterministic as long as rows are never edited. That is m1.
+- **E6's constants match exactly** (above).
+
+**Minor m1:** say that `research_pauses.csv` is append-only: a row is never edited or removed, and a row is dated its
+trigger's day, never a past day. Add a test that refuses a changed or back-dated row, as other write-once journal files
+have. Without it, an edited row would silently change the rebuild of a past day's tradable set.
