@@ -191,3 +191,25 @@ def test_a_record_with_no_main_shows_nothing(tmp_path):
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
     assert QuoteSidecars(repo).seen_at(raw(B22)) is None
+
+
+def test_a_renamed_sidecar_counts_from_the_commit_that_moved_it(tmp_path):
+    """Judges 643 and 647: `--no-renames` makes a moved sidecar a new file on main, dated by the move."""
+    repo = record(tmp_path)
+    moved = f"{MONTH}/banknifty_20261022_150147"
+    (repo / QUOTES / f"{moved}.meta.json").parent.mkdir(parents=True, exist_ok=True)
+    git(repo, "mv", f"{QUOTES}/{B22}.meta.json", f"{QUOTES}/{moved}.meta.json")
+    at = datetime(2026, 10, 22, 12, 0, tzinfo=UTC)
+    commit(repo, "moved", at)
+    assert QuoteSidecars(repo).seen_at(raw(moved)) == at  # with renames detected it would be no add at all: None
+
+
+def test_a_sidecar_deleted_and_added_again_keeps_its_first_add_and_its_first_bytes(tmp_path):
+    """Judges 643 and 647: the oldest add is the one kept (newest-first log, overwritten), read as that commit holds
+    it, so a later re-add (which breaks write-once) can never make the file visible earlier or change its times."""
+    repo = record(tmp_path)
+    (repo / QUOTES / f"{B22}.meta.json").unlink()
+    commit(repo, "removed", datetime(2026, 10, 22, 11, 0, tzinfo=UTC))
+    sidecar(repo, B22, datetime(2026, 10, 22, 9, 0, tzinfo=UTC))  # an earlier finish in the re-added bytes
+    commit(repo, "added again", datetime(2026, 10, 22, 12, 0, tzinfo=UTC))
+    assert QuoteSidecars(repo).seen_at(raw(B22)) == COMMITTED_22  # the first add's time and its own finish
