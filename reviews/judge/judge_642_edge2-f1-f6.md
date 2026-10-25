@@ -19,58 +19,37 @@ main 82ad1586 (381bf7d0): 16,686 passed, 1 skipped, 13 xfailed; ruff, format, ch
 | F6 (4) 115-120 under edge2-f6 | MET | Experiment `edge2-f6-participant-oi-futures-2026-10-25` |
 
 ## Findings
-**S1 (should fix) B4's guard now refuses every trial 109-120.**
-- `Ledger(root).require_registered("109")`, and likewise "114", "115", "118" and "120", raise `NotRegistered: ...
-  changed after it was frozen`. The trials' `protocol_path` is the idea card, and the G1 inputs were appended to the
-  cards after `protocol_commit` (b9b23f9d, ed28d6b7).
-- EDGE1 avoided this: its cards' `protocol_commit` e7a2029d holds the G1 inputs (71 and 95 pass).
-- Effect: the factory's verdict step, the trial guard and any reader of the freeze proof see these trials as altered
-  after their freeze.
-- Fix without rewriting frozen bytes, either:
-  - point `protocol_path` at `F1_PROTOCOL.md` or `F6_PROTOCOL.md`, as GR1 does; or
-  - keep the result-derived G1 inputs out of the frozen card, or change B4 (lane 1).
-- Add a test that runs `require_registered` on the real rows 109-120.
+**S1 (should fix) B4's guard now refuses every trial 109-120.** `Ledger(root).require_registered("109")` (and 114,
+115, 118, 120) raises `NotRegistered: ... changed after it was frozen`: `protocol_path` is the idea card and the G1
+inputs were appended to the cards after `protocol_commit` (b9b23f9d, ed28d6b7). EDGE1's `protocol_commit` e7a2029d
+holds its G1 inputs (71 and 95 pass). The factory verdict, the trial guard and any reader of the freeze proof see these
+trials as altered after their freeze. Fix without rewriting frozen bytes: point `protocol_path` at F1_PROTOCOL.md or
+F6_PROTOCOL.md (as GR1 does), or keep result-derived G1 inputs out of the frozen card, or change B4 (lane 1); plus a
+test that runs `require_registered` on the real rows 109-120.
 
-**S2 (should fix) Trial 118's G1 `passed` is live and was built on inputs the protocol itself rejects.**
-- The H5 cards give G1 `n` = 1,451 overlapping trades with the plain SD. The frozen protocol's own error is Newey-West,
-  lag 4.
-- `fno factory report` prints "EDGE2-F6-FL-H5 v1: trial 118 of 120; last gate G1 passed". Only F6_RESULTS.md's prose
-  corrects it.
-- My recomputation of -Rs 316 is right: 739 - 1.2816 x 824. But "about sqrt(5) too tight" is wrong: the measured
-  ratio is NW 824 / iid 527 = 1.56. For FD-H5 it is 0.95 and for CD-H5 1.06.
-- Fix: close 118 in the machine record by the factory's own next gate (`factory spend` logs `exploratory`, as EDGE1's
-  94 went). Say so in its card and its LEDGER.md row, and correct the sqrt(5) line.
+**S2 (should fix) Trial 118's G1 `passed` is live, built on inputs the protocol itself rejects.** The H5 cards give G1
+n = 1,451 overlapping trades with the plain SD, while the frozen protocol's error is Newey-West lag 4. `fno factory
+report` prints "trial 118 of 120; last gate G1 passed"; only F6_RESULTS.md's prose corrects it. My -Rs 316 is right
+(739 - 1.2816 x 824), but "about sqrt(5) too tight" is wrong: NW / iid = 824 / 527 = 1.56 (FD-H5 0.95, CD-H5 1.06).
+Fix: close 118 with the factory's own next gate (`factory spend` logs `exploratory`, as EDGE1's 94 went), say so in its
+card and LEDGER.md row, and correct the sqrt(5) line.
 
-**m1 (minor, tests only; tests sit outside the code hash).** My plants that survived:
-- RC1 drawing from taken trades only (R9), and RC1's >= boundary (R8);
-- the gate's traded-volume filter (R15);
-- `code_hash` dropping study.py (R18);
-- EWMA lambda 0.97 (R19);
-- F6 keeping exits after the seal day (F2);
-- F6's NW lag 0 for H5 (F4).
-Add a test for each, R9, F2 and F4 first.
-
-**m2 (minor)** "Never retest WF-G15 on this data" is only in F1_RESULTS.md's prose. Add it to card 111 and the
-109-114 LEDGER.md row.
-
-**m3 (minor)** F1 protocol section 7 promised `research/edge2/LOT_CHECK.md` before any held-out read. It does not
-exist, and `held_out_lots.py` says the circulars were not read. Harmless while held-out stays unread; state it in
-section 11 or in the Limits.
-
-**m4 (minor)** Dates and rows:
-- `registered_on` and the gates' `on` are 24 Oct (UTC), while `first_run_on` is 25 Oct (IST).
-- DATA_SPEND keeps the old "Participant open interest | history | fresh | none" row beside its new split rows.
+**m1 (minor, tests only, outside the code hash)** Surviving plants: RC1 drawing from taken trades only (R9) and its >=
+boundary (R8), the gate's traded-volume filter (R15), `code_hash` without study.py (R18), EWMA lambda 0.97 (R19), F6
+keeping exits after the seal day (F2), F6's NW lag 0 for H5 (F4). Add a test for each, R9, F2 and F4 first.
+**m2 (minor)** "Never retest WF-G15 on this data" is only in F1_RESULTS.md prose: add it to card 111 and the LEDGER row.
+**m3 (minor)** F1 protocol section 7 promised `research/edge2/LOT_CHECK.md` before a held-out read; it does not exist
+and `held_out_lots.py` says the circulars were not read. Harmless while unread; state it in section 11 or Limits.
+**m4 (minor)** `registered_on` and gates `on` are 24 Oct (UTC), `first_run_on` 25 Oct (IST); DATA_SPEND keeps the old
+"Participant open interest | history | fresh | none" row beside its new split rows.
 
 ## Plants (mine): 27 of 34 caught
-- F1 caught 17 of 22: the seal (3); point in time; the settlement close; week clusters; 30 clusters; Holm; the gate
-  boundary; three nomination conditions; the pad; the condor offset; the UDiFF lot; the moved expiry; at most 2.
-- F6 caught 10 of 12: the seal day; STT 0.02%; entry on the signal day; the level window; the client fade; pads; two
-  nomination conditions; GST; the roll.
-- Survivors: m1. Run with PYTHONDONTWRITEBYTECODE=1, in their own worktree.
+F1 17 of 22 (seal x3, point in time, settlement close, week clusters, 30 clusters, Holm, gate boundary, 3 nomination
+conditions, pad, condor offset, UDiFF lot, moved expiry, at most 2); F6 10 of 12 (seal day, STT 0.02%, entry day, level
+window, client fade, pads, 2 nomination conditions, GST, roll). Survivors in m1. Own worktree, PYTHONDONTWRITEBYTECODE=1.
 
 ## Notes
-- FNO_SLACK_BOT_TOKEN was set for the suites (1792884295-1792885435 and 1792887370-1792888021):
-  - the second window: nothing in any channel;
-  - the first: only "DRY RUN ... replay" REH1 posts. Neither study holds Slack code.
-- My F6 rerun once died on a Drive "connection reset" (ChunkedEncodingError, no retry) and passed on the second try.
-  That is the storage layer, not this story.
+- Token set for both suites (1792884295-1792885435, 1792887370-1792888021): only REH1 "DRY RUN ... replay" posts in the
+  first window, nothing in the second; neither study holds Slack code.
+- My F6 rerun once died on a Drive "connection reset" (ChunkedEncodingError, no retry); the second try passed. That is
+  the storage layer, not this story.
