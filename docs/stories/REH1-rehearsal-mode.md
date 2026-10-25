@@ -1011,6 +1011,37 @@ ahead within 10 minutes. Paced reads stay unchanged."
 - **Q4. Ahead stays bounded at ten minutes** (the boundary itself served, a tick past not) and an answer saved after
   now is never served from behind. Plant: any time of the day from behind.
 
+#### Claims (one round, for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1q-scheduled-reads` (from main). Code: `scheduled_pick` in
+`fno/rehearsal/serving.py`; `recorded_candles` and `recorded_closes` use it (`_served`, renamed from `_nearest_after`).
+Tests: `tests/rehearsal/test_scheduled_reads.py` (8), `test_serving.py`'s one-rule test updated.
+
+**Plants:** 6 planted, 6 caught, in a separate worktree, each restored with `git checkout --`: no fallback (REH1g's
+rule); the latest before now first (the measured wrong rule, also caught by REH1g's closes test); any day from
+behind; any time of the day from behind; the near window picking its latest; the closes on `is_near` alone.
+
+**Self-review** (an independent review agent): no blocking or should-fix finding. No look-ahead (the fallback takes
+only answers saved at or before now; ahead answers are still waited for); timestamps all carry their zone; windows are
+matched before the pick; no caller relied on the old "not recorded" for a late read; real runs never build these
+sources. Accepted: a test through `answer()` with a clock (the fallback serves its recorded bytes at once, the near
+window still waits: 64 s for 15:59 to 16:00:04); the name `_served`. Stated, not changed (the review's M1): a 15:40
+read pushed past 16:00:04 is served the recheck's answer, so A4h's recheck then reads "unchanged" where the real day
+compared two lists; a live read at that moment would also have seen the later list, and nothing of the real record is
+written (pinned by `test_a_first_read_pushed_past_the_recheck_s_answer_is_served_the_recheck`). No log line for a
+fallback serve: the recorded sources have no output of their own.
+
+**Gates** (main merged in, the token kept): 17355 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
+clean (rerun after the self-review's commit: the rehearsal and close-read folders, 336 passed).
+
+**Real output sample** (a full clone of this branch at 265a1281e, the token kept): `daily run --rehearse --day
+2026-10-21`, run 20261025T030751Z-2a40b3, branch `refs/heads/rehearsal/2026-10-21-20261025T030751Z-2a40b3`. Before
+(pass 2, run 20261025T020059Z-d4978f, main): "day done with problems: quotes_done, candles", candles "DEFERRED
+2026-10-19: rehearsal:NOT_RECORDED Groww 15m 2026-09-21..2026-10-19 at 2026-10-21T15:35:43...". After: "day done with
+problems: quotes_done" (REH1n's weekly part only); `candles` started 15:35:53 (again after the exercised
+`price_ranges`) and is ok, its lines the real day's own: "window 2026-09-21..2026-10-19: 495 of 500 session candles
+(20 sessions)", "sessions 1683: 1 written now, 1682 held before, 0 deferred".
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
