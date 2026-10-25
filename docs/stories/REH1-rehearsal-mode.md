@@ -965,6 +965,75 @@ already states for manifest rows).
 - The sample ran on 96dcc1d97; the review's changes after it keep the rule for these files (all five are Groww
   files with sidecars added by first-parent commits on main), and the direct read was repeated on the final code.
 
+### REH1r: a routine command not yet in its routine on the replayed day is exercised (story text first)
+
+Lane 1 (it changes what a rehearsal counts as a routine's failure): two judges. Builder session_01GAACYjcfHWkC3hp33iiMXV,
+branch `story/reh1r-command-since`. The orchestrator, 25 Oct: "Each routine Command gets the day it joined its routine
+(`since`), taken from the record: the CLAUDE.md commit history or DESK_DECISIONS. Cite the source in the code's
+constant. Before `since`, the command is exercised, never failed."
+
+#### Finding (strong evidence: pass 2's run and the record)
+
+`rehearse evening --day 2026-10-21` from main 4e8be7b72 (run 20261025T025540Z-5413fe) ended "failed: closes read
+--commit, records certify closes --level provisional --commit, data-librarian fo-bhavcopy ..., data-librarian
+participant-oi ..., data-snapshot fii-dii-cash-by-session". On 21 Oct none of the evening routine's commands was in its
+routine: the first commit holding `lab close` in CLAUDE.md is 6eced93c2 (21 Oct 16:56 UTC, 22:26 IST, after 19:53), the
+evening's data commands 49aa26951 (21 Oct 23:09 UTC), and the first evening outputs in the record are 22 Oct's (below).
+A rehearsal runs today's routine, so on an earlier day each such command meets a record that never held its answer
+("rehearsal:NOT_RECORDED", `RecordedAnswerMissing`) and counts as the routine's failure. REH1k keyed only the lab
+editions (`live_key`); these commands have no key.
+
+#### Design
+
+1. `Command.since: date | None` (`fno/rehearsal/routines.py`): the first day the command ran in its routine. Its value is
+   a named constant per command, each citing its source in a comment.
+2. **The source, per command** (the record first; CLAUDE.md's commit as the bound where the record is silent). A
+   command's first day is the first day its own output reached `main`; the CLAUDE.md commit that added it is the
+   earliest it could have run (searched over every commit in `main`'s ancestry whose CLAUDE.md holds it, whitespace
+   folded; `--first-parent` is not used, as `main`'s first-parent chain passes through branch merges, e.g. b26d33476
+   "Merge main into A23 before its merge").
+
+   | Routine, command | CLAUDE.md (first commit holding it) | First output on `main` | `since` |
+   |---|---|---|---|
+   | daily, `daily run` | e5ac277e9, 16 Oct | the run logs | none (always) |
+   | preopen, `global-cues preopen` | e6010ac0a, 22 Oct 05:02 IST | 23 Oct 08:51 IST, "A17e: pre-open Asian levels (receipts)" | 23 Oct |
+   | preopen, `preopen record` | a2b2ad8c6, 22 Oct 03:09 IST | 23 Oct 08:40 IST, "pre-open gift 2026-10-23" | 23 Oct |
+   | morning, `data-librarian index-close` | 96af942cd, 22 Oct 04:29 IST | none distinguishable (its rows are written at fetch by others; the morning says "nothing new") | 22 Oct (CLAUDE.md) |
+   | morning, `lab open` | 5c3195ba0 | `live_key` (REH1k, 23 Oct) | none (its key) |
+   | morning, `records certify closes --since 7 --level certified` | 51cab79b0, 23 Oct 22:42 IST | 24 Oct 08:41 IST, "Records: DR1 certification" | 24 Oct |
+   | evening, `closes read --commit` | cae76af89, 22 Oct 05:58 IST | 22 Oct 19:54 IST, "Receipts ... (A4h close read)" | 22 Oct |
+   | evening, `records certify closes --level provisional` | 51cab79b0, 23 Oct 22:42 IST | 24 Oct (the shadow's first records) | 24 Oct |
+   | evening, `data-librarian fo-bhavcopy`, `participant-oi`, `data-snapshot fii-dii-cash-by-session` | 49aa26951, 22 Oct 04:39 IST | 22 Oct 19:54 IST, the three manifests' commits | 22 Oct |
+   | evening, `lab close` | 6eced93c2 | `live_key` (REH1k, 23 Oct) | none (its key) |
+   | evening, `lab release-check` | 49aa26951, 22 Oct 04:39 IST | 22 Oct 19:55 IST, "Evening routine 2026-10-22: release-check logs" | 22 Oct |
+
+3. `run_routine` treats a command whose `since` is after the replayed day as it treats a not-live lab edition: it runs as
+   on the day, its outcome goes into `exercised` (REH1k's shape, the note "not in its routine on <day> (since <since>)"),
+   never into "failed", and the REH1j exercised line names it once. A day on or after `since` is unchanged.
+4. Only the rehearsal reads `since`: a real routine has no `Command` objects (CLAUDE.md is its source), so no real run
+   changes. A test holds each constant to its row above, and to CLAUDE.md (each command with a `since` is in its
+   routine's section today).
+
+#### Criteria
+
+- **R1. Before `since`, exercised:** a 21 Oct evening rehearsal's data commands, `closes read` and the certify command
+  are exercised, the routine ends "7 commands done". Plant: `since` ignored.
+- **R2. On and after `since`, the real rule:** on 22 Oct a failing `closes read` is the routine's failure. Boundary: the
+  day itself. Plant: `<=` made `<`.
+- **R3. The sources:** each constant equals its table row, and every command with a `since` is in CLAUDE.md's routine
+  section today. Plant: a date changed.
+- **R4. Empty:** a command with no `since` (the daily run) is never exercised by it.
+- **R5. Real runs unchanged:** the full suite.
+
+#### Gap list (rule 2)
+
+| Requirement (the orchestrator, 25 Oct) | Covered by | Or out of scope, with reason |
+|---|---|---|
+| "Each routine Command gets the day it joined its routine (`since`)" | Design 1, 3 | |
+| "taken from the record ... Cite the source in the code's constant" | Design 2, R3 | |
+| "Before `since`, the command is exercised, never failed" | Design 3, R1, R2 | |
+| The lab editions | | Already keyed (REH1k's `live_key`); `since` adds nothing for them |
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
