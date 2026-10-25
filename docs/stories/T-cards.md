@@ -1525,5 +1525,6 @@ Out, with reasons:
 - Notes, accepted: "the status's reason" replaces "T1's reason". A failed would-be `WATCH` gives `data_check_failed`,
   with the reason stated. The rung-0 rule is recorded as the builder's decision.
 
-**Depends:** T1, T1e, T1f, REC1b (and REC1a's contract for the record's fields); `card_from_delivery`'s change agreed
-by the orchestrator for P1 · **Size:** M · **Status:** text round 2, to judge I
+**Depends:** T1, T1e, T1f, the card-side REC1 step (deferred, 25 Oct; REC1b posts its own #fno-desk line instead),
+REC1a's contract for the record's fields; `card_from_delivery`'s change agreed by the orchestrator for P1 · **Size:** M
+· **Status:** text PASS (judge 625.1); text only until rung 3 is in sight
