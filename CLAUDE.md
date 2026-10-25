@@ -40,7 +40,8 @@ cost real money later, so:
   backoff, at most 5 retries, then escalated to a human in #fno-desk (story O14, `DESK_DECISIONS` "Failed commands:
   automatic retry"). Until O14 is live, and after an escalation, the failed routine's own command may be run again by
   hand, in market hours too, so no data is lost; never a different or extra Groww command, and the command's own rules
-  still hold (the day lock, completed steps skipped, a failed fills step never retried).
+  still hold (the day lock, completed steps skipped, a failed fills step never retried), and for the daily run step
+  2b's once-only rerun holds until O14 replaces it.
 - **One builder per function (owner, 15 Oct 2026).** Before starting any story, fix or design change, read
   `docs/WORK_REGISTER.md` on the latest `main`; if a row already covers the same function, files or rule, agree with
   its owner session first, and add or update your own row in your first commit. Never build a second version.

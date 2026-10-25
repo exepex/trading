@@ -118,8 +118,9 @@ part of the same goal. Say which role a point comes from when it matters, and sa
 ## Groww in market hours
 
 No person and no AI session runs a Groww command by hand from 09:15 to 15:35 IST (owner, 25 Oct 2026); only the
-scheduled routines call Groww then. Exception: a failed scheduled command is retried with exponential backoff (at most 5),
-then escalated; it may then be run again by hand, so no data is lost. The rule is owned by CLAUDE.md, "How to work".
+scheduled routines call Groww then. Exception: a failed scheduled command is retried with
+exponential backoff (at most 5), then escalated; it may then be run again by hand, so no data is lost (for the daily
+run, step 2b's once-only rerun holds until story O14 replaces it). The rule is owned by CLAUDE.md, "How to work".
 
 ## Documents (when an agent changes a document)
 
