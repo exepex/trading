@@ -878,6 +878,93 @@ the full log:
 - The day's own result is unchanged: "day done with problems: quotes_done" is REH1n's (the weekly part on 19 Oct).
 - #fno-desk: the exercised line, labelled "*DRY RUN, 2026-10-19 replay, not a real trading day*".
 
+### REH1p: a rehearsal sees an earlier day's Groww quote files (story and code in one round)
+
+Lane 1 (it changes what a rehearsal reads of the real Drive record): two judges, one round. Builder
+session_01GAACYjcfHWkC3hp33iiMXV, branch `story/reh1p-quote-visibility`. The orchestrator, 24 Oct: "GO, lane 1, story
+and code in one round ... also check that the sidecar's own commit time is <= the replay clock ... Use whichever of the
+two is later ... the real sample: the 23 Oct morning rehearsal from the school switch commit, which must show all five
+roads open."
+
+#### Finding (strong evidence: reproduced)
+
+- The MS-P1j builder's `rehearse morning --day 2026-10-23` from the school switch commit (run 20261024T231853Z-17705a):
+  the school's 08:50 "Today" section, planned from 22 Oct's 15:00 captures, saw all five roads `capture_missing`
+  (NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M, NIFTY-W); outside a rehearsal all five open.
+- Reproduced with the store every 3 pm reader uses (`storage.wiring.build_quote_store`), reading
+  `groww/derivatives/quote-snapshots/2026/10/banknifty_20261022_150146.csv`: a real run gets 82997 bytes; under the
+  mode on 23 Oct at 08:40, `RawQuoteMissing` ("its sidecar says it was saved, but the private store does not have it").
+- The cause: `fno/rehearsal/visibility.py` shows the replay a real Drive file only with an O9 receipt or a manifest row;
+  A4b's raw quote files (Drive `raw/` area) have neither, as their committed sidecar vouches for them, so every one was
+  invisible. A daily rehearsal's same-day captures worked only because `RecordedRecorder` republishes them into
+  `dryrun/` at their `finished_at`; any earlier day's quote file failed for every reader.
+
+#### Design
+
+- `fno/rehearsal/quote_sidecars.py`, `QuoteSidecars.seen_at(path)`: for a Groww `raw/groww/<p>.csv` whose sidecar
+  `research/data/quotes/groww/<p>.meta.json` the record's `main` holds, the later of the attempt's `finished_at` and
+  the committer time of the first first-parent commit on `origin/main` that added the sidecar (a merge counts from the
+  merge, as REH1g's manifest rows; `--no-renames`: a moved sidecar is a new file). The sidecar is read as that commit
+  holds it (`git show`; write-once), never from the record's working tree, which may be on any branch or miss the
+  file. None when `raw_file_saved` is false, when the sidecar is not on `main`, or for any other path (NSE's chain is
+  in the repository, never a Drive quote file). One `git log` over the quotes folder per record and process.
+- `Visibility` takes it as a third kind of evidence, after receipts and manifest rows; `rehearsed_drive` wires it over
+  `mode.record`. A4b's `csv_sha256` check (`DriveOnlyQuoteStore.get`) is unchanged.
+- The record checkout does not move during a run (the rehearsal's commits go to its own clone), so the index read once
+  per process stays true.
+- FREEZE_v4.md (`story/v4-freeze`): `visibility.py`, `drive_wiring.py` and the new module are in none of its tables.
+
+#### Criteria (tests in `tests/rehearsal/test_quote_sidecars.py`)
+
+- **P1. The previous day's file is visible the next morning** (22 Oct's BANKNIFTY at 08:38 on 23 Oct). Plants: the
+  wiring without the sidecars; `Visibility` not asking them.
+- **P2. The later of the two times** (the orchestrator's ask): between the finish and the commit, not visible; at the
+  commit, visible; a sidecar dated before its finish waits for the finish. Plants: the finish only; the commit only.
+- **P3. What never counts:** a failed save; a sidecar committed only on a branch; no sidecar; a path outside `raw/`
+  or not a quote file. A merge counts from the merge. Plants: the failed save counted; no `--first-parent`; any branch.
+- **P4. Through the rehearsed Drive:** 22 Oct's file read at 08:40 on 23 Oct, 23 Oct's not before its time, then read.
+- **P5. A real run is unchanged:** no mode, the owner Drive as it is.
+- **P6. The record's own bytes** (self-review): a sidecar edited or gone in the working tree changes nothing; a
+  weekly file counts, an NSE path with a matching sidecar does not; a record with no `main` shows nothing. Plants:
+  the sidecar read from the working tree; any `raw/*.csv`.
+
+#### Claims, code round 1 (for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1p-quote-visibility` (from main). Code:
+`fno/rehearsal/quote_sidecars.py` (new, 68 lines), `fno/rehearsal/visibility.py` (the third kind of evidence),
+`fno/rehearsal/drive_wiring.py` (wired over `mode.record`). Tests: `tests/rehearsal/test_quote_sidecars.py` (12).
+
+**Plants:** 9 planted, 9 caught, in a separate worktree, each restored with `git checkout --`: the wiring without the
+sidecars; `Visibility` not asking them; the finish only; the commit only; a failed save counted; no `--first-parent`;
+any branch counted; the sidecar read from the working tree; any `raw/*.csv` counted. One test was found vacuous while
+planting (the off-main case was looked up after the index had been cached) and was split so it holds alone.
+
+**Self-review** (an independent review agent): the Drive path traced from `DriveOnlyQuoteStore` through `AreaStore`
+and `DryrunDrive` to the sidecar path, for A4's, A4e's and A4f's datasets, folder listings included; the git parsing
+checked on git 2.43 (a `--no-ff` merge counts from the merge; spaces; newest-first keeps the oldest add); the cache
+safe (the record does not move during a run, and a later main only hides more). Accepted and fixed: the sidecar read
+from the working tree (a checkout behind main, or a removed sidecar, would have raised inside `visible`); the rule
+limited to Groww's datasets; `--no-renames`; `QUOTES` from `QUOTES_FOLDER`; the missing cases. Not changed: a naive
+`finished_at` (every real sidecar carries its zone, A4 writes it so); committer time, not push time (the limit REH1g
+already states for manifest rows).
+
+**Real output samples** (the orchestrator's go; this branch at 96dcc1d97 with `config.yaml`'s `school.enabled` and
+`school.reports` true in a local-only commit, never pushed; a full clone, the token kept):
+- Before (the MS-P1j builder's run 20261024T231853Z-17705a, main without REH1p), #fno-forecast: "Roads: NIFTY-M
+  closed (capture_missing); BANKNIFTY-M closed (capture_missing); FINNIFTY-M closed (capture_missing); MIDCPNIFTY-M
+  closed (capture_missing); NIFTY-W closed (capture_missing)".
+- After: `rehearse morning --day 2026-10-23`, run 20261024T234123Z-706a00, branch
+  `refs/heads/rehearsal/2026-10-23-20261024T234123Z-706a00`, ended "3 commands done": "lab open 2026-10-23: report to
+  #fno-forecast: posted", "closes 2026-10-22 certified: ... matches A4h's record", "not live in real runs (exercised):
+  replay clock not checked (by design)". #fno-forecast, read back, labelled "*DRY RUN, 2026-10-23 replay, not a real
+  trading day*": "School pilot, Today (Paper: no real money, no order) / Banner: RED, do not trade real money today
+  (plan from 22 Oct 2026 15:00 data, ...) / Roads: NIFTY-M open; BANKNIFTY-M open; FINNIFTY-M open; MIDCPNIFTY-M open;
+  NIFTY-W open / No candidate today: nothing is planned."
+- The direct read: under the mode at 08:40 on 23 Oct, `build_quote_store().get` of 22 Oct's BANKNIFTY file gives
+  82997 bytes (before: `RawQuoteMissing`); the same with the reviewed code at the final head.
+- The sample ran on 96dcc1d97; the review's changes after it keep the rule for these files (all five are Groww
+  files with sidecars added by first-parent commits on main), and the direct read was repeated on the final code.
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
