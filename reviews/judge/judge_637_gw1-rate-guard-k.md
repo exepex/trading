@@ -125,3 +125,22 @@ with the Slack token set:
 - `get_provider` without the windows; no wait; `fills_by` back to 15:20;
 - `groww-check` and the feed probe built directly.
 - Three of them first "survived" only because my own plant script left out `test_groww_quiet_windows.py`; all three are caught with it included.
+
+## Addendum 3: GW1 round 3's text fixes, c182a3aa2 on `story/gw1-round3` (judge K, narrow re-check approved by the owner)
+
+**PASS, lane 1.** 1 note. I checked only the c182a3aa2 diff, on top of f21269ea9 (637.2). I did not read judge I's verdict.
+
+**Gates.** The commit changes a `.py` docstring, so I ran the full gates. A trial merge into origin/main 8861e50d4 (c7258d3a8), Slack token set:
+- `pytest -n auto`: 17,613 passed, 1 skipped, 13 xfailed.
+- ruff check and format are clean. `check_imports` (2,912 files), `check_records` (9,550 files) and `check_numbers` are clean.
+- No test posted to Slack: all three channels are empty for 09:12:45-09:22:55 UTC.
+
+| 637.2 item | Verdict | Evidence (read) |
+|---|---|---|
+| SF1: line 13 | fixed | "Before GW1, A16 alone paced at 5 a second ... GW1 paces it at 4 (`groww_source.py:30`)". Line 30 is `WORKERS, PER_SECOND = 4, 4` |
+| SF1: the `groww_quiet_windows.py` docstring | fixed | "A16 asks at 4 a second ..., close to Groww's 300 a minute Live Data cap (5 a second averaged)". `QUIET_SECONDS`' comment ("83 s at most at 5 a second; about 95 s expected at A16's 4") is true as history |
+| SF1: line 160 | fixed | "Groww's Live Data limits are 10 a second and 300 a minute. Over a minute, 300 averages 5 a second, so every row must stay at or under 5 a second" |
+| m1: parts 1-4 claims | fixed | the round-1 claims and the sign-in sample are gone, with one link to GW1a's `#claims`. The sign-in cap is a link to GW1a's `#known-limits`. Both anchors exist in GW1a (lines 47 and 68) |
+| The other files | true | `O1-daily-run.md`'s limit is `fills_by` itself, 15:23:00 (start at 15:23:00 fills, 15:23:01 refused), and `SnapshotInWindow` is now by `fills_by`. Both match `config.yaml` and `test_fills_final.py`. `PROTOCOL.md` (a draft) says 15:23 with the reason. A16's story links GW1's rule 6 for the pace instead of restating "about 5 a second" |
+
+**Note (documents rule):** this commit touches three documents that are over 500 lines on main: `A16-intraday-quote-recorder.md` (826), `O1-daily-run.md` (697) and `research/evaluation/PROTOCOL.md` (512). The commit adds only a few lines to each, so this is DOC1's item, not GW1's. `GW1-groww-rate-guard.md` is now 253 lines.

@@ -10,7 +10,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-DECIDING = ("fno/desk", "fno/books", "fno/book3", "fno/risk", "fno/factory", "fno/playbook")
+DECIDING = ("fno/desk", "fno/books", "fno/book3", "fno/risk", "fno/factory", "fno/playbook", "fno/ai_trading")
+# F1t (story F1t, revision 2): the trading runner reuses fno/ai's generic seal, transport, run terms and audits, as its
+# story says, but never a v4 module (`fno/ai/v4_*.py`: the AI books' v4 rows, pointer, collection) nor the text below
+SHARED_AI_USERS, V4_WORK = {("fno", "ai_trading")}, "fno.ai.v4_"
 FORBIDDEN_TEXT = ("research/forecasts/v4/book", "book2_hybrid_v2", "book3_ai_v2")
 
 
@@ -30,6 +33,8 @@ def imported(path: Path) -> set[str]:
 
 def problems(path: Path) -> list[str]:
     ai = sorted(m for m in imported(path) if m == "fno.ai" or m.startswith("fno.ai."))
+    if path.relative_to(ROOT).parts[:2] in SHARED_AI_USERS:  # the shared pieces yes, the v4 work never
+        ai = [m for m in ai if m.startswith(V4_WORK)]
     text = path.read_text(encoding="utf-8")
     return ai + [s for s in FORBIDDEN_TEXT if s in text]
 
@@ -55,3 +60,11 @@ def test_an_empty_module_passes(tmp_path, monkeypatch):
     module.parent.mkdir(parents=True)
     module.write_text("")
     assert problems(module) == []
+
+
+def test_the_trading_runner_may_reuse_fno_ai_but_never_its_v4_work(tmp_path, monkeypatch):
+    monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+    module = tmp_path / "fno" / "ai_trading" / "planted.py"
+    module.parent.mkdir(parents=True)
+    module.write_text("from ..ai.seal import Commitment\nfrom ..ai import v4_rows\n")
+    assert problems(module) == ["fno.ai.v4_rows"]
