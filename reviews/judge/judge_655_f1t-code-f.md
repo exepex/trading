@@ -99,3 +99,18 @@ Plants: 6, **5 caught, 1 survived** (minor 2). No blocking or should-fix finding
 
 Process note: I first made the local trial-merge commit with `--no-verify`. I redid it at once with the hook on
 (record scan clean). It was never pushed.
+
+## Addendum 3
+
+**F1t follow-up at story/f1t-template-test @ 1a5fc1fe1, judge F: PASS, no finding. Lane 1.** The commit named to me,
+4dfd61b09, does not exist in the repository. I judged the branch head, 1a5fc1fe1, which holds the two changes described.
+Diff against main: `tests/ai_trading/test_steps_revision2.py` and `docs/stories/F1t-ai-trading-runner.md` only.
+
+| Item | Change | My check | Result |
+|---|---|---|---|
+| My 655.2 minor 2 (and 651.2's) | the test reads every module-level string of `fno/ai_trading/steps.py` with `ast`, never `AI_STEPS`; each must read as its own `ai:` code; 8 distinct | `steps.py` has exactly 8 such strings, all the step's templates (`NO_LIVE_BOOK` ... `CONFIG_WRONG`). My plants: a row dropped from `AI_STEPS`, 2 fail; a new template without a code, 2 fail; two templates on one code, 2 fail | **Fixed** |
+| F1t line 44 | `fills_by` given as a link to `config.yaml` `desk.timetable.fills_by`, owned by GW1, no number | GW1's story owns the change (`GW1-groww-rate-guard.md:83-91`, 15:23 pending); the one-owning-document rule holds | **Accepted** |
+
+Gates on a trial merge with main (token kept): **17,963 passed, 1 skipped (no Groww SDK here), 13 xfailed, 0
+failed**; ruff, format (2,804 files), imports (2,967), record scan (9,609) clean. 655.2's `config.yaml` conflict minor
+is moot: F1t is on main.
