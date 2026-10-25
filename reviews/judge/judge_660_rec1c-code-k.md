@@ -37,3 +37,25 @@ with the Slack token set:
 
 **Mine: 11 caught**, counting the redone look-ahead: only traded candidates; last not resolved; two live allowed; orphan allowed; ticket as a trade; line before final; no never-closed problem; look-ahead (redone); open ticket ignored; one failed day stops the run.
 - **SF1's case is not a plant.** It is a missing behaviour, shown by my scratch test (kept in my scratchpad, not in the repository).
+
+## Addendum 1: round 2 (the last), `story/rec1c-evening-check` at 33f0252db (judge K)
+
+**PASS, lane 1.** 1 minor. I did not read judge J's verdict.
+
+**Gates.** A trial merge of 33f0252db5c933ded100f25c35b7b861a5cce6af into origin/main 48acc7d37 is clean (e45744f44). On it,
+with the Slack token set:
+- `pytest -n auto`: 17,431 passed, 1 skipped, 13 xfailed, exit 0.
+- ruff check and format are clean. `check_imports` (2,884 files), `check_records` (9,473 files) and `check_numbers` are clean.
+- No test posted to Slack. The window's #fno-desk and #fno-forecast posts are all "DRY RUN, <day> replay" lines of the
+  orchestrator's rehearsal series; #fno-intraday is empty.
+
+| Item | Verdict | Own evidence |
+|---|---|---|
+| SF1: a missed 60th evening | fixed | `_recorded_days` now lists every receipted recommendation up to `on`, with no fixed window, and `last` (`>= 60` sessions) finishes an overdue day. My 660 scratch test (sessions 1-59, the 60th skipped, the 61st run) now ends with the day written final ("never closed in 60 sessions"), a second check file and the alert. My test fails as intended, because the gap is closed. Plant "window back on": caught |
+| m1: a past-day `--on` | fixed | `_final` counts only check files whose `on` is on or before `on`. Plant "every check file counts": caught |
+| J's m1: data-reason failures final at once | correct | `DataDisagrees` (two live outcomes, an orphan correction, an untraded decision with an outcome) is caught before `InputFailed` and written final with `last=True`. A plain read error is still retried. Plant "disagreement retried": caught |
+| The seven checks of 660 | still met | `check.py`, `outcomes.py`'s matching, `check_record.py`, `check_text.py` and the line-only-when-final logic are unchanged apart from the exception class |
+
+**m2 (minor):** a survivor. Dropping `d <= on` from `_recorded_days` is caught by no test. A past-day catch-up would then also pick days after `on`. Their checks are refused by the record ("a check before its day") and alerted, so the failure is loud, never a wrong total, but the point-in-time rule deserves its test.
+
+**Plants:** 4 of mine, 3 caught (m2 survives).
