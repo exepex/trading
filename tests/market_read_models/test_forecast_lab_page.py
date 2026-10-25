@@ -23,7 +23,7 @@ from fno.market_read_models.forecast_lab_inputs import ForecastLabInputs, Foreca
 from fno.market_read_models.forecast_questions import V3_QUESTIONS
 from fno.market_read_models.home_blocks import FiguresNotComputed
 from fno.market_read_models.publication import PublicationBuilder
-from fno.market_read_models.wiring import build_forecast_lab_inputs, build_pinned_contract
+from fno.market_read_models.wiring import build_forecast_lab_inputs, build_pinned_contract, v4_freeze
 from fno.storage.wiring import build_session_calendar
 
 ROOT = Path(__file__).parents[2]
@@ -183,7 +183,27 @@ def test_v4_is_listed_as_a_draft_with_no_question_until_g6_freezes_it():
         "questions": list(V4_IDS),
     }
     assert {q["protocol"] for q in page["questions"]} == {"v3"} and len(V4_IDS) == len(V4_QUESTIONS)
-    assert not (ROOT / "research" / "forecasts" / "FREEZE_v4.md").exists(), "v4 is frozen: build its questions (P2b)"
+
+
+def test_v4_is_listed_as_frozen_with_its_protocol_commit_from_its_freeze_day():
+    """G6 freeze (orchestrator, 25 Oct 2026): the page reads v4's freeze day and commit from `FREEZE_v4.md`, as v3's
+    from G4's report; before the day it stays a draft. v4's per-question entries are still P2b's open work."""
+    frozen = v4_freeze()
+    assert frozen is not None and frozen.frozen_on == date(2026, 10, 25) and len(frozen.commit) == 40
+    page = published(replace(real(date(2026, 10, 23)), v4_freeze=frozen))
+    assert page["protocols"][1] == {"version": "v4", "status": "frozen", "frozen_commit": frozen.commit,
+                                    "questions": list(V4_IDS)}  # fmt: skip
+    assert {q["protocol"] for q in page["questions"]} == {"v3"}  # no V question yet (P2b)
+    before = ForecastLabReader(ScoreReportsReader(ROOT / SCORES_FOLDER), [], SessionsAhead(CALENDAR), lambda: frozen)
+    assert before.on(date(2026, 10, 24)).v4_freeze is None and before.on(date(2026, 10, 25)).v4_freeze == frozen
+
+
+def test_a_freeze_record_without_its_day_or_commit_is_refused(tmp_path):
+    record = tmp_path / "FREEZE_v4.md"
+    assert v4_freeze(record) is None
+    record.write_text("Frozen on: 2026-10-25\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="no 'Frozen on:' or no 'Protocol commit:' line"):
+        v4_freeze(record)
 
 
 def test_a_session_before_any_report_publishes_the_standing_and_no_scores(tmp_path):

@@ -117,7 +117,8 @@ def test_ai_rows_with_no_audit_file_and_a_complete_record_let_the_look_run_with_
     assert _look_on(tmp_path, records(DAYS)) == (0, True)  # 27 May's not_fired row is a miss, not a refusal
 
 
-def test_the_live_wiring_has_no_registered_ai_slot_yet():
+def test_before_the_first_counted_session_the_live_wiring_has_no_unsettled_ai_slot_day(no_v4_drive_records):
+    """Since the freeze the AI slots are registered from Mon 26 Oct 2026; no slot-day before it is ever unsettled."""
     from fno.forecast_scoring.v4.wiring import build_ai_slot_days
 
     assert build_ai_slot_days().unsettled(date(2026, 10, 1), date(2026, 10, 16)) == []

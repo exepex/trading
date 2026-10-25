@@ -57,8 +57,11 @@ def build_chains(sources=(SOURCE_GROWW, SOURCE_NSE)) -> SnapshotChains:
 
 
 def build_live_recorder(cfg: dict) -> LiveRecorder:
+    from ..rehearsal.live_wiring import rehearsed_date
+
+    live = rehearsed_date(STEP, live_from(cfg))  # REH1o
     return LiveRecorder(build_chains(), build_day_builder(cfg), build_store(), build_session_calendar(), UNDERLYINGS,
-                        live_from(cfg), now_ist)  # fmt: skip
+                        live, now_ist)  # fmt: skip
 
 
 def build_backfill(cfg: dict, eod: bool, years=None) -> Backfill:

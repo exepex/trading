@@ -1,6 +1,8 @@
 """Criteria 6 and 7 (story MS-P1e): every no-trade carries a reason from a's enum, and every driver passes the
 shared `Driver` conformance check; the composition root builds the drivers from the repository's own config."""
 
+import copy
+
 import pytest
 import yaml
 
@@ -55,9 +57,10 @@ def test_every_no_trade_carries_a_reason_from_the_enum_and_every_outcome_its_own
 
 def test_the_composition_root_builds_every_driver_from_the_repository_config():
     cfg = yaml.safe_load((b.ROOT / "config.yaml").read_text(encoding="utf-8"))
+    before = copy.deepcopy(cfg)
     built = build_school_drivers(cfg, b.ROOT)
     assert sorted(d.card.code for d in built) == DRIVERS
-    assert cfg["school"]["enabled"] is False  # building drivers does not switch the school on
+    assert cfg == before  # building drivers changes no setting, the school's switch included
     road_day, snapshot = b.scene()
     ps4 = next(d for d in built if d.card.code == "PS4").decide(road_day, snapshot, (), ())
     assert ps4.outcome == Outcome.TRADE and ps4.proposal.max_loss <= cfg["school"]["max_loss_rs"]
