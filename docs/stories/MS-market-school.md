@@ -3590,3 +3590,7 @@ section for Mon 26 Oct, from 23 Oct 15:00 data, now plans PS2, PS3 and PS4 on NI
 structure SC, worst loss Rs 2,271 to Rs 9,373), banner AMBER, nothing "not planned". Before: "No candidate today". The
 23 Oct slot itself made the same 6 rule trades (replay of 23 Oct: PS2, PS3, PS4 trade x2 each; RC1 and REF are
 controls).
+
+**Gates at d28c279f3** (the code of round 1, main with MS-P1j3 merged in; this text is Markdown only on top): full
+suite 16610 passed, 1 skipped, 13 xfailed (FNO_SLACK_BOT_TOKEN kept set); ruff check and format clean; check_imports
+clean (2765 files); check_records clean (9296 files); check_numbers at the merge.
