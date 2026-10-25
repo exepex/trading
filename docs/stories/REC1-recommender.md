@@ -580,3 +580,54 @@ Each finding was checked against the code first; every one held.
 
 **Plants this round: 10, all caught.** Each judge's surviving plant (J's S1, X19 and X23; K's m2) is among them. One
 earlier result line was hidden by my own script and was re-run alone; it was caught. Tests: 276 in `tests/recommend`.
+
+### REC1c text amendment (before code; orchestrator's rulings, 25 Oct)
+
+What changes or is made exact in the passed text for REC1c, each named:
+
+1. **The brake rule first** (orchestrator's ruling on judge 654.1's open point, the safer reading): a version under its
+   own drawdown brake is never `ELIGIBLE_FOR_YOUR_OWN_REVIEW`.
+   - `decide` and the record's contract both refuse it.
+   - The real-money line names the brake.
+   - Test and plant: a rung-3, RM1-eligible version that is braked gives `DO_NOT_TRADE_REAL_MONEY`.
+   - It cannot occur before rung 3. It is built now so that it is in place before rung 3 is reachable.
+2. **Where it runs** (orchestrator, 25 Oct). One step in CLAUDE.md's evening section: `python -m fno recommend
+   check`, right after `lab close` (and `release-check`).
+   - It commits only its own receipts (`receipts/data/recommend/`), in its own commit.
+   - The CLAUDE.md line ships on REC1c's branch and is judged with it, in lane 1, because it changes a routine's
+     steps. The owner's routine prompt is unchanged: it already reads that section.
+   - **It never fails the evening edition.** It runs after `lab close` has posted. On its own error it alerts
+     #fno-desk and exits non-zero, and the edition's receipts are committed before it, as today.
+3. **What it reads**, all sealed records; it never reads a price, and never searches the day's decisions afresh.
+   - The recommendation record of the session being checked.
+   - Each **listed** candidate's outcome:
+     - A school candidate (`<seal path>#<road>`): its `OutcomeRecord` in the school dashcam's sealed `outcomes`
+       files from its session up to the check's day. The record names the same `decision_sha256`, `driver_id` and
+       `road`. Its `net` is after C1 costs. An outcome with `is_ticket` is reported apart, as a ticket, never as a
+       trade.
+     - A candidate that did not trade contributes zero, shown as "no trade".
+     - A desk candidate that traded: the desk's outcome reader is not built, as with REC1b's desk evidence. That
+       candidate makes the check `data_check_failed` with that reason. It cannot occur before a desk version reaches
+       `paper`.
+4. **What it writes.** `recommend/<YYYY>/<MM>/<day>.check.json`, written once with its receipt pushed, with:
+   - per listed candidate: its key, `closed` / `open` / `no trade` / `ticket`, and its `net` when closed;
+   - the total over the closed trades, with counts of the open ones;
+   - the day's verdict: `not known yet` until every listed candidate has closed; `complete` when all have;
+     `incomplete: <source> unavailable` when a source was unavailable at decision time;
+   - for a `NO_TRADE` day, "abstaining saved Rs X" or "abstaining cost Rs X" once complete.
+   A check of a day already checked as complete is never written again. A day still `not known yet` is checked again
+   on later evenings: each check is its own write-once file, `<day>.check.<check day>.json`, so no file is ever
+   rewritten.
+   - Which sessions it checks: every session with a recommendation record whose latest check is not `complete`, at
+     most 60 sessions back. A monthly option closes within about 35 days.
+5. **Where it shows.**
+   - One #fno-desk line per newly completed day, "Recommender check for <day>: ...".
+   - The 08:50 "Today" section shows the latest checks (REC1d). The 20:05 edition cannot show tonight's check,
+     because the check runs after it; this is stated, not hidden.
+6. **Criteria for REC1c.** Criterion 12 as passed (trade, no trade, a candidate not closed, a missing record, each
+   candidate plus the total, never editing the recommendation, the dropped-loser plant), plus:
+   - (a) the brake test;
+   - (b) a school ticket never counted as a trade;
+   - (c) a source unavailable at decision time gives `incomplete`, never a total;
+   - (d) a check error never touches the edition's receipts (the command's own commit only);
+   - (e) the CLAUDE.md step text.
