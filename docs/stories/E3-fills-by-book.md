@@ -42,3 +42,5 @@ one line. Account records and alerts were right; the run log and anything readin
    (`c1`) now read through `trade_fills(result, <their book>)`.
 2. **Minor, accepted:** `trade_fills(old_flat, book)` now says, and does, what an old flat log means: Book 1's trades
    (it predates the AI books). A named book other than Book 1 finds none of them (test).
+3. Gates (round 2): the full suite on 378007ee, in its own worktree: 17,355 passed, 1 skipped, 13 xfailed, 0 failed;
+   ruff, `ruff format`, `check_imports` and the record scan are clean.
