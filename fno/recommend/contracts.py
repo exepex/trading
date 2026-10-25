@@ -9,8 +9,19 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
+from ..books.version_registry import SCHOOL_BOOK_PREFIX
 from ..school.contracts.codec import CanonicalRecord
-from .constants import RECORD_KIND, RECORD_SCHEMA_VERSION, EvidenceRung, NoTradeReason, PaperAnswer, RealMoneyAnswer
+from .constants import (
+    BLOCKS_REAL_MONEY,
+    RECORD_KIND,
+    RECORD_SCHEMA_VERSION,
+    CandidateSourceName,
+    EvidenceRung,
+    NoTradeReason,
+    PaperAnswer,
+    RealMoneyAnswer,
+    SourceState,
+)
 from .refs import RecordRef
 from .rungs import VersionEvidence
 
@@ -40,6 +51,20 @@ class Candidate:
 
 
 @dataclass(frozen=True)
+class CandidateSource:
+    """One source of the day's candidates and whether it could be read; `step_status` says why it could not."""
+
+    name: CandidateSourceName
+    state: SourceState
+    step_status: str | None
+
+    def __post_init__(self):
+        unavailable = self.state is SourceState.UNAVAILABLE
+        if unavailable != (isinstance(self.step_status, str) and bool(self.step_status)):
+            raise RecordRefused("an unavailable source names its step status, and only then")
+
+
+@dataclass(frozen=True)
 class Recommendation(CanonicalRecord):
     schema_version: int
     kind: str
@@ -52,6 +77,7 @@ class Recommendation(CanonicalRecord):
     inputs: tuple[RecordRef, ...]
     versions: tuple[VersionEvidence, ...]
     candidates: tuple[Candidate, ...]
+    candidate_sources: tuple[CandidateSource, ...]
     real_money: RealMoneyAnswer
     eligible_version: str | None
     paper: PaperAnswer
@@ -76,6 +102,9 @@ def _problems(rec: Recommendation) -> list[str]:
         (_sorted_unique([_candidate_key(c) for c in rec.candidates]), "candidates are not sorted or repeat one"),
         (all(rungs.get(c.version) == c.rung for c in rec.candidates),
          "a candidate's rung is not its version's evidence rung"),
+        ([s.name for s in rec.candidate_sources] == sorted(CandidateSourceName), "not one entry per candidate source"),
+        (not (_unavailable(rec) & {source_of(c.version) for c in rec.candidates}),
+         "a candidate comes from an unavailable source"),
         (_real_money_consistent(rec, rungs), "the real-money answer and its eligible version disagree"),
         (_paper_consistent(rec, rungs), "the paper answer, its trade and its reason disagree"),
     )  # fmt: skip
@@ -85,17 +114,31 @@ def _problems(rec: Recommendation) -> list[str]:
 def _real_money_consistent(rec: Recommendation, rungs: dict[str, EvidenceRung]) -> bool:
     if rec.real_money is RealMoneyAnswer.DO_NOT_TRADE_REAL_MONEY:
         return rec.eligible_version is None
-    return rungs.get(rec.eligible_version) is EvidenceRung.ESTABLISHED  # only a proven version, judge 620 S1
+    proven = rungs.get(rec.eligible_version) is EvidenceRung.ESTABLISHED  # only a proven version, judge 620 S1
+    clear_day = rec.reason not in BLOCKS_REAL_MONEY  # never on a day the paper answer is stopped by the day itself
+    return proven and clear_day and source_of(rec.eligible_version) not in _unavailable(rec)
 
 
 def _paper_consistent(rec: Recommendation, rungs: dict[str, EvidenceRung]) -> bool:
     established = EvidenceRung.ESTABLISHED in rungs.values()
+    unavailable = _unavailable(rec)
+    if any(rung is EvidenceRung.ESTABLISHED and source_of(v) in unavailable for v, rung in rungs.items()):
+        return rec.paper is PaperAnswer.NO_TRADE and rec.reason is NoTradeReason.DATA_CHECK_FAILED  # unread decisions
     if rec.paper is PaperAnswer.NO_TRADE:
         possible = set(NoTradeReason) - {NoTradeReason.NO_ESTABLISHED_VERSION} if established else UNPROVEN_REASONS
         return rec.paper_trade is None and rec.reason in possible
     trade = rec.paper_trade
     return (rec.reason is None and trade is not None and trade.traded and trade in rec.candidates
             and trade.rung is EvidenceRung.ESTABLISHED)  # fmt: skip
+
+
+def source_of(version: str) -> CandidateSourceName:
+    """A school driver version's candidates come from the school, every book's from the desk."""
+    return CandidateSourceName.SCHOOL if version.startswith(SCHOOL_BOOK_PREFIX) else CandidateSourceName.DESK_BOOK1
+
+
+def _unavailable(rec: Recommendation) -> set[CandidateSourceName]:
+    return {s.name for s in rec.candidate_sources if s.state is SourceState.UNAVAILABLE}
 
 
 def _hashes(rec: Recommendation) -> list[str]:

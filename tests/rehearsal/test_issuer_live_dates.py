@@ -109,3 +109,16 @@ def test_a_step_kept_real_keeps_its_date_in_a_rehearsal(monkeypatch, tmp_path):
 
     mode(monkeypatch, tmp_path, D19)
     assert rehearsed_date(OWNER_TIMING_STEP, D23) == D23  # E8's fills change the desk's fills: never rehearsed live
+
+
+@pytest.mark.parametrize("module", [distribution, ranges, premium], ids=["price_distribution", "price_ranges",
+                                                                          "premium_ranges"])  # fmt: skip
+def test_each_issuer_asks_for_its_own_step_s_date(monkeypatch, tmp_path, module):
+    """Judge 646: the key changes the date only for a KEPT_REAL step, so pin the key each wiring passes: its own
+    step's name, the one the daily run's root rehearses."""
+    from fno.constants_operations import DAILY_RUN_STEPS
+
+    asked = []
+    monkeypatch.setattr("fno.rehearsal.live_wiring.rehearsed_date", lambda key, real, env=None: asked.append(key))
+    {distribution: distribution_live, ranges: ranges_live, premium: premium_live}[module](monkeypatch)
+    assert asked == [module.STEP] and module.STEP in DAILY_RUN_STEPS

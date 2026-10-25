@@ -11,6 +11,7 @@ from .ai_trading.cli import add_ai_trading_parser
 from .books.cli import add_account_parser
 from .books.versions_cli import add_versions_parser
 from .budget.cli import add_budget_parser
+from .capture_probes.command import add_probe_parser
 from .cards.cli import add_card_parser
 from .circulars.cli import add_circulars_parser
 from .close_read.cli import add_closes_parser
@@ -46,6 +47,7 @@ from .price_distribution.cli import add_pricedist_parser
 from .price_ranges.cli import add_pricerange_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
+from .recommend.cli import add_recommend_parser
 from .record_store.cli import add_records_parser
 from .rehearsal.cli import add_rehearse_parser
 from .research_data.calendar import CalendarError
@@ -273,6 +275,8 @@ def build_parser() -> argparse.ArgumentParser:
     add_flows_parser(sub)
     add_preopen_parser(sub)
     add_school_parser(sub)
+    add_recommend_parser(sub)
+    add_probe_parser(sub)
     return p
 
 

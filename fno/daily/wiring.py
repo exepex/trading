@@ -22,6 +22,7 @@ from ..constants import (
     OWNER_TIMING_STEP,
     PLAYBOOK_FOLDER,
     REVIEWS_STEP,
+    SCHOOL_STEP,
     V4_PACK_FORECASTS_STEP,
     V4_PACK_LIVE_KEY,
 )
@@ -44,7 +45,7 @@ SCHOOL_NOT_RETRIED = "; " + RERUN_FINAL.format(why="a later run never decides th
 FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, V4_PACK_FORECASTS_STEP, "card",
               OWNER_TIMING_STEP, "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges",
-              "price_range_scores", "premium_range_scores", "close_read", "close_recheck")  # fmt: skip
+              "price_range_scores", "premium_range_scores", "close_read", "close_recheck", "recommend")  # fmt: skip
 LIVE_BOOKS = (BOOK2_HYBRID, BOOK3_AI)  # story F1t: each AI book's first trading day; null: not in the desk at all
 OTHER_LIVE_KEYS = ("ai_books_v4",)  # G11's key, read by `fno/ai/wiring.py`
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
@@ -59,6 +60,11 @@ def range_issue(day: date) -> tuple[str, ...]:
 def premium_issue(day: date) -> tuple[str, ...]:
     """G13d's live issue from G13's 3 pm record (O1's `premium_ranges` step; refuses itself after 15:30)."""
     return ("premrange", "issue", "--day", day.isoformat(), "--live")
+
+
+def recommend_decide(day: date) -> tuple[str, ...]:
+    """REC1b's step: it commits and pushes its own receipt before it posts, so the step names no folder."""
+    return ("recommend", "decide", "--on", day.isoformat())
 
 
 def school_run(day: date) -> tuple[str, ...]:
@@ -229,12 +235,18 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
         ),  # G13: its own receipts only  # fmt: skip
         "premium_ranges": Alerted("premium_ranges", LiveFrom(premium_ranges, live["premium_ranges"]), alerts),  # G13d
-        "school": Alerted(
-            "school",
+        SCHOOL_STEP: Alerted(
+            SCHOOL_STEP,
             StartsBy(CommandStep(processes, school_run, (), git.changed, waiting, locks), SCHOOL_STARTS_BY, now_ist),
             alerts,
             note=SCHOOL_NOT_RETRIED,
         ),  # MS-P1j2: never started late, never retried
+        "recommend": Alerted(
+            "recommend",
+            LiveFrom(CommandStep(processes, recommend_decide, (), git.changed, waiting, locks), live["recommend"]),
+            alerts,
+            status_alerts=False,  # the command alerts each failure itself; a raise is still alerted here
+        ),  # REC1b: it commits its own receipt, so no pathspec
         "price_distribution_scores": scores(DISTRIBUTION_SCORES, receipt_pathspecs(), "price_distribution_scores"),
         "price_ranges": Alerted("price_ranges", LiveFrom(price_ranges, live["price_ranges"]), alerts),  # G13b
         "price_range_scores": scores(RANGE_SCORES, range_receipts(), "price_range_scores"),

@@ -56,7 +56,7 @@ not `config.yaml`):
 | HTTP 429 | the first 429 stops Groww for the day, no retry (orchestrator's Groww audit, 24 Oct: the owner's "never exceed its rate limit") | wait 60 s, retry that one request once; a second 429 the same day stops NSE for the day |
 | Sign-in | one sign-in per run; a failed sign-in is kept and stops Groww for the run, never retried per call (audit: `GrowwProvider.api` retries on every call, `fno/providers/groww.py:139-145`, fixed globally by session_01GsPm29fZzfH3DiErKAdBVk) | none |
 | Any other 4xx (401, 403, 404, ...), or a 200 that is not the expected JSON (empty, HTML, wrong shape) | the source stops for the day at once, no retry (judge 626: 401 is NSE's usual refusal) | same |
-| 5xx or timeout (20 s) | one retry after 30 s; then that row is `missing` and the slot goes on | same |
+| 5xx or timeout (20 s) | an SDK error with a 5xx code or a timeout class: one retry after 30 s, then `missing`; a call still running after 20 s is hung and stops Groww for the run (a retry would put a second request in flight) | one retry after 30 s; then that row is `missing` and the slot goes on |
 | A source stopped on 2 sessions | the probe stops for that source for good; the owner decides | same |
 | User-Agent | the SDK's own (Groww's client, not ours to set) | `OmenixFnO-research/1.0 (personal, read-only, paced)`, fixed; never a browser string |
 
@@ -94,7 +94,8 @@ not `config.yaml`):
   `school/p0b/<source>/<session>/`, one file per slot (8 a day; P0-3: far below Drive's limits). Its receipt goes to
   `receipts/`. No raw Groww or NSE answer enters the repository.
 - Each captured row (response 327) carries: instrument, contract, expiry, dated lot, source time (the answer's own
-  timestamp, or `none` when it has none), first-seen time (our receipt time, UTC), the raw answer's SHA-256, and a
+  timestamp, or `none` when it has none: Groww's quote has none, its last trade time is a trade's, so Groww rows are
+  never `stale`), first-seen time (our receipt time, UTC), the raw answer's SHA-256, and a
   quality status (`ok`, `empty_bid_ask`, `one_sided`, `lot_unknown`, `missing`, `stale`).
 - The counts file `research/school/probes/p0b/<session>.json` (counts and times only, no price): requests per source,
   refusals by status, rows by quality, latency median and 95th percentile per source and kind, Drive writes ok and
@@ -131,7 +132,7 @@ grow, keep or stop, per source.
 5. **Times:** refuses a non-trading day, 26 Oct and each A16h day, a slot more than 2 min late, and a sixth session;
    a slot stops hard at slot + 6 min with its unread rows `missing`.
 6. **Read-only:** the Groww source holds only `ReadOnlyGroww`; no module of the package names `GrowwAPI`
-   (A16's import-closure test extended to `fno/school/probes/`). No module sends anything to NSE but GET.
+   (A16's import-closure check run over `fno/capture_probes/`). No module sends anything to NSE but GET.
 7. **User-Agent:** every NSE request carries exactly the fixed honest User-Agent; a test fails on any browser token
    (`Mozilla`, `Chrome`, `Safari`).
 8. **Rows:** every row carries the eight fields of section 5; a missing lot gives `lot_unknown`; a quote with no bid
@@ -193,6 +194,85 @@ grow, keep or stop, per source.
    conditions, now in section 3 and criteria 3-4: one sign-in per run with a failed sign-in kept, and Groww stops for
    the day at its first 429.
 
+## 11. Changes in the code round (round 1, for the judge)
+
+- **Package and command moved out of the school:** `fno/capture_probes/` (not `fno/school/probes/`) and
+  `python -m fno capture-probe` (not `school capture-probe`). The school's own boundary test (MS-P1a criterion 7,
+  `tests/school/contracts/test_boundaries.py`) forbids any module under `fno/school/` to import a provider, Groww,
+  `fno.intraday` or `fno.alerts`; the probe needs all four, and it is a capture, not a school part. The school's code
+  is untouched; the probe reads the school's lot reader (`fno/school/roads/lots.py`) only.
+- **Groww's quote has no source time** (section 5): rows carry `none`, so the `stale` flag applies to NSE only.
+- **A hung Groww call stops Groww** (section 3): the SDK's own timeout is not known, so each call is bounded at 20 s
+  on one worker thread; a call still running then is never retried beside itself.
+- **Sign-in:** read once per run, outside any retry; a failure of any kind is kept and stops Groww for the run.
+- **A stop is pushed at once**, before the other source runs, so a run that dies later cannot leave a rerun free to
+  ask the stopped source again.
+- **An expiry lookup that failed** is tried again in the next slot, inside that slot's reservation.
+
 ## Claims
 
-(None yet: text round. Code claims, plants and the real output sample come with the code round.)
+### Code round 1 (builder session_01KJLFK1oqfytQkHapDCHJh9; branch `story/ms-p0b-capture`, SHA in the commit carrying this text)
+
+**Status: ready for the judge.** GW1a (parts 1-4) is on `main` (merge 21cbee0ee, judges 649 and 650 PASS) and is
+merged into this branch. The probe reads a 429 only through GW1's `is_rate_limit` and `GrowwRateLimitPaused`
+(`fno/providers/groww_rate_guard.py`; the project's one 429 detector, orchestrator's ruling) and builds Groww through
+`get_provider("groww", cfg)`: GW1's sign-in guard (3 tries a process a day) and read-only client apply. GW1's quiet
+windows (`GrowwQuietWindow`) are not on `main`; the probe's slots sit outside A16's marks by their own times (section 4).
+Gates on the merged tree: full suite 16,969 passed, 1 skipped, 13 xfailed; `ruff check fno tests tools`,
+`tools/check_imports.py` and `tools/check_records.py` clean.
+
+| # | Criterion | Code | Tests (good, bad, boundary, empty) |
+|---|---|---|---|
+| 1 | Pace | `pace.py` `StudyPace` | `test_pace_and_answers.py` (gap 1.0 and 3.0, exactly at the gap, a slow request, first request) |
+| 2 | Cap and reservation | `slot.py` `_reservation`, `counts.py` `SourceSlot.spent`, `caller.py` `_may_send` | `test_slot.py` (cap per source, killed mid-slot, unpushed reservation), `test_caller.py` (empty reservation) |
+| 3 | Refusals | `answers.py` `judge`, `caller.py` `call`, `stops.py`, `slot.py` `_stop` | `test_caller.py`, `test_slot.py` (401/403/404, HTML/empty/wrong shape, first Groww 429, second NSE 429, 5xx), `test_review_fixes.py` |
+| 4 | Sign-in once | `groww_reader.py` `_sign_in` | `test_readers.py`, `test_review_fixes.py` (timeout-, 5xx- and 401-shaped sign-in failures: one try) |
+| 4b | Stop for good | `day.py` | `test_day.py` (2 sessions: stopped; 1: not) |
+| 5 | Times | `day.py`, `caller.py` `_send` | `test_day.py` (non-trading day, each blackout day, sixth session, rerun of the fifth, 2 min late boundary, hard stop), `test_review_fixes.py` |
+| 6 | Read-only | `wiring.py` (`ReadOnlyGroww` only), `nse_reader.py` `NseGet` | `test_readers.py` (a session that fails on any name but `get`; A16's import-closure check over the package: no trading call, no v4, fleet or v4 pack import) |
+| 7 | User-Agent | `constants.py` `NSE_USER_AGENT`, `NseGet` | `test_readers.py` (all 44 requests; headers replaced, not added to) |
+| 8 | Rows | `rows.py`, both readers | `test_rows_and_records.py` (8 flag cases, 15-minute boundary), `test_slot.py` (eight fields, lot unknown, one-sided) |
+| 9 | Write-once | `archive.py` | `test_rows_and_records.py`, `test_slot.py` (conflict named, failed write counted) |
+| 10 | No secret or price | `answers.py` (class names only), `counts.py` | `test_rows_and_records.py` (every printed, posted and committed line against the made-up prices and secret words) |
+| 11 | Own paths only | `publish.py` `RepoPathsCommitter` | `test_rows_and_records.py` (a recording git: `add` and `commit` name only the three owned paths, never `--no-verify`) |
+| 12 | Gates | | on the tree merged with `main` (GW1a in): full suite 16,969 passed, ruff, imports and record scan clean; `tests/capture_probes` 115 passed |
+| 13 | Output sample | below | |
+
+**Self-review** (one independent review agent on the diff): 2 blocking, 3 should-fix and 4 minor findings, all
+reproduced and fixed with a test each (`test_review_fixes.py`): a failed sign-in retried as a timeout or 5xx (12
+sign-ins in one run); a Groww stop not pushed before NSE's part (a rerun read Groww again); `{}` and empty lists
+accepted as answers; parse errors crashing the run; no Groww call timeout; a request starting after the hard stop
+after a pace wait; a failed expiry lookup kept all day; tests that searched text instead of testing behaviour; Groww's
+last trade time used as the quote's source time. The full suite then showed the probe broke the school's boundary
+test; the package moved out (section 11).
+
+**Plants:** 26 planted, one or more per criterion and per review fix, all caught by `tests/capture_probes` (the
+plant script lives in the builder's scratchpad; each plant listed by name in the orchestrator message). Two
+survivors of the first run were redundant guards (the deadline before the pace wait; the kept sign-in error, which
+the day's stop already covers), removed; one was a missing test (a request slower than half the gap), added.
+
+**Real output sample** (`python -m fno capture-probe --dry-run <folder> --session 2026-10-29`, made-up answers, exit 0):
+
+```
+p0b slot 10:07 groww: 56 requests, 30 of 46 rows ok, no stop
+p0b slot 10:07 nse: 11 requests, 20 of 46 rows ok, no stop
+p0b slot 11:37 groww: 50 requests, 30 of 46 rows ok, no stop
+...
+p0b slot 14:07 nse: 11 requests, 20 of 46 rows ok, no stop
+p0b 2026-10-29: done, 206 Groww and 44 NSE requests
+```
+
+Counts file entry (no price): `{"nse 10:07": {"drive": "ok", "quality": {"lot_unknown": 11, "ok": 20, "one_sided":
+20}, "refusals": {}, "reserved": 11, "rows": 46, "stop": "", "used": 11}}`. The made-up puts carry no bid
+(`one_sided`) and SBIN no lot (`lot_unknown`), so both flags show. No live run yet: the first is Thu 29 Oct.
+
+### Code round 2 (judge 657 at d4a00822f: FAIL, 1 should-fix, 1 minor; both accepted)
+
+1. **Should-fix, fixed:** the blackout test was parametrized over `BLACKOUT_DAYS` itself, so it could not fail. It now
+   names 26, 27 and 28 Oct in the test (`KEPT_CLEAR`), checks each is refused, checks the constant equals exactly
+   those three, and checks 25 and 29 Oct run past the check. Plants: dropping 27 and 28 Oct fails 3 tests; adding 29
+   Oct fails 8.
+2. **Minor, fixed:** the Claims' status block was already rewritten at 5a2024439 (GW1a on `main`, no quiet windows
+   on `main`); the comment at `wiring.py` now names only what GW1a gives (the sign-in guard and the 60 s pause). P0b
+   keeps clear of A16's marks by its own slots (:07-:13 and :37-:43, a 6-minute hard stop).
+

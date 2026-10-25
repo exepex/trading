@@ -34,7 +34,7 @@ def test_every_builder_of_github_s_receipts_hands_them_to_the_rehearsal_s_choice
     """Every call in every file (REH1i): one wrapped call no longer hides an unwrapped one beside it."""
     texts = {p: p.read_text() for p in PACKAGE.rglob("*.py")}
     builders = {p: text for p, text in texts.items() if calls(text, RECEIPTS)}
-    assert len(builders) == 5
+    assert len(builders) == 6  # REC1b's evidence (fno/recommend/wiring.py) is the sixth
     found = {str(p.relative_to(PACKAGE)): unwrapped(text, RECEIPTS, CHOICE) for p, text in builders.items()}
     assert {path: lines for path, lines in found.items() if lines} == {}  # built, then handed over, every time
 
