@@ -36,3 +36,17 @@ with the Slack token set:
 - Seen in the orchestrator's 2026-10-21 replay, not caused by this branch: "recommend failed: ... the evidence of `school:WS1@1` could not be read: the version is not rated". REC1b's evidence port does not rate a school version that has decisions on that day. That is for REC1b's owner. On a live day it would make the answer `data_check_failed`.
 
 **Plants:** 9 of mine, 9 caught.
+
+## Addendum 1: the m1 follow-up, 401024874 on `story/rec1d-sections-code` (judge K)
+
+**PASS, lane 1.** No findings. I checked 401024874 only; 1d1f1098c, judge J's m1, is J's to check.
+
+- **The words:** `DID_NOT_RUN` is replaced by `NOT_DATED`, "No check of {days} is dated the previous session
+  ({on:%d %b %Y}); still waiting.". It is true whether that evening's check never ran or ran and failed for those days.
+  The code comment and the story's item 5 note say why. `DID_NOT_RUN` is no longer used anywhere in `fno/recommend` or
+  `tests/recommend`.
+- **Tests and goldens:** the two recommender-on morning goldens and `test_a_day_still_waiting_..._is_named` assert the
+  new line. The words guard (`test_report_words.py`'s `LINES`) lists `NOT_DATED`, so the line is still checked
+  against its template.
+- **Run on 401024874:** `pytest -n auto tests/recommend tests/school/reports tests/forecast_lab` gave 669 passed.
+  ruff check and format are clean for `fno/recommend` and `tests/recommend`.
