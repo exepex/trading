@@ -1,0 +1,15 @@
+| Variant (trial) | Gated / taken | Mean gross | Mean charges | Mean net (Rs 1 pad) | SE | One-sided p | Holm | G1 bound | Rs 2 pad | Hist. STT | Win share | Worst trade | Max drawdown | Worst 4 weeks | p_gate (RC1) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| EDGE2-F1-WC-G0 (112) | 702 / 699 | 66 | 113 | -221 | 153 | 0.9258 | no | -417 | -385 | -218 | 75% | -9,870 | -171,887 | -34,489 | - |
+| EDGE2-F1-WC-G12 (113) | 153 / 150 | -205 | 119 | -497 | 379 | 0.9051 | no | -983 | -569 | -493 | 75% | -9,870 | -98,553 | -42,039 | 0.8885 |
+| EDGE2-F1-WC-G15 (114) | 28 / 25 | -647 | 138 | -977 | 1,190 | 1.0000 | no | -2,502 | -783 | -969 | 72% | -9,840 | -52,502 | -29,883 | 0.8870 |
+| EDGE2-F1-WF-G0 (109) | 702 / 702 | 231 | 163 | -105 | 266 | 0.6543 | no | -446 | -275 | -91 | 48% | -9,802 | -192,628 | -57,266 | - |
+| EDGE2-F1-WF-G12 (110) | 153 / 153 | 270 | 176 | -80 | 593 | 0.5534 | no | -840 | -220 | -62 | 48% | -9,802 | -88,099 | -44,583 | 0.4805 |
+| EDGE2-F1-WF-G15 (111) | 28 / 28 | 1,205 | 214 | 795 | 1,720 | 1.0000 | no | -1,409 | 598 | 824 | 50% | -8,260 | -44,849 | -42,306 | 0.2065 |
+
+- **EDGE2-F1-WC-G0**: by index BANKNIFTY 303 at -38; NIFTY 396 at -361. By year 2019: -215 (94); 2020: -478 (105); 2021: 62 (104); 2022: 189 (104); 2023: -517 (101); 2024: -196 (98); 2025: -232 (53); 2026: -666 (40). NIFTY from 20 Nov 2024: 99 trades at -437. Skips among gated: {'untraded_leg_at_entry': 3}. Sample plan: none (mean not positive).
+- **EDGE2-F1-WC-G12**: by index BANKNIFTY 63 at -136; NIFTY 87 at -759. By year 2019: 825 (14); 2020: -2,321 (19); 2021: -89 (30); 2022: 180 (19); 2023: -1,731 (18); 2024: 35 (26); 2025: -889 (12); 2026: -151 (12). NIFTY from 20 Nov 2024: 26 trades at -396. Skips among gated: {'untraded_leg_at_entry': 3}. Sample plan: none (mean not positive).
+- **EDGE2-F1-WC-G15**: by index BANKNIFTY 9 at 69; NIFTY 16 at -1,566. By year 2020: -2,801 (9); 2021: -5,655 (4); 2022: 1,951 (2); 2023: 1,751 (2); 2024: 2,153 (3); 2025: 2,088 (1); 2026: 1,860 (4). NIFTY from 20 Nov 2024: 5 trades at 1,905. Skips among gated: {'untraded_leg_at_entry': 3}. Sample plan: none (mean not positive).
+- **EDGE2-F1-WF-G0**: by index BANKNIFTY 304 at 254; NIFTY 398 at -380. By year 2019: -143 (96); 2020: 739 (106); 2021: -343 (104); 2022: -22 (104); 2023: 36 (101); 2024: -320 (98); 2025: 103 (53); 2026: -1,962 (40). NIFTY from 20 Nov 2024: 99 trades at -690. Skips among gated: none. Sample plan: none (mean not positive).
+- **EDGE2-F1-WF-G12**: by index BANKNIFTY 64 at 289; NIFTY 89 at -345. By year 2019: 1,273 (16); 2020: -737 (20); 2021: -182 (30); 2022: -452 (19); 2023: -749 (18); 2024: 258 (26); 2025: 1,164 (12); 2026: -914 (12). NIFTY from 20 Nov 2024: 26 trades at 365. Skips among gated: none. Sample plan: none (mean not positive).
+- **EDGE2-F1-WF-G15**: by index BANKNIFTY 10 at 364; NIFTY 18 at 1,034. By year 2019: -3,053 (2); 2020: 1,563 (10); 2021: -6,568 (4); 2022: -4,295 (2); 2023: 10,827 (2); 2024: 3,284 (3); 2025: 13,637 (1); 2026: 611 (4). NIFTY from 20 Nov 2024: 5 trades at 3,217. Skips among gated: none. Sample plan: {'trades': 231, 'years': 4.6}.
