@@ -77,3 +77,15 @@ Fix that would close 2 (text only): in 6.1 and 6.3, the old path stays **schedul
 removal; rollback is a later `legacy_from` date. State the cover after removal (it is today's risk, with the
 Actions alert only as a second signal). Add owner question 4: may a routine that never started be run by hand in
 market hours? Add a planted died-after-claim test to I7.
+
+Re-checked at the builder's later tip `4c244b43a`, still round 2 (it crossed with this addendum). Finding 2's core
+is now fixed: 6.1 (line 351) keeps the old path scheduled as the standby, gated by the claim, and 6.3 says that
+with GitHub down neither path takes the window. **Still FAIL** on 2 should-fix and 1 minor, all text only:
+- **Should fix:** the owner is still not asked whether a routine that never started may be run by hand in market
+  hours (line 278 is the builder's reading of a hard rule).
+- **Should fix:** nothing says what covers a no-start once the old path is removed (it is a single host again,
+  today's risk).
+- **Minor:** lines 353 and 395 still say "flip the key and restore the old routine line" and "restorable by one
+  key"; they should match line 345 (a later `legacy_from` date).
+
+Note for I7's judges: the died-after-claim lease must come with a planted test there. The owner decides.
