@@ -37,7 +37,7 @@ captures no two writers ever run at once (strong evidence: two takers lost 74-87
 are swapped one at a time with a rollback key and the old path stays until five clean real sessions. Every removal of
 an old path has two judges. Nothing is removed in this story.
 
-**Your decisions needed:** three (section 9). **What you must create or change in routines:** section 7.
+**Your decisions:** four (section 9). **Routine changes you make:** section 7.
 
 ## 1. The owner's words and the rules this design keeps
 
@@ -275,8 +275,7 @@ Derive jobs (system side, own schedule, start on ready): `warmup-closes` (C14 ap
 - **Change asked of O14's owner:** the deadline of an ingestion step is its own (for `candles` and the closes, the
   next morning's use, not 16:00 or the desk's school slot), and the daily-run table in O14 section 4 loses these rows
   when I9 moves them. Step 2b retires with O14 as written.
-- A hand run after an escalation stays allowed in market hours (the CLAUDE.md exception); a job that never started
-  is a failed scheduled job under that wording (reasoning only).
+- A hand run after an escalation stays allowed in market hours (CLAUDE.md exception); for a missed start see Q4.
 
 ### 4.5 What happens when a capture is late or fails (reader side)
 
@@ -350,8 +349,9 @@ Derive jobs (system side, own schedule, start on ready): `warmup-closes` (C14 ap
 - **Class G (Groww live captures: not replayable, rate-limited): no two writers, ever.** Two takers lost 74-87 of
   about 224 quotes on 16 Oct (`claims.py:1-5`, strong evidence). So: swap one capture at a time with the key; the old
   path stays in code, scheduled as the claim-gated standby (6.3), as the rollback; proof by tests, an REH1 rehearsal of a recorded day, the `--dry-run`
-  folder runs, then the first real session watched by the orchestrator. Rollback = flip the key and restore the old
-  routine line. The old path is removed only after 5 clean real sessions.
+  folder runs, then the first real session watched by the orchestrator. Rollback = a later `legacy_from` date (the old
+  path stays scheduled as standby until its removal). It is removed only after 5 clean real sessions; after that the
+  cover is the job's own double start (A16's two fires pattern) plus the hand-run reading in Q4.
 - **Duplicates are blocked four ways:** the key (K3); existing write-once refusals (`RawFileConflict`,
   `raw_store.py:86`; "already recorded", `recorder.py:149`); DR1's writer-unique names; a git claim when two
   containers could start the same job (A16's `MarkClaims`).
@@ -398,9 +398,8 @@ what is deleted and what test still covers the behaviour. Nothing is deleted in 
   A16's `MarkClaims`). The new routine is primary; the old path (restorable) is standby: it tries to claim 1 minute after
   the window opens and exits "claimed by <job>" if the primary has it, else it records. A no-start loses nothing and two
   writers never run. Takeover of a primary that died after claiming needs a heartbeat lease (reasoning only; built in
-  I7). Proof: planted no-start test (primary absent, standby records) and both-start test (one refuses). Without GitHub no
+  I7). Proof: planted no-start, both-start and died-after-claim tests (standby records after the lease). Without GitHub no
   claim can be made, so neither path takes the window (the A16 rule, `claims.py:1-5`); the owner should know.
-- Sessions between steps are never touched: the steps change one capture, on a day the previous steps' proof allows.
 - Data volume: no step adds a Groww read except I10's new jobs, which K7 budgets.
 
 ## 7. What the owner must create or change (routines and schedules)
@@ -440,7 +439,6 @@ No session creates, changes or deletes a routine (A16 checklist). By step:
 | R11 | Rehearsal cannot replay a new job | K9; REH1 owner in each step | some evidence |
 | R12 | A job's routine is killed early (session limit) | A16's double cover pattern; resume rules (F1 gap) kept | strong (23 Oct) |
 | R13 | Owner effort: three more things to create | Q2 | reasoning only |
-
 ## 9. Owner's questions (only your call)
 
 1. **Where should Groww captures run?** (a) Claude routines only, as now (recommended: no key in GitHub, no new host,
@@ -451,8 +449,11 @@ No session creates, changes or deletes a routine (A16 checklist). By step:
    capture; post-close at 15:30), cleaner failure domains, one more thing to create and watch. Either way each job
    stays an isolated child.
 3. **Is protocol v4's freeze still counting while forecasting is off?** Every step except I1 and I3 touches a recorded,
-   byte-checked or walked file (section 6.2, freeze impact). Asked once for all steps; the judges check each step's list. (a) Yes, it counts: do I11 last, only
+   byte-checked or walked file (section 6.2, freeze impact). Asked once for all steps. (a) Yes, it counts: do I11 last, only
    with the route (recommended). (b) No, it is paused: judges may allow the change without a route.
+4. **May an AI session start a missed capture by hand in market hours?** CLAUDE.md allows a hand rerun of a failed
+   scheduled command. (a) Yes, a job that never started counts as failed (recommended; no data lost). (b) No: only the
+   standby may take it.
 
 ## 10. Gap list: the owner's requirements and where each is covered
 
@@ -464,7 +465,7 @@ No session creates, changes or deletes a routine (A16 checklist). By step:
 | Data capture never stops | 6.1 class G, 6.3, summary item 3 |
 | Removals judged by two judges | 6.2 |
 | Stability before speed | 6.2 order, 8 R1-R13 |
-| Late or failed capture; Groww budget; inventory; owner's routine changes | 4.5; 4.6, K7; 3; 7 |
+| Late or failed capture; budget; inventory; routine changes | 4.5; 4.6; 3; 7 |
 
 Out of scope: any code, config, workflow or routine change (design only); STAB1's switch; redesigning O14, DR1 or GW1;
 DR1's certification rules; the live-feed recorder's design (waits for A16h's probe, 27 Oct).
