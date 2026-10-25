@@ -44,3 +44,19 @@ documents passed, so it survived. Not a finding (rule text has no test requireme
 
 - The orchestrator's own model is not stated; the owner did not state it either, so nothing is wrong.
 - AGENTS.md also guides ChatGPT and Codex; the model line concerns Claude sessions. Optional: say so.
+
+## Addendum 1
+
+Round 2 at f5c026c8ba6b8f1bbb91ca68fee628e06b113186 (docs/JUDGE.md only, on 0cfa79ec), judged by reading. **PASS**,
+lane 2, no finding left.
+
+| # | Finding | Result | Evidence |
+|---|---|---|---|
+| 1 | Removals contradict the lane table and the one-judge default | Accepted | the removals bullet now says it overrides the lane table's review column and "Other lane-1 changes"; the edge is named (job data paths, logs, judge files, number claims, register rows under WORK_REGISTER.md:9-10, which does say "delete it a day later"); hand-deleting recorded data stays a removal, so no lane-1 or write-once rule is narrowed |
+| 2 | "Executors" undefined, clash with Book 2/3 on Opus 5.5 | Accepted | executors defined as orchestrator-created task sessions; routines keep their registered model, changes are the owner's |
+| 3 | Reviewer session creator; long line | Accepted | "created by the orchestrator at the builder's request and contacted directly"; no new line over 120 characters (only the old table rows 14-16) |
+
+Notes: the out-of-scope edge is the builder's reading and is flagged for the owner through the orchestrator; I agree
+it is a fair reading of "every removal and cleanup" in its context (documents, branches, capture paths). Rule 3's
+rewrap leaves ragged short lines ("what / it found and"); cosmetic. The lane table and the money-pieces paragraph
+are not edited themselves, so the override lives in one place, consistent with one owner per rule.
