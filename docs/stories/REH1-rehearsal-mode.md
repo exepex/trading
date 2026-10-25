@@ -987,9 +987,14 @@ editions (`live_key`); these commands have no key.
 
 1. `Command.since: date | None` (`fno/rehearsal/routines.py`): the first day the command ran in its routine. Its value is
    a named constant per command, each citing its source in a comment.
-2. **The source, per command** (the record first; CLAUDE.md's commit as the bound where the record is silent). A
-   command's first day is the first day its own output reached `main`; the CLAUDE.md commit that added it is the
-   earliest it could have run (searched over every commit in `main`'s ancestry whose CLAUDE.md holds it, whitespace
+2. **The source, per command** (judges 673 and 674, round 2). A command's `since` is the later of two dates: the
+   CLAUDE.md commit that added it to its routine's section, and the routine's own first run (the owner creates each
+   scheduled task: the pre-open, morning and evening tasks were created later on 22 Oct, `conversations/2026-10-22.md`,
+   "Orchestrator, later on 22 Oct"). The routine's own first output on `main` is the evidence of that run; an earlier
+   output of the same command run by hand or by another job does not count (judge 673 m2: participant-oi 70a0ff55a,
+   21 Oct 21:37 IST, `omenix-participant-oi`; fii-dii 238f8e2c9, 22 Oct 01:05 IST, `omenix-flows-download`;
+   fo-bhavcopy 71ec37be2, 22 Oct 01:34 IST, `omenix-panel-days`). The CLAUDE.md commit is the earliest it could have
+   run (searched over every commit in `main`'s ancestry whose CLAUDE.md holds it, whitespace
    folded; `--first-parent` is not used, as `main`'s first-parent chain passes through branch merges, e.g. b26d33476
    "Merge main into A23 before its merge").
 
@@ -998,13 +1003,13 @@ editions (`live_key`); these commands have no key.
    | daily, `daily run` | e5ac277e9, 16 Oct | the run logs | none (always) |
    | preopen, `global-cues preopen` | e6010ac0a, 22 Oct 05:02 IST | 23 Oct 08:51 IST, "A17e: pre-open Asian levels (receipts)" | 23 Oct |
    | preopen, `preopen record` | a2b2ad8c6, 22 Oct 03:09 IST | 23 Oct 08:40 IST, "pre-open gift 2026-10-23" | 23 Oct |
-   | morning, `data-librarian index-close` | 96af942cd, 22 Oct 04:29 IST | none distinguishable (its rows are written at fetch by others; the morning says "nothing new") | 22 Oct (CLAUDE.md) |
+   | morning, `data-librarian index-close` | 96af942cd, 22 Oct 04:29 IST | the morning task was created later on 22 Oct, after its 08:38 (`conversations/2026-10-22.md`); the morning's first output is 3decf6a60, 23 Oct 08:45 IST, "Morning forecast receipts 2026-10-23" (its own rows: "nothing new") | 23 Oct (judges 673, 674) |
    | morning, `lab open` | 5c3195ba0 | `live_key` (REH1k, 23 Oct) | none (its key) |
    | morning, `records certify closes --since 7 --level certified` | 51cab79b0, 23 Oct 22:42 IST | 24 Oct 08:41 IST, "Records: DR1 certification" | 24 Oct |
-   | evening, `closes read --commit` | cae76af89, 22 Oct 05:58 IST | 22 Oct 19:54 IST, "Receipts ... (A4h close read)" | 22 Oct |
+   | evening, `closes read --commit` | cae76af89, 22 Oct 05:58 IST | the routine's own, 22 Oct 19:54 IST, "Receipts ... (A4h close read)" | 22 Oct |
    | evening, `records certify closes --level provisional` | 51cab79b0, 23 Oct 22:42 IST (on `main` about 23:58 IST, after that evening's 19:53) | none yet (`receipts/records/` holds only the morning's two certified records of 24 Oct; no session evening since) | 24 Oct (CLAUDE.md) |
-   | evening, `data-librarian fo-bhavcopy`, `participant-oi`, `data-snapshot fii-dii-cash-by-session` | 49aa26951, 22 Oct 04:39 IST | 22 Oct 19:54 IST, the three manifests' commits | 22 Oct |
-   | evening, `lab close` | 6eced93c2 | `live_key` (REH1k, 23 Oct) | none (its key) |
+   | evening, `data-librarian fo-bhavcopy`, `participant-oi`, `data-snapshot fii-dii-cash-by-session` | 49aa26951, 22 Oct 04:39 IST | the routine's own, 22 Oct 19:54 IST, the three manifests' commits (e.g. fo-bhavcopy 936611423); the earlier hand and job rows (judge 673 m2) do not count | 22 Oct |
+   | evening, `lab close` | 5c3195ba0, 22 Oct 04:14 IST (the evening routine's; 6eced93c2 held it only as O1's step, judge 673 m1) | `live_key` (REH1k, 23 Oct) | none (its key) |
    | evening, `lab release-check` | 49aa26951, 22 Oct 04:39 IST | 22 Oct 19:55 IST, "Evening routine 2026-10-22: release-check logs" | 22 Oct |
 
 3. `run_routine` treats a command whose `since` is after the replayed day as it treats a not-live lab edition: it runs as
@@ -1020,8 +1025,10 @@ editions (`live_key`); these commands have no key.
   are exercised, the routine ends "7 commands done". Plant: `since` ignored.
 - **R2. On and after `since`, the real rule:** on 22 Oct a failing `closes read` is the routine's failure. Boundary: the
   day itself. Plant: `<=` made `<`.
-- **R3. The sources:** each constant equals its table row, and every command with a `since` is in CLAUDE.md's routine
-  section today. Plant: a date changed.
+- **R3. The sources:** each constant equals its table row (the later of the CLAUDE.md commit and the routine's own
+  first run), and every command with a `since` is in CLAUDE.md's routine section today. Boundary: `data-librarian
+  index-close` on 22 Oct is exercised (its routine's first run is 23 Oct), on 23 Oct it is the routine's. Plant: a date
+  changed.
 - **R4. Empty:** a command with no `since` (the daily run) is never exercised by it.
 - **R5. Real runs unchanged:** the full suite.
 
