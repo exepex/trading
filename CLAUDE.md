@@ -32,6 +32,10 @@ cost real money later, so:
   that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to
   questions and clarifications: ask them plainly and directly.
 - The hard lines stay: no real orders, nothing illegal (no market manipulation), secrets never in files or chat.
+- **No hand-run Groww command from 09:15 to 15:35 IST (owner, 25 Oct 2026: "no human or AI session should run it
+  during 09:15–15:35 IST").** In market hours only the scheduled routines and their own steps call Groww; no test,
+  probe, download, backfill or check is run by hand then, so the routines' reads never meet Groww's limits (10 a
+  second, 300 a minute, 150 sign-ins a day). Hand-run Groww reads wait until after 15:35 IST.
 - **One builder per function (owner, 15 Oct 2026).** Before starting any story, fix or design change, read
   `docs/WORK_REGISTER.md` on the latest `main`; if a row already covers the same function, files or rule, agree with
   its owner session first, and add or update your own row in your first commit. Never build a second version.
