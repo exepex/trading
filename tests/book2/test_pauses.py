@@ -30,7 +30,7 @@ class Alerts:
 
 
 def review(tmp_path, records, committed=None):
-    pauses = ResearchPauses(tmp_path, lambda: committed)
+    pauses = ResearchPauses(tmp_path, lambda: [committed] if committed else [])
     alerts = Alerts()
     step = Book2ResearchPauses(lambda: records, lambda: playbook(RESEARCH, registered=[RESEARCH.key]), pauses, alerts)
     return step.review(DAY, {}), pauses, alerts
@@ -68,14 +68,14 @@ def test_an_edited_or_removed_row_is_refused(tmp_path):
     committed = (tmp_path / PAUSES_FILE).read_text()
     (tmp_path / PAUSES_FILE).write_text(committed.replace("catastrophic", "mild"))
     with pytest.raises(PausesRefused, match="never edited or removed"):
-        ResearchPauses(tmp_path, lambda: committed).paused_on(DAY)
+        ResearchPauses(tmp_path, lambda: [committed]).paused_on(DAY)
     (tmp_path / PAUSES_FILE).write_text("version,day,reason\n")
     with pytest.raises(PausesRefused):
-        ResearchPauses(tmp_path, lambda: committed).paused_on(DAY)
+        ResearchPauses(tmp_path, lambda: [committed]).paused_on(DAY)
 
 
 def test_a_back_dated_row_is_refused_on_write_and_on_read(tmp_path):
-    pauses = ResearchPauses(tmp_path, lambda: None)
+    pauses = ResearchPauses(tmp_path, lambda: [])
     pauses.append(PauseTrigger("a-v1", "r"), DAY)
     with pytest.raises(PausesRefused, match="back-dated"):
         pauses.append(PauseTrigger("b-v1", "r"), DAY - timedelta(days=1))
@@ -86,4 +86,41 @@ def test_a_back_dated_row_is_refused_on_write_and_on_read(tmp_path):
 
 
 def test_no_file_means_no_pause(tmp_path):
-    assert ResearchPauses(tmp_path, lambda: None).paused_on(date(2026, 10, 26)) == ()
+    assert ResearchPauses(tmp_path, lambda: []).paused_on(date(2026, 10, 26)) == ()
+
+
+ROW1 = "version,day,reason\nsc-research-v1,2026-10-13,catastrophic loss\n"
+ROW2 = ROW1 + "sc-other-v1,2026-10-14,cumulative loss\n"
+
+
+def test_a_committed_hand_edit_is_refused_through_the_file_s_history(tmp_path):
+    """Judge 661 m1: the last commit alone would accept an edit committed by hand; every past version must be a prefix
+    of the next."""
+    edited = ROW2.replace("catastrophic", "mild")
+    (tmp_path / PAUSES_FILE).parent.mkdir(parents=True)
+    (tmp_path / PAUSES_FILE).write_text(edited)
+    with pytest.raises(PausesRefused, match="version 2 does not extend version 1"):
+        ResearchPauses(tmp_path, lambda: [ROW1, edited]).paused_on(DAY)
+    (tmp_path / PAUSES_FILE).write_text(ROW2)
+    assert ResearchPauses(tmp_path, lambda: [ROW1, ROW2]).paused_on(date(2026, 10, 14)) == (
+        "sc-other-v1",
+        "sc-research-v1",
+    )
+
+
+def test_the_wired_history_reads_every_commit_of_the_file_from_git(tmp_path):
+    from fno.book2.decision_wiring import build_research_pauses
+    from tests.book3.builders import commit, init_repo
+
+    init_repo(tmp_path)
+    path = tmp_path / PAUSES_FILE
+    path.parent.mkdir(parents=True)
+    path.write_text(ROW1)
+    commit(tmp_path, "first pause")
+    path.write_text(ROW2)
+    commit(tmp_path, "second pause")
+    assert build_research_pauses(tmp_path).paused_on(date(2026, 10, 14)) == ("sc-other-v1", "sc-research-v1")
+    path.write_text(ROW2.replace("catastrophic", "mild"))
+    commit(tmp_path, "a hand edit, committed")
+    with pytest.raises(PausesRefused, match="version 3 does not extend version 2"):
+        build_research_pauses(tmp_path).paused_on(DAY)

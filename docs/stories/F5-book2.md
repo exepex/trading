@@ -470,3 +470,64 @@ trade ID alone (`fno/desk/daily_steps.py:185`).
 80857781), in its own worktree: 17,512 passed, 1 skipped, 12 xfailed, 0 failed. ruff, `ruff format`, `check_imports`
 and the record scan are clean; every file is under 350 lines. F1t's prepared narrow fix (c1501a68) is not in this
 branch yet: it merges in once that fix is pushed.
+
+### Code round 2 (judges 661 and 662)
+
+1. **Judge 661 m1, accepted (its point checked in the code: `rows()` compared only the last commit):**
+   `research_pauses.csv` is now checked against every committed version in its git history, oldest first. Each must be
+   a prefix of the next and of the file now, as the trial ledger's guard works, so a hand edit committed later is
+   refused (`PausesRefused`, naming the version). The daily run's one thread is the only writer, so the history is one
+   line.
+   - Tests: a committed hand edit is refused and a clean chain passes; through real git with the wired builder, two
+     appends read and a third, edited commit is refused.
+   - Plant: wiring back to the last commit only fails the git test.
+2. **Judge 662, accepted: a plant list per criterion, with results.** Each plant was applied alone and the
+   criterion's tests run (`-x`), then the file was restored. Script:
+   kept in the builder's scratchpad, not the repository (it edits files).
+
+   | Criterion | Plant | Result |
+   |---|---|---|
+   | 1 sheet | every opportunity labelled `paper` | caught |
+   | 1 sheet | pauses dropped from Book 2's snapshot | caught |
+   | 2 answer | the action-vs-slots check off | caught |
+   | 2 answer | the one-to-one check against the sheet off | caught |
+   | 3 envelope | shadow-only treated as allowed | caught |
+   | 3 envelope | a pick's width ignored in the rebuild | caught |
+   | 4 C4 | `unproven` always passes | caught |
+   | 4 C4 | no counts passes instead of failing closed | caught |
+   | 4 C4 | no rule default given to C4 | caught |
+   | 5 records | `rule_default` back to the book's own action | caught |
+   | 5 replay | a pick's stored default replaced | caught |
+   | 7 and 9 orders | orders replayed with the rule default, not the stored picks | caught |
+   | 11 judge | a blocked day still picks | caught |
+   | 11 judge | the blocked reason back to "not chosen by" | caught |
+   | 12 inputs | the sheet-reproduction refusal off | caught |
+   | 12 inputs | the fired-packs refusal off | caught |
+   | 13 Q11 | Book 2's research pauses ignored | caught |
+   | 13 Q12 | the threshold binds research versions too | caught |
+   | 14 pauses | a back-dated row accepted | caught |
+   | 14 pauses | the catastrophic boundary moved from `<=` to `<` | caught |
+   | 14 pauses | history check reduced to the last commit (item 1) | caught |
+   | 15 label | Book 2's own label refusal off | caught |
+   | review | two resolved picks of one opportunity accepted | caught |
+   | O11 (12) | no sheet in Book 2's private pack in the replay | caught |
+
+   **24 of 24 caught.**
+3. **Real output sample (committed code, no post):**
+   - **The 16 Oct replay** (`tests/e2e_acceptance/book2_replay.py`, real quotes; the test playbook's paper version
+     `sc-a` v1 fires).
+     - Book 2's day log has one slot: default `sc-a-v1:2026-11-23`, action `follow_rule`, status `allowed` ("sc-a v1:
+       follow_rule allowed").
+     - The pick is that opportunity at its built terms.
+     - `rule_trade` is SC, width 200, 1 lot, maximum loss Rs 6,479.63, 4 legs. There is no shadow and no attempted
+       pick.
+     - Run `r1`'s records: the opportunity reads `rule_default` "trade", `chosen_action` "trade", reason "picked by
+       book2_hybrid: the rule's trade", `served.strategy_status` "paper". `authority_check` is
+       "sc-a-v1:2026-11-23 follow_rule: allowed (sc-a v1: follow_rule allowed)".
+     - E3 then collected `r1`, filled 4 legs, held the exit and marked the trade.
+   - **A judge-blocked day** (the decider's test playbook):
+     - Both opportunities read `rule_default` "trade", `chosen_action` "no trade", reason "no trade, judge failed",
+       `judge` = the verdict file.
+     - `authority_check` reads "the judge's verdict blocks: no pick, the rule default kept as a shadow".
+     - The day record reads "no opportunity was chosen today" (D3's own day text; the block is named in its
+       `authority_check` and `judge`).

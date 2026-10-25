@@ -7,13 +7,15 @@ alert. `Book2Playbook` drops the version from that day: new Book 2 entries stop,
 registry, D2's shadow and Book 1 are untouched; only a new version number trades again.
 
 The file is append-only (judge 632.1): no row is ever edited or removed, and a row is dated its trigger's day, never a
-past one. Every read checks the file against its committed text and refuses a change or a back-dated row."""
+past one. Every read checks the file against every committed version in its git history (judge 661 m1: the last commit
+alone would let a committed hand edit pass): each must be a prefix of the next and of the file now, as the trial
+ledger's guard works. The daily run's one thread is its only writer, so the history is one line, never a merge."""
 
 from __future__ import annotations
 
 import csv
 import io
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -47,15 +49,17 @@ class PauseTrigger:
 
 
 class ResearchPauses:
-    def __init__(self, root: Path, committed_text: Callable[[], str | None]):
-        """`committed_text()`: the file as last committed (None when never committed)."""
-        self.path, self.committed_text = Path(root) / PAUSES_FILE, committed_text
+    def __init__(self, root: Path, history: Callable[[], Sequence[str]]):
+        """`history()`: the file's text in every commit that changed it, oldest first (empty when never committed)."""
+        self.path, self.history = Path(root) / PAUSES_FILE, history
 
     def rows(self) -> list[dict]:
         text = self.path.read_text(encoding="utf-8") if self.path.is_file() else ""
-        committed = self.committed_text() or ""
-        if not text.startswith(committed):
-            raise PausesRefused(f"{PAUSES_FILE} differs from its committed text: rows are never edited or removed")
+        versions = [*self.history(), text]
+        for n, (earlier, later) in enumerate(zip(versions, versions[1:]), start=1):
+            if not later.startswith(earlier):
+                raise PausesRefused(f"{PAUSES_FILE} version {n + 1} does not extend version {n} of its history: rows "
+                                    "are never edited or removed")  # fmt: skip
         rows = list(csv.DictReader(io.StringIO(text))) if text else []
         days = [date.fromisoformat(r["day"]) for r in rows]
         if any(later < earlier for earlier, later in zip(days, days[1:])):

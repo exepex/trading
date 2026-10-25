@@ -32,7 +32,11 @@ def build_book2_evaluators(cfg: dict, root: Path = ROOT) -> Book2Evaluators:
 def build_research_pauses(root: Path = ROOT) -> ResearchPauses:
     from ..research_engine.ledger import Git
 
-    return ResearchPauses(root, lambda: Git(root).committed_text(PAUSES_FILE))
+    def history() -> list[str]:
+        git = Git(root)
+        return [git.committed_text(PAUSES_FILE, commit) or "" for commit in git.commits_touching(PAUSES_FILE)]
+
+    return ResearchPauses(root, history)
 
 
 def build_book2_inputs(cfg: dict, root: Path = ROOT):
