@@ -247,11 +247,16 @@ Both points are accepted, checked against the code.
   The story says the same. Tests: `test_after_14_50_no_line_names_a_by_hand_run` (a record failing after the stop;
   a run ending past it) and the exact not-saved line. Plant "the clock ignored": 1 failed.
 
-### Owner rule of 25 Oct: no hand-run Groww command from 09:15 to 15:35 IST
+### The owner's Groww rule (25 Oct, refined the same day): the by-hand path kept, as a rerun of the same command
 
-A by-hand run can no longer ask the same day. Before 15:35 the rule forbids it; after 15:35 the check itself asks
-nothing (no request at or after 14:50). The earlier "unless run by hand before 14:50 ... receipts committed" ending,
-and its `_then` rule, are removed. Every failure and not-saved line now ends "today's broker figure is lost", and the
-story says the same. Tests: the exact lines, and the O1 test asserting no "rerun" and no "by hand" in the reason.
-Earlier rounds' by-hand wording above is superseded by this. The market-hours sample planned for Mon 26 Oct 13:20 IST
-is a hand-run Groww read, so it moves to after 15:35 (see the sample section).
+- **The rule:** no hand-run Groww command from 09:15 to 15:35 IST, except that a scheduled command that failed or
+  stopped early may be rerun by hand, in market hours too (DESK_DECISIONS, 25 Oct).
+- **Which form, and why:** a rerun of `daily run` does NOT cover a failed `margin_check`. Its step sets no `retry`
+  key, so `RunLog.done` holds the failed entry and the rerun skips it (judge 634; tested in
+  `test_the_failure_line_promises_no_retry_because_o1_never_reruns_the_step`). So the path stays, worded as the owner's
+  exception: "unless this same `python -m fno margins stress-broker-check` is rerun by hand before 14:50 and its
+  receipts (receipts/data/margins/broker_checks/) committed". At or after 14:50 the line still says only "today's
+  broker figure is lost".
+- **History:** 371f308ed briefly removed the path under the first form of the rule; this commit reverts it.
+- **The story** says the same, and that any other hand-run Groww command from 09:15 to 15:35 stays forbidden.
+- **Monday's sample** stays after 15:35 IST: it is a different command (a rehearsal), not a rerun of a failed step.

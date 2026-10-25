@@ -9,9 +9,10 @@ Exit and lines (O1's rules, agreed 16 Oct 2026): a finding is not a failure, and
 - 0: every basket `ok`, "nothing to check", "outside market hours", or "nothing written: <reason>" (O1: refused).
 - 0 with its own #fno-desk line: a `mismatch` (the data landed; the line says to review the stress factor).
 - 1, the reason last and no own alert (O1 sends the step's line): a broker failure, the deadline, a basket that is
-  not its row, or a record that could not be read or written. The day's broker figure is then lost and the line says
-  so: O1 never retries the step (judge 634), no hand-run Groww command runs from 09:15 to 15:35 IST (owner, 25 Oct
-  2026), and after 14:50 the check asks nothing, so no run can ask again that day."""
+  not its row, or a record that could not be read or written. O1 never retries the step (judge 634), so an `error`
+  basket is asked again only by rerunning this same command by hand before 14:50 IST (the owner's 25 Oct rule allows
+  a failed scheduled command to be rerun by hand, in market hours too); the line says so, never "a rerun today
+  retries", and at or after 14:50 it says only that the figure is lost."""
 
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ from ..alerts.sender import AlertSender
 from .broker_basket import Basket, BasketBuilder, BasketProblem, todays_rows
 from .broker_compare import ERROR, MISMATCH, Levels, compare
 from .broker_port import BrokerMargins
-from .broker_record import BrokerRecord, BrokerResult, RecordProblem
+from .broker_record import RECEIPTS, BrokerRecord, BrokerResult, RecordProblem
 from .calculator import ExposureRule, MarginOutsideModel
 from .span_file import read_span_file
 
@@ -33,10 +34,14 @@ NO_ROWS = "margin check {day}: nothing written: margins.csv has no A14 row for {
 NOTHING = "margin check {day}: nothing to check ({count} baskets already checked)"
 CHECKED = "margin check {day}: {ok} ok, {mismatch} mismatch, {error} error; record {path}"
 MISMATCHED = "; mismatch: {baskets}"
-LOST = "today's broker figure is lost"  # no run can ask again that day (module docstring)
-NOT_SAVED = "margin check {day}: {count} basket(s) checked but not saved ({reason}); " + LOST
+LOST = "today's broker figure is lost"  # O1 never retries the step (judge 634)
+BY_HAND = LOST + (
+    " unless this same `python -m fno margins stress-broker-check` is rerun by hand before 14:50 and its receipts"
+    f" ({RECEIPTS}) committed"
+)  # O1 commits them only for its own step
+NOT_SAVED = "margin check {day}: {count} basket(s) checked but not saved ({reason}); {then}"
 MISMATCH_LINE = "Omenix F&O margin check: Groww and A14 differ beyond tolerance for {baskets}: review the stress factor"
-FAILED = "margin check {day}: {count} basket(s) not checked ({reason}); " + LOST
+FAILED = "margin check {day}: {count} basket(s) not checked ({reason}); {then}"
 DEADLINE, NO_FILE = "deadline", "the day's SPAN file is not in the archive"
 LOT_DIFFERS = "lot {lot} differs from NSE's dated lot {dated} for {expiry}"
 NO_LOT = "no dated NSE lot for {expiry} on {day} ({why})"
@@ -81,7 +86,7 @@ class BrokerMarginCheck:
         try:
             path = self.parts.record.write(day, started, results)
         except Exception as exc:  # the answers did not land: no finding is alerted
-            self.print_line(NOT_SAVED.format(day=day, count=len(results), reason=_named(exc)))
+            self.print_line(NOT_SAVED.format(day=day, count=len(results), reason=_named(exc), then=self._then()))
             return 1
         return self._finish(day, results, path)
 
@@ -191,8 +196,13 @@ class BrokerMarginCheck:
         return 0
 
     def _failed(self, day: date, count: int, reason: str) -> int:
-        self.print_line(FAILED.format(day=day, count=count, reason=reason))
+        self.print_line(FAILED.format(day=day, count=count, reason=reason, then=self._then(reason)))
         return 1
+
+    def _then(self, reason: str = "") -> str:
+        """What can still be done: nothing at or after 14:50 (no run may ask then; judge 634), else a by-hand run."""
+        past = self.clock().time() >= STOPS or DEADLINE in reason.split("; ")
+        return LOST if past else BY_HAND
 
     def _done(self, line: str) -> int:
         self.print_line(line)

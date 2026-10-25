@@ -2081,8 +2081,8 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
     `error`, with no Groww request for it, in either case:
     - the lots differ: "lot <n> differs from NSE's dated lot <m> for <expiry>": the row's figures are then for the
       wrong quantity;
-    - the day's file is not archived yet: "no dated NSE lot for <expiry> on <day>"; the day's figure is then lost
-      (above). A20a's 07:45 IST slot is its only slot in time for the check: GitHub started it at 13:03, 13:00
+    - the day's file is not archived yet: "no dated NSE lot for <expiry> on <day>"; rerunning the same command by hand
+      before 14:50, once the file is archived, asks again (above). A20a's 07:45 IST slot is its only slot in time for the check: GitHub started it at 13:03, 13:00
       and 12:46 IST on 22-24 Oct, about one hour before the check, while the 11:15 retry started at 15:18-16:09, after
       it (strong evidence, three days; 21 Oct's 19:46 was the job's first, by-hand run).
     - **Loss risk:** if that slot starts about 6 hours late or fails, every basket is `error` and the day's broker
@@ -2115,10 +2115,14 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
   - **Idempotent:** a run whose day already has an `ok` or `mismatch` result for every row prints "nothing to check"
     and exits 0. O1 never runs a failed `margin_check` again: its step sets no `retry` key, so `RunLog.done` holds the
     failed entry and a same-day `daily run` skips it (only the exits and marks steps are retried, owner 24 Oct; judge
-    634). No hand-run Groww command runs from 09:15 to 15:35 IST (owner, 25 Oct 2026), and the check asks nothing at
-    or after 14:50, so no run can ask again the same day: an `error` basket's broker figure is lost for the day. The
-    failure and not-saved lines end "today's broker figure is lost", never "a rerun today retries" and never a
-    by-hand run. Adding a retry is the owner's call, not this story's.
+    634). An `error` basket is therefore lost for the day unless someone reruns this same `python -m fno margins
+    stress-broker-check` by hand before 14:50 IST (the owner's 25 Oct rule allows a failed scheduled command to be
+    rerun by hand, in market hours too; any other hand-run Groww command from 09:15 to 15:35 stays forbidden) and
+    commits its receipts (`receipts/data/margins/broker_checks/`;
+    O1 commits them only for its own step): that run asks only the baskets not `ok` or `mismatch`. The failure and
+    not-saved lines say exactly this, never "a rerun today retries". When the 14:50 stop is among the reasons, or the
+    line is printed at or after 14:50, they say only "today's broker figure is lost", since no run can ask again.
+    Adding a retry is the owner's call, not this story's.
   - **Exit and lines (O1's rules, agreed 16 Oct):** a failure never alerts twice, and a finding is not a failure.
     O1's `daily run` records every step in `journal/runs/<date>.json` and sends the one #fno-desk line for a failed
     step, so the check writes no O10 `capture_errors.csv` row (O10 covers jobs outside the daily run) and sends no
