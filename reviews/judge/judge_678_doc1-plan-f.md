@@ -94,3 +94,30 @@ moved files, and the JUDGE.md rules P7 must deliver.
      check".
 
 For PASS: findings 1-4 fixed in the text. Each is a few lines.
+
+## Addendum 2
+
+**Round 2 of 2 at story/doc1-clean-docs @ 17393a334, judge F: PASS (2 minors). Lane 1, text only.** I did not read
+judge E.
+
+| Finding | Answer | My check | Result |
+|---|---|---|---|
+| 1 DESK_DECISIONS.md is a live input and a record | Out of scope: it stays at its path, append-only, and no row is removed or renumbered. A change to its form is a separate lane-1 story. The new pages cite its rows by date and title | Plan section 2. The new readers it names exist on main: `fno/checks/validity_account.py:159` (`decision_rows` of `DESK_DECISIONS_FILE`) and `fno/budget/items.py:22-27` (the `DESK_DECISIONS <date>: <title>` citation) | **Accepted** |
+| 2 Citations into moved files | 2b: a citation check before each switch; an old-to-new path map; pointer files for files that frozen files or judge reports cite; cite by title; `ci_scope.sh` and line-number comments updated. Cited files keep their path | read; it covers FREEZE_v4.md's three paths and the 138 row citations | **Accepted** |
+| 3 The P7 gate | JUDGE.md rules: cite the intent line, FAIL when it is missing or contradicted, and update the area page in the same merge | read in the P7 row | **Accepted** |
+| 4a Lane 3 | Lane 3 names conversation logs, judge files, number claims, register rows and the owner's dated DESK_DECISIONS rows; it matches the Branch section's list and `ci_scope.sh`'s LANE3 | read side by side | **Accepted** |
+| 4b The Rule-document guard | "Never a lower one" and "The Rule-document guard still applies" are in CLAUDE.md; AGENTS.md names the lanes | read | **Accepted** |
+| 4c The 500-line limit without section 7's exception | not changed | CLAUDE.md:240 still has no exception | **Now a minor** (below) |
+| My note and minors | The switch also avoids rehearsals and judge rounds; the counts are corrected | read | **Accepted** |
+
+The interim rule widens checks only. Documents about lane-1 work now need a judge PASS, and nothing moves to a lower
+lane.
+
+Gates (trial merge with main; only `.md` files change): record scan clean (9,539 files); doc-reading tests 963
+passed, 13 xfailed.
+
+**Minors (not blocking):**
+- **m1 (4c, downgraded).** The owner's revision 2 calls layout and size findings "minors only", so I downgrade it under
+  the owner's own rule. The plan's section 7 is linked from the same bullet, and its ruling covers files in review.
+  Still, add "(existing files: plan section 7)" after "No document over 500 lines" when the text is next touched.
+- **m2.** The DOC1 row in `docs/WORK_REGISTER.md` still says "each under 350 lines"; it should say 500.
