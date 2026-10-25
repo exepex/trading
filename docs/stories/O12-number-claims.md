@@ -162,3 +162,120 @@ Every refusal ends with "Nothing was pushed: do not write the file". Exit 1 as b
 the hook's own words before a last line that starts "number claim: NOT claimed", `main` unchanged and the worktree
 removed (`tests/numbering/test_claim.py`).
 
+
+## O12e: ledger trial numbers are claimed too (orchestrator, 25 Oct 2026)
+
+**Status:** story text on `story/o12e-ledger-trials`; builder session_019rZrcu1GSqUC7PScqwQgo2 (the orchestrator,
+25 Oct: O12's builder session_01KS9xBc14DGACR9QrS6Acdq is out of reach and O12b-O12d are merged, so one builder).
+**Lane 1** (orchestrator, 25 Oct): the guard below changes `Ledger.register` (B4, the rule that a trial runs only
+after its registration) and the evaluation freeze's own trial number (`fno/evaluation/freeze.py`, an evaluation
+record).
+
+**Why.** `research/ledger.csv` trial ids are taken by hand as "the highest id plus one" in each builder's own
+checkout; `Ledger.register` accepts any id it is given, and `fno/evaluation/freeze.py` takes the highest plus one
+itself. Two branches cut from the same `main` therefore pick the same ids: on 24-25 Oct the v4 freeze took 101-108
+and EDGE2 F1 took 101-106 on its own branch. Nothing is miscounted (the ledger refuses a duplicate id at merge), but
+the second branch must renumber, and a renumbered trial must be registered and committed again before it runs
+(`require_committed` finds the id in git history). The review series had the same flaw and O12 fixed it with a
+registry; trials get the same.
+
+**Design (one more category; nothing else in O12 changes).**
+- **Registry `numbers/ledger-trial.csv`**, the same four columns. One row reserves a **block**: `number` is `<a>-<b>`
+  (`a <= b`, both whole numbers from 1) or a single `<n>`; `name` is the block's **experiment prefix**, a slug.
+- **Items:** every `trial_id` in `research/ledger.csv` with its `experiment`. A trial id is a whole number from 1
+  (no sign, no letter, no leading zero). The one exception (judge 636): `book3:<strategy_id>` under Book 3's own
+  experiment `book3_ai strategies` (`TRIAL_FAMILY`, `fno/book3/registry.py`), outside the series because no counter
+  makes it: the id is the strategy's own name, which Book 3's registry refuses twice ("already registered: a change is
+  a new strategy_id"), and two branches choosing one name is a naming clash the ledger's duplicate-id check stops at
+  merge, not a "highest plus one" race. Any other id (`x109`, `edge2:1`, `07`, `book3:x` under another experiment) is
+  refused by `register` and flagged by the check; none is on `main` today.
+- **The check** (`tools/check_numbers.py`, unchanged command) adds, for this category: a trial id that is neither a
+  whole number nor Book 3's; a trial id that no block covers; a trial whose `experiment` is not its block's name or
+  that name followed by `-` (another branch's block used; `edge2-f1` never covers `edge2-f10-x`, judge 636); two
+  blocks that overlap; a malformed block. A block with ids not yet in the ledger is a claim still being written (fine).
+- **Claiming:** `python tools/claim_number.py ledger-trial <experiment-prefix> --session <id> --count <k>` (default 1)
+  pushes one block row to `main` exactly as O12 does (git decides the race; the loser retries on the new `main`). The
+  block starts after the highest block end and the highest ledger id on `main`. `--number <a>-<b>` asks for an exact
+  block, refused when it overlaps one taken. The tool prints the ids and the next step: "merge main into your branch
+  (`git pull --no-rebase origin main`), then register trials <a>-<b> with experiment starting `<prefix>`".
+- **Seeded history, pinned:** the 16 runs of consecutive ids with one experiment on `main` at the merge (1, 2-17,
+  18-21, 22-31, 32-36, 37-41, 42, 43-52, 53, 54, 55, 56-70, 71-98, 99, 100, 101-108), each named by its experiment,
+  session `existing`, pinned in `fno/numbering/seed_pins.json` like the other series.
+- **Reservations already given (the orchestrator, 25 Oct), written as claims in the same commit:** `109-114`
+  `edge2-f1-weekly-vrp-gate` for session_01VhppcYHXq3yTJBV2UnsWSs (EDGE2 F1; its branch uses 109-114 with experiment
+  `edge2-f1-weekly-vrp-gate-2026-10-25`), and `115-120` `edge2-f6` for EDGE2 F6 (reserved by the orchestrator,
+  session_01Mt6dcBU5kp2htdPN2KmiZH; F6's experiment must start `edge2-f6`), and `121-123` `edge2-f8` (EDGE2's
+  side-filter family) and `124-127` `edge2-f9` (EDGE2's event IV-crush family), both reserved by the orchestrator on
+  25 Oct after the text's first round (first 121-126 and 127-132; narrowed the same day once `main`'s ledger reached
+  123 through the factory's old highest-plus-one, and 128-132 released). Their time is this commit's (the
+  reservation's own minute was not recorded).
+- **The guard, at registration and before every run (judge 636):** `Ledger.register` refuses a trial id that is not
+  counted (above), that no block in the same checkout covers, or whose block is another experiment's, with the claim
+  command in its words; the code writers (the factory's `register`, the evaluation freeze, Book 3) all go through it.
+  A row typed straight into `ledger.csv` (the v4 rows 101-108 were) never passes `register`, so `require_committed`,
+  which every run calls first (`require_registered` and the trial guard build on it), applies the same check to the
+  trial's committed row: an unclaimed trial never runs, even before CI sees the push. Both read the claims as git
+  holds them at HEAD, like the ledger row itself (judge J), and both refuse while the registry has any local change,
+  tracked or untracked (`git status`; `git diff` misses a file never committed; judge 644), so what is checked is
+  what is shared.
+  A block claimed on `main` reaches a branch when `main` is merged into it (a merge commit, so it is committed).
+- **The evaluation freeze** stops taking "highest plus one": it takes the lowest unused id of a block claimed for its
+  experiment. When there is no such block, or every such block is full, it is refused with the claim command; it
+  never takes an id from another block. The id is chosen (or the freeze refused) before anything is written: today
+  `freeze` writes the write-once `FREEZE_v<n>.md` before `_register`, so a refusal there would leave a record that
+  blocks every retry (judge 636).
+
+**Known limits (said plainly).** The session column is what the claimant typed: the check cannot prove who claimed a
+block, only that every trial sits in a block named for its experiment. An id typed straight into `ledger.csv` by hand
+(outside the class) is refused by `require_committed` before it runs and flagged by the check on the next push; it is
+not refused at the moment it is typed. A block committed only on a branch (never claimed on `main`) passes that
+branch's guard; `main`'s `check_numbers` sees it only at the merge (an overlap or a block another claim already holds
+is then a finding), so the claim tool, which pushes to `main` first, is the only safe way to get a block (judge 644
+m1). `ledger.csv` merge conflicts stay git's.
+
+**Criteria.**
+1. Each finding is produced once on a planted temporary repository and absent on the clean one: an uncovered trial
+   id, a trial outside its block's experiment, two overlapping blocks, a malformed block (`5-3`, `x`, `3-`).
+2. `main` at the merge is clean: the 16 seeded rows equal their pin; 101-108 and both reservations pass.
+3. A claim with `--count 6` on a registry ending at 120 and a ledger ending at 108 pushes `121-126`; two clones
+   claiming at once get two blocks that do not overlap (O12's race test, for this category); an exact block that
+   overlaps is refused.
+4. `Ledger.register` refuses id 121 with no block, refuses 116 for experiment `edge1-...` (block `edge2-f6`), and
+   accepts 116 for `edge2-f6-...`; it accepts `book3:<id>` under `book3_ai strategies` only and refuses `x109`,
+   `edge2:1`, `07` and `book3:<id>` under any other experiment; a block `edge2-f1` refuses `edge2-f10-...`.
+5. The evaluation freeze registers the lowest free id of its experiment's block; it is refused when there is no
+   such block and when the block is full, even with a free id in another block; a refused freeze writes nothing (no
+   `FREEZE_v<n>.md`).
+6. `numbers/README.md` and `research/LEDGER.md` (where trial registration is described) name the new category; the
+   claim tool's help lists it. (CLAUDE.md's numbering line is about the review files and stays as it is.)
+7. The factory's `register` takes the lowest free id of its card's experiment block, as the freeze does: its
+   "the next ledger trial" rule was the same highest-plus-one (found while building; same root cause).
+8. `require_committed` refuses a committed row, typed by hand, whose id is in no block or in another experiment's
+   block (and so `require_registered` and every run do); a registry with any local change (a block typed and not
+   committed, or a registry never committed at all) is refused by `register`, `require_committed` and the freezes'
+   id until it is committed (judges J and 644).
+Plants, one at a time and restored: each check and guard above removed in turn, the freeze's and the factory's
+highest-plus-one restored, and the freeze choosing its id after writing its record (the list is in the Claims).
+
+**Claims (builder, for the judge).**
+- Code: `fno/numbering/blocks.py` (new: the series, the findings, the seed runs, `TrialClaims`), `check.py`,
+  `seed.py` (keeps every pin when it rewrites them), `claim.py` (`CLAIMABLE`, `--count`, an exact block),
+  `tools/claim_number.py`; `fno/research_engine/ledger.py` (`TrialNotClaimed` in `register`, the same check in `require_committed`);
+  `fno/evaluation/freeze.py` (the id chosen before any write, from the block); `fno/factory/registration.py`
+  (criterion 7).
+- Data: `numbers/ledger-trial.csv` (16 history rows by `check_numbers.py --seed` on `main` at c1c78f7c2 plus this
+  branch's merge, then the two reservations), `fno/numbering/seed_pins.json` (its `ledger-trial` pin).
+- Tests: `tests/numbering/test_ledger_blocks.py`, `tests/numbering/test_ledger_claim.py`; the factory and evaluation
+  test repositories now carry a claim registry (`tests/factory/helpers.py`, `tests/evaluation/builders.py`,
+  `tests/evaluation/test_breadth_protocol.py`), and `tests/factory/test_cards_anywhere.py`'s planted experiments
+  became `x1-test-*` (they shared one repository's ids with `x1-test`).
+- Plants (16, each caught, restored): the uncovered-trial check, the experiment check, the overlap check, the `-`
+  boundary of the prefix (`edge2-f60` taken by `edge2-f6`), the guard in `register`, the freeze's and the factory's
+  highest-plus-one, a block claim that ignores ledger ids typed past every block; round 2 (judge 636): the freeze
+  choosing its id after writing its record, Book 3's exemption under any experiment, every uncounted id exempt in
+  `register`, uncounted ids not flagged by the check, the claim check removed from `require_committed`; judge J: the
+  claims read from the working tree instead of HEAD; judge 644: the uncommitted-changes refusal removed, and local
+  changes judged by `git diff` (blind to an untracked registry) instead of `git status` (16 in all).
+- Round 2 test changes: the B4 and trial-guard tests' ids `P1`, `P2`, `P9` became `1`, `2`, `9` in a claimed `exp`
+  block (`tests/numbering/helpers.claim_block`); production ids were already whole numbers (Experiment 1 maps policy
+  P1 to trial 22).

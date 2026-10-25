@@ -30,6 +30,10 @@ slack:
   channel_id: C0
 """
 LEDGER_HEAD = ",".join(COLUMNS) + "\n1,old,an earlier trial,retrospective,no,2026-10-12,,,,\n"
+CLAIMS = (  # story O12e: the freezes take the lowest free id of their experiment's claimed block
+    "number,name,session,claimed_at_utc\n1,old,existing,\n2-9,evaluation-protocol,session_test,2026-10-25T00:00:00Z\n"
+    "10-19,breadth-protocol,session_test,2026-10-25T00:00:00Z\n"
+)
 
 
 def decided(text: str = DRAFT) -> str:
@@ -58,6 +62,7 @@ def protocol_repo(root: Path, text: str | None = None, gate: str = GATE) -> str:
         "fno/scoring.py": "SCORE = 1\n",
         "config.yaml": CONFIG,
         "research/ledger.csv": LEDGER_HEAD,
+        "numbers/ledger-trial.csv": CLAIMS,
     }
     for name, body in files.items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)

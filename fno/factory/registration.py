@@ -61,17 +61,24 @@ class IdeaRegistration:
                                     "`factory backfill`")  # fmt: skip
         return True
 
-    @staticmethod
-    def _require_next(card: IdeaCard, rows: list[dict]) -> None:
+    def _require_next(self, card: IdeaCard, rows: list[dict]) -> None:
         if any(row["trial_id"] == card.trial_id for row in rows):
             raise RegistrationError(f"trial {card.trial_id} is already in {LEDGER_FILE}")
         if any(row["protocol_path"] == card.path for row in rows):
             raise RegistrationError(f"{card.path} is already registered (a variant is a new card with a new id)")
-        expected = str(max((int(row["trial_id"]) for row in rows), default=0) + 1)
+        expected = self._next_claimed(card, rows)
         if card.trial_id != expected:
             raise RegistrationError(
                 f"{card.path}: field 'trial' is {card.trial_id}, the next ledger trial is {expected}"
             )
+
+    def _next_claimed(self, card: IdeaCard, rows: list[dict]) -> str:
+        """The lowest free id of the block claimed for the card's experiment (story O12e): no skipped id can hide a
+        trial, and no branch takes another's ids ("highest plus one" did both on parallel branches)."""
+        try:
+            return self.ledger.claims.next_free(card.experiment, {row["trial_id"] for row in rows})
+        except ValueError as unclaimed:
+            raise RegistrationError(f"{card.path}: {unclaimed}") from unclaimed
 
     def backfill(self, card: IdeaCard) -> tuple[str, ...]:
         """The `idea` row of a card whose ledger row was written by hand before R1's code."""

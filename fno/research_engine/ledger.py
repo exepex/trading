@@ -20,6 +20,7 @@ from datetime import date
 from pathlib import Path
 
 from ..models import today_local
+from ..numbering.blocks import TrialClaims
 
 LEDGER_FILE = "research/ledger.csv"
 COLUMNS = (
@@ -123,6 +124,10 @@ class Git:
     def commit_exists(self, commit: str) -> bool:
         return bool(commit) and self._yes("cat-file", "-e", f"{commit}^{{commit}}")
 
+    def is_clean(self, path: str) -> bool:
+        """No local change to `path`, tracked or untracked (`git diff` alone misses a file never committed)."""
+        return not self._out("status", "--porcelain", "--", path).strip()
+
     def unchanged_since(self, commit: str, path: str) -> bool:
         tracked = self._yes("diff", "--quiet", commit, "HEAD", "--", path)
         untouched = self._yes("diff", "--quiet", "HEAD", "--", path)
@@ -159,20 +164,29 @@ def write_ledger(rows: list[dict]) -> str:
     return out.getvalue()
 
 
+class TrialNotClaimed(ValueError):
+    """The trial id is not in a block claimed for its experiment (story O12e): claim one on `main` first."""
+
+
 class Ledger:
-    def __init__(self, root: Path, git: Git | None = None):
+    def __init__(self, root: Path, git: Git | None = None, claims: TrialClaims | None = None):
         self.root, self.git = Path(root), git or Git(Path(root))
         self.file = self.root / LEDGER_FILE
+        self.claims = claims or TrialClaims(self.git.committed_text, self.git.is_clean)
 
     def rows(self) -> list[dict]:
         return read_ledger(self.file.read_text()) if self.file.is_file() else []
 
     def register(self, trial_id: str, experiment: str, description: str, kind: str, hypothesis: bool,
                  protocol_path: str = "", today: date | None = None) -> None:  # fmt: skip
-        """Adds a row (commit it before the trial runs)."""
+        """Adds a row (commit it before the trial runs). A whole-number id must sit in a block claimed for this
+        experiment (story O12e), so two branches never take the same ids."""
         rows = self.rows()
         if any(r["trial_id"] == trial_id for r in rows):
             raise ValueError(f"trial {trial_id} is already registered")
+        unclaimed = self.claims.problem(trial_id, experiment)
+        if unclaimed:
+            raise TrialNotClaimed(unclaimed)
         row = dict.fromkeys(COLUMNS, "")
         row.update(trial_id=trial_id, experiment=experiment, description=description, kind=kind,
                    hypothesis="yes" if hypothesis else "no", registered_on=(today or today_local()).isoformat(),
@@ -186,6 +200,9 @@ class Ledger:
         row = next((r for r in self.rows() if r["trial_id"] == trial_id), None)
         if row is None:
             raise NotRegistered(f"trial {trial_id} is not registered: it is not in {LEDGER_FILE}")
+        unclaimed = self.claims.problem(trial_id, row["experiment"])  # a row typed by hand never passed `register`
+        if unclaimed:
+            raise NotRegistered(unclaimed)
         committed = self.git.committed_text(LEDGER_FILE)
         if committed is None or not self.git.unchanged_since("HEAD", LEDGER_FILE):
             raise NotRegistered("the ledger has uncommitted changes: commit it so the run uses exactly what is in git")

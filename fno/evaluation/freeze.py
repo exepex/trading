@@ -155,11 +155,21 @@ class ProtocolFreezer:
         if self.definition.requires_gate:
             self._require_gate(targets)
         self._require_committed(targets)
+        trial = self._claimed_trial(version)  # before any write: no record without its ledger id
         commit, head = self.git.commits_touching(self.definition.protocol_file)[-1], AtCommit(self.git, "HEAD")
         record = FreezeRecord(version, commit, {t: target_hash(head, t) for t in targets})
         path.write_text(render(record, self.definition), encoding="utf-8")
-        self._register(record, today)
+        self._register(trial, record, today)
         return record
+
+    def _claimed_trial(self, version: int) -> str:
+        """The lowest free id of a block claimed for this protocol's experiment (story O12e), never "highest plus
+        one" and never an id of another block: none free is a refusal."""
+        experiment = self.definition.ledger_experiment.format(version=version)
+        try:
+            return self.ledger.claims.next_free(experiment, {r["trial_id"] for r in self.ledger.rows()})
+        except ValueError as none_free:
+            raise FreezeRefused(str(none_free)) from none_free
 
     def _require_gate(self, targets: list[str]) -> None:
         """The real-money gate is frozen with the protocol, never after it (story RM1)."""
@@ -180,10 +190,8 @@ class ProtocolFreezer:
             if self.git.committed_bytes(path, "HEAD") is None or not self.git.unchanged_since("HEAD", path):
                 raise FreezeRefused(f"commit {path} first: the freeze hashes what git holds")
 
-    def _register(self, record: FreezeRecord, today: date) -> None:
+    def _register(self, trial: str, record: FreezeRecord, today: date) -> None:
         """A ledger row for the protocol (B4): prospective, no hypothesis, naming the protocol and its commit."""
-        rows = self.ledger.rows()
-        trial = str(max((int(r["trial_id"]) for r in rows if r["trial_id"].isdigit()), default=0) + 1)
         description = self.definition.ledger_description.format(version=record.version)
         experiment = self.definition.ledger_experiment.format(version=record.version)
         self.ledger.register(trial, experiment, description, "prospective", False, self.definition.protocol_file, today)

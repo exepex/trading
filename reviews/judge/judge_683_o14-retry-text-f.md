@@ -94,3 +94,23 @@ row. Criterion 10.6's one-post test must cover that path, or the row becomes not
 
 Gates (trial merge with main; only `O14-retry-policy.md` changes): record scan clean (9,548 files); doc-reading tests
 963 passed, 13 xfailed.
+
+## Addendum 2
+
+**Narrow round 3 (granted by the owner, 25 Oct) at story/o14-retry-policy @ 3f15306ae, diff ab97493c5..3f15306ae,
+judge F: PASS (1 minor). Lane 1.** I did not read judge E.
+
+| Item | Change | My check | Result |
+|---|---|---|---|
+| SF5: the steps between | 3.1: a retry is made only if `now + wait + expected(retried) + sum(expected(each step between)) <= L` for every later limit; a step not running today counts 0; the expected times use the same run-log rule; section 4's rows say "less the expected times of the steps between" | matches `DAILY_RUN_STEPS`: exits, then `trade_marks`, `reviews`, `quotes_done`, `card`, `price_distribution`, `premium_ranges`, then the school. Plant 10.2 (the steps between taken as zero) and one test per step (exits, `trade_marks`, `reviews`, `card`, `price_distribution`) | **Fixed** |
+| Minor: `forecasts_v4_pack` posts | not safe: `run_followups` can send W8's alert | as I found (`pack_wiring.py:179`) | **Fixed** |
+| `exits` row's Slack note | alerts only on a new event | `fno/desk/exits.py:195-197`: `new = journal.record_event(event)`; alert only `if new` | **True** |
+
+The 600 s fallback for a step with no earlier run, summed over the steps between, can make a retry impossible on a
+step's first live days. That fails safe (escalate, never late), so it is not a finding.
+
+Gates (trial merge with main; only `O14-retry-policy.md` changes): record scan clean (9,610 files); doc-reading tests
+966 passed, 13 xfailed.
+
+**Minor.** The status line still says "pending the owner's word on a third round"; the owner granted it. Update it when
+the file is next touched.

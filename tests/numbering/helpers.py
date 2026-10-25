@@ -46,3 +46,8 @@ def _identity(repo: Path) -> None:
     git(repo, "config", "user.email", "test@example.invalid")
     git(repo, "config", "user.name", "test")
     git(repo, "config", "core.hooksPath", "/dev/null")
+
+
+def claim_block(root: Path, block: str = "1-9", name: str = "exp") -> Path:
+    """Story O12e: a claimed block of trial ids, so a test ledger's trials may be registered and run."""
+    return write(root, {"numbers/ledger-trial.csv": f"{HEADER}{block},{name},session_test,2026-10-25T00:00:00Z\n"})
