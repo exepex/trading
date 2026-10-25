@@ -58,7 +58,7 @@ def edition_root(monkeypatch):
 
     def composer(edition, env, live=None):
         seen["live"] = live
-        return object(), Sessions(), live
+        return SimpleNamespace(compose=lambda day, now: "report"), Sessions(), live
 
     monkeypatch.setattr(wiring, "build_composer", composer)
     monkeypatch.setattr(wiring, "records", lambda edition, env=None: SimpleNamespace(report=None))
@@ -74,6 +74,8 @@ def test_the_edition_s_run_takes_the_rehearsal_s_date_and_notes_its_process(edit
                                                                            edition):  # fmt: skip
     monkeypatch.setenv(ENV_FNO_REHEARSAL, mode(D22, tmp_path)[ENV_FNO_REHEARSAL])
     run = wiring.build_edition(edition)
+    assert "live" not in edition_root  # STAB1: nothing is built until the edition reports
+    assert run.composer.compose(D22, None) == "report"
     assert run.edition.live_from == D22 and edition_root["live"][edition] == D22
     assert os.environ[ENV_FNO_REHEARSAL_NOT_LIVE] == NOTE_22
 

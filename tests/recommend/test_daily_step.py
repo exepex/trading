@@ -24,9 +24,9 @@ def test_the_step_follows_the_school_and_is_off_until_the_owner_s_go(monkeypatch
     assert step.step.live_from is None and step.run(DAY).result["status"] == STEP_NOT_LIVE
 
 
-def test_the_repository_s_config_switches_it_on_from_monday_26_oct():
-    """Off until the owner's go, then from Mon 26 Oct (the owner's standing rule "every built feature on")."""
-    assert live_dates(load_app_config())["recommend"] == date(2026, 10, 26)
+def test_the_repository_s_config_switches_it_off():
+    """STAB1 (owner, 25 Oct 2026: no forecasting, no recommendation): the step is not live in the repository."""
+    assert live_dates(load_app_config())["recommend"] is None
 
 
 def test_its_live_date_is_its_own_key():

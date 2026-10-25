@@ -8,11 +8,11 @@ from fno.forecast_lab.wiring import live_from, receipt_pathspecs
 
 
 def test_each_edition_reads_its_own_live_date_and_none_is_set_in_the_repository():
+    """STAB1 (owner, 25 Oct 2026): the lab's two editions are forecasts, so the repository sets no live date."""
     assert live_from({"forecast_lab": {"live_from": {"evening": "2026-11-02"}}}) == {
         "morning": None, "evening": date(2026, 11, 2)}  # fmt: skip
     assert live_from({}) == {"morning": None, "evening": None}
-    live = date(2026, 10, 23)  # orchestrator, 22 Oct: both editions from Fri 23 Oct
-    assert live_from(load_app_config()) == {"morning": live, "evening": live}
+    assert live_from(load_app_config()) == {"morning": None, "evening": None}
 
 
 def test_each_edition_commits_only_its_own_receipts():

@@ -24,7 +24,7 @@ def test_the_built_steps_wait_for_their_times_and_commit_only_their_receipts(mon
     steps = _built_steps(monkeypatch)
     release, deadline = steps["v4_release"], steps["v4_deadline"]
     assert isinstance(release, Alerted) and isinstance(release.step, LiveFrom)
-    assert release.step.live_from == deadline.step.live_from == date(2026, 10, 26)  # owner, 24 Oct: live Monday
+    assert release.step.live_from is None and deadline.step.live_from is None  # STAB1: the release has its own key, off
     after = release.step.step
     assert isinstance(after, AfterPart) and (after.name, after.by) == ("v4", time(14, 45))
     assert isinstance(after.step, CommandStep) and after.step.arguments(date(2026, 10, 26)) == RELEASE

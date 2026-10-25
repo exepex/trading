@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from fno.recommend import wiring
-from fno.recommend.cli import NOT_A_SESSION, cmd_decide
+from fno.recommend.cli import NOT_A_SESSION, NOT_LIVE, cmd_decide
 
 WEEKEND, HOLIDAY, MUHURAT, SESSION = date(2026, 10, 24), date(2026, 1, 26), date(2026, 11, 8), date(2026, 10, 23)
 
@@ -34,7 +34,24 @@ def test_a_session_day_builds_and_runs_the_day(monkeypatch):
     assert cmd_decide(SimpleNamespace(on=SESSION), out=lambda line: None) == 0 and ran == [SESSION]
 
 
-def test_the_check_command_prints_its_lines_and_fails_only_on_its_own_problem(monkeypatch):
+@pytest.fixture
+def recommender_live(monkeypatch):
+    """The check under a config where the recommender has a live date (the repository's own has none: STAB1)."""
+    monkeypatch.setattr("fno.config.load_app_config", lambda: {"daily": {"live_from": {"recommend": "2026-10-26"}}})
+
+
+def test_the_check_builds_nothing_and_succeeds_while_the_recommender_has_no_live_date(monkeypatch):
+    """STAB1 (owner, 25 Oct 2026): the repository's config switches the recommender off; the evening routine's
+    `recommend check` then prints one line and exits 0, without reading Drive, the dashcam or Slack."""
+    from fno.recommend import check_wiring
+    from fno.recommend.cli import cmd_check
+
+    monkeypatch.setattr(check_wiring, "build_check_run", lambda: (_ for _ in ()).throw(AssertionError("built")))
+    lines = []
+    assert cmd_check(SimpleNamespace(on=SESSION), out=lines.append) == 0 and lines == [NOT_LIVE.format(day=SESSION)]
+
+
+def test_the_check_command_prints_its_lines_and_fails_only_on_its_own_problem(monkeypatch, recommender_live):
     from fno.recommend import check_wiring
     from fno.recommend.cli import cmd_check
 
@@ -46,7 +63,7 @@ def test_the_check_command_prints_its_lines_and_fails_only_on_its_own_problem(mo
 
 
 @pytest.mark.parametrize("day", [WEEKEND, HOLIDAY, MUHURAT])
-def test_the_check_writes_nothing_on_a_day_that_is_not_a_trading_session(monkeypatch, day):
+def test_the_check_writes_nothing_on_a_day_that_is_not_a_trading_session(monkeypatch, recommender_live, day):
     """Self-review 6: criterion 14 for the check too."""
     from fno.recommend import check_wiring
     from fno.recommend.cli import cmd_check

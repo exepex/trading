@@ -25,6 +25,7 @@ from ..constants import (
     SCHOOL_STEP,
     V4_PACK_FORECASTS_STEP,
     V4_PACK_LIVE_KEY,
+    V4_RELEASE_STEP,
 )
 from ..desk.daily_ports import DayStep
 from ..desk.daily_run import RERUN_FINAL
@@ -43,9 +44,10 @@ MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file 
 SCHOOL_STARTS_BY = SLOT_LAST_START  # MS-P1j2/j3: the runner's own cutoff too; a run takes ~2-4 min (reasoning only)
 SCHOOL_NOT_RETRIED = "; " + RERUN_FINAL.format(why="a later run never decides the session's paper trades")
 FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
-LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, V4_PACK_FORECASTS_STEP, "card",
-              OWNER_TIMING_STEP, "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges",
-              "price_range_scores", "premium_range_scores", "close_read", "close_recheck", "recommend")  # fmt: skip
+LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, V4_RELEASE_STEP, V4_PACK_FORECASTS_STEP,
+              "card", OWNER_TIMING_STEP, "price_distribution", "premium_ranges", "price_distribution_scores",
+              "price_ranges", "price_range_scores", "premium_range_scores", "close_read", "close_recheck",
+              "recommend")  # fmt: skip
 LIVE_BOOKS = (BOOK2_HYBRID, BOOK3_AI)  # story F1t: each AI book's first trading day; null: not in the desk at all
 OTHER_LIVE_KEYS = ("ai_books_v4",)  # G11's key, read by `fno/ai/wiring.py`
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
@@ -257,7 +259,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
     fills = build_owner_timing_step(cfg, alerts, exit_timing, live[OWNER_TIMING_STEP], root=root)
     steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, fills, alerts)  # E8: seals only before its live date
     steps |= v4_steps(lambda arguments, specs: CommandStep(processes, arguments, specs, git.changed, waiting, locks),
-                      parts, waiter, live[V4_PACK_LIVE_KEY], alerts)  # G10 completion  # fmt: skip
+                      parts, waiter, live[V4_RELEASE_STEP], alerts)  # G10 completion; STAB1: its own key  # fmt: skip
     steps = rehearsed_not_live(steps, step_notes(not_live))
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, books=(BOOK1_RULES, *ai_books), root=root,
                                 waiter=waiter, day_steps=steps, git=git,

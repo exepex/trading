@@ -65,6 +65,12 @@ its stored prompt is exactly: "Run the daily desk routine in CLAUDE.md, section 
 the whole desk day; the NSE session calendar (A7) decides whether it is a trading day (a closed day records only
 `skipped` and each quote part prints "not a trading day"). Research and paper trading only: never places, modifies or
 cancels orders.
+**Forecasting is off, captures run (story STAB1, owner 25 Oct 2026: "We are not doing any kind of forecasting ... Data
+capture will never stop").** The weather, v4 forecast, v4 release and 15:10 check, pack-derived rows, card, price
+distribution, price and premium ranges and their scores, recommendation, AI and school steps record `not_live` or
+"school off" (`config.yaml`: `daily.live_from`, `school`); the quote parts (the `v4` window capture too), the margin
+check, the candle catch-up and A4h's close reads run as before, and `day done` is the normal ending. Never switch a
+forecasting step on by hand; that is the owner's decision and a judged change.
 1. `sh tools/routine_setup.sh --groww` (story O7: installs into every Python the routine and the commit hook can call,
    checks each imports the packages, turns on the public-record scan, story O5, and prints "routine setup ok").
    Every scheduled routine sets up this way, never with bare `pip` (it may fill another Python).
@@ -135,6 +141,10 @@ forecast routines'." at 08:38 IST, and "Run the evening routine in CLAUDE.md, se
 routines'." at 19:53 IST, both every day: NSE's calendar decides the day. Each edition posts only from its
 `forecast_lab.live_from` date in `config.yaml` ("not live" before it). Research and paper trading only: never places,
 modifies or cancels orders, and neither uses Groww.
+**Forecasting is off (story STAB1, owner 25 Oct 2026):** `forecast_lab.live_from` is null in `config.yaml`, so `lab open`
+and `lab close` print "not live" (exit 0), post nothing and build nothing, and `recommend check` prints "not live"; only
+their data steps (the index-close archive, the closes read, the certification, the librarian pulls, `lab release-check`)
+do work. An edition with no receipts has nothing to commit in step 3: that is not a failure.
 1. `sh tools/routine_setup.sh` (prints "routine setup ok").
 1b. The morning only, before `lab open`: `python -m fno data-librarian index-close --from "$(TZ=Asia/Kolkata date -d
    '-7 days' +%F)"` archives the previous sessions' official index-close files in Drive (A9's command, unchanged;

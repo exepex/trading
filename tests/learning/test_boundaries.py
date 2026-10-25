@@ -41,9 +41,9 @@ def _workflow(name: str) -> dict:
     return yaml.safe_load((ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8"))
 
 
-def test_saturday_10_41_and_11_41_ist_and_g4_s_monday_post_retired():
-    crons = [c["cron"] for c in _workflow("postmortem-weekly.yml")[True]["schedule"]]  # YAML reads `on` as True
-    assert crons == ["11 5 * * 6", "11 6 * * 6"]  # 05:11 and 06:11 UTC are 10:41 and 11:41 IST
+def test_no_schedule_starts_the_postmortem_and_g4_s_monday_post_retired():
+    """STAB1 (owner, 25 Oct 2026: no forecasting): the Saturday 10:41 and 11:41 IST crons are removed; manual only."""
+    assert set(_workflow("postmortem-weekly.yml")[True]) == {"workflow_dispatch"}  # YAML reads `on` as True
     g4 = (ROOT / ".github" / "workflows" / "forecast-scores.yml").read_text(encoding="utf-8")
     assert "41 3 * * 1" not in g4 and "summary --send" not in g4
 

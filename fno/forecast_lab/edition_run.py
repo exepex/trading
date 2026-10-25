@@ -75,6 +75,19 @@ class Composer(ABC):
     def compose(self, day: date, now: datetime) -> WrittenReport: ...
 
 
+class LazyComposer(Composer):
+    """Builds the real composer (a Drive sync of G13b's records) on its first report, never before: an edition that is
+    not live, not a session or already posted builds nothing and cannot fail on Drive (STAB1)."""
+
+    def __init__(self, build: Callable[[], Composer]):
+        self.build, self.composer = build, None
+
+    def compose(self, day: date, now: datetime) -> WrittenReport:
+        if self.composer is None:
+            self.composer = self.build()
+        return self.composer.compose(day, now)
+
+
 @dataclass(frozen=True)
 class Edition:
     name: str  # "morning" or "evening"

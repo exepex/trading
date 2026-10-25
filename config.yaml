@@ -206,25 +206,34 @@ budget:
 # not live, the step is recorded `not_live`. Set by the owner or a freeze, never by the run (a first live weather
 # record ends M1's back-fill; live v4 rows made on or before the G6 freeze's `Frozen on:` day are never counted).
 daily:
+  # STAB1 (owner, 25 Oct 2026: "We are not doing any kind of forecasting ... Data capture will never stop"): every key
+  # that forecasts, scores a forecast, posts a card or recommendation is null, so its step records `not_live`. A key
+  # kept dated below belongs to a capture or is explained on its line. Turning a forecasting key back on is the owner's
+  # decision and a judged change; the previous dates are in git (before STAB1).
   live_from:
     margin_check: null  # A14c's `margins stress-broker-check`: set when its code lands
-    weather: "2026-10-22"  # owner, 21 Oct 2026 (response 299 item 15): on before the v4 freeze, routine at 14:05
-    forecasts_v4: "2026-10-22"  # the same; G7's rule forecasts, uncounted until the day after `Frozen on:`
-    # G11: the AI books' own v4 go-live (the v4 AI fire runs and the v2 AI fire stops from it), never forecasts_v4's
-    # date; null until the v4 freeze, the AI slots' registration and the routines' steps 3-4 (F1-G5-owner-checklist.md)
+    weather: null  # M1 weather: forecasting, off (STAB1)
+    forecasts_v4: null  # G7's rule forecasts: off (STAB1)
+    # G11: the AI books' own v4 go-live. KEEP THE DATE: null would restart the v2 AI fire and collection
+    # (fno/ai/fire.py, fno/ai/collect.py stop the v2 run only from this date). No AI book fires anyway: the workflows
+    # that fire them have no schedule or push trigger (STAB1), and book2_hybrid / book3_ai below are null.
     ai_books_v4: "2026-10-26"
-    v4_pack: "2026-10-26"  # G10: the `v4` capture (part starts 14:29, captures from 14:32), the release by 14:45, the 15:10 check (owner, 24 Oct)
-    forecasts_v4_pack: "2026-10-26"  # G7b completion: the pack-derived v4 rows after the release (owner, 24 Oct)
-    card: "2026-10-26"  # T1's daily card to #fno-desk (owner, 24 Oct: "enable/activate everything that has been completed")
-    price_distribution: "2026-10-22"  # story G13's valuation record and price-distribution forecasts
-    price_distribution_scores: "2026-10-22"  # G13's daily `pricedist score` (the previous sessions' outcomes)
-    price_ranges: "2026-10-22"  # story G13b's 15:45 NIFTY and BANKNIFTY ranges
-    price_range_scores: "2026-10-22"  # G13b's daily `pricerange score` and seals; the same one-session lag
-    premium_ranges: "2026-10-23"  # story G13d's next-session 3 pm premium ranges (judge 465.2 PASS; merged 22 Oct evening)
-    premium_range_scores: "2026-10-26"  # G13d's daily `premrange score` and seals (owner, 24 Oct: the same)
+    # G10: the `v4` capture, the 14:32-14:40 Groww quotes (part starts 14:29): a CAPTURE, it keeps running. The v4
+    # release and the 15:10 check (forecasting) have their own key below. The release and deadline commands read this
+    # key themselves (frozen fno/v4_pack/wiring.py), so only the daily steps are switched off.
+    v4_pack: "2026-10-26"
+    v4_release: null  # G10: the pack's release by 14:45 and the 15:10 check: off with the forecasts (STAB1)
+    forecasts_v4_pack: null  # G7b: the pack-derived v4 rows: off (STAB1)
+    card: null  # T1's daily card to #fno-desk: off (STAB1)
+    price_distribution: null  # story G13's valuation record and price-distribution forecasts: off (STAB1)
+    price_distribution_scores: null  # G13's scores: off (STAB1)
+    price_ranges: null  # story G13b's 15:45 NIFTY and BANKNIFTY ranges: off (STAB1)
+    price_range_scores: null  # G13b's scores and seals: off (STAB1)
+    premium_ranges: null  # story G13d's premium ranges: off (STAB1)
+    premium_range_scores: null  # G13d's scores and seals: off (STAB1)
     close_read: "2026-10-23"  # story A4h's 15:40 close read: record-only for its first 5 sessions (orchestrator)
     close_recheck: "2026-10-23"  # A4h's 16:00 second read
-    recommend: "2026-10-26"  # story REC1b: the recommender's daily record and #fno-desk line (owner: every built feature on)
+    recommend: null  # story REC1b: the recommender's daily record and #fno-desk line: off (STAB1)
     # Story F1t: each AI book's first trading day (null: the book is not in the desk at all). Set by the owner only,
     # after the go-live checks in docs/stories/F1t-ai-trading-runner.md.
     book2_hybrid: null
@@ -246,9 +255,9 @@ ai_books:
 # at 08:38 IST, `lab close` at 19:53 IST), live only from these dates; null: not live (design signed off: DESK_DECISIONS
 # 11ef1b23).
 forecast_lab:
-  live_from:
-    morning: "2026-10-23"  # orchestrator, 22 Oct: live from Fri 23 Oct, with the owner's two scheduled tasks
-    evening: "2026-10-23"
+  live_from:  # STAB1 (owner, 25 Oct 2026): both editions are forecasts, off; the two routines print "not live"
+    morning: null  # was 2026-10-23
+    evening: null  # was 2026-10-23
 
 # Story O8: the daily health check reads the sessions dated from `window_days` days before its run's IST date up to
 # that date (judge 164). The receipt search reads GitHub's log back to each commit's date (story receipts-reach).
@@ -261,8 +270,8 @@ health:
 # orchestrator turns them on. The limits are the school's own copy of today's values (response 325 section 9.1,
 # DESK_DECISIONS "Market school pilot: report sections and brake"), so a desk change never moves the pilot mid-count.
 school:
-  enabled: true
-  reports: true
+  enabled: false  # STAB1 (owner, 25 Oct 2026: no forecasting, no paper decisions by the school): was true
+  reports: false  # was true
   first_counted:            # set from the frozen comparison card (MS-P1h) before the first counted session
   account_rs: 2000000       # each driver version's paper account
   max_loss_rs: 10000        # one trade, every charge and pad included

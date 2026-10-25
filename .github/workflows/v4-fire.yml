@@ -4,12 +4,13 @@
 # the only start. It fires today's books only: a replayed or older receipt fires nothing, and G11's fire records a
 # start after V4_LATEST_FIRE (14:55 IST) as not_fired. The books read the released pack through the verified Drive
 # cache, never a checkout file. Never orders.
+# STAB1 (owner, 25 Oct 2026: "We are not doing any kind of forecasting"):
+# the push trigger is removed; no AI book is fired.
+# Manual dispatch only; the owner's later decision restores the trigger in a judged change (git history before STAB1 has it).
 name: v4-fire
 
 on:
-  push:
-    branches: [main]
-    paths: ["receipts/data/v4/days/**"]
+  workflow_dispatch:
 
 permissions:
   contents: write # the fire log

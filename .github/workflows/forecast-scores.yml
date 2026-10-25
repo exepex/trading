@@ -4,11 +4,12 @@
 # through the as-of day (story O6's index-closes job appends them at 21:11 IST), so it runs after that job.
 # Scores are research records: research/forecasts/scores/<as-of>.json (schema forecast_scores/v1), labelled secondary
 # to net profit. Live records are scored only against their capture receipts in Drive's pipeline area.
+# STAB1 (owner, 25 Oct 2026: "We are not doing any kind of forecasting"):
+# the schedule is removed; nothing scores a forecast.
+# Manual dispatch only; the owner's later decision restores the trigger in a judged change (git history before STAB1 has it).
 name: forecast-scores
 
 on:
-  schedule:
-    - cron: "11 17 * * *" # 22:41 IST every day: score and commit the report
   workflow_dispatch:
 
 permissions:

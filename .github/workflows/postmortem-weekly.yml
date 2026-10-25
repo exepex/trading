@@ -3,12 +3,12 @@
 # the one AI routine is fired (summary, then objections; it pushes its two files). Saturday 11:41 IST: the summary's
 # exact number check and the objections' check, then one post to #fno-desk (FNO_SLACK_BOT_TOKEN only) and the publish
 # record committed. Every commit runs the public-record scan (story O5); never --no-verify.
+# STAB1 (owner, 25 Oct 2026: "We are not doing any kind of forecasting"):
+# the Saturday schedules are removed; it scores forecasts and fires an AI routine.
+# Manual dispatch only; the owner's later decision restores the trigger in a judged change (git history before STAB1 has it).
 name: postmortem-weekly
 
 on:
-  schedule:
-    - cron: "11 5 * * 6" # 10:41 IST on Saturdays: build the lines and fire the routine
-    - cron: "11 6 * * 6" # 11:41 IST on Saturdays: check and post once
   workflow_dispatch:
     inputs:
       step:

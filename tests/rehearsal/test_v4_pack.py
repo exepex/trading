@@ -1,7 +1,8 @@
 """Story G10 completion, criterion 12 (judge 580 SF1 and 580.1 minor 2): protocol v4's pieces in a rehearsal. `v4_pack`
-goes through `rehearsed_live` like every key; its one note reaches the `v4` part's child (by its command) and both
-steps; the release's D3 failure is excused only on a replayed day whose record holds no `v4` attempt; the deadline
-checks the replayed day only. Only the composition roots and `fno/rehearsal/` read the mode."""
+and `v4_release` (STAB1: the capture's key and the release's) go through `rehearsed_live` like every key; the first
+note reaches the `v4` part's child (by its command), the second both steps; the release's D3 failure is excused only
+on a replayed day whose record holds no `v4` attempt; the deadline checks the replayed day only. Only the composition
+roots and `fno/rehearsal/` read the mode."""
 
 import os
 from datetime import date
@@ -21,13 +22,15 @@ def env(tmp_path):
     return {ENV_FNO_REHEARSAL: Rehearsal.new(DAY, tmp_path, tmp_path / "record").to_env()}
 
 
-def test_v4_pack_runs_in_a_rehearsal_and_its_one_note_reaches_the_part_and_both_steps(tmp_path):
-    live, notes = rehearsed_live({"v4_pack": None, "card": None}, env(tmp_path))
-    assert live["v4_pack"] == DAY and notes["v4_pack"] == NOT_LIVE_UNSET
+def test_v4_keys_run_in_a_rehearsal_and_each_note_reaches_its_part_or_both_steps(tmp_path):
+    live, notes = rehearsed_live({"v4_pack": None, "v4_release": None, "card": None}, env(tmp_path))
+    assert live["v4_pack"] == live["v4_release"] == DAY and notes["v4_pack"] == NOT_LIVE_UNSET
     assert part_notes(day_parts(load_app_config()), notes) == {V4: NOT_LIVE_UNSET}  # A4's parts have no key
     shared = step_notes(notes)
     assert shared["v4_release"] == shared["v4_deadline"] == NOT_LIVE_UNSET and shared["card"] == NOT_LIVE_UNSET
-    assert step_notes({"card": NOT_LIVE_UNSET}) == {"card": NOT_LIVE_UNSET}  # v4 live: nothing added
+    assert step_notes({"card": NOT_LIVE_UNSET}) == {"card": NOT_LIVE_UNSET}  # v4 release live: nothing added
+    only_capture = step_notes(rehearsed_live({"v4_pack": None, "v4_release": DAY}, env(tmp_path))[1])
+    assert "v4_deadline" not in only_capture  # STAB1: a capture key not live no longer gives the steps a note
 
 
 class Seen:

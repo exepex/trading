@@ -21,10 +21,10 @@ def at(hour, minute):
     return datetime(2026, 10, 15, hour, minute, tzinfo=IST)
 
 
-def test_the_snapshot_push_and_the_cron_both_start_the_capture():
+def test_only_a_manual_dispatch_starts_the_capture():
+    """STAB1 (owner, 25 Oct 2026: no forecasting): neither the snapshot push nor the cron starts it."""
     on = yaml.safe_load(WORKFLOW.read_text())[True]  # YAML reads the key `on` as true
-    assert on["push"] == {"branches": ["main"], "paths": ["research/data/quotes/**/*.canonical"]}
-    assert on["schedule"] == [{"cron": "30 8 * * *"}] and "workflow_dispatch" in on
+    assert set(on) == {"workflow_dispatch"}
 
 
 def test_the_capture_runs_only_when_the_gate_says_so_and_runs_never_overlap():

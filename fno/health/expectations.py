@@ -42,11 +42,14 @@ FLOW_HISTORY_MANIFESTS = {"A23 participant volume": "research/data/manifests/par
                           "A23 FII statistics": "research/data/manifests/fii-stats.csv"}  # fmt: skip
 INTRADAY_FOLDER = "research/data/intraday"
 ALL_SESSION_KINDS = (*RECORDED_SESSION_KINDS, SESSION_MUHURAT)  # NSE publishes the evening files for muhurat too
-FIRST_RECORDED, FIRST_SEALED, DATA_JOBS_FROM = date(2026, 10, 14), date(2026, 10, 15), date(2026, 10, 13)
+FIRST_RECORDED, DATA_JOBS_FROM = date(2026, 10, 14), date(2026, 10, 13)
 FLOW_HISTORY_FROM = date(2026, 10, 22)  # A23: flow-history.yml's first scheduled run entered this session (addendum 2)
 # A16's marks are checked from the first session after the 16 Oct trial days (a late first fire; duplicate takers);
 # the table never listed it, so 23 Oct's three lost marks were reported by nothing in the evening check (story A16i)
 MARKS_FROM = date(2026, 10, 19)
+# STAB1 (owner, 25 Oct 2026: "We are not doing any kind of forecasting"): forecast-capture.yml has no trigger, so the v2
+# forecast records and the AI books' sealed forecasts are no longer expected; a later go-live sets these dates again
+FORECASTS_FROM: date | None = None
 
 
 @dataclass(frozen=True)
@@ -74,9 +77,9 @@ def build_expectations(evidence: Evidence, root: Path, timetable: Timetable) -> 
                     FIRST_RECORDED),
         Expectation("Forecast v2 records",
                     ForecastRowsCheck(evidence, expected_forecast_rows(), Deadline(GENERATION_DEADLINE)), recorded,
-                    FIRST_RECORDED),
+                    FORECASTS_FROM),
         *[Expectation(f"{BOOK_DISPLAY_NAMES[book]} sealed forecast", AiBookCheck(evidence, book), recorded,
-                      FIRST_SEALED) for book in AI_BOOKS],
+                      FORECASTS_FROM) for book in AI_BOOKS],
         Expectation("Desk daily run", RunLogCheck(root, Deadline(timetable.decision_deadline)), recorded, None),
         Expectation("A16 15-minute marks", MarksCheck(root / INTRADAY_FOLDER), recorded, MARKS_FROM),
         Expectation("A22 pre-open data", PreopenCheck(evidence, Deadline(PREOPEN_RECEIPT_BY)), recorded, None),

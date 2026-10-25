@@ -10,6 +10,7 @@ from datetime import date
 from ..models import now_ist
 
 NOT_A_SESSION = "recommend {day}: not a trading day, nothing recorded"
+NOT_LIVE = "recommend check {day}: not live (config.yaml daily.live_from.recommend is not set); nothing checked"
 
 
 def add_recommend_parser(sub) -> None:
@@ -39,10 +40,15 @@ def cmd_decide(args, out=print) -> int:
 
 def cmd_check(args, out=print) -> int:
     """The evening check (REC1c): it runs after `lab close` has posted, so its own failure never touches the edition."""
+    from ..config import load_app_config
     from .check_wiring import build_check_run
+    from .report_wiring import live_from
     from .wiring import is_session
 
     day = args.on or now_ist().date()
+    if live_from(load_app_config()) is None:  # STAB1: never live, so no day is recorded to check
+        out(NOT_LIVE.format(day=day))
+        return 0
     if not is_session(day):  # criterion 14: a day that is not a trading session writes nothing
         out(NOT_A_SESSION.format(day=day))
         return 0

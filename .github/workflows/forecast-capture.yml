@@ -17,14 +17,12 @@
 # on the push that lands the 3 pm canonical snapshot on main (a push event starts within seconds; a push made with an
 # Actions run's own token starts nothing, so this covers the routine's commit). The cron stays as the fallback. The gate
 # job, serialised by the concurrency group, lets at most one run capture a day.
+# STAB1 (owner, 25 Oct 2026: "We are not doing any kind of forecasting"):
+# the push and schedule triggers are removed; nothing forecasts or fires an AI book.
+# Manual dispatch only; the owner's later decision restores the trigger in a judged change (git history before STAB1 has it).
 name: forecast-capture
 
 on:
-  push:
-    branches: [main]
-    paths: ["research/data/quotes/**/*.canonical"]
-  schedule:
-    - cron: "30 8 * * *" # 14:00 IST every day: the fallback; the session calendar decides (a closed day records nothing)
   workflow_dispatch:
 
 permissions:

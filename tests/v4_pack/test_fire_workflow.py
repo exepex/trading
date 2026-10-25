@@ -1,5 +1,6 @@
-"""Story G10 part 2, criterion 5: the fire workflow starts on the push of the release record's receipt only, with no
-cron, and fires today's day only."""
+"""Story G10 part 2, criterion 5: the fire workflow fires today's day only. STAB1 (owner, 25 Oct 2026: no forecasting):
+it has no push trigger and no cron, only manual dispatch; the release record's receipt path stays pinned for the day
+the owner restores the trigger."""
 
 from datetime import date
 from pathlib import Path
@@ -19,19 +20,17 @@ def _workflow() -> dict:
     return yaml.safe_load(WORKFLOW.read_text())
 
 
-def test_the_trigger_path_is_the_release_records_receipt_path():
+def test_the_fire_reads_the_release_records_receipt_path():
     receipt = ReceiptFolder(ROOT / RECEIPTS_FOLDER).file_for(f"{DATA_AREA}/{release_path(date(2026, 10, 22))}")
     relative = receipt.relative_to(ROOT).as_posix()
-    (pattern,) = _workflow()[True]["push"]["paths"]  # YAML reads the key "on" as True
-    assert pattern.endswith("/**") and relative.startswith(pattern[: -len("**")])
     assert relative == "receipts/data/v4/days/2026/2026-10-22.json.sha256"
     assert "receipts/data/v4/days/${day:0:4}/${day}.json.sha256" in WORKFLOW.read_text()
 
 
-def test_no_schedule_starts_the_fire():
-    triggers = _workflow()[True]
-    assert set(triggers) == {"push"} and triggers["push"]["branches"] == ["main"]
-    assert "schedule:" not in WORKFLOW.read_text()
+def test_nothing_starts_the_fire_but_a_manual_dispatch():
+    triggers = _workflow()[True]  # YAML reads the key "on" as True
+    assert set(triggers) == {"workflow_dispatch"}
+    assert "schedule:" not in WORKFLOW.read_text() and "push:" not in WORKFLOW.read_text()
 
 
 def test_the_fire_names_its_day_and_the_latest_start_is_in_the_terms():

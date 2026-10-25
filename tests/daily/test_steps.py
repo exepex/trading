@@ -63,24 +63,19 @@ def test_not_live_and_ok_are_never_alerted_a_raise_always_is(alerts):
     assert alerts.sent == ["F&O daily run 2026-10-14: step quotes_done failed: OSError: disk; the run goes on"]
 
 
-def test_the_live_dates_come_from_config_phase_1_from_22_oct():
+def test_the_live_dates_come_from_config_forecasting_off_and_the_captures_dated():
+    """STAB1 (owner, 25 Oct 2026: no forecasting, data capture never stops): every forecasting key is null; the dated
+    ones are A4h's two close reads (record-only since 23 Oct) and the `v4` quote capture (Mon 26 Oct)."""
     assert "daily" in ALLOWED_APP_KEYS
-    phase_1 = date(2026, 10, 22)  # owner, 21 Oct (DESK_DECISIONS c58788bc): G13, G13b and FL1-1 live
+    off = (
+        "margin_check", "owner_timing_fills", "card", "weather", "forecasts_v4", "price_distribution",
+        "premium_ranges", "premium_range_scores", "price_distribution_scores", "price_ranges", "price_range_scores",
+        "forecasts_v4_pack", "v4_release", "recommend",
+    )  # fmt: skip
     assert live_dates(load_app_config()) == {
-        "margin_check": None, "owner_timing_fills": None,
-        "card": date(2026, 10, 26),  # T1: live Mon 26 Oct (owner, 24 Oct: "enable/activate everything ... completed")
-        "weather": phase_1,  # M1, on before the v4 freeze (owner, 21 Oct, DESK_DECISIONS 3a24ba24; response 299)
-        "forecasts_v4": phase_1,  # G7's rule forecasts, the same; uncounted until the day after `Frozen on:`
-        "price_distribution": phase_1,  # story G13
-        "premium_ranges": date(2026, 10, 23),  # story G13d: judge 465.2 PASS, merged on 22 Oct evening
-        "premium_range_scores": date(2026, 10, 26),  # G13d's scores: live Mon 26 Oct (owner, 24 Oct: the same)
-        "price_distribution_scores": phase_1,  # G13's daily scores
-        "price_ranges": phase_1,  # story G13b
-        "price_range_scores": phase_1,  # G13b's daily scores and seals
+        **dict.fromkeys(off),
         "close_read": date(2026, 10, 23), "close_recheck": date(2026, 10, 23),  # A4h: record-only 5 sessions first
-        "v4_pack": date(2026, 10, 26),  # G10: live Mon 26 Oct (owner, 24 Oct: "v4 pack live Monday - Option A")
-        "forecasts_v4_pack": date(2026, 10, 26),  # G7b: live with the v4 freeze (orchestrator, 25 Oct)
-        "recommend": date(2026, 10, 26),  # REC1b: live from Mon 26 Oct (owner's standing rule, via the orchestrator)
+        "v4_pack": date(2026, 10, 26),  # G10: the `v4` capture part only (owner, 24 Oct); the release is `v4_release`
     }  # fmt: skip
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
