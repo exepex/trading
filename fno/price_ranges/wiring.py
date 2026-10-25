@@ -85,6 +85,9 @@ def seal_lines(seals: Seals, store, day: date) -> list[str]:
 
 
 def build_issuer(cfg: dict) -> RangeIssuer:
+    from ..rehearsal.live_wiring import rehearsed_date
+
+    live = rehearsed_date(STEP, live_from(cfg))  # REH1o
     store, calendar = build_store(), build_session_calendar()
     tables, seals = build_tables(store), build_seals(store)
     index_closes = IndexFileCloses(build_stored_index_close_files(), calendar)
@@ -94,7 +97,7 @@ def build_issuer(cfg: dict) -> RangeIssuer:
         return lines + seal_lines(seals, store, day)
 
     return RangeIssuer(SnapshotChains(build_quote_store()), build_builder(cfg), build_closes(tables).closes, store,
-                       calendar, UNDERLYINGS, live_from(cfg), now_ist, update_banknifty)  # fmt: skip
+                       calendar, UNDERLYINGS, live, now_ist, update_banknifty)  # fmt: skip
 
 
 def build_backfill(cfg: dict, eod: bool, years=None) -> RangeBackfill:

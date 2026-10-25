@@ -1338,7 +1338,7 @@ Out, with reasons:
 
 **Repository:** trading · **Asked by:** the orchestrator, 25 Oct 2026 (needed before any recommender version reaches
 evidence rung 3, "Established": realistically mid-2027 at the earliest, REC1's builder; REC1's condition 3) · **Lane:** 1 (judge I: what the card says about a trade) · **Depends
-on:** REC1b (the recommendation record and `RecommendationStatus`), T1e, T1f
+on:** the card-side REC1 step (deferred, 25 Oct; REC1b posts its own #fno-desk line instead), T1e, T1f
 
 **Description:** As the owner, I want the daily card to show a paper trade the system booked with every field the
 design names (what, entry, size, maximum loss, worst case, exit plan, costs, evidence, what proves it wrong), read
@@ -1355,8 +1355,9 @@ and the card still never computes a number or tells me to place a real order.
     path and SHA-256.
   - `NO_TRADE` with one reason, `no_established_version` while no version is at rung 3.
   Paper trades of versions at rungs 0-2 are "paper, not a recommendation", each listed with its rung; controls are
-  counted only. REC1b replaces T1's `RegistryStatus` with `RecommendationStatus` inside `RuledStatus`, under my seven
-  conditions. Condition 3 left `TRADE` to this story.
+  counted only. The card-side REC1 step, `RecommendationStatus` in place of T1's `RegistryStatus` inside
+  `RuledStatus` under my seven conditions, is deferred (orchestrator, 25 Oct: REC1b posts its own #fno-desk line
+  instead). Condition 3 left `TRADE` to this story.
 - The design's `TRADE` card fields (design 4.1's table) and the dashboard's owner-only `FnoCardTrade` block (pinned
   2.14.0: `what`, `legs`, `entry`, `size`, `max_loss`, `max_loss_cap`, `worst_cases`, `exit_plan`, `costs`, `vol_edge`,
   `proves_wrong`) name the same fields.
@@ -1462,7 +1463,7 @@ Out, with reasons:
 3. A T2 refusal or unreadable record on a `PAPER_TRADE` day gives `NO TRADE` with T2's code (T2 before T1g).
 4. `WATCH` on a `no_established_version` day with a rung 1-2 "paper, not a recommendation" trade (its fields,
    labelled "Shadow decision, for learning; never traded"). Never on a day with only rung-0 trades: that stays
-   `NO TRADE` with the status's reason (judge 625 note: the status source's, REC1's after REC1b).
+   `NO TRADE` with the status's reason (judge 625 note: the status source's, REC1's after the deferred card-side REC1 step).
 5. On `TRADE` and `WATCH` days the delivery metadata stores `status` and `reason_code: null`. Through
    `card_from_delivery`, now starting from the example for its status, it validates against the pinned contract,
    and so does every committed delivery (P1's test, unchanged in what it asserts). The Drive record's `trade` and

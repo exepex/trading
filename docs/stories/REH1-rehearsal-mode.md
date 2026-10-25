@@ -790,6 +790,181 @@ past its last read (09:10:45): one read, `failed`. The outcome on 23 Oct is the 
 its window), but a forward wait in one part can take another part's window in the same rehearsal; a real run's reads
 never wait. Out of REH1l's scope (its text did not cover the run's order); a follow-up is proposed to the orchestrator.
 
+### REH1o: G13's issuers take the rehearsed live date (story and code in one round)
+
+Lane 1 (it changes what a rehearsal issues): two judges, one round. Builder session_01GAACYjcfHWkC3hp33iiMXV, branch
+`story/reh1o-issuer-live-dates`. The orchestrator, 24 Oct: "since it repeats G10's judged pattern (rehearsed_live),
+write the short story section and the code together and send ONE SHA ... The AI fire stays real and is never
+rehearsed".
+
+#### Finding (strong evidence: two replayed days and the code)
+
+- The 19 Oct replay (run 20261024T221832Z-d53c4f) posted, in its exercised line: "price_distribution refused: nothing
+  written: not live on 2026-10-19 (config.yaml daily.live_from.price_distribution: 2026-10-22)", the same for
+  `price_ranges` (2026-10-22) and `premium_ranges` (2026-10-23); the three scores steps then STOPPED on empty folders
+  ("no receipts under it"). The 22 Oct replay (the orchestrator's run 20261024T220648Z-cdeb4d) posted the same for
+  `premium_ranges`.
+- The cause: REH1c makes each step live for the rehearsal, but these three children check their own date, read
+  straight from `config.yaml`: `fno/price_distribution/wiring.py` `build_live_recorder`, `fno/price_ranges/wiring.py`
+  `build_issuer` and `fno/premium_ranges/wiring.py` `build_issuer` pass `live_from(cfg)` to their issuers, which
+  refuse a day before it. G10 fixed the same for the v4 pack (`fno/v4_pack/wiring.py`, `run_live_dates`).
+- The scores' stop on an empty own folder is a consequence here; on a real day it is G13d's open item (the
+  orchestrator's register note), not REH1o's.
+
+#### Design
+
+- `fno/rehearsal/live_wiring.py`: `rehearsed_date(key, real, env)`, one `daily.live_from` date as the daily run's root
+  sees it (`rehearsed_live` on that one key: the replayed day when the real date is unset or after it, else the real
+  date; no mode, the real date).
+- The three live builders give their issuer `rehearsed_date(STEP, live_from(cfg))`; each `STEP` is already its
+  `daily.live_from` key. The step's not-live note reaches the child's posts as for every REH1j step
+  (`NotLiveInRealRuns` sets it in the environment the child inherits).
+- Not changed: the backfills (`build_backfill` in `price_distribution` and `price_ranges`), which a rehearsal never runs
+  and which stop before the real date; the AI books' `ai_books_v4` (`fno/ai/wiring.py`): its fire makes paid AI calls
+  and stays real (the orchestrator; the AI-books replay is its own story with G11's builder).
+- FREEZE_v4.md (`story/v4-freeze`): none of the four code files is in its byte-checked or its recorded table;
+  `fno/rehearsal/live_wiring.py` is in "Reached by v4's code ... (named, not hashed)".
+
+#### Criteria (tests in `tests/rehearsal/test_issuer_live_dates.py`)
+
+- **O1. Before its date, a rehearsal's issuer issues on the replayed day** (19 Oct, each of the three). Plants: each
+  wiring back to `live_from(cfg)`; the helper ignoring the mode.
+- **O2. On its date, after it, and with no mode, the real date stands** (boundary: the live day itself; 26 Oct).
+  Plant: the helper always giving the replayed day.
+- **O3. Empty: an unset date** is the replayed day in a rehearsal and None in a real run.
+- **O4. The backfills keep the real date** (both `price_ranges`' and `price_distribution`'s). Plants: each backfill
+  rehearsed too. A step kept real (E8's owner timing) keeps its date through `rehearsed_date`.
+
+#### Claims (one round, for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1o-issuer-live-dates` (from main). Code: `rehearsed_date` in
+`fno/rehearsal/live_wiring.py`; one line in each of the three live builders. Tests:
+`tests/rehearsal/test_issuer_live_dates.py` (10).
+
+**Plants:** 7 planted, 7 caught, in a separate worktree, each restored with `git checkout --`: each of the three wirings
+back to `live_from(cfg)`; the helper ignoring the mode; the helper always giving the replayed day; `price_ranges`' and
+`price_distribution`'s backfill rehearsed.
+
+**Self-review** (an independent review agent): no blocking finding. Real runs unchanged (no mode: `real` itself); the
+date each issuer gets is the root's (the same keys, the same `rehearsed_live` path, KEPT_REAL, None, on and after
+the date); each issuer uses the date only in its own refusal, its 15:30 deadline and "not today" checks read the
+rehearsal's clock, and every write reaches `rehearsed_drive`; no other caller. Fixed: `price_distribution`'s backfill
+unpinned (now tested); the kept-real case. Not changed: a test that the key matches the root's (for any key outside
+KEPT_REAL the result does not depend on the key, so such a test cannot catch a wrong key); the three identical
+`live_from` parsers (older than REH1o; a follow-up for their owners).
+
+**Gates** (main merged in at the final head, the token kept): 16598 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
+clean.
+
+**Real output sample** (a full clone of this branch at 33de61355, the token kept): `daily run --rehearse --day
+2026-10-19`, run 20261024T230443Z-dafab0, branch `refs/heads/rehearsal/2026-10-19-20261024T230443Z-dafab0`, Drive
+`dryrun/20261024T230443Z-dafab0/`. Before (run 20261024T221832Z-d53c4f, main): "price_distribution refused: nothing
+written: not live on 2026-10-19 (config.yaml daily.live_from.price_distribution: 2026-10-22)", the same for
+`premium_ranges` and `price_ranges`, and the three scores STOPPED on empty folders. After, in the exercised line and
+the full log:
+- `price_distribution` ok: "NIFTY: recorded (0 problems)", "BANKNIFTY: recorded (0 problems)", "FINNIFTY: recorded
+  (1 problems)", "MIDCPNIFTY: recorded (0 problems)", "recorded".
+- `premium_ranges` ok: "NIFTY: issued (177 contracts ranged; not ranged {'no contract IV': 7})", "BANKNIFTY: issued
+  (217 contracts ranged; not ranged {'no contract IV': 3})".
+- `price_distribution_scores` ok ("report written: price_distribution/v1/scores/2026-10-19_21493de698cc.json") and
+  `premium_range_scores` ok.
+- `price_ranges` failed: "stopped after 10 minutes without ending". Traced (reproduced in a copy of the run's clone at
+  its commit before the step, a traceback after 150 s inside a Drive download): on 19 Oct the record held no
+  BANKNIFTY close table yet (G13b's first was committed 21 Oct; the clone as of 19 Oct has no `closes` receipts), so
+  `CloseTables.update` reads every regular session's index-close file from its first day, one Drive download each
+  (about 2414; the 21 Oct table has 2414 rows), which cannot end inside O1's 10 minutes. Not REH1o's: the issuer now
+  runs as its step was made live to; the day before the table existed cannot be exercised quickly. It is exercised,
+  never the day's failure; `price_range_scores` then STOPPED on its empty folder (G13d's side note, the same class).
+- The day's own result is unchanged: "day done with problems: quotes_done" is REH1n's (the weekly part on 19 Oct).
+- #fno-desk: the exercised line, labelled "*DRY RUN, 2026-10-19 replay, not a real trading day*".
+
+### REH1p: a rehearsal sees an earlier day's Groww quote files (story and code in one round)
+
+Lane 1 (it changes what a rehearsal reads of the real Drive record): two judges, one round. Builder
+session_01GAACYjcfHWkC3hp33iiMXV, branch `story/reh1p-quote-visibility`. The orchestrator, 24 Oct: "GO, lane 1, story
+and code in one round ... also check that the sidecar's own commit time is <= the replay clock ... Use whichever of the
+two is later ... the real sample: the 23 Oct morning rehearsal from the school switch commit, which must show all five
+roads open."
+
+#### Finding (strong evidence: reproduced)
+
+- The MS-P1j builder's `rehearse morning --day 2026-10-23` from the school switch commit (run 20261024T231853Z-17705a):
+  the school's 08:50 "Today" section, planned from 22 Oct's 15:00 captures, saw all five roads `capture_missing`
+  (NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M, NIFTY-W); outside a rehearsal all five open.
+- Reproduced with the store every 3 pm reader uses (`storage.wiring.build_quote_store`), reading
+  `groww/derivatives/quote-snapshots/2026/10/banknifty_20261022_150146.csv`: a real run gets 82997 bytes; under the
+  mode on 23 Oct at 08:40, `RawQuoteMissing` ("its sidecar says it was saved, but the private store does not have it").
+- The cause: `fno/rehearsal/visibility.py` shows the replay a real Drive file only with an O9 receipt or a manifest row;
+  A4b's raw quote files (Drive `raw/` area) have neither, as their committed sidecar vouches for them, so every one was
+  invisible. A daily rehearsal's same-day captures worked only because `RecordedRecorder` republishes them into
+  `dryrun/` at their `finished_at`; any earlier day's quote file failed for every reader.
+
+#### Design
+
+- `fno/rehearsal/quote_sidecars.py`, `QuoteSidecars.seen_at(path)`: for a Groww `raw/groww/<p>.csv` whose sidecar
+  `research/data/quotes/groww/<p>.meta.json` the record's `main` holds, the later of the attempt's `finished_at` and
+  the committer time of the first first-parent commit on `origin/main` that added the sidecar (a merge counts from the
+  merge, as REH1g's manifest rows; `--no-renames`: a moved sidecar is a new file). The sidecar is read as that commit
+  holds it (`git show`; write-once), never from the record's working tree, which may be on any branch or miss the
+  file. None when `raw_file_saved` is false, when the sidecar is not on `main`, or for any other path (NSE's chain is
+  in the repository, never a Drive quote file). One `git log` over the quotes folder per record and process.
+- `Visibility` takes it as a third kind of evidence, after receipts and manifest rows; `rehearsed_drive` wires it over
+  `mode.record`. A4b's `csv_sha256` check (`DriveOnlyQuoteStore.get`) is unchanged.
+- The record checkout does not move during a run (the rehearsal's commits go to its own clone), so the index read once
+  per process stays true.
+- FREEZE_v4.md (`story/v4-freeze`): `visibility.py`, `drive_wiring.py` and the new module are in none of its tables.
+
+#### Criteria (tests in `tests/rehearsal/test_quote_sidecars.py`)
+
+- **P1. The previous day's file is visible the next morning** (22 Oct's BANKNIFTY at 08:38 on 23 Oct). Plants: the
+  wiring without the sidecars; `Visibility` not asking them.
+- **P2. The later of the two times** (the orchestrator's ask): between the finish and the commit, not visible; at the
+  commit, visible; a sidecar dated before its finish waits for the finish. Plants: the finish only; the commit only.
+- **P3. What never counts:** a failed save; a sidecar committed only on a branch; no sidecar; a path outside `raw/`
+  or not a quote file. A merge counts from the merge. Plants: the failed save counted; no `--first-parent`; any branch.
+- **P4. Through the rehearsed Drive:** 22 Oct's file read at 08:40 on 23 Oct, 23 Oct's not before its time, then read.
+- **P5. A real run is unchanged:** no mode, the owner Drive as it is.
+- **P6. The record's own bytes** (self-review): a sidecar edited or gone in the working tree changes nothing; a
+  weekly file counts, an NSE path with a matching sidecar does not; a record with no `main` shows nothing. Plants:
+  the sidecar read from the working tree; any `raw/*.csv`.
+
+#### Claims, code round 1 (for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1p-quote-visibility` (from main). Code:
+`fno/rehearsal/quote_sidecars.py` (new, 68 lines), `fno/rehearsal/visibility.py` (the third kind of evidence),
+`fno/rehearsal/drive_wiring.py` (wired over `mode.record`). Tests: `tests/rehearsal/test_quote_sidecars.py` (12).
+
+**Plants:** 9 planted, 9 caught, in a separate worktree, each restored with `git checkout --`: the wiring without the
+sidecars; `Visibility` not asking them; the finish only; the commit only; a failed save counted; no `--first-parent`;
+any branch counted; the sidecar read from the working tree; any `raw/*.csv` counted. One test was found vacuous while
+planting (the off-main case was looked up after the index had been cached) and was split so it holds alone.
+
+**Self-review** (an independent review agent): the Drive path traced from `DriveOnlyQuoteStore` through `AreaStore`
+and `DryrunDrive` to the sidecar path, for A4's, A4e's and A4f's datasets, folder listings included; the git parsing
+checked on git 2.43 (a `--no-ff` merge counts from the merge; spaces; newest-first keeps the oldest add); the cache
+safe (the record does not move during a run, and a later main only hides more). Accepted and fixed: the sidecar read
+from the working tree (a checkout behind main, or a removed sidecar, would have raised inside `visible`); the rule
+limited to Groww's datasets; `--no-renames`; `QUOTES` from `QUOTES_FOLDER`; the missing cases. Not changed: a naive
+`finished_at` (every real sidecar carries its zone, A4 writes it so); committer time, not push time (the limit REH1g
+already states for manifest rows).
+
+**Real output samples** (the orchestrator's go; this branch at 96dcc1d97 with `config.yaml`'s `school.enabled` and
+`school.reports` true in a local-only commit, never pushed; a full clone, the token kept):
+- Before (the MS-P1j builder's run 20261024T231853Z-17705a, main without REH1p), #fno-forecast: "Roads: NIFTY-M
+  closed (capture_missing); BANKNIFTY-M closed (capture_missing); FINNIFTY-M closed (capture_missing); MIDCPNIFTY-M
+  closed (capture_missing); NIFTY-W closed (capture_missing)".
+- After: `rehearse morning --day 2026-10-23`, run 20261024T234123Z-706a00, branch
+  `refs/heads/rehearsal/2026-10-23-20261024T234123Z-706a00`, ended "3 commands done": "lab open 2026-10-23: report to
+  #fno-forecast: posted", "closes 2026-10-22 certified: ... matches A4h's record", "not live in real runs (exercised):
+  replay clock not checked (by design)". #fno-forecast, read back, labelled "*DRY RUN, 2026-10-23 replay, not a real
+  trading day*": "School pilot, Today (Paper: no real money, no order) / Banner: RED, do not trade real money today
+  (plan from 22 Oct 2026 15:00 data, ...) / Roads: NIFTY-M open; BANKNIFTY-M open; FINNIFTY-M open; MIDCPNIFTY-M open;
+  NIFTY-W open / No candidate today: nothing is planned."
+- The direct read: under the mode at 08:40 on 23 Oct, `build_quote_store().get` of 22 Oct's BANKNIFTY file gives
+  82997 bytes (before: `RawQuoteMissing`); the same with the reviewed code at the final head.
+- The sample ran on 96dcc1d97; the review's changes after it keep the rule for these files (all five are Groww
+  files with sidecars added by first-parent commits on main), and the direct read was repeated on the final code.
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.
