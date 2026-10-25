@@ -117,10 +117,12 @@ part of the same goal. Say which role a point comes from when it matters, and sa
 
 ## Documents (when an agent changes a document)
 
-Owner, 25 Oct 2026: a document that describes how something works is judged like code (a judge PASS before `main`, in
-the lane of the functionality it describes). One functionality has one owning document; other documents give one line
-and a link to it, never a second description. No document over 500 lines. Update the owning document in place; never
-a new dated summary or handover. Details: CLAUDE.md "Code" and `docs/stories/DOC1-clean-docs-plan.md`.
+Owner, 25 Oct 2026: a document that describes how something works is reviewed like code, in the lane of the
+functionality it describes (lane 1: a judge PASS before `main`; lane 2: the orchestrator's check and the auditor).
+Conversation logs, judge files, register rows and the owner's dated rows in `docs/DESK_DECISIONS.md` stay lane 3. One
+functionality has one owning document; other documents give one line and a link to it, never a second description. No
+document over 500 lines. Update the owning document in place; never a new dated summary or handover as the place a
+decision lives. Details: CLAUDE.md "Code" and `docs/stories/DOC1-clean-docs-plan.md`.
 
 ## Code (when an agent changes code)
 

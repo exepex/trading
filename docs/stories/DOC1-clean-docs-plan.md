@@ -40,9 +40,10 @@ and other documents simply a reference to that document"):
 3. **Functional correctness first.** Judges check that each functional statement is true (against the owner's intent
    and the code), that no functionality has two owner documents, and that every reference points to the owner. Layout
    and style findings are minors only.
-4. **Document changes are judged like code** (from now on, not only in DOC1): a change to a functional document needs a
-   judge PASS before main, in the lane of the functionality it describes; a functional document's lane is never lower
-   than its code's.
+4. **Document changes are reviewed like code** (from now on, not only in DOC1): a functional document takes the lane
+   of the functionality it describes, never lower (lane 1: judge PASS; lane 2: orchestrator check and auditor). The
+   owner's dated rows in `DESK_DECISIONS.md`, conversation logs, judge files and register rows stay lane 3, so
+   `tools/ci_scope.sh` and CLAUDE.md's lane list stay consistent (judge 677.1 SF3).
 5. **The owner's intent is written down per area and approved by the owner**, with the owner's exact words and dates.
    Every design and story must cite the intent line it serves; judges check the story against it.
 6. **Update in place; never a new dated summary.** A decision that changes replaces the old line in its subject
@@ -128,7 +129,7 @@ area: one scanner, one reviewer, one writer, two judges; at most three areas at 
 
 ## 6. Claims (for the judges)
 
-- Every number in section 1 was counted on main at 8edc21139 with `git ls-files` and `wc -l`; judges 677 and 678 re-counted
+- Every number in section 1 was counted on main at 8edc21139 with `git ls-files` and `wc -l`; judges 677, 677.1 and 678 re-counted
   them (DESK_DECISIONS has 339 dated rows; the code-reference count is corrected in section 4).
 - Round 2 (judges 677 E and 678 F): DESK_DECISIONS and cited files out of scope as records (E SF1, F 1); no lost edits
   between scan and switch (E SF2); the citation check and path map (F 2, E m3); the intent gate is a P7 deliverable in
