@@ -79,3 +79,23 @@ the merge also needs S's PASS.
 
 Notes: with K7's worst case at 132 of 140, any further Groww job after I10 needs a budget decision first. I3's claim
 of no freeze impact should be rechecked by I3's judges against the files it actually edits.
+
+## Addendum 2
+
+Tip 4caf4415163da7d885e4ee220300554174a890b2 (497 lines; Judge S's fixes on top of c9e988f7), read as a check that my
+PASS still holds, not a third round. **PASS stands**, with 3 minor text points to align before merge.
+
+- My six findings: all still fixed (M16, transitive K1, I9b, freeze-impact paragraph, health rows, bhavcopy note).
+- Budget now 126 + 3 (O14 counts the next morning's pre-open) = 129, + C9 + a feed recorder = 135, under K7's 140. MET.
+- M17 checked: `desk/wiring.py:45` builds `NseFinalSettlement(build_nse_fo_library())`; `raw_library.py:2-3, 57`
+  fetches and archives on a miss. I8b and K2's widened walk cover it. M15 (workflow dead since 15 Oct) not reproduced
+  here (shallow clone); taken from Judge S's git check.
+
+Minor (new or stale text):
+1. Section 6.1 Class G (line 351) still says the old path "stays in code, not scheduled", while 6.3's no-start cover
+   needs it scheduled as standby. Make 6.1 say "scheduled as standby, claim-gated".
+2. R2 (line 429) still says "flip only 16:40-08:00"; 6.1 now flips by session date. Align R2.
+3. Summary item 4 (line 27) still says "three places"; M10 and M16 show many more. Point it at M10, M16.
+
+Note: a claim needs GitHub; if GitHub is unreachable, neither the primary nor the standby takes the window (A16's
+GW1 rule). That is the right side of the 16 Oct lesson, but it is a whole-window loss mode the owner should see.
