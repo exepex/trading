@@ -50,20 +50,9 @@ A4c (other indices), G10 (14:05 start, 14:30-14:40 window) and the handover sess
 and send their prompt lines to O1 through the orchestrator; no second copy of the prompt is written anywhere.
 
 **Lines other stories send for the prompt (through the orchestrator):** A4c (its steps 2-3b, above); G10 (14:05
-start and its windows, at go-live); A14c (orchestrator, 15 Oct; owner decision in `docs/DESK_DECISIONS.md`, da0f769d):
-after each applied row in `research/data/margins/stress_factor.csv`, the read-only Groww margin comparison runs
-(SPAN within Rs 1, exposure within 1%; a mismatch alerts). Its line (A14c builder through the orchestrator, 15 Oct;
-command name provisional until A14c's code lands): "After A14c's weekly row is `applied`: `python -m fno margins
-stress-broker-check` (read-only Groww margin request for the SF 100 basket on that day's A14 row; never places an
-order). A mismatch posts its own #fno-desk line; the factor stays applied." The weekly row lands on Sunday, when the
-day's run records only `skipped`, so it is an O1 step, `margin_check`, run every session right after the quote parts
-start (they wait for 14:55 themselves) and done long before the 14:55 capture on the same Groww key. Agreed with the A14c builder (15 Oct; A14c text at
-`story/a14c-stress-recompute` f2192b2f; replaced on 16 Oct by A14c part 2's text, judges 291 and 356): the command
-checks every A14 row of the day, prints "nothing to check" when all are done (exit 0), exits 1 on a Groww, deadline or
-record failure (one O1 alert; O1 never retries the step, so that day's figure is lost unless `margins
-stress-broker-check` is run by hand before 14:50 IST, judge 634), and writes one O9 record in Drive per run; the step commits
-only its receipts, `receipt_pathspecs()` in `fno/nse_margins/broker_record.py`. It stays `not_live`
-(`daily.live_from.margin_check`) until the owner sets the date.
+start and its windows, at go-live). A14c part 2, O1's step `margin_check` (`margins stress-broker-check`), needs no
+prompt line; its rules are owned by
+[A-data-foundation.md, "A14c part 2"](A-data-foundation.md#a14c-the-stressed-margin-factor-recomputed-from-nses-archived-span-files).
 
 **E8's step (agreed with the E8 builder, 15 Oct; E8 rule 11 at `story/e8-owner-timing-fills` fd3a0344):**
 `owner_timing_fills` joins `DAILY_RUN_STEPS` right after `quotes`, as E8's own `DayStep` listed with one line in
