@@ -8,7 +8,7 @@ from collections.abc import Callable, Iterable
 from datetime import date
 from typing import Protocol
 
-from .card import IdeaCard
+from .card import IdeaCard, sidecar_path
 from .constants import GATES_FILE, Gate, Outcome
 from .gate_log import GateLog, GateRow
 
@@ -39,8 +39,11 @@ class GateOrder:
         others = sorted(set(self.git.staged_paths()) - {GATES_FILE, *staged})
         if others:
             raise GateStepError(f"other files are staged ({', '.join(others)}): commit them first")
-        if not self.git.tree_matches(self.git.head(), (card.path,)):
-            raise GateStepError(f"{card.path} has uncommitted changes: commit its inputs before its gate runs")
+        inputs = (card.path, sidecar_path(card.path))  # the sidecar may not exist: then nothing is there to differ
+        if not self.git.tree_matches(self.git.head(), inputs):
+            raise GateStepError(
+                f"{card.path} (or its inputs sidecar) has uncommitted changes: commit its inputs before its gate runs"
+            )
         self.gates.require_append_only()
         last = self.gates.last(card.trial_id)
         if last is None or last.gate != after or last.outcome not in outcomes:

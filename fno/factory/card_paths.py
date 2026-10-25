@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 
 from ..research_engine.ledger import Ledger
-from .constants import CARD_FENCE, IDEAS_FOLDER, TEMPLATE_CARD
+from .constants import CARD_FENCE, CARD_INPUTS_SUFFIX, IDEAS_FOLDER, TEMPLATE_CARD
 from .fields import CardError
 
 _BLOCK_START = re.compile(rf"^```{CARD_FENCE}$", re.MULTILINE)
@@ -18,7 +18,8 @@ _BLOCK_START = re.compile(rf"^```{CARD_FENCE}$", re.MULTILINE)
 
 def ideas_folder_paths(root: Path) -> list[str]:
     folder = Path(root) / IDEAS_FOLDER
-    return sorted(p.relative_to(root).as_posix() for p in folder.glob("*.md") if p.name != TEMPLATE_CARD)
+    cards = (p for p in folder.glob("*.md") if p.name != TEMPLATE_CARD and not p.name.endswith(CARD_INPUTS_SUFFIX))
+    return sorted(p.relative_to(root).as_posix() for p in cards)
 
 
 def ledger_card_paths(root: Path) -> list[str]:

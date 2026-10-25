@@ -2,7 +2,11 @@
 
 `read_card` checks the G0 fields; the G1-G3 inputs are read by their own gate when it runs (`inputs.py`), so a card
 lacking them is refused there, by name. A card without exactly one valid block is refused before anything is
-written."""
+written.
+
+Result-derived G1-G3 inputs may live in a sidecar beside the card (`<id>.inputs.md`, one ```factory-inputs block),
+so a card frozen before its study ran stays byte for byte as frozen (EDGE2, judge 642 S1). The sidecar may hold only
+those inputs, and never a field the card already has."""
 
 from __future__ import annotations
 
@@ -12,10 +16,11 @@ from pathlib import Path
 
 import yaml
 
-from .constants import CARD_FENCE
+from .constants import CARD_FENCE, CARD_INPUTS_SUFFIX
 from .fields import CardError, Fields
 
 _BLOCK = re.compile(rf"^```{CARD_FENCE}\n(.*?)^```$", re.MULTILINE | re.DOTALL)
+_INPUTS_BLOCK = re.compile(rf"^```{CARD_FENCE}-inputs\n(.*?)^```$", re.MULTILINE | re.DOTALL)
 G0_FIELDS = ("id", "experiment", "description", "question", "hypothesis", "measurement", "version", "trial")
 SCREEN_FIELDS = ("gross", "tail", "cost")  # G1
 SPEND_FIELDS = ("data_sets", "measures")  # G2
@@ -42,7 +47,7 @@ def read_card(root: Path, relative_path: str) -> IdeaCard:
     path = Path(root) / relative_path
     if not path.is_file():
         raise CardError(f"{relative_path}: no such card")
-    block = _block(path.read_text(encoding="utf-8"), relative_path)
+    block = _with_sidecar(_block(path.read_text(encoding="utf-8"), relative_path), path, relative_path)
     card = IdeaCard(
         idea_id=block.text("id"),
         version=block.count("version"),
@@ -60,8 +65,26 @@ def read_card(root: Path, relative_path: str) -> IdeaCard:
     return card
 
 
-def _block(text: str, where: str) -> Fields:
-    blocks = _BLOCK.findall(text)
+def sidecar_path(relative_path: str) -> str:
+    """Where a card's result-derived inputs live, whether or not the file exists."""
+    path = Path(relative_path)
+    return str(path.with_name(path.stem + CARD_INPUTS_SUFFIX))
+
+
+def _with_sidecar(block: Fields, path: Path, where: str) -> Fields:
+    sidecar = path.with_name(path.stem + CARD_INPUTS_SUFFIX)
+    if not sidecar.is_file():
+        return block
+    found = _block(sidecar.read_text(encoding="utf-8"), f"{where} sidecar", _INPUTS_BLOCK)
+    found.only((*SCREEN_FIELDS, *PLAN_FIELDS))
+    repeated = sorted(set(found.values) & set(block.values))
+    if repeated:
+        raise CardError(f"{where}: field '{repeated[0]}' is in both the card and its sidecar")
+    return Fields({**block.values, **found.values}, where).only(FIELDS)
+
+
+def _block(text: str, where: str, pattern: re.Pattern = _BLOCK) -> Fields:
+    blocks = pattern.findall(text)
     if len(blocks) != 1:
         raise CardError(f"{where}: needs exactly one ```{CARD_FENCE} block, found {len(blocks)}")
     try:

@@ -10,6 +10,7 @@ QUESTIONS_FILE = "research/factory/questions.csv"
 QUESTION_COLUMNS = ("question_id", "question", "alpha")
 GATE_COLUMNS = ("trial_id", "gate", "outcome", "on", "commit", "numbers")
 CARD_FENCE = "factory"  # the card's machine block: a fenced ```factory YAML block
+CARD_INPUTS_SUFFIX = ".inputs.md"  # a card's result-derived G1-G3 inputs beside it (card.py), never a card itself
 IDEA_KIND = "prospective"  # every factory idea is registered before any of its results exists
 BACKFILLED = "backfilled=yes"  # a G0 row written by R1a for a card registered by hand before the code
 NUMBERS_PATTERN = r"^([a-z_0-9]+=[^;,=\s]+(;[a-z_0-9]+=[^;,=\s]+)*)?$"  # k=v;k=v, or empty
