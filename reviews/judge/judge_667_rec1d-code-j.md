@@ -45,3 +45,17 @@ The full replay is the orchestrator's call; it would need `recommend` live in it
   - The orchestrator may want rehearsals of REC1b to start on 23 Oct.
 - Plants: 14 of 15 effective (D1-D15; D3 is equivalent). Run with PYTHONDONTWRITEBYTECODE=1 in their own worktree.
 - I did not coordinate with judge K.
+
+## Addendum 1: follow-up on m1, commit 1d1f1098c (round 1, narrow)
+**PASS**, lane 1.
+- **The scope.** 1d1f1098c touches only `tests/recommend/test_report_maker.py` and three morning goldens. The `fno/`
+  changes in 9b576e979..1d1f1098c are 401024874, judge K's wording follow-up, so I did not judge them.
+- **m1 closed.** The maker tests now take `DAY` from the page fake (`tests/school/reports/test_editions.py`) and place
+  the standing record one day before it.
+  - The Fri 23 Oct morning's standing record is 22 Oct, its previous session is 22 Oct, and the school fixture's plan
+    is "22 Oct 15:00", so every golden reads against its own header.
+  - The changed school-on goldens are this test's fixture text, not production text.
+- **The gates at 1d1f1098c.** `tests/recommend`, `tests/school/reports` and `tests/forecast_lab`: 669 passed; ruff and
+  format clean.
+- **m2, the "final" index, is deferred** by the orchestrator's ruling: a new record needs its own lane-1 design, and
+  the cost today is under 10 reads. The trigger is about 60 recorded days. I accept that.
