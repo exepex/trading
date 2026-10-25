@@ -246,7 +246,6 @@ The existing capture code stays where it is. `fno/ingest/` adds only the job lay
 Derive jobs (system side, own schedule, start on ready): `warmup-closes` (C14 append), `panel-days` (C14, freeze),
 `nse-span` margins and `stress-factor` (C17), `session-rv-v4` (A16's rv with the v4 flag), `oi-dry-run-fire`
 (C15), `market-publish` (stays on Actions: Claude containers cannot reach Postgres, `market-publish.yml:1-3`).
-
 ### 4.3 Why the hosts are what they are (evidence)
 
 - **No broker key in GitHub.** Owner 13 Oct (`DESK_DECISIONS.md:60`): "never a broker key in GitHub"; 15 Oct
@@ -264,7 +263,6 @@ Derive jobs (system side, own schedule, start on ready): `warmup-closes` (C14 ap
 - **Other hosts** ("any other scheduled job", e.g. an always-on worker with a real cron) would remove the lateness and
   the kill limits, at the price of the Groww key on a new host. No evidence in the repo supports or refutes it: owner
   decision Q1.
-
 ### 4.4 Retry and failure, per job, not per day
 
 - Each job has its own `IngestPolicy`; a failure of one job is a status row and an alert for that job only. It never
@@ -497,4 +495,4 @@ design judgement.
 | 18 | The target split is stable under O14's classes (windowed captures not wrapped) | strong | `O14` section 4 |
 | 19 | Smallest-change job layer; 5 sessions before a flip; a per-job-day status file; a missed start counts as a failed job; budget limits 60 and 140 | reasoning only | 4.1, 4.7, 6.1 |
 | 24 | `fno.composition` pulls system packages into the 3 pm recorders, A16 and A22 (judge R, verified with `python -I`) | strong | `quotes/cli.py:53`; `intraday/wiring.py:13` |
-**Self-review:** none (design text). **Real output sample:** not applicable (no code).
+**Self-review:** none. **Output sample:** n/a (no code).
