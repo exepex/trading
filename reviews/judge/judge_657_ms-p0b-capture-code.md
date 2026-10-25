@@ -44,3 +44,17 @@ caught.
 - `ruff check` clean; `ruff format --check` clean; `check_imports` clean (2810); `check_records` clean (9364).
 - `python -m pytest -q -p no:cacheprovider -n auto`: **16970 passed, 13 xfailed, 0 failed** (603 s). Slack in the
   window: one labelled rehearsal card on #fno-desk, no test post.
+
+## Addendum 1: round 2 at bc445819d (the last round)
+
+**PASS, lane 1** (Judge I, own session). The probe's own change since d4a00822f is one comment (`wiring.py`), two
+tests (`test_day.py`, `test_readers.py`'s import order) and the Claims. The rest of the diff merges `main`.
+
+| Item | Verdict | My evidence |
+|---|---|---|
+| 657.1 the blackout test could not fail | FIXED | `KEPT_CLEAR` names 26, 27 and 28 Oct in the test; each is refused; `BLACKOUT_DAYS` must equal exactly those three; 25 and 29 Oct run past the check. My Q15 again (only 26 Oct kept): 3 failed, caught |
+| 657.2 stale Claims and comment | FIXED | the Claims say GW1a is on `main` with no quiet windows there, and that P0b keeps clear by its own slots; `wiring.py:45` names only the sign-in guard and the 60 s pause |
+
+Gates on bc445819d merged with origin/main 8f65d0824 as 303cc194d (clean; FNO_SLACK_BOT_TOKEN kept): ruff, format,
+`check_imports` (2848) and `check_records` (9434) clean; pytest -n auto **17144 passed, 13 xfailed, 0 failed** (660 s).
+Slack in the window: two labelled rehearsal lines on #fno-desk, no test post.
