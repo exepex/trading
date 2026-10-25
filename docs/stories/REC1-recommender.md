@@ -536,3 +536,6 @@ The record rated 13 versions: `book1_rules` and the 12 registered school version
 
 **Timing:** judge 641.2 m3 notes the school's start of about 15:21:30-15:25:30. The orchestrator is getting GW1's
 measured chain, and the text will be updated when it comes. A refused school (`TOO_LATE`) is recorded `unavailable`.
+
+**Gates at 25860aca (code unchanged since):** full suite 16856 passed, 1 skipped, 14 xfailed; ruff check and format,
+`check_imports` and `check_records` clean. `tests/recommend`: 252 tests.
