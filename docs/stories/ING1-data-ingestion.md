@@ -24,7 +24,8 @@ captured. Each capture has its own schedule, retry and failure rules, so one fai
    FII/DII, the closes certification). **If you switch those routines off as "forecasting", that capture work stops
    with them** (evidence M8). Use STAB1's switch inside the commands, or edit the prompts; do not delete the routines
    yet.
-4. Capture code imports forecast code in three places (the v4 expiry rule, the v4 cutoff flag, the alert reporter).
+4. Capture code depends on system code: the v4 expiry rule, the v4 cutoff flag, the alert reporter and the whole
+   `fno/composition.py` (M5, M10, M16).
 5. Two writers already capture NSE's 3 pm chain (a workflow and the daily run's `nse` part).
 6. The system also fetches: the E3 desk starts a Groww capture at 15:15 (the execution snapshot), and several system
    roots fetch NSE files and archive them to Drive on demand (M6, M17).
@@ -348,7 +349,7 @@ Derive jobs (system side, own schedule, start on ready): `warmup-closes` (C14 ap
   (DR1's number; reasoning only), flip the key, then remove the old path.
 - **Class G (Groww live captures: not replayable, rate-limited): no two writers, ever.** Two takers lost 74-87 of
   about 224 quotes on 16 Oct (`claims.py:1-5`, strong evidence). So: swap one capture at a time with the key; the old
-  path stays in code, not scheduled, as the rollback; proof by tests, an REH1 rehearsal of a recorded day, the `--dry-run`
+  path stays in code, scheduled as the claim-gated standby (6.3), as the rollback; proof by tests, an REH1 rehearsal of a recorded day, the `--dry-run`
   folder runs, then the first real session watched by the orchestrator. Rollback = flip the key and restore the old
   routine line. The old path is removed only after 5 clean real sessions.
 - **Duplicates are blocked four ways:** the key (K3); existing write-once refusals (`RawFileConflict`,
@@ -397,7 +398,8 @@ what is deleted and what test still covers the behaviour. Nothing is deleted in 
   A16's `MarkClaims`). The new routine is primary; the old path (restorable) is standby: it tries to claim 1 minute after
   the window opens and exits "claimed by <job>" if the primary has it, else it records. A no-start loses nothing and two
   writers never run. Takeover of a primary that died after claiming needs a heartbeat lease (reasoning only; built in
-  I7). Proof: planted no-start test (primary absent, standby records) and both-start test (one refuses).
+  I7). Proof: planted no-start test (primary absent, standby records) and both-start test (one refuses). Without GitHub no
+  claim can be made, so neither path takes the window (the A16 rule, `claims.py:1-5`); the owner should know.
 - Sessions between steps are never touched: the steps change one capture, on a day the previous steps' proof allows.
 - Data volume: no step adds a Groww read except I10's new jobs, which K7 budgets.
 
@@ -426,7 +428,7 @@ No session creates, changes or deletes a routine (A16 checklist). By step:
 | # | Risk | Proof | Evidence |
 |---|---|---|---|
 | R1 | A swap day where the new routine never starts: the window is lost | claim plus standby (6.3), planted no-start test; REH1 rehearsal; first real session watched | reasoning only (no data on a missed start) |
-| R2 | Both paths capture: 429 and lost quotes | K3 refusal test; key read at start; flip only 16:40-08:00 | strong (16 Oct loss) |
+| R2 | Both paths capture: 429 and lost quotes | K3 refusal test; key read at start; session-date key; claim (6.3) | strong (16 Oct loss) |
 | R3 | Groww sign-ins above 150 | K7 budget test | strong arithmetic (GW1a) |
 | R4 | Overlapping Groww windows across routines | GW1 quiet windows are clock-based; add a test that lists job windows | some evidence |
 | R5 | Many jobs push to `main`: refusals | per-job paths, one receipt file per write (O9), pull then push; two-job local-remote test | some evidence |
