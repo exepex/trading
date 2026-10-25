@@ -20,3 +20,19 @@ Owner, 25 Oct 2026 (relayed in this session's task): "no proven edge: let's try 
 - Next family: F6 (participant OI on NIFTY futures) proposed first because futures costs are small; waiting on the
   orchestrator.
 - A ledger-trial claim registry is being built by the v4 freeze builder.
+
+## Later the same day
+
+- F1 branch merged with main (v4 freeze on main): story/edge2-f1-weekly at da2b113a, full suite green.
+- F6 (participant OI on NIFTY futures, research only while futures are on hold; trials 115-120 reserved by the
+  orchestrator) registered before any OI file was read, frozen at 06646081 and run once: no edge, nothing nominated,
+  held-out 2025-26 unread (`research/edge2/F6_RESULTS.md`). FII change leans right for the next session (+Rs 379
+  gross vs +72 always long) but far below today's Rs 657 costs. G1's "pass" of trial 118 is an overlap artefact,
+  flagged to the orchestrator for R1's owner.
+
+## Open questions (updated)
+
+- Judge J on F1 (da2b113a) and F6 (a5cc130f), lane 1.
+- Next family: F7 as planned, or a family using the FII-change lean as the side filter of a defined-risk NIFTY weekly
+  spread (orchestrator's call).
+- R1 factory: a dependence-corrected G1 bound for multi-day holds (proposal to its owner).
