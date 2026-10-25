@@ -36,7 +36,7 @@ class SealedOutcomes(OutcomeLookup):
         _, _, road = candidate.decision.path.partition(ROAD_MARK)
         driver = candidate.version.removeprefix(SCHOOL_BOOK_PREFIX)
         found = [r for day in self.sessions(session, until) for r in self._outcomes(day)
-                 if r.decision_sha256 == candidate.decision.sha256 and r.driver_id == driver and r.road == road]  # fmt: skip
+                 if (r.decision_sha256, r.driver_id, r.road) == (candidate.decision.sha256, driver, road)]  # fmt: skip
         return None if not found else FoundOutcome(found[-1].net, found[-1].is_ticket)  # the latest correction wins
 
     def _outcomes(self, day: date) -> tuple[OutcomeRecord, ...]:

@@ -122,7 +122,7 @@ def test_bytes_on_drive_that_are_not_the_day_s_record_are_never_written_over():
     data.files[record_path(DAY)] = b'{"planted": true}'
     result = run.run(DAY)
     assert not result.ok and data.files[record_path(DAY)] == b'{"planted": true}'
-    assert "not its recommendation" in alerts.lines[0] and publisher.pushed == {}
+    assert "not its record" in alerts.lines[0] and publisher.pushed == {}
 
 
 def test_an_unavailable_school_is_named_in_the_line():
