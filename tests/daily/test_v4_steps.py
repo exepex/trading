@@ -46,12 +46,14 @@ def test_a_record_with_a_v4_sidecar_counts_as_recorded(tmp_path):
 
 
 def test_claude_md_gives_the_steps_in_the_code_s_order():
-    """Judge 584 SF3: the routine reads CLAUDE.md; the deadline check runs before the candles, A4h's reads last."""
+    """Judge 584 SF3: the routine reads CLAUDE.md; the deadline check runs before the candles, A4h's reads last; G7b's
+    pack-derived rows sit between the release and the desk, as in `DAILY_RUN_STEPS`."""
     from fno.config import ROOT
 
     text = " ".join((ROOT / "CLAUDE.md").read_text(encoding="utf-8").split())
     section = text.split("## Daily desk routine", 1)[1].split("## ", 1)[0]
-    order = [section.index(words) for words in ("protocol v4's release", "E3's desk", "v4's 15:10 deadline check",
+    order = [section.index(words) for words in ("protocol v4's release", "G7b's pack-derived v4 rows", "E3's desk",
+                                                  "v4's 15:10 deadline check",
                                                   "candle catch-up", "last, A4h's close reads")]  # fmt: skip
     assert order == sorted(order) and "last, v4's 15:10 deadline check" not in section
 

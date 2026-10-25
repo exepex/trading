@@ -790,6 +790,441 @@ past its last read (09:10:45): one read, `failed`. The outcome on 23 Oct is the 
 its window), but a forward wait in one part can take another part's window in the same rehearsal; a real run's reads
 never wait. Out of REH1l's scope (its text did not cover the run's order); a follow-up is proposed to the orchestrator.
 
+### REH1o: G13's issuers take the rehearsed live date (story and code in one round)
+
+Lane 1 (it changes what a rehearsal issues): two judges, one round. Builder session_01GAACYjcfHWkC3hp33iiMXV, branch
+`story/reh1o-issuer-live-dates`. The orchestrator, 24 Oct: "since it repeats G10's judged pattern (rehearsed_live),
+write the short story section and the code together and send ONE SHA ... The AI fire stays real and is never
+rehearsed".
+
+#### Finding (strong evidence: two replayed days and the code)
+
+- The 19 Oct replay (run 20261024T221832Z-d53c4f) posted, in its exercised line: "price_distribution refused: nothing
+  written: not live on 2026-10-19 (config.yaml daily.live_from.price_distribution: 2026-10-22)", the same for
+  `price_ranges` (2026-10-22) and `premium_ranges` (2026-10-23); the three scores steps then STOPPED on empty folders
+  ("no receipts under it"). The 22 Oct replay (the orchestrator's run 20261024T220648Z-cdeb4d) posted the same for
+  `premium_ranges`.
+- The cause: REH1c makes each step live for the rehearsal, but these three children check their own date, read
+  straight from `config.yaml`: `fno/price_distribution/wiring.py` `build_live_recorder`, `fno/price_ranges/wiring.py`
+  `build_issuer` and `fno/premium_ranges/wiring.py` `build_issuer` pass `live_from(cfg)` to their issuers, which
+  refuse a day before it. G10 fixed the same for the v4 pack (`fno/v4_pack/wiring.py`, `run_live_dates`).
+- The scores' stop on an empty own folder is a consequence here; on a real day it is G13d's open item (the
+  orchestrator's register note), not REH1o's.
+
+#### Design
+
+- `fno/rehearsal/live_wiring.py`: `rehearsed_date(key, real, env)`, one `daily.live_from` date as the daily run's root
+  sees it (`rehearsed_live` on that one key: the replayed day when the real date is unset or after it, else the real
+  date; no mode, the real date).
+- The three live builders give their issuer `rehearsed_date(STEP, live_from(cfg))`; each `STEP` is already its
+  `daily.live_from` key. The step's not-live note reaches the child's posts as for every REH1j step
+  (`NotLiveInRealRuns` sets it in the environment the child inherits).
+- Not changed: the backfills (`build_backfill` in `price_distribution` and `price_ranges`), which a rehearsal never runs
+  and which stop before the real date; the AI books' `ai_books_v4` (`fno/ai/wiring.py`): its fire makes paid AI calls
+  and stays real (the orchestrator; the AI-books replay is its own story with G11's builder).
+- FREEZE_v4.md (`story/v4-freeze`): none of the four code files is in its byte-checked or its recorded table;
+  `fno/rehearsal/live_wiring.py` is in "Reached by v4's code ... (named, not hashed)".
+
+#### Criteria (tests in `tests/rehearsal/test_issuer_live_dates.py`)
+
+- **O1. Before its date, a rehearsal's issuer issues on the replayed day** (19 Oct, each of the three). Plants: each
+  wiring back to `live_from(cfg)`; the helper ignoring the mode.
+- **O2. On its date, after it, and with no mode, the real date stands** (boundary: the live day itself; 26 Oct).
+  Plant: the helper always giving the replayed day.
+- **O3. Empty: an unset date** is the replayed day in a rehearsal and None in a real run.
+- **O4. The backfills keep the real date** (both `price_ranges`' and `price_distribution`'s). Plants: each backfill
+  rehearsed too. A step kept real (E8's owner timing) keeps its date through `rehearsed_date`.
+
+#### Claims (one round, for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1o-issuer-live-dates` (from main). Code: `rehearsed_date` in
+`fno/rehearsal/live_wiring.py`; one line in each of the three live builders. Tests:
+`tests/rehearsal/test_issuer_live_dates.py` (10).
+
+**Plants:** 7 planted, 7 caught, in a separate worktree, each restored with `git checkout --`: each of the three wirings
+back to `live_from(cfg)`; the helper ignoring the mode; the helper always giving the replayed day; `price_ranges`' and
+`price_distribution`'s backfill rehearsed.
+
+**Self-review** (an independent review agent): no blocking finding. Real runs unchanged (no mode: `real` itself); the
+date each issuer gets is the root's (the same keys, the same `rehearsed_live` path, KEPT_REAL, None, on and after
+the date); each issuer uses the date only in its own refusal, its 15:30 deadline and "not today" checks read the
+rehearsal's clock, and every write reaches `rehearsed_drive`; no other caller. Fixed: `price_distribution`'s backfill
+unpinned (now tested); the kept-real case. Not changed: a test that the key matches the root's (for any key outside
+KEPT_REAL the result does not depend on the key, so such a test cannot catch a wrong key); the three identical
+`live_from` parsers (older than REH1o; a follow-up for their owners).
+
+**Gates** (main merged in at the final head, the token kept): 16598 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
+clean.
+
+**Real output sample** (a full clone of this branch at 33de61355, the token kept): `daily run --rehearse --day
+2026-10-19`, run 20261024T230443Z-dafab0, branch `refs/heads/rehearsal/2026-10-19-20261024T230443Z-dafab0`, Drive
+`dryrun/20261024T230443Z-dafab0/`. Before (run 20261024T221832Z-d53c4f, main): "price_distribution refused: nothing
+written: not live on 2026-10-19 (config.yaml daily.live_from.price_distribution: 2026-10-22)", the same for
+`premium_ranges` and `price_ranges`, and the three scores STOPPED on empty folders. After, in the exercised line and
+the full log:
+- `price_distribution` ok: "NIFTY: recorded (0 problems)", "BANKNIFTY: recorded (0 problems)", "FINNIFTY: recorded
+  (1 problems)", "MIDCPNIFTY: recorded (0 problems)", "recorded".
+- `premium_ranges` ok: "NIFTY: issued (177 contracts ranged; not ranged {'no contract IV': 7})", "BANKNIFTY: issued
+  (217 contracts ranged; not ranged {'no contract IV': 3})".
+- `price_distribution_scores` ok ("report written: price_distribution/v1/scores/2026-10-19_21493de698cc.json") and
+  `premium_range_scores` ok.
+- `price_ranges` failed: "stopped after 10 minutes without ending". Traced (reproduced in a copy of the run's clone at
+  its commit before the step, a traceback after 150 s inside a Drive download): on 19 Oct the record held no
+  BANKNIFTY close table yet (G13b's first was committed 21 Oct; the clone as of 19 Oct has no `closes` receipts), so
+  `CloseTables.update` reads every regular session's index-close file from its first day, one Drive download each
+  (about 2414; the 21 Oct table has 2414 rows), which cannot end inside O1's 10 minutes. Not REH1o's: the issuer now
+  runs as its step was made live to; the day before the table existed cannot be exercised quickly. It is exercised,
+  never the day's failure; `price_range_scores` then STOPPED on its empty folder (G13d's side note, the same class).
+  The stated limit (the orchestrator, 24 Oct; corrected in REH1q's commit from pass 2's 21 Oct replay): it holds for
+  every replayed day THROUGH 21 Oct, not only before it, as 21 Oct's own close table was committed after that day's
+  `price_ranges` step; from 22 Oct a table is in the record.
+- The day's own result is unchanged: "day done with problems: quotes_done" is REH1n's (the weekly part on 19 Oct).
+- #fno-desk: the exercised line, labelled "*DRY RUN, 2026-10-19 replay, not a real trading day*".
+
+### REH1p: a rehearsal sees an earlier day's Groww quote files (story and code in one round)
+
+Lane 1 (it changes what a rehearsal reads of the real Drive record): two judges, one round. Builder
+session_01GAACYjcfHWkC3hp33iiMXV, branch `story/reh1p-quote-visibility`. The orchestrator, 24 Oct: "GO, lane 1, story
+and code in one round ... also check that the sidecar's own commit time is <= the replay clock ... Use whichever of the
+two is later ... the real sample: the 23 Oct morning rehearsal from the school switch commit, which must show all five
+roads open."
+
+#### Finding (strong evidence: reproduced)
+
+- The MS-P1j builder's `rehearse morning --day 2026-10-23` from the school switch commit (run 20261024T231853Z-17705a):
+  the school's 08:50 "Today" section, planned from 22 Oct's 15:00 captures, saw all five roads `capture_missing`
+  (NIFTY-M, BANKNIFTY-M, FINNIFTY-M, MIDCPNIFTY-M, NIFTY-W); outside a rehearsal all five open.
+- Reproduced with the store every 3 pm reader uses (`storage.wiring.build_quote_store`), reading
+  `groww/derivatives/quote-snapshots/2026/10/banknifty_20261022_150146.csv`: a real run gets 82997 bytes; under the
+  mode on 23 Oct at 08:40, `RawQuoteMissing` ("its sidecar says it was saved, but the private store does not have it").
+- The cause: `fno/rehearsal/visibility.py` shows the replay a real Drive file only with an O9 receipt or a manifest row;
+  A4b's raw quote files (Drive `raw/` area) have neither, as their committed sidecar vouches for them, so every one was
+  invisible. A daily rehearsal's same-day captures worked only because `RecordedRecorder` republishes them into
+  `dryrun/` at their `finished_at`; any earlier day's quote file failed for every reader.
+
+#### Design
+
+- `fno/rehearsal/quote_sidecars.py`, `QuoteSidecars.seen_at(path)`: for a Groww `raw/groww/<p>.csv` whose sidecar
+  `research/data/quotes/groww/<p>.meta.json` the record's `main` holds, the later of the attempt's `finished_at` and
+  the committer time of the first first-parent commit on `origin/main` that added the sidecar (a merge counts from the
+  merge, as REH1g's manifest rows; `--no-renames`: a moved sidecar is a new file). The sidecar is read as that commit
+  holds it (`git show`; write-once), never from the record's working tree, which may be on any branch or miss the
+  file. None when `raw_file_saved` is false, when the sidecar is not on `main`, or for any other path (NSE's chain is
+  in the repository, never a Drive quote file). One `git log` over the quotes folder per record and process.
+- `Visibility` takes it as a third kind of evidence, after receipts and manifest rows; `rehearsed_drive` wires it over
+  `mode.record`. A4b's `csv_sha256` check (`DriveOnlyQuoteStore.get`) is unchanged.
+- The record checkout does not move during a run (the rehearsal's commits go to its own clone), so the index read once
+  per process stays true.
+- FREEZE_v4.md (`story/v4-freeze`): `visibility.py`, `drive_wiring.py` and the new module are in none of its tables.
+
+#### Criteria (tests in `tests/rehearsal/test_quote_sidecars.py`)
+
+- **P1. The previous day's file is visible the next morning** (22 Oct's BANKNIFTY at 08:38 on 23 Oct). Plants: the
+  wiring without the sidecars; `Visibility` not asking them.
+- **P2. The later of the two times** (the orchestrator's ask): between the finish and the commit, not visible; at the
+  commit, visible; a sidecar dated before its finish waits for the finish. Plants: the finish only; the commit only.
+- **P3. What never counts:** a failed save; a sidecar committed only on a branch; no sidecar; a path outside `raw/`
+  or not a quote file. A merge counts from the merge. Plants: the failed save counted; no `--first-parent`; any branch.
+- **P4. Through the rehearsed Drive:** 22 Oct's file read at 08:40 on 23 Oct, 23 Oct's not before its time, then read.
+- **P5. A real run is unchanged:** no mode, the owner Drive as it is.
+- **P6. The record's own bytes** (self-review): a sidecar edited or gone in the working tree changes nothing; a
+  weekly file counts, an NSE path with a matching sidecar does not; a record with no `main` shows nothing. Plants:
+  the sidecar read from the working tree; any `raw/*.csv`.
+
+#### Claims, code round 1 (for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1p-quote-visibility` (from main). Code:
+`fno/rehearsal/quote_sidecars.py` (new, 68 lines), `fno/rehearsal/visibility.py` (the third kind of evidence),
+`fno/rehearsal/drive_wiring.py` (wired over `mode.record`). Tests: `tests/rehearsal/test_quote_sidecars.py` (12).
+
+**Plants:** 9 planted, 9 caught, in a separate worktree, each restored with `git checkout --`: the wiring without the
+sidecars; `Visibility` not asking them; the finish only; the commit only; a failed save counted; no `--first-parent`;
+any branch counted; the sidecar read from the working tree; any `raw/*.csv` counted. One test was found vacuous while
+planting (the off-main case was looked up after the index had been cached) and was split so it holds alone.
+
+**Self-review** (an independent review agent): the Drive path traced from `DriveOnlyQuoteStore` through `AreaStore`
+and `DryrunDrive` to the sidecar path, for A4's, A4e's and A4f's datasets, folder listings included; the git parsing
+checked on git 2.43 (a `--no-ff` merge counts from the merge; spaces; newest-first keeps the oldest add); the cache
+safe (the record does not move during a run, and a later main only hides more). Accepted and fixed: the sidecar read
+from the working tree (a checkout behind main, or a removed sidecar, would have raised inside `visible`); the rule
+limited to Groww's datasets; `--no-renames`; `QUOTES` from `QUOTES_FOLDER`; the missing cases. Not changed: a naive
+`finished_at` (every real sidecar carries its zone, A4 writes it so); committer time, not push time (the limit REH1g
+already states for manifest rows).
+
+**Real output samples** (the orchestrator's go; this branch at 96dcc1d97 with `config.yaml`'s `school.enabled` and
+`school.reports` true in a local-only commit, never pushed; a full clone, the token kept):
+- Before (the MS-P1j builder's run 20261024T231853Z-17705a, main without REH1p), #fno-forecast: "Roads: NIFTY-M
+  closed (capture_missing); BANKNIFTY-M closed (capture_missing); FINNIFTY-M closed (capture_missing); MIDCPNIFTY-M
+  closed (capture_missing); NIFTY-W closed (capture_missing)".
+- After: `rehearse morning --day 2026-10-23`, run 20261024T234123Z-706a00, branch
+  `refs/heads/rehearsal/2026-10-23-20261024T234123Z-706a00`, ended "3 commands done": "lab open 2026-10-23: report to
+  #fno-forecast: posted", "closes 2026-10-22 certified: ... matches A4h's record", "not live in real runs (exercised):
+  replay clock not checked (by design)". #fno-forecast, read back, labelled "*DRY RUN, 2026-10-23 replay, not a real
+  trading day*": "School pilot, Today (Paper: no real money, no order) / Banner: RED, do not trade real money today
+  (plan from 22 Oct 2026 15:00 data, ...) / Roads: NIFTY-M open; BANKNIFTY-M open; FINNIFTY-M open; MIDCPNIFTY-M open;
+  NIFTY-W open / No candidate today: nothing is planned."
+- The direct read: under the mode at 08:40 on 23 Oct, `build_quote_store().get` of 22 Oct's BANKNIFTY file gives
+  82997 bytes (before: `RawQuoteMissing`); the same with the reviewed code at the final head.
+- The sample ran on 96dcc1d97; the review's changes after it keep the rule for these files (all five are Groww
+  files with sidecars added by first-parent commits on main), and the direct read was repeated on the final code.
+
+### REH1q: a scheduled read pushed later than the day's still gets the day's answer (story and code in one round)
+
+Lane 1 (it changes what a rehearsal serves from the real record): two judges, one round. Builder
+session_01GAACYjcfHWkC3hp33iiMXV, branch `story/reh1q-scheduled-reads`. The orchestrator, 25 Oct: "REH1q: GO ... a
+scheduled read serves the latest answer the day fetched at or before now, on the same day, and otherwise the nearest
+ahead within 10 minutes. Paced reads stay unchanged."
+
+#### Finding (strong evidence: pass 2's run, the record's manifest)
+
+- `daily run --rehearse --day 2026-10-21` from main 4e8be7b72 (run 20261025T020059Z-d4978f) ended "day done with
+  problems: quotes_done, candles"; the real 21 Oct's `candles` was ok. The rehearsal's answer: "rehearsal:NOT_RECORDED
+  Groww 15m 2026-09-21..2026-10-19 at 2026-10-21T15:35:43...: the day fetched no such answer near then".
+- `research/data/manifests/groww-candles/nifty-15m.csv`: the real day asked for that window at 15:33:06.77 and saved
+  it at 15:33:11.36 (`fetched_at`); its `price_ranges` was not live, so it reached `candles` on time. The rehearsal
+  exercised `price_ranges` (ten replay minutes, REH1o's stated limit), so `candles` asked at 15:35:43, 2 min 32 s
+  after the answer; `serving.is_near` serves only a minute back (and ten minutes ahead). An exercised step's time
+  pushed a live step out of its serving window; any long exercised step can do this to a later scheduled read.
+
+#### Design
+
+- `fno/rehearsal/serving.py`, `scheduled_pick(now, answers)`: the earliest answer saved near now (a minute back to ten
+  ahead: REH1g's rule, unchanged), else the latest answer of the same IST day saved at or before now; never a later
+  day's, never another day's from behind, and never one saved more than ten minutes after now.
+- Why the near window comes first, not "the latest before now" (the first form of this rule, measured wrong before
+  any code): the day's 16:00 recheck saved its answer seconds after it asked (16:00:04), so at 16:00:00 the latest
+  answer before now is 15:40's; the near window serves the recheck its own answer, and the fallback serves the
+  latest before now only when the day's own read is out of reach.
+- `recorded_candles` and `recorded_closes` use it; their "not recorded" texts say the new rule. Paced reads
+  (`ServedOnce`: cues, pre-open) are unchanged, and the replay clock is not touched for exercised steps (the
+  orchestrator).
+- FREEZE_v4.md (`story/v4-freeze`): the three files are in none of its tables.
+
+#### Criteria (tests in `tests/rehearsal/test_scheduled_reads.py`, with `test_serving.py` and `test_recorded_closes`)
+
+- **Q1. The 21 Oct candles case** (the real manifest): a read at 15:35:43 gets the 15:33:11 answer; a read 3 minutes
+  before it waits for it; more than ten minutes before, with nothing earlier, nothing. Plant: no fallback.
+- **Q2. The recheck gets its own answer:** at 16:00:00 the 16:00:04 answer, at 16:20 still that one, never 15:40's;
+  the 15:40 read gets the first. Plants: the latest-before-now first (the measured wrong rule); the near window
+  picking its latest; the closes on `is_near` alone.
+- **Q3. Never a later day's, nor another day's from behind.** Plant: any day from behind.
+- **Q4. Ahead stays bounded at ten minutes** (the boundary itself served, a tick past not) and an answer saved after
+  now is never served from behind. Plant: any time of the day from behind.
+
+#### Claims (one round, for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1q-scheduled-reads` (from main). Code: `scheduled_pick` in
+`fno/rehearsal/serving.py`; `recorded_candles` and `recorded_closes` use it (`_served`, renamed from `_nearest_after`).
+Tests: `tests/rehearsal/test_scheduled_reads.py` (8), `test_serving.py`'s one-rule test updated.
+
+**Plants:** 6 planted, 6 caught, in a separate worktree, each restored with `git checkout --`: no fallback (REH1g's
+rule); the latest before now first (the measured wrong rule, also caught by REH1g's closes test); any day from
+behind; any time of the day from behind; the near window picking its latest; the closes on `is_near` alone.
+
+**Self-review** (an independent review agent): no blocking or should-fix finding. No look-ahead (the fallback takes
+only answers saved at or before now; ahead answers are still waited for); timestamps all carry their zone; windows are
+matched before the pick; no caller relied on the old "not recorded" for a late read; real runs never build these
+sources. Accepted: a test through `answer()` with a clock (the fallback serves its recorded bytes at once, the near
+window still waits: 64 s for 15:59 to 16:00:04); the name `_served`. No log line for a fallback serve: the recorded
+sources have no output of their own.
+
+**The stated limit, exactly** (judges 669 m1 and 671; follow-up `story/reh1qs-minors`). At the real 23 Oct times (the
+first read's answer saved 15:40:07, the recheck's 16:00:10): a first read pushed to 15:41:07 or earlier gets its own
+answer (near it); from 15:41:07 to 15:50:10 the fallback serves it at once (REH1q; before REH1q this stretch was "not
+recorded"); from 15:50:10 the recheck's answer is inside the ten minutes ahead (REH1g's rule, unchanged by REH1q), so
+the first read waits up to ten minutes and records the recheck's list, and the recheck then reads "unchanged" where the
+real day compared two lists. Stated, not capped: the real list of a moment between the two reads was never recorded,
+so any answer served there departs from the day; capping the near window at the next read would need the recorded
+source to know A4h's timetable or which read is asking (a coupling for a rehearsal-only case); nothing of the real
+record is written. Pinned by `test_the_stated_limit_at_the_real_23_oct_times` and
+`test_a_first_read_pushed_past_the_recheck_s_answer_is_served_the_recheck`.
+
+**Gates** (main merged in at the final head, the token kept): 17443 passed, 13 xfailed, 0 failed; ruff, format,
+imports, record scan clean.
+
+**Real output sample** (a full clone of this branch at 265a1281e, the token kept): `daily run --rehearse --day
+2026-10-21`, run 20261025T030751Z-2a40b3, branch `refs/heads/rehearsal/2026-10-21-20261025T030751Z-2a40b3`. Before
+(pass 2, run 20261025T020059Z-d4978f, main): "day done with problems: quotes_done, candles", candles "DEFERRED
+2026-10-19: rehearsal:NOT_RECORDED Groww 15m 2026-09-21..2026-10-19 at 2026-10-21T15:35:43...". After: "day done with
+problems: quotes_done" (REH1n's weekly part only); `candles` started 15:35:53 (again after the exercised
+`price_ranges`) and is ok, its lines the real day's own: "window 2026-09-21..2026-10-19: 495 of 500 session candles
+(20 sessions)", "sessions 1683: 1 written now, 1682 held before, 0 deferred".
+
+### REH1s: the guard pins every 3 pm recorder (story and code in one round)
+
+Lane 1 (the rehearsal's guard over outside services): two judges, one round. Builder session_01GAACYjcfHWkC3hp33iiMXV,
+branch `story/reh1s-guard-recorders`. The orchestrator, 25 Oct: "keep it small ... add the index and v4 window recorders
+to the guard's builders(), with tests that each live fallback is refused under the mode. No log-line change in
+real-run code."
+
+#### Finding (strong evidence: a probe under the mode)
+
+- The REC1 builder's 23 Oct rehearsal (run 20261025T022236Z-b5c28b), in a container without the Groww SDK, printed
+  "Groww unavailable (SDK not installed); using the NSE website for option chains". The line is
+  `fno/providers/__init__.py`'s `_auto_provider`, logged when it builds an `NSEProvider`; three 3 pm builders call it
+  ("auto"): `composition.build_quote_recorder`, `quotes/index_wiring.build_index_quote_recorders` and
+  `quotes/window_wiring.build_window_quote_recorder`. Building it calls nothing.
+- Under the mode, with the SDK unavailable, each builder returns a `RecordedRecorder` (the 3 pm one, BANKNIFTY,
+  FINNIFTY, MIDCPNIFTY, NIFTY weekly, the `v4` window), which never asks its provider; a direct call to that provider
+  is refused before it is sent ("rehearsal: no live call (GET www.nseindia.com/api/option-chain-contract-info)", the
+  HTTP guard every rehearsing child installs). No live read was possible.
+- The gap: `fno/rehearsal/guard.py`'s `builders()` pinned only "the 3 pm recorder"; a later change that stopped
+  wrapping the index or window recorders would not have stopped a rehearsal.
+
+#### Design
+
+- `builders()` gains one row per index recorder (`RECORDED_INDEX_OPTIONS` and `WEEKLY_NAME`, A4c's and A4f's) and one
+  for the `v4` window's (A4e's, G10's capture), each required to be a `RecordedRecorder` under the mode. No real-run
+  code changes (the SDK line stays as it is).
+- FREEZE_v4.md (`story/v4-freeze`): `guard.py` is in none of its tables; nothing else is touched.
+
+#### Criteria
+
+- **S1. Every 3 pm recorder is pinned** (`tests/rehearsal/test_guard.py`): with the mode set, `problems()` is empty;
+  without it, each builds what it builds today (`QuoteSnapshotRecorder`); the planted-break count is twelve. Plants:
+  the index recorders unwrapped; the `v4` window recorder unwrapped; the guard without the index rows.
+- **S2. No Groww SDK, no live fallback** (`tests/rehearsal/test_guard_recorders.py`, a fresh process): each of the six
+  recorders is recorded over an `NSEProvider` whose call is refused; the SDK line appears once per builder (three).
+- **S3. NSE's own chain recorder** (judge 670 m1 for REH1s; follow-up `story/reh1qs-minors`): `build_nse_quote_recorder`
+  (`quotes record --source nse`, O6) has its own guard row, and in the fresh process it is recorded over its
+  `NseQuoteProvider`, whose call is refused. The guard's planted-break count is thirteen.
+
+#### Claims (one round, for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1s-guard-recorders` (from main). Code: `fno/rehearsal/guard.py`
+(five rows). Tests: `test_guard.py` (two cases extended), `test_guard_recorders.py` (new).
+
+**Plants:** 3 planted, 3 caught, in a separate worktree, each restored with `git checkout --`: the index recorders not
+rehearsed (both tests and the planted-break count), the `v4` window recorder not rehearsed (the same three), the guard
+without the index rows. A plant that would let a live call through was not run: it would reach NSE for real.
+
+**Real output sample** (this branch, the token kept): `python -m fno rehearse check` in a rehearsing process (the mode
+for 23 Oct, the replay clock at 14:05): exit 0, no line (every service its rehearsal form). With the index recorders
+planted unwrapped: "rehearsal guard: BANKNIFTY's 3 pm recorder is QuoteSnapshotRecorder, not its rehearsal form", the
+same for FINNIFTY, MIDCPNIFTY and NIFTY weekly, exit 1.
+
+**Gates** (main merged in, the token kept): 17436 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
+clean.
+
+### REH1r: a routine command not yet in its routine on the replayed day is exercised (story text first)
+
+Lane 1 (it changes what a rehearsal counts as a routine's failure): two judges. Builder session_01GAACYjcfHWkC3hp33iiMXV,
+branch `story/reh1r-command-since`. The orchestrator, 25 Oct: "Each routine Command gets the day it joined its routine
+(`since`), taken from the record: the CLAUDE.md commit history or DESK_DECISIONS. Cite the source in the code's
+constant. Before `since`, the command is exercised, never failed."
+
+#### Finding (strong evidence: pass 2's run and the record)
+
+`rehearse evening --day 2026-10-21` from main 4e8be7b72 (run 20261025T025540Z-5413fe) ended "failed: closes read
+--commit, records certify closes --level provisional --commit, data-librarian fo-bhavcopy ..., data-librarian
+participant-oi ..., data-snapshot fii-dii-cash-by-session". On 21 Oct none of the evening routine's commands was in its
+routine: the first commit holding the evening routine's `lab close` in CLAUDE.md is 5c3195ba0 (21 Oct 22:44 UTC, 22 Oct
+04:14 IST; judge 674.1), the evening's data commands 49aa26951 (21 Oct 23:09 UTC), and the first evening outputs in
+the record are 22 Oct's (below).
+A rehearsal runs today's routine, so on an earlier day each such command meets a record that never held its answer
+("rehearsal:NOT_RECORDED", `RecordedAnswerMissing`) and counts as the routine's failure. REH1k keyed only the lab
+editions (`live_key`); these commands have no key.
+
+#### Design
+
+1. `Command.since: date | None` (`fno/rehearsal/routines.py`): the first day the command ran in its routine. Its value is
+   a named constant per command, each citing its source in a comment.
+2. **The source, per command** (judges 673 and 674, round 2). A command's `since` is the later of two dates: the
+   CLAUDE.md commit that added it to its routine's section, and the routine's own first run (the owner creates each
+   scheduled task: the pre-open, morning and evening tasks were created later on 22 Oct, `conversations/2026-10-22.md`,
+   "Orchestrator, later on 22 Oct"). The routine's own first output on `main` is the evidence of that run; an earlier
+   output of the same command run by hand or by another job does not count (judge 673 m2: participant-oi 70a0ff55a,
+   21 Oct 21:37 IST, `omenix-participant-oi`; fii-dii 238f8e2c9, 22 Oct 01:05 IST, `omenix-flows-download`;
+   fo-bhavcopy 71ec37be2, 22 Oct 01:34 IST, `omenix-panel-days`). The CLAUDE.md commit is the earliest it could have
+   run (searched over every commit in `main`'s ancestry whose CLAUDE.md holds it, whitespace
+   folded; `--first-parent` is not used, as `main`'s first-parent chain passes through branch merges, e.g. b26d33476
+   "Merge main into A23 before its merge").
+
+   | Routine, command | CLAUDE.md (first commit holding it) | First output on `main` | `since` |
+   |---|---|---|---|
+   | daily, `daily run` | e5ac277e9, 16 Oct | the run logs | none (always) |
+   | preopen, `global-cues preopen` | e6010ac0a, 22 Oct 05:02 IST | 23 Oct 08:51 IST, "A17e: pre-open Asian levels (receipts)" | 23 Oct |
+   | preopen, `preopen record` | a2b2ad8c6, 22 Oct 03:09 IST | 23 Oct 08:40 IST, "pre-open gift 2026-10-23" | 23 Oct |
+   | morning, `data-librarian index-close` | 96af942cd, 22 Oct 04:29 IST | the morning task was created later on 22 Oct, after its 08:38 (`conversations/2026-10-22.md`); the morning's first output is 3decf6a60, 23 Oct 08:45 IST, "Morning forecast receipts 2026-10-23" (its own rows: "nothing new") | 23 Oct (judges 673, 674) |
+   | morning, `lab open` | 5c3195ba0 | `live_key` (REH1k, 23 Oct) | none (its key) |
+   | morning, `records certify closes --since 7 --level certified` | 51cab79b0, 23 Oct 22:42 IST | 24 Oct 08:41 IST, "Records: DR1 certification" | 24 Oct |
+   | evening, `closes read --commit` | cae76af89, 22 Oct 05:58 IST | the routine's own, 22 Oct 19:54 IST, "Receipts ... (A4h close read)" | 22 Oct |
+   | evening, `records certify closes --level provisional` | 51cab79b0, 23 Oct 22:42 IST (on `main` about 23:58 IST, after that evening's 19:53) | none yet (`receipts/records/` holds only the morning's two certified records of 24 Oct; no session evening since) | 24 Oct (CLAUDE.md) |
+   | evening, `data-librarian fo-bhavcopy`, `participant-oi`, `data-snapshot fii-dii-cash-by-session` | 49aa26951, 22 Oct 04:39 IST | the routine's own, 22 Oct 19:54 IST, the three manifests' commits (e.g. fo-bhavcopy 936611423); the earlier hand and job rows (judge 673 m2) do not count | 22 Oct |
+   | evening, `lab close` | 5c3195ba0, 22 Oct 04:14 IST (the evening routine's; 6eced93c2 held it only as O1's step, judge 673 m1) | `live_key` (REH1k, 23 Oct) | none (its key) |
+   | evening, `lab release-check` | 49aa26951, 22 Oct 04:39 IST | 22 Oct 19:55 IST, "Evening routine 2026-10-22: release-check logs" | 22 Oct |
+
+3. `run_routine` treats a command whose `since` is after the replayed day as it treats a not-live lab edition: it runs as
+   on the day, its outcome goes into `exercised` (REH1k's shape, the note "not in its routine on <day> (since <since>)"),
+   never into "failed", and the REH1j exercised line names it once. A day on or after `since` is unchanged.
+4. Only the rehearsal reads `since`: a real routine has no `Command` objects (CLAUDE.md is its source), so no real run
+   changes. A test holds each constant to its row above, and to CLAUDE.md (each command with a `since` is in its
+   routine's section today).
+
+#### Criteria
+
+- **R1. Before `since`, exercised:** a 21 Oct evening rehearsal's data commands, `closes read` and the certify command
+  are exercised, the routine ends "7 commands done". Plant: `since` ignored.
+- **R2. On and after `since`, the real rule:** on 22 Oct a failing `closes read` is the routine's failure. Boundary: the
+  day itself. Plant: `<=` made `<`.
+- **R3. The sources:** each constant equals its table row (the later of the CLAUDE.md commit and the routine's own
+  first run), and every command with a `since` is in CLAUDE.md's routine section today. Boundary: `data-librarian
+  index-close` on 22 Oct is exercised (its routine's first run is 23 Oct), on 23 Oct it is the routine's. Plant: a date
+  changed.
+- **R4. Empty:** a command with no `since` (the daily run) is never exercised by it.
+- **R5. Real runs unchanged:** the full suite.
+
+#### Claims, code round 1 (for two judges)
+
+Built by session_01GAACYjcfHWkC3hp33iiMXV on `story/reh1r-code` (from main, after the text's merge eb1b5a817). Code:
+`fno/rehearsal/routines.py` (`Command.since`, `Command.exercised_on`, four dated constants each citing its source),
+`fno/rehearsal/rehearse.py` (`run_routine` sets apart every command `exercised_on` the day), and
+`fno/rehearsal/exercised_line.py` (`not_live_result` records `since`; the line names such a command "(in its routine
+from <since>)"). Tests: `tests/rehearsal/test_command_since.py` (12). Text: judge 674.1's Finding line now cites
+5c3195ba0; judge 670.1's S3 cites 670.
+
+| Criterion | Tests | Plants (each caught) |
+|---|---|---|
+| R1 | the 21 Oct evening: "7 commands done", seven exercised, `closes read`'s record `{"status": "not_live", "since": "2026-10-22", ...}`; the exercised line names it "(in its routine from 2026-10-22)"; `lab close` keeps its edition's form | `since` ignored; a since-command counted as failed; the line without the qualifier; `since` recorded for a lab edition too |
+| R2 | the 22 Oct evening: its own five commands fail as on the day, the certify command and `lab close` exercised; 24 Oct with the edition live: nothing exercised; the pre-open routine through `run_routine` on 22 Oct ("2 commands done") and 23 Oct ("failed: preopen record, global-cues preopen") | `<` made `<=` |
+| R3 | each command's `since` equals the table's row (judge 673.1); the boundary index-close 22 Oct exercised, 23 Oct the routine's; the lab editions keep their key and take no `since`; every command still in its CLAUDE.md section (the existing two-way test) | a date changed |
+| R4 | the daily run has no `since` and is never set apart by it; a set-apart command with no `exercised` record is refused | the guard dropped |
+| R5 | the full suite | |
+
+**Plants:** 8 planted, 8 caught, in a separate worktree, each restored with `git checkout --`.
+
+**Gates** (main merged in, the token kept): 17571 passed, 13 xfailed, 0 failed; ruff, format, imports, record scan
+clean.
+
+**Self-review** (an independent review agent): no blocking finding; every `since` checked again in git against the
+table and the record (first outputs 47a4ff7a8, 3decf6a60, 2428dac17, f24218f2e, 936611423, c08dde158, 5aab4ed4c,
+6bdf18007; the earlier hand and job rows rightly not counted); real runs unchanged (`routines.py` is imported only by
+the rehearsal's `cli.py` and `rehearse.py`). Accepted and fixed: the "not in its routine" note never reached the posted
+line (it was in `result["reason"]`, which the line does not read; a daily not-live step keeps its live-from note there,
+so the line cannot print every `reason`): now its own `since` key and a qualified item, tested at the line; the two
+stale texts (`NO_EXERCISED`, a comment); the guard and the pre-open boundary through `run_routine`, tested. Not
+changed: an exercised command's name shows its raw arguments (`--from {day}`), REH1k's key since before this change.
+
+**Real output sample** (a full clone of this branch at 6572169ea, the token kept): `rehearse evening --day
+2026-10-21`, run 20261025T055423Z-26bf03, branch `refs/heads/rehearsal/2026-10-21-20261025T055423Z-26bf03`, ended "7
+commands done" (before, pass 2's run 20261025T025540Z-5413fe: "failed: closes read --commit, records certify ...,
+data-librarian fo-bhavcopy ..., data-librarian participant-oi ..., data-snapshot fii-dii-cash-by-session"). #fno-desk,
+read back, labelled "*DRY RUN, 2026-10-21 replay, not a real trading day*": "not live in real runs (exercised): closes
+read --commit (in its routine from 2026-10-22) failed: close-read receipts: nothing new to commit; records certify
+closes --level provisional --commit (in its routine from 2026-10-24) failed: closes 2026-10-21 provisional: NOT
+recorded: no staged version; ...; lab close failed: lab close 2026-10-21: the evening report was not made
+(RuntimeError); nothing was posted; lab release-check (in its routine from 2026-10-22) ok; replay clock not checked (by
+design)". An earlier run on e67612f7d (before the line fix, 20261025T055020Z-d318af) also ended "7 commands done".
+
+#### Gap list (rule 2)
+
+| Requirement (the orchestrator, 25 Oct) | Covered by | Or out of scope, with reason |
+|---|---|---|
+| "Each routine Command gets the day it joined its routine (`since`)" | Design 1, 3 | |
+| "taken from the record ... Cite the source in the code's constant" | Design 2, R3 | |
+| "Before `since`, the command is exercised, never failed" | Design 3, R1, R2 | |
+| The lab editions | | Already keyed (REH1k's `live_key`); `since` adds nothing for them |
+
 ### REH1 follow-up: the candle source without the Groww SDK (24 Oct; the orchestrator: "fix it")
 
 Branch `story/reh1-candle-no-groww`, from main. Builder session_01GAACYjcfHWkC3hp33iiMXV.

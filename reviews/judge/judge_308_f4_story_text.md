@@ -88,3 +88,52 @@ cannot resolve to a scalar. Even "cite without quoting" works only for `evaluati
 A PASS follows when F1t's text carries the agreed port: the `JudgeStep` call before `decide()`, `judge` and
 `judge_blocks` in `AcceptedDecision`, the run check, and the judge's time inside the 15:11-15:12 window. That will be
 checked as an addendum to judge 301.
+
+## Addendum 2
+
+**F4 story text (story/f4-ai-judge @ fe5721d3): PASS. Lane 1** (it decides whether a Book 2 trade happens). Judge E,
+judge 1 of 2 (the other judge is K, whose verdict I did not read), own session. Text only: `F4-ai-judge.md`,
+`F-ai-layer.md` (its old F4 text replaced by a pointer), and response 271 with its README row. Judged by reading.
+Doc-reading tests with the token kept: 922 passed, 14 xfailed.
+
+- **Addendum 1's last item: closed.** F1t revision 2, now on `main`, carries the agreed port:
+  - the `JudgeStep` call inside `ai_collect` before `decide()`, with `decide()` run in every case (F1t story
+    `:360`);
+  - `judge` and `judge_blocks` in `AcceptedDecision` (`:328`);
+  - the run check refusing a chosen trade under a block (`:351`);
+  - the judge's 5 s inside the 15:11:00-15:12:00 window (`:364`);
+  - `NoJudge` until F4's code lands, so Book 2 is `judge_failed` and never trades unjudged (`:368`).
+
+  I passed that text in judge 623.1.
+- **Changes since 992a3f89, checked:**
+  - Design 4 now places the port in F1t's `fno/ai_trading/ports.py`, with F4 implementing it and defining no second
+    copy. That is one port, one owner, matching F1t's text word for word on `JudgeCase`, `Judged` and `JudgeStep`.
+  - The builder and judge lines are updated.
+  - The criteria (1-10), the gap list and the owner's decisions are unchanged.
+- **`F-ai-layer.md`:** the superseded F4 section is now a pointer. Its five old criteria are carried in
+  `F4-ai-judge.md`: 1 (different model) = new 1; 2 = new 2; 3 (no override) = new 3; 4 (audit) = new 7; 5 (late
+  judge) = new 6.
+
+## Findings
+
+None blocking, none should-fix, none minor. The code follows on F1t's port.
+
+## Addendum 3
+
+**F4 story text, round 2 (story/f4-ai-judge @ 1ca9b691): PASS; 308.2 holds. Lane 1.** Judge E, judge 1 of 2;
+judge K's verdict 628 not read (its two findings came to me through the orchestrator). Since fe5721d3, F4 changes by
+28 lines and F1t's "The judge" by two sentences. The rest of the diff is main merged in: `git diff origin/main...1ca9b691`
+shows only F4, F-ai-layer, F1t (+3/-3) and response 271. Doc-reading tests with the token kept: 922 passed, 14
+xfailed.
+
+- **The verdict type has one owner.** `JudgeVerdict(status, blocks, reason)` now sits in F1t's `ports.py` beside
+  `Judged(verdict, path)`. F4's `verdict.py` writes the full file and returns that small type. F1t's `ai_collect`
+  reads `judged.verdict.blocks` and `judged.path`: the same names on both sides, and no second shape for `NoJudge`.
+- **`NoJudge` leaves a record.** It writes the day's verdict file once, with design 3's fields where they apply
+  (`none:not-built`, `unavailable`, `blocks` true for Book 2 and false for Book 3), and its path is
+  `AcceptedDecision.judge`. So Book 2's fail-closed day is recorded like any judged day, with the same write-once rule.
+- **Unchanged:** criteria 1-10, the gap list and the owner's decisions. 308.2's reasons all still hold.
+
+## Findings
+
+None blocking, none should-fix, none minor.

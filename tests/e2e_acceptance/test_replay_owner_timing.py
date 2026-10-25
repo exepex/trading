@@ -12,6 +12,7 @@ from fno.constants import (
 )
 from fno.daily.wiring import LIVE_STEPS
 from fno.desk.entries import EntryDesk
+from fno.desk.fill_results import trade_fills
 from fno.desk.owner_timing.live_switch import LiveFromEntries
 from fno.desk.owner_timing.order_record import KeptOrders
 from fno.desk.owner_timing.pending import pending_entries
@@ -37,7 +38,7 @@ def test_live_from_the_day_the_trade_is_handed_over_not_filled_at_the_snapshot(t
     )
     alerts = RecordingAlerts()
     log = Replay(tmp_path, monkeypatch, alerts, entries=hand_over).run().log
-    [(trade_id, fill)] = log.result("fills").items()
+    [(trade_id, fill)] = trade_fills(log.result("fills")).items()
     assert (fill["outcome"], fill["reason"]) == (OUTCOME_ENTRY_PENDING, HANDED_OVER.format(minutes=60))
     records = DeskRecords(PaperAccount(tmp_path, BOOK1_RULES))
     assert not records.fill_rows() and [p.trade_id for p in pending_entries(BOOK1_RULES, records)] == [trade_id]

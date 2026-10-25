@@ -12,6 +12,7 @@ __all__ = [
     "RUN_LOG_EXITS_STEP",
     "RUN_LOG_TRADE_MARKS_STEP",
     "REVIEWS_STEP",
+    "SCHOOL_STEP",
     "DESK_RUN_STEPS",
     "DAILY_RUN_STEPS",
     "V4_PACK_LIVE_KEY",
@@ -41,6 +42,7 @@ RUN_LOG_DECISIONS_STEP = "decisions"
 RUN_LOG_EXITS_STEP = "exits"  # the daily run's exit review step (scoreboard B reads it, story S6)
 RUN_LOG_TRADE_MARKS_STEP = "trade_marks"  # E2d: every open trade marked right after the exits
 REVIEWS_STEP = "reviews"  # after the exits: E6's scorecards and automatic pauses (LR3's drift monitor joins it later)
+SCHOOL_STEP = "school"  # MS-P1j2: the market school's slot; its sections read this step back from the run log (j4)
 # E3's steps (with E2d's marking), then story O1's whole day in order (the health check O8 reads it); Book 1 decides
 # right after the pack
 DESK_RUN_STEPS = (
@@ -72,7 +74,8 @@ DAILY_RUN_STEPS = (
     "card",
     "price_distribution",  # story G13: reads the committed 3 pm chains, nothing reads it, so after the card
     "premium_ranges",  # story G13d: from G13's record, at once (sealed by 15:30; the command refuses after it)
-    "school",  # MS-P1j: the five roads' 15:00 slot; after G13d (seconds), as both refuse after 15:30 (law 6: no fill)
+    SCHOOL_STEP,  # MS-P1j: the five roads' 15:00 slot; after G13d (seconds), as both refuse after 15:30 (law 6)
+    "recommend",  # REC1b: the day's one recommendation, after the school so its sealed decisions are candidates
     "price_distribution_scores",  # G13's scores: outcomes lag one session (NSE's close file lands in the evening)
     "price_ranges",  # story G13b: the 15:45 ranges from the same chains, after G13
     "price_range_scores",  # G13b's scores and seals; the same one-session lag

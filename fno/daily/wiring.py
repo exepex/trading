@@ -9,7 +9,6 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from datetime import date
-from datetime import time as time_of_day
 from pathlib import Path
 
 from ..config import ROOT
@@ -18,11 +17,13 @@ from ..constants import (
     OWNER_TIMING_STEP,
     PLAYBOOK_FOLDER,
     REVIEWS_STEP,
+    SCHOOL_STEP,
     V4_PACK_FORECASTS_STEP,
     V4_PACK_LIVE_KEY,
 )
 from ..desk.daily_ports import DayStep
 from ..desk.daily_run import RERUN_FINAL
+from ..school.constants import SLOT_LAST_START
 from .runner import DayRunner
 
 V4_RECORDS = "research/forecasts/v4/"  # G7's rows and M1's weather records (`fno/forecast_v4_rules/wiring.py`)
@@ -33,12 +34,12 @@ FORECASTS_V4_PACK = ("forecast-v4", "capture-pack")  # G7b completion: today's p
 PACK_RECORD_FOLDERS = ("v4/records/live", "v4/terms", "v4/ratios", "v4/outcomes", "v4/diagnostics")
 MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 # MS-P1j2: why a failed school step stays failed (orchestrator, 24 Oct: no retry, a named reason)
-SCHOOL_STARTS_BY = time_of_day(15, 25)  # MS-P1j2: 5 minutes before law 6's close; a run takes ~2-4 (reasoning only)
+SCHOOL_STARTS_BY = SLOT_LAST_START  # MS-P1j2/j3: the runner's own cutoff too; a run takes ~2-4 min (reasoning only)
 SCHOOL_NOT_RETRIED = "; " + RERUN_FINAL.format(why="a later run never decides the session's paper trades")
 FULL_LOG_WRITER = "daily-run"  # the receipts' writer name for the full log's Drive copy (O9)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", V4_PACK_LIVE_KEY, V4_PACK_FORECASTS_STEP, "card",
               OWNER_TIMING_STEP, "price_distribution", "premium_ranges", "price_distribution_scores", "price_ranges",
-              "price_range_scores", "premium_range_scores", "close_read", "close_recheck")  # fmt: skip
+              "price_range_scores", "premium_range_scores", "close_read", "close_recheck", "recommend")  # fmt: skip
 DISTRIBUTION_SCORES, RANGE_SCORES = ("pricedist", "score"), ("pricerange", "score")  # every resolved row, rescanned
 PREMIUM_SCORES = ("premrange", "score")  # G13d: every issue whose next session has passed, and the seals
 
@@ -51,6 +52,11 @@ def range_issue(day: date) -> tuple[str, ...]:
 def premium_issue(day: date) -> tuple[str, ...]:
     """G13d's live issue from G13's 3 pm record (O1's `premium_ranges` step; refuses itself after 15:30)."""
     return ("premrange", "issue", "--day", day.isoformat(), "--live")
+
+
+def recommend_decide(day: date) -> tuple[str, ...]:
+    """REC1b's step: it commits and pushes its own receipt before it posts, so the step names no folder."""
+    return ("recommend", "decide", "--on", day.isoformat())
 
 
 def school_run(day: date) -> tuple[str, ...]:
@@ -193,12 +199,18 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
             "price_distribution", LiveFrom(price_distribution, live["price_distribution"]), alerts
         ),  # G13: its own receipts only  # fmt: skip
         "premium_ranges": Alerted("premium_ranges", LiveFrom(premium_ranges, live["premium_ranges"]), alerts),  # G13d
-        "school": Alerted(
-            "school",
+        SCHOOL_STEP: Alerted(
+            SCHOOL_STEP,
             StartsBy(CommandStep(processes, school_run, (), git.changed, waiting, locks), SCHOOL_STARTS_BY, now_ist),
             alerts,
             note=SCHOOL_NOT_RETRIED,
         ),  # MS-P1j2: never started late, never retried
+        "recommend": Alerted(
+            "recommend",
+            LiveFrom(CommandStep(processes, recommend_decide, (), git.changed, waiting, locks), live["recommend"]),
+            alerts,
+            status_alerts=False,  # the command alerts each failure itself; a raise is still alerted here
+        ),  # REC1b: it commits its own receipt, so no pathspec
         "price_distribution_scores": scores(DISTRIBUTION_SCORES, receipt_pathspecs(), "price_distribution_scores"),
         "price_ranges": Alerted("price_ranges", LiveFrom(price_ranges, live["price_ranges"]), alerts),  # G13b
         "price_range_scores": scores(RANGE_SCORES, range_receipts(), "price_range_scores"),

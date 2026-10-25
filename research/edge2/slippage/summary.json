@@ -1,0 +1,2695 @@
+{
+ "buckets": {
+  "BANKNIFTY-M | 1-2% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 132.74999999999864,
+    "n": 33,
+    "p75": 184.49999999999932,
+    "p95": 276.7500000000007
+   },
+   "half_spread_rs_per_unit": {
+    "median": 4.4249999999999545,
+    "n": 33,
+    "p75": 6.149999999999977,
+    "p95": 9.225000000000023
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 33,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.8484848484848485
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 33,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "BANKNIFTY-M | 1-2% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 8.25000000000017,
+    "n": 33,
+    "p75": 9.750000000000085,
+    "p95": 14.24999999999983
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.2750000000000057,
+    "n": 33,
+    "p75": 0.32500000000000284,
+    "p95": 0.4749999999999943
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 33,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 33,
+    "p75": 1.0,
+    "p95": 3.0
+   }
+  },
+  "BANKNIFTY-M | 1-2% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 158.24999999999932,
+    "n": 45,
+    "p75": 468.75,
+    "p95": 653.9999999999986
+   },
+   "half_spread_rs_per_unit": {
+    "median": 5.274999999999977,
+    "n": 45,
+    "p75": 15.625,
+    "p95": 21.799999999999955
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 45,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 45,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "BANKNIFTY-M | 1-2% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 77.25000000000136,
+    "n": 45,
+    "p75": 101.25,
+    "p95": 139.50000000000017
+   },
+   "half_spread_rs_per_unit": {
+    "median": 2.5750000000000455,
+    "n": 45,
+    "p75": 3.375,
+    "p95": 4.650000000000006
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 45,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.7777777777777778
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 45,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "BANKNIFTY-M | 1-2% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 120.00000000000085,
+    "n": 12,
+    "p75": 140.99999999999795,
+    "p95": 182.24999999999966
+   },
+   "half_spread_rs_per_unit": {
+    "median": 4.000000000000028,
+    "n": 12,
+    "p75": 4.699999999999932,
+    "p95": 6.074999999999989
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 12,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 12,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "BANKNIFTY-M | 1-2% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 10.875000000000128,
+    "n": 12,
+    "p75": 12.00000000000017,
+    "p95": 13.500000000000085
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.36250000000000426,
+    "n": 12,
+    "p75": 0.4000000000000057,
+    "p95": 0.45000000000000284
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 12,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 12,
+    "p75": 2.0,
+    "p95": 2.0
+   }
+  },
+  "BANKNIFTY-M | 2-4% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 356.25,
+    "n": 65,
+    "p75": 979.4999999999993,
+    "p95": 2923.5000000000014
+   },
+   "half_spread_rs_per_unit": {
+    "median": 11.875,
+    "n": 65,
+    "p75": 32.64999999999998,
+    "p95": 97.45000000000005
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 65,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 65,
+    "p75": 1.0,
+    "p95": 15.0
+   }
+  },
+  "BANKNIFTY-M | 2-4% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 3.0000000000000426,
+    "n": 65,
+    "p75": 4.499999999999957,
+    "p95": 6.750000000000043
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.10000000000000142,
+    "n": 65,
+    "p75": 0.14999999999999858,
+    "p95": 0.22500000000000142
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 65,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 65,
+    "p75": 2.0,
+    "p95": 6.0
+   }
+  },
+  "BANKNIFTY-M | 2-4% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 466.49999999999864,
+    "n": 87,
+    "p75": 722.9999999999973,
+    "p95": 1050.749999999996
+   },
+   "half_spread_rs_per_unit": {
+    "median": 15.549999999999955,
+    "n": 87,
+    "p75": 24.09999999999991,
+    "p95": 35.024999999999864
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 87,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 87,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "BANKNIFTY-M | 2-4% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 62.24999999999966,
+    "n": 87,
+    "p75": 76.50000000000034,
+    "p95": 104.24999999999983
+   },
+   "half_spread_rs_per_unit": {
+    "median": 2.0749999999999886,
+    "n": 87,
+    "p75": 2.5500000000000114,
+    "p95": 3.4749999999999943
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 87,
+   "share_above_pad": {
+    "rs_1": 0.9080459770114943,
+    "rs_2": 0.5632183908045977
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 87,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "BANKNIFTY-M | 2-4% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 457.87499999999966,
+    "n": 22,
+    "p75": 626.25,
+    "p95": 1685.999999999998
+   },
+   "half_spread_rs_per_unit": {
+    "median": 15.262499999999989,
+    "n": 22,
+    "p75": 20.875,
+    "p95": 56.19999999999993
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 22,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 22,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "BANKNIFTY-M | 2-4% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 3.75,
+    "n": 22,
+    "p75": 6.750000000000043,
+    "p95": 8.249999999999957
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.125,
+    "n": 22,
+    "p75": 0.22500000000000142,
+    "p95": 0.2749999999999986
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 22,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 22,
+    "p75": 2.0,
+    "p95": 2.0
+   }
+  },
+  "BANKNIFTY-M | 4% and more | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 1211.999999999996,
+    "n": 33,
+    "p75": 3565.500000000004,
+    "p95": 4289.250000000004
+   },
+   "half_spread_rs_per_unit": {
+    "median": 40.399999999999864,
+    "n": 33,
+    "p75": 118.85000000000014,
+    "p95": 142.97500000000014
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 33,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 33,
+    "p75": 15.0,
+    "p95": 15.0
+   }
+  },
+  "BANKNIFTY-M | 4% and more | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 1.5000000000000213,
+    "n": 33,
+    "p75": 2.250000000000032,
+    "p95": 3.75
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.05000000000000071,
+    "n": 33,
+    "p75": 0.07500000000000107,
+    "p95": 0.125
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 33,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 3.0,
+    "n": 33,
+    "p75": 5.0,
+    "p95": 7.0
+   }
+  },
+  "BANKNIFTY-M | 4% and more | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 673.5000000000014,
+    "n": 43,
+    "p75": 1041.7499999999973,
+    "p95": 1229.2499999999973
+   },
+   "half_spread_rs_per_unit": {
+    "median": 22.450000000000045,
+    "n": 43,
+    "p75": 34.72499999999991,
+    "p95": 40.97499999999991
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 43,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 43,
+    "p75": 2.0,
+    "p95": 2.0
+   }
+  },
+  "BANKNIFTY-M | 4% and more | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 46.499999999999915,
+    "n": 43,
+    "p75": 56.999999999999744,
+    "p95": 67.5
+   },
+   "half_spread_rs_per_unit": {
+    "median": 1.5499999999999972,
+    "n": 43,
+    "p75": 1.8999999999999915,
+    "p95": 2.25
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 43,
+   "share_above_pad": {
+    "rs_1": 0.7441860465116279,
+    "rs_2": 0.11627906976744186
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 43,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "BANKNIFTY-M | 4% and more | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 1156.4999999999986,
+    "n": 10,
+    "p75": 1226.999999999996,
+    "p95": 1617.0000000000027
+   },
+   "half_spread_rs_per_unit": {
+    "median": 38.549999999999955,
+    "n": 10,
+    "p75": 40.899999999999864,
+    "p95": 53.90000000000009
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 10,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 10,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "BANKNIFTY-M | 4% and more | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 3.3749999999999947,
+    "n": 10,
+    "p75": 3.75,
+    "p95": 5.999999999999979
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.11249999999999982,
+    "n": 10,
+    "p75": 0.125,
+    "p95": 0.1999999999999993
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 10,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 2.0,
+    "n": 10,
+    "p75": 4.0,
+    "p95": 4.0
+   }
+  },
+  "BANKNIFTY-M | under 1% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 27.75000000000034,
+    "n": 33,
+    "p75": 41.25,
+    "p95": 78.75
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.9250000000000114,
+    "n": 33,
+    "p75": 1.375,
+    "p95": 2.625
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 33,
+   "share_above_pad": {
+    "rs_1": 0.45454545454545453,
+    "rs_2": 0.18181818181818182
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 33,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "BANKNIFTY-M | under 1% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 15.0,
+    "n": 33,
+    "p75": 17.25000000000051,
+    "p95": 24.75000000000051
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.5,
+    "n": 33,
+    "p75": 0.575000000000017,
+    "p95": 0.825000000000017
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 33,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 33,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "BANKNIFTY-M | under 1% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 123.00000000000239,
+    "n": 44,
+    "p75": 225.74999999999932,
+    "p95": 341.25
+   },
+   "half_spread_rs_per_unit": {
+    "median": 4.10000000000008,
+    "n": 44,
+    "p75": 7.524999999999977,
+    "p95": 11.375
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 44,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.9090909090909091
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 44,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "BANKNIFTY-M | under 1% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 91.50000000000034,
+    "n": 44,
+    "p75": 116.99999999999932,
+    "p95": 135.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 3.0500000000000114,
+    "n": 44,
+    "p75": 3.8999999999999773,
+    "p95": 4.5
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 44,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.8409090909090909
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 44,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "BANKNIFTY-M | under 1% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 35.25000000000034,
+    "n": 11,
+    "p75": 47.24999999999966,
+    "p95": 54.74999999999966
+   },
+   "half_spread_rs_per_unit": {
+    "median": 1.1750000000000114,
+    "n": 11,
+    "p75": 1.5749999999999886,
+    "p95": 1.8249999999999886
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 11,
+   "share_above_pad": {
+    "rs_1": 0.8181818181818182,
+    "rs_2": 0.09090909090909091
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 11,
+    "p75": 2.0,
+    "p95": 3.0
+   }
+  },
+  "BANKNIFTY-M | under 1% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 17.99999999999983,
+    "n": 11,
+    "p75": 20.99999999999966,
+    "p95": 21.74999999999983
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.5999999999999943,
+    "n": 11,
+    "p75": 0.6999999999999886,
+    "p95": 0.7249999999999943
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 11,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 11,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "FINNIFTY-M | 1-2% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 359.24999999999983,
+    "n": 28,
+    "p75": 504.00000000000034,
+    "p95": 628.5000000000014
+   },
+   "half_spread_rs_per_unit": {
+    "median": 5.987499999999997,
+    "n": 28,
+    "p75": 8.400000000000006,
+    "p95": 10.475000000000023
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 28,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.9642857142857143
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 28,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "FINNIFTY-M | 1-2% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 26.250000000000107,
+    "n": 28,
+    "p75": 33.000000000000256,
+    "p95": 52.5
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.4375000000000018,
+    "n": 28,
+    "p75": 0.5500000000000043,
+    "p95": 0.875
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 28,
+   "share_above_pad": {
+    "rs_1": 0.07142857142857142,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 28,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "FINNIFTY-M | 1-2% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": null,
+   "half_spread_rs_per_unit": null,
+   "missing_two_sided_share": 1.0,
+   "quotes": 18,
+   "share_above_pad": {
+    "rs_1": null,
+    "rs_2": null
+   },
+   "touch_qty_in_lots": null
+  },
+  "FINNIFTY-M | 1-2% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 559.500000000001,
+    "n": 7,
+    "p75": 622.5000000000009,
+    "p95": 675.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 9.325000000000017,
+    "n": 7,
+    "p75": 10.375000000000014,
+    "p95": 11.25
+   },
+   "missing_two_sided_share": 0.6111111111111112,
+   "quotes": 18,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 3.0,
+    "n": 7,
+    "p75": 3.0,
+    "p95": 4.0
+   }
+  },
+  "FINNIFTY-M | 1-2% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 389.24999999999983,
+    "n": 10,
+    "p75": 460.5000000000007,
+    "p95": 541.4999999999986
+   },
+   "half_spread_rs_per_unit": {
+    "median": 6.487499999999997,
+    "n": 10,
+    "p75": 7.675000000000011,
+    "p95": 9.024999999999977
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 10,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 10,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "FINNIFTY-M | 1-2% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 44.25000000000004,
+    "n": 10,
+    "p75": 48.000000000000256,
+    "p95": 57.00000000000017
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.7375000000000007,
+    "n": 10,
+    "p75": 0.8000000000000043,
+    "p95": 0.9500000000000028
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 10,
+   "share_above_pad": {
+    "rs_1": 0.1,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 10,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "FINNIFTY-M | 2-4% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 1418.9999999999986,
+    "n": 59,
+    "p75": 3172.5,
+    "p95": 5850.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 23.649999999999977,
+    "n": 59,
+    "p75": 52.875,
+    "p95": 97.5
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 59,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 59,
+    "p75": 1.0,
+    "p95": 11.0
+   }
+  },
+  "FINNIFTY-M | 2-4% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 25.500000000000043,
+    "n": 59,
+    "p75": 52.5,
+    "p95": 366.00000000000006
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.4250000000000007,
+    "n": 59,
+    "p75": 0.875,
+    "p95": 6.1000000000000005
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 59,
+   "share_above_pad": {
+    "rs_1": 0.22033898305084745,
+    "rs_2": 0.1016949152542373
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 59,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "FINNIFTY-M | 2-4% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": null,
+   "half_spread_rs_per_unit": null,
+   "missing_two_sided_share": 1.0,
+   "quotes": 39,
+   "share_above_pad": {
+    "rs_1": null,
+    "rs_2": null
+   },
+   "touch_qty_in_lots": null
+  },
+  "FINNIFTY-M | 2-4% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 4578.0,
+    "n": 10,
+    "p75": 4948.5,
+    "p95": 6906.000000000001
+   },
+   "half_spread_rs_per_unit": {
+    "median": 76.30000000000001,
+    "n": 10,
+    "p75": 82.475,
+    "p95": 115.10000000000001
+   },
+   "missing_two_sided_share": 0.7435897435897436,
+   "quotes": 39,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 6.0,
+    "n": 10,
+    "p75": 8.0,
+    "p95": 8.0
+   }
+  },
+  "FINNIFTY-M | 2-4% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 2063.250000000001,
+    "n": 20,
+    "p75": 3452.9999999999973,
+    "p95": 4945.500000000001
+   },
+   "half_spread_rs_per_unit": {
+    "median": 34.38750000000002,
+    "n": 20,
+    "p75": 57.549999999999955,
+    "p95": 82.42500000000001
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 20,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 20,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "FINNIFTY-M | 2-4% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 42.75000000000002,
+    "n": 20,
+    "p75": 130.50000000000006,
+    "p95": 1741.5
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.7125000000000004,
+    "n": 20,
+    "p75": 2.1750000000000007,
+    "p95": 29.025
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 20,
+   "share_above_pad": {
+    "rs_1": 0.4,
+    "rs_2": 0.3
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 20,
+    "p75": 2.0,
+    "p95": 33.0
+   }
+  },
+  "FINNIFTY-M | 4% and more | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 3827.9999999999973,
+    "n": 30,
+    "p75": 5151.000000000002,
+    "p95": 8069.999999999996
+   },
+   "half_spread_rs_per_unit": {
+    "median": 63.799999999999955,
+    "n": 30,
+    "p75": 85.85000000000002,
+    "p95": 134.49999999999994
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 30,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 30,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "FINNIFTY-M | 4% and more | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 28.500000000000007,
+    "n": 30,
+    "p75": 47.999999999999986,
+    "p95": 310.5
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.4750000000000001,
+    "n": 30,
+    "p75": 0.7999999999999998,
+    "p95": 5.175
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 30,
+   "share_above_pad": {
+    "rs_1": 0.26666666666666666,
+    "rs_2": 0.13333333333333333
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 30,
+    "p75": 2.0,
+    "p95": 5.0
+   }
+  },
+  "FINNIFTY-M | 4% and more | 22-45 days | itm": {
+   "half_spread_rs_per_lot": null,
+   "half_spread_rs_per_unit": null,
+   "missing_two_sided_share": 1.0,
+   "quotes": 23,
+   "share_above_pad": {
+    "rs_1": null,
+    "rs_2": null
+   },
+   "touch_qty_in_lots": null
+  },
+  "FINNIFTY-M | 4% and more | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 4748.999999999999,
+    "n": 7,
+    "p75": 4911.0,
+    "p95": 4983.000000000001
+   },
+   "half_spread_rs_per_unit": {
+    "median": 79.14999999999999,
+    "n": 7,
+    "p75": 81.85,
+    "p95": 83.05000000000001
+   },
+   "missing_two_sided_share": 0.6956521739130435,
+   "quotes": 23,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 8.0,
+    "n": 7,
+    "p75": 8.0,
+    "p95": 8.0
+   }
+  },
+  "FINNIFTY-M | 4% and more | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 7600.500000000001,
+    "n": 10,
+    "p75": 9112.5,
+    "p95": 10777.500000000004
+   },
+   "half_spread_rs_per_unit": {
+    "median": 126.67500000000001,
+    "n": 10,
+    "p75": 151.875,
+    "p95": 179.62500000000006
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 10,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 10,
+    "p75": 16.0,
+    "p95": 53.0
+   }
+  },
+  "FINNIFTY-M | 4% and more | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 337.49999999999994,
+    "n": 10,
+    "p75": 390.0,
+    "p95": 555.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 5.624999999999999,
+    "n": 10,
+    "p75": 6.5,
+    "p95": 9.25
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 10,
+   "share_above_pad": {
+    "rs_1": 0.9,
+    "rs_2": 0.7
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 10,
+    "p75": 20.0,
+    "p95": 31.0
+   }
+  },
+  "FINNIFTY-M | under 1% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 112.5,
+    "n": 30,
+    "p75": 153.00000000000068,
+    "p95": 306.00000000000136
+   },
+   "half_spread_rs_per_unit": {
+    "median": 1.875,
+    "n": 30,
+    "p75": 2.5500000000000114,
+    "p95": 5.100000000000023
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 30,
+   "share_above_pad": {
+    "rs_1": 0.8666666666666667,
+    "rs_2": 0.4666666666666667
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 30,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "FINNIFTY-M | under 1% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 46.499999999999915,
+    "n": 30,
+    "p75": 54.00000000000034,
+    "p95": 72.00000000000017
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.7749999999999986,
+    "n": 30,
+    "p75": 0.9000000000000057,
+    "p95": 1.2000000000000028
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 30,
+   "share_above_pad": {
+    "rs_1": 0.16666666666666666,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 30,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "FINNIFTY-M | under 1% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 700.5000000000007,
+    "n": 3,
+    "p75": 700.5000000000007,
+    "p95": 700.5000000000007
+   },
+   "half_spread_rs_per_unit": {
+    "median": 11.675000000000011,
+    "n": 3,
+    "p75": 11.675000000000011,
+    "p95": 11.675000000000011
+   },
+   "missing_two_sided_share": 0.85,
+   "quotes": 20,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 3.0,
+    "n": 3,
+    "p75": 3.0,
+    "p95": 3.0
+   }
+  },
+  "FINNIFTY-M | under 1% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 657.0000000000002,
+    "n": 6,
+    "p75": 703.4999999999997,
+    "p95": 727.5
+   },
+   "half_spread_rs_per_unit": {
+    "median": 10.950000000000003,
+    "n": 6,
+    "p75": 11.724999999999994,
+    "p95": 12.125
+   },
+   "missing_two_sided_share": 0.7,
+   "quotes": 20,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 3.0,
+    "n": 6,
+    "p75": 3.0,
+    "p95": 4.0
+   }
+  },
+  "FINNIFTY-M | under 1% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 152.2500000000005,
+    "n": 10,
+    "p75": 157.5,
+    "p95": 175.50000000000068
+   },
+   "half_spread_rs_per_unit": {
+    "median": 2.5375000000000085,
+    "n": 10,
+    "p75": 2.625,
+    "p95": 2.9250000000000114
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 10,
+   "share_above_pad": {
+    "rs_1": 0.9,
+    "rs_2": 0.7
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 10,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "FINNIFTY-M | under 1% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 46.499999999999915,
+    "n": 10,
+    "p75": 55.49999999999983,
+    "p95": 70.50000000000068
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.7749999999999986,
+    "n": 10,
+    "p75": 0.9249999999999972,
+    "p95": 1.1750000000000114
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 10,
+   "share_above_pad": {
+    "rs_1": 0.3,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 10,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "MIDCPNIFTY-M | 1-2% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 175.50000000000068,
+    "n": 32,
+    "p75": 240.0,
+    "p95": 291.00000000000136
+   },
+   "half_spread_rs_per_unit": {
+    "median": 1.4625000000000057,
+    "n": 32,
+    "p75": 2.0,
+    "p95": 2.4250000000000114
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 32,
+   "share_above_pad": {
+    "rs_1": 0.875,
+    "rs_2": 0.25
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 32,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "MIDCPNIFTY-M | 1-2% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 32.99999999999983,
+    "n": 32,
+    "p75": 39.00000000000034,
+    "p95": 60.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.2749999999999986,
+    "n": 32,
+    "p75": 0.32500000000000284,
+    "p95": 0.5
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 32,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 32,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "MIDCPNIFTY-M | 1-2% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 4843.499999999998,
+    "n": 42,
+    "p75": 7247.999999999997,
+    "p95": 10737.000000000004
+   },
+   "half_spread_rs_per_unit": {
+    "median": 40.36249999999998,
+    "n": 42,
+    "p75": 60.39999999999998,
+    "p95": 89.47500000000002
+   },
+   "missing_two_sided_share": 0.023255813953488413,
+   "quotes": 43,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.9047619047619048
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 42,
+    "p75": 3.0,
+    "p95": 3.0
+   }
+  },
+  "MIDCPNIFTY-M | 1-2% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 1108.5000000000005,
+    "n": 42,
+    "p75": 1578.0000000000007,
+    "p95": 2610.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 9.237500000000004,
+    "n": 42,
+    "p75": 13.150000000000006,
+    "p95": 21.75
+   },
+   "missing_two_sided_share": 0.023255813953488413,
+   "quotes": 43,
+   "share_above_pad": {
+    "rs_1": 0.9523809523809523,
+    "rs_2": 0.8095238095238095
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 42,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "MIDCPNIFTY-M | 1-2% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 201.00000000000136,
+    "n": 11,
+    "p75": 204.00000000000205,
+    "p95": 210.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 1.6750000000000114,
+    "n": 11,
+    "p75": 1.700000000000017,
+    "p95": 1.75
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 11,
+   "share_above_pad": {
+    "rs_1": 0.8181818181818182,
+    "rs_2": 0.09090909090909091
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 11,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "MIDCPNIFTY-M | 1-2% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 32.99999999999983,
+    "n": 11,
+    "p75": 36.00000000000051,
+    "p95": 50.99999999999966
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.2749999999999986,
+    "n": 11,
+    "p75": 0.30000000000000426,
+    "p95": 0.42499999999999716
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 11,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 11,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "MIDCPNIFTY-M | 2-4% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 601.5000000000003,
+    "n": 62,
+    "p75": 1236.0000000000014,
+    "p95": 6780.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 5.012500000000003,
+    "n": 62,
+    "p75": 10.300000000000011,
+    "p95": 56.5
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 62,
+   "share_above_pad": {
+    "rs_1": 0.9838709677419355,
+    "rs_2": 0.7903225806451613
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 62,
+    "p75": 2.0,
+    "p95": 3.0
+   }
+  },
+  "MIDCPNIFTY-M | 2-4% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 27.000000000000117,
+    "n": 62,
+    "p75": 50.99999999999987,
+    "p95": 114.00000000000003
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.22500000000000098,
+    "n": 62,
+    "p75": 0.42499999999999893,
+    "p95": 0.9500000000000002
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 62,
+   "share_above_pad": {
+    "rs_1": 0.06451612903225806,
+    "rs_2": 0.016129032258064516
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 62,
+    "p75": 2.0,
+    "p95": 3.0
+   }
+  },
+  "MIDCPNIFTY-M | 2-4% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 9428.999999999998,
+    "n": 81,
+    "p75": 11490.000000000004,
+    "p95": 14493.000000000004
+   },
+   "half_spread_rs_per_unit": {
+    "median": 78.57499999999999,
+    "n": 81,
+    "p75": 95.75000000000003,
+    "p95": 120.77500000000003
+   },
+   "missing_two_sided_share": 0.0357142857142857,
+   "quotes": 84,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.9506172839506173
+   },
+   "touch_qty_in_lots": {
+    "median": 2.0,
+    "n": 81,
+    "p75": 2.0,
+    "p95": 3.0
+   }
+  },
+  "MIDCPNIFTY-M | 2-4% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 1345.4999999999998,
+    "n": 70,
+    "p75": 9480.0,
+    "p95": 18594.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 11.212499999999999,
+    "n": 70,
+    "p75": 79.0,
+    "p95": 154.95
+   },
+   "missing_two_sided_share": 0.16666666666666663,
+   "quotes": 84,
+   "share_above_pad": {
+    "rs_1": 0.9571428571428572,
+    "rs_2": 0.8428571428571429
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 70,
+    "p75": 3.0,
+    "p95": 9.0
+   }
+  },
+  "MIDCPNIFTY-M | 2-4% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 785.9999999999997,
+    "n": 22,
+    "p75": 929.9999999999966,
+    "p95": 1421.9999999999993
+   },
+   "half_spread_rs_per_unit": {
+    "median": 6.549999999999997,
+    "n": 22,
+    "p75": 7.749999999999972,
+    "p95": 11.849999999999994
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 22,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.8181818181818182
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 22,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "MIDCPNIFTY-M | 2-4% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 49.500000000000064,
+    "n": 22,
+    "p75": 89.99999999999989,
+    "p95": 183.00000000000006
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.41250000000000053,
+    "n": 22,
+    "p75": 0.7499999999999991,
+    "p95": 1.5250000000000004
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 22,
+   "share_above_pad": {
+    "rs_1": 0.18181818181818182,
+    "rs_2": 0.09090909090909091
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 22,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "MIDCPNIFTY-M | 4% and more | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 1314.0000000000055,
+    "n": 33,
+    "p75": 8337.000000000004,
+    "p95": 12633.000000000004
+   },
+   "half_spread_rs_per_unit": {
+    "median": 10.950000000000045,
+    "n": 33,
+    "p75": 69.47500000000002,
+    "p95": 105.27500000000003
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 33,
+   "share_above_pad": {
+    "rs_1": 0.9696969696969697,
+    "rs_2": 0.9696969696969697
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 33,
+    "p75": 3.0,
+    "p95": 17.0
+   }
+  },
+  "MIDCPNIFTY-M | 4% and more | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 21.000000000000032,
+    "n": 33,
+    "p75": 54.00000000000002,
+    "p95": 417.00000000000006
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.17500000000000027,
+    "n": 33,
+    "p75": 0.4500000000000002,
+    "p95": 3.4750000000000005
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 33,
+   "share_above_pad": {
+    "rs_1": 0.15151515151515152,
+    "rs_2": 0.09090909090909091
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 33,
+    "p75": 1.0,
+    "p95": 4.0
+   }
+  },
+  "MIDCPNIFTY-M | 4% and more | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 13845.0,
+    "n": 43,
+    "p75": 19158.000000000004,
+    "p95": 21636.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 115.375,
+    "n": 43,
+    "p75": 159.65000000000003,
+    "p95": 180.3
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 43,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 2.0,
+    "n": 43,
+    "p75": 2.0,
+    "p95": 2.0
+   }
+  },
+  "MIDCPNIFTY-M | 4% and more | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 8736.0,
+    "n": 32,
+    "p75": 11805.0,
+    "p95": 15062.999999999998
+   },
+   "half_spread_rs_per_unit": {
+    "median": 72.8,
+    "n": 32,
+    "p75": 98.375,
+    "p95": 125.52499999999999
+   },
+   "missing_two_sided_share": 0.2558139534883721,
+   "quotes": 43,
+   "share_above_pad": {
+    "rs_1": 0.875,
+    "rs_2": 0.84375
+   },
+   "touch_qty_in_lots": {
+    "median": 5.5,
+    "n": 32,
+    "p75": 9.0,
+    "p95": 22.0
+   }
+  },
+  "MIDCPNIFTY-M | 4% and more | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 1308.000000000004,
+    "n": 10,
+    "p75": 4581.000000000002,
+    "p95": 17396.999999999996
+   },
+   "half_spread_rs_per_unit": {
+    "median": 10.900000000000034,
+    "n": 10,
+    "p75": 38.17500000000001,
+    "p95": 144.97499999999997
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 10,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 1.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 10,
+    "p75": 1.0,
+    "p95": 47.0
+   }
+  },
+  "MIDCPNIFTY-M | 4% and more | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 47.999999999999986,
+    "n": 10,
+    "p75": 108.00000000000004,
+    "p95": 852.0000000000001
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.3999999999999999,
+    "n": 10,
+    "p75": 0.9000000000000004,
+    "p95": 7.1000000000000005
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 10,
+   "share_above_pad": {
+    "rs_1": 0.3,
+    "rs_2": 0.3
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 10,
+    "p75": 2.0,
+    "p95": 4.0
+   }
+  },
+  "MIDCPNIFTY-M | under 1% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 69.00000000000034,
+    "n": 32,
+    "p75": 77.99999999999898,
+    "p95": 197.99999999999898
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.5750000000000028,
+    "n": 32,
+    "p75": 0.6499999999999915,
+    "p95": 1.6499999999999915
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 32,
+   "share_above_pad": {
+    "rs_1": 0.15625,
+    "rs_2": 0.0625
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 32,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "MIDCPNIFTY-M | under 1% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 42.00000000000017,
+    "n": 32,
+    "p75": 47.99999999999983,
+    "p95": 54.00000000000034
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.3500000000000014,
+    "n": 32,
+    "p75": 0.3999999999999986,
+    "p95": 0.45000000000000284
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 32,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 32,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "MIDCPNIFTY-M | under 1% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 1623.0000000000007,
+    "n": 43,
+    "p75": 4365.0,
+    "p95": 7052.999999999997
+   },
+   "half_spread_rs_per_unit": {
+    "median": 13.525000000000006,
+    "n": 43,
+    "p75": 36.375,
+    "p95": 58.77499999999998
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 43,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.7906976744186046
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 43,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "MIDCPNIFTY-M | under 1% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 1307.999999999999,
+    "n": 42,
+    "p75": 1680.0,
+    "p95": 3125.9999999999995
+   },
+   "half_spread_rs_per_unit": {
+    "median": 10.899999999999991,
+    "n": 42,
+    "p75": 14.0,
+    "p95": 26.049999999999997
+   },
+   "missing_two_sided_share": 0.023255813953488413,
+   "quotes": 43,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.7619047619047619
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 42,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "MIDCPNIFTY-M | under 1% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 87.00000000000102,
+    "n": 11,
+    "p75": 93.00000000000068,
+    "p95": 105.0
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.7250000000000085,
+    "n": 11,
+    "p75": 0.7750000000000057,
+    "p95": 0.875
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 11,
+   "share_above_pad": {
+    "rs_1": 0.09090909090909091,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 11,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "MIDCPNIFTY-M | under 1% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 50.99999999999966,
+    "n": 11,
+    "p75": 60.0,
+    "p95": 62.99999999999898
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.42499999999999716,
+    "n": 11,
+    "p75": 0.5,
+    "p95": 0.5249999999999915
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 11,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 11,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "NIFTY-M | 1-2% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 34.12500000000037,
+    "n": 26,
+    "p75": 38.99999999999963,
+    "p95": 48.75
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.5250000000000057,
+    "n": 26,
+    "p75": 0.5999999999999943,
+    "p95": 0.75
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 26,
+   "share_above_pad": {
+    "rs_1": 0.038461538461538464,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 2.0,
+    "n": 26,
+    "p75": 4.0,
+    "p95": 5.0
+   }
+  },
+  "NIFTY-M | 1-2% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 4.0625,
+    "n": 26,
+    "p75": 4.874999999999954,
+    "p95": 6.500000000000092
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.0625,
+    "n": 26,
+    "p75": 0.07499999999999929,
+    "p95": 0.10000000000000142
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 26,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 12.0,
+    "n": 26,
+    "p75": 22.0,
+    "p95": 39.0
+   }
+  },
+  "NIFTY-M | 1-2% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 112.12499999999778,
+    "n": 63,
+    "p75": 180.37499999999852,
+    "p95": 279.50000000000074
+   },
+   "half_spread_rs_per_unit": {
+    "median": 1.724999999999966,
+    "n": 63,
+    "p75": 2.7749999999999773,
+    "p95": 4.300000000000011
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 63,
+   "share_above_pad": {
+    "rs_1": 0.8412698412698413,
+    "rs_2": 0.38095238095238093
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 63,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "NIFTY-M | 1-2% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 35.749999999999815,
+    "n": 63,
+    "p75": 48.75,
+    "p95": 63.37499999999963
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.5499999999999972,
+    "n": 63,
+    "p75": 0.75,
+    "p95": 0.9749999999999943
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 63,
+   "share_above_pad": {
+    "rs_1": 0.06349206349206349,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 63,
+    "p75": 1.0,
+    "p95": 4.0
+   }
+  },
+  "NIFTY-M | 1-2% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 50.37500000000037,
+    "n": 37,
+    "p75": 60.12500000000074,
+    "p95": 105.625
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.7750000000000057,
+    "n": 37,
+    "p75": 0.9250000000000114,
+    "p95": 1.625
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 37,
+   "share_above_pad": {
+    "rs_1": 0.1891891891891892,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 37,
+    "p75": 1.0,
+    "p95": 4.0
+   }
+  },
+  "NIFTY-M | 1-2% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 8.125,
+    "n": 37,
+    "p75": 9.75000000000037,
+    "p95": 13.000000000000185
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.125,
+    "n": 37,
+    "p75": 0.15000000000000568,
+    "p95": 0.20000000000000284
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 37,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 3.0,
+    "n": 37,
+    "p75": 4.0,
+    "p95": 6.0
+   }
+  },
+  "NIFTY-M | 2-4% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 84.50000000000074,
+    "n": 55,
+    "p75": 133.25000000000074,
+    "p95": 804.375
+   },
+   "half_spread_rs_per_unit": {
+    "median": 1.3000000000000114,
+    "n": 55,
+    "p75": 2.0500000000000114,
+    "p95": 12.375
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 55,
+   "share_above_pad": {
+    "rs_1": 0.7272727272727273,
+    "rs_2": 0.2727272727272727
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 55,
+    "p75": 2.0,
+    "p95": 3.0
+   }
+  },
+  "NIFTY-M | 2-4% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 1.625000000000023,
+    "n": 55,
+    "p75": 3.2499999999999885,
+    "p95": 3.250000000000046
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.025000000000000355,
+    "n": 55,
+    "p75": 0.04999999999999982,
+    "p95": 0.05000000000000071
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 55,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 37.0,
+    "n": 55,
+    "p75": 91.0,
+    "p95": 355.0
+   }
+  },
+  "NIFTY-M | 2-4% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 276.25,
+    "n": 128,
+    "p75": 469.6249999999978,
+    "p95": 823.874999999997
+   },
+   "half_spread_rs_per_unit": {
+    "median": 4.25,
+    "n": 128,
+    "p75": 7.224999999999966,
+    "p95": 12.674999999999955
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 128,
+   "share_above_pad": {
+    "rs_1": 0.9765625,
+    "rs_2": 0.7890625
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 128,
+    "p75": 2.0,
+    "p95": 10.0
+   }
+  },
+  "NIFTY-M | 2-4% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 28.43749999999977,
+    "n": 128,
+    "p75": 38.99999999999963,
+    "p95": 53.625000000000185
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.43749999999999645,
+    "n": 128,
+    "p75": 0.5999999999999943,
+    "p95": 0.8250000000000028
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 128,
+   "share_above_pad": {
+    "rs_1": 0.0078125,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 128,
+    "p75": 2.0,
+    "p95": 4.0
+   }
+  },
+  "NIFTY-M | 2-4% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 134.87499999999926,
+    "n": 73,
+    "p75": 227.5,
+    "p95": 388.3750000000015
+   },
+   "half_spread_rs_per_unit": {
+    "median": 2.0749999999999886,
+    "n": 73,
+    "p75": 3.5,
+    "p95": 5.975000000000023
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 73,
+   "share_above_pad": {
+    "rs_1": 0.8767123287671232,
+    "rs_2": 0.5342465753424658
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 73,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "NIFTY-M | 2-4% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 4.874999999999954,
+    "n": 73,
+    "p75": 4.875000000000185,
+    "p95": 8.125
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.07499999999999929,
+    "n": 73,
+    "p75": 0.07500000000000284,
+    "p95": 0.125
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 73,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 6.0,
+    "n": 73,
+    "p75": 13.0,
+    "p95": 25.0
+   }
+  },
+  "NIFTY-M | 4% and more | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 245.37500000000222,
+    "n": 27,
+    "p75": 788.125,
+    "p95": 1191.1249999999993
+   },
+   "half_spread_rs_per_unit": {
+    "median": 3.775000000000034,
+    "n": 27,
+    "p75": 12.125,
+    "p95": 18.32499999999999
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 27,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.9629629629629629
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 27,
+    "p75": 2.0,
+    "p95": 3.0
+   }
+  },
+  "NIFTY-M | 4% and more | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 1.625,
+    "n": 27,
+    "p75": 1.6250000000000087,
+    "p95": 1.625000000000023
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.025,
+    "n": 27,
+    "p75": 0.025000000000000133,
+    "p95": 0.025000000000000355
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 27,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 155.0,
+    "n": 27,
+    "p75": 479.0,
+    "p95": 1561.0
+   }
+  },
+  "NIFTY-M | 4% and more | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 715.0,
+    "n": 66,
+    "p75": 940.8749999999941,
+    "p95": 2986.7499999999955
+   },
+   "half_spread_rs_per_unit": {
+    "median": 11.0,
+    "n": 66,
+    "p75": 14.474999999999909,
+    "p95": 45.94999999999993
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 66,
+   "share_above_pad": {
+    "rs_1": 0.9848484848484849,
+    "rs_2": 0.9848484848484849
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 66,
+    "p75": 2.0,
+    "p95": 4.0
+   }
+  },
+  "NIFTY-M | 4% and more | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 19.499999999999815,
+    "n": 66,
+    "p75": 30.875000000000092,
+    "p95": 40.625
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.29999999999999716,
+    "n": 66,
+    "p75": 0.4750000000000014,
+    "p95": 0.625
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 66,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 66,
+    "p75": 2.0,
+    "p95": 4.0
+   }
+  },
+  "NIFTY-M | 4% and more | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 511.875,
+    "n": 39,
+    "p75": 791.3750000000044,
+    "p95": 1321.125000000003
+   },
+   "half_spread_rs_per_unit": {
+    "median": 7.875,
+    "n": 39,
+    "p75": 12.175000000000068,
+    "p95": 20.325000000000045
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 39,
+   "share_above_pad": {
+    "rs_1": 0.9743589743589743,
+    "rs_2": 0.9230769230769231
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 39,
+    "p75": 2.0,
+    "p95": 4.0
+   }
+  },
+  "NIFTY-M | 4% and more | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 3.2499999999999307,
+    "n": 39,
+    "p75": 3.2499999999999885,
+    "p95": 4.875000000000069
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.049999999999998934,
+    "n": 39,
+    "p75": 0.04999999999999982,
+    "p95": 0.07500000000000107
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 39,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 11.0,
+    "n": 39,
+    "p75": 21.0,
+    "p95": 86.0
+   }
+  },
+  "NIFTY-M | under 1% | 0-7 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 14.62499999999963,
+    "n": 28,
+    "p75": 17.87500000000037,
+    "p95": 21.12499999999926
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.22499999999999432,
+    "n": 28,
+    "p75": 0.2750000000000057,
+    "p95": 0.32499999999998863
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 28,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 2.5,
+    "n": 28,
+    "p75": 4.0,
+    "p95": 8.0
+   }
+  },
+  "NIFTY-M | under 1% | 0-7 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 8.125,
+    "n": 28,
+    "p75": 9.749999999999908,
+    "p95": 11.374999999999815
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.125,
+    "n": 28,
+    "p75": 0.14999999999999858,
+    "p95": 0.17499999999999716
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 28,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 4.0,
+    "n": 28,
+    "p75": 7.0,
+    "p95": 14.0
+   }
+  },
+  "NIFTY-M | under 1% | 22-45 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 63.375000000000554,
+    "n": 64,
+    "p75": 82.87500000000222,
+    "p95": 144.62499999999778
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.9750000000000085,
+    "n": 64,
+    "p75": 1.275000000000034,
+    "p95": 2.224999999999966
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 64,
+   "share_above_pad": {
+    "rs_1": 0.453125,
+    "rs_2": 0.09375
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 64,
+    "p75": 1.0,
+    "p95": 3.0
+   }
+  },
+  "NIFTY-M | under 1% | 22-45 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 42.249999999999446,
+    "n": 64,
+    "p75": 55.24999999999963,
+    "p95": 86.12500000000111
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.6499999999999915,
+    "n": 64,
+    "p75": 0.8499999999999943,
+    "p95": 1.325000000000017
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 64,
+   "share_above_pad": {
+    "rs_1": 0.140625,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 64,
+    "p75": 1.0,
+    "p95": 2.0
+   }
+  },
+  "NIFTY-M | under 1% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 25.999999999999908,
+    "n": 36,
+    "p75": 29.25000000000111,
+    "p95": 38.99999999999963
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.3999999999999986,
+    "n": 36,
+    "p75": 0.45000000000001705,
+    "p95": 0.5999999999999943
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 36,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 36,
+    "p75": 2.0,
+    "p95": 5.0
+   }
+  },
+  "NIFTY-M | under 1% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 14.62499999999963,
+    "n": 36,
+    "p75": 16.25,
+    "p95": 21.12499999999926
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.22499999999999432,
+    "n": 36,
+    "p75": 0.25,
+    "p95": 0.32499999999998863
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 36,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 36,
+    "p75": 2.0,
+    "p95": 4.0
+   }
+  },
+  "NIFTY-W | 1-2% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 89.375,
+    "n": 38,
+    "p75": 167.37499999999926,
+    "p95": 370.49999999999926
+   },
+   "half_spread_rs_per_unit": {
+    "median": 1.375,
+    "n": 38,
+    "p75": 2.5749999999999886,
+    "p95": 5.699999999999989
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 38,
+   "share_above_pad": {
+    "rs_1": 0.631578947368421,
+    "rs_2": 0.34210526315789475
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 38,
+    "p75": 1.0,
+    "p95": 1.0
+   }
+  },
+  "NIFTY-W | 1-2% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 21.124999999999954,
+    "n": 38,
+    "p75": 34.12500000000037,
+    "p95": 48.75
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.3249999999999993,
+    "n": 38,
+    "p75": 0.5250000000000057,
+    "p95": 0.75
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 38,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 38,
+    "p75": 2.0,
+    "p95": 4.0
+   }
+  },
+  "NIFTY-W | 2-4% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 402.99999999999926,
+    "n": 72,
+    "p75": 950.625,
+    "p95": 2076.749999999999
+   },
+   "half_spread_rs_per_unit": {
+    "median": 6.199999999999989,
+    "n": 72,
+    "p75": 14.625,
+    "p95": 31.94999999999999
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 72,
+   "share_above_pad": {
+    "rs_1": 0.9722222222222222,
+    "rs_2": 0.8333333333333334
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 72,
+    "p75": 1.0,
+    "p95": 4.0
+   }
+  },
+  "NIFTY-W | 2-4% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 12.187499999999769,
+    "n": 72,
+    "p75": 25.999999999999446,
+    "p95": 37.375000000000185
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.18749999999999645,
+    "n": 72,
+    "p75": 0.3999999999999915,
+    "p95": 0.5750000000000028
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 72,
+   "share_above_pad": {
+    "rs_1": 0.0,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 72,
+    "p75": 3.0,
+    "p95": 6.0
+   }
+  },
+  "NIFTY-W | 4% and more | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 1354.4374999999986,
+    "n": 34,
+    "p75": 2109.249999999999,
+    "p95": 2499.249999999999
+   },
+   "half_spread_rs_per_unit": {
+    "median": 20.837499999999977,
+    "n": 34,
+    "p75": 32.44999999999999,
+    "p95": 38.44999999999999
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 34,
+   "share_above_pad": {
+    "rs_1": 1.0,
+    "rs_2": 0.9705882352941176
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 34,
+    "p75": 1.0,
+    "p95": 4.0
+   }
+  },
+  "NIFTY-W | 4% and more | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 6.499999999999977,
+    "n": 34,
+    "p75": 16.25,
+    "p95": 39.00000000000009
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.09999999999999964,
+    "n": 34,
+    "p75": 0.25,
+    "p95": 0.6000000000000014
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 34,
+   "share_above_pad": {
+    "rs_1": 0.029411764705882353,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 3.0,
+    "n": 34,
+    "p75": 7.0,
+    "p95": 10.0
+   }
+  },
+  "NIFTY-W | under 1% | 8-21 days | itm": {
+   "half_spread_rs_per_lot": {
+    "median": 40.625,
+    "n": 36,
+    "p75": 69.87499999999926,
+    "p95": 91.00000000000037
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.625,
+    "n": 36,
+    "p75": 1.0749999999999886,
+    "p95": 1.4000000000000057
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 36,
+   "share_above_pad": {
+    "rs_1": 0.2777777777777778,
+    "rs_2": 0.027777777777777776
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 36,
+    "p75": 1.0,
+    "p95": 3.0
+   }
+  },
+  "NIFTY-W | under 1% | 8-21 days | otm": {
+   "half_spread_rs_per_lot": {
+    "median": 26.812500000000092,
+    "n": 36,
+    "p75": 40.625,
+    "p95": 56.875
+   },
+   "half_spread_rs_per_unit": {
+    "median": 0.4125000000000014,
+    "n": 36,
+    "p75": 0.625,
+    "p95": 0.875
+   },
+   "missing_two_sided_share": 0.0,
+   "quotes": 36,
+   "share_above_pad": {
+    "rs_1": 0.027777777777777776,
+    "rs_2": 0.0
+   },
+   "touch_qty_in_lots": {
+    "median": 1.0,
+    "n": 36,
+    "p75": 2.0,
+    "p95": 3.0
+   }
+  }
+ },
+ "descriptive": true,
+ "groww_quotes": 3966,
+ "nifty_monthly_source_check": {
+  "groww_median": 0.5749999999999886,
+  "nse_median": 0.5749999999999886,
+  "nse_minus_groww": {
+   "median": 0.0,
+   "n": 894,
+   "p75": 0.05000000000001137,
+   "p95": 0.5749999999999886
+  },
+  "pairs": 894
+ },
+ "nse_quotes": 916,
+ "nse_refused": [],
+ "sessions": [
+  "2026-10-13",
+  "2026-10-14",
+  "2026-10-15",
+  "2026-10-16",
+  "2026-10-19",
+  "2026-10-21",
+  "2026-10-22",
+  "2026-10-23"
+ ],
+ "skipped_captures": [
+  "BANKNIFTY-M capture_missing: 2026-10-13, 2026-10-14, 2026-10-15, 2026-10-16",
+  "FINNIFTY-M capture_missing: 2026-10-13, 2026-10-14, 2026-10-15, 2026-10-16",
+  "MIDCPNIFTY-M capture_missing: 2026-10-13, 2026-10-14, 2026-10-15, 2026-10-16",
+  "NIFTY-M capture_missing: 2026-10-13",
+  "NIFTY-W capture_missing: 2026-10-13, 2026-10-14, 2026-10-15, 2026-10-16, 2026-10-19, 2026-10-21"
+ ]
+}

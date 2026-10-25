@@ -1,0 +1,4242 @@
+{
+ "code_sha256": "a255a04c540cae2d2c3585c14b8b20540f6109191d4e3a234a4dae4d30e804a4",
+ "events": 56,
+ "exploratory": true,
+ "gamma": {
+  "EDGE2-F9-CONDOR-E0": [
+   {
+    "event": "2019-02-01",
+    "gap_pct": -0.0001536480435482268,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.006970865404313797,
+    "net": 238.9233226900002,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-01",
+    "gap_pct": 0.00127116302205188,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": 0.005328752233746403,
+    "net": -442.8072869800022,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-07",
+    "gap_pct": -0.003721020029396671,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -8.378214456805644e-05,
+    "net": -109.76162914799909,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-07",
+    "gap_pct": -0.0009242310848218693,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00031559110213419395,
+    "net": -503.68677808749953,
+    "status": "taken"
+   },
+   {
+    "event": "2019-04-04",
+    "gap_pct": 0.0006280723618488082,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005799366322792987,
+    "net": 743.9323926940007,
+    "status": "taken"
+   },
+   {
+    "event": "2019-04-04",
+    "gap_pct": 2.5576210713973424e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0042712271892171305,
+    "net": 259.23951856249914,
+    "status": "taken"
+   },
+   {
+    "event": "2019-05-23",
+    "gap_pct": 0.00960431025891939,
+    "index": "BANKNIFTY",
+    "kind": "election_result",
+    "move_pct": -0.004187080658889286,
+    "net": 5553.567004934,
+    "status": "taken"
+   },
+   {
+    "event": "2019-05-23",
+    "gap_pct": 0.009026749224429587,
+    "index": "NIFTY",
+    "kind": "election_result",
+    "move_pct": -0.007575339617116428,
+    "net": 5039.575217202501,
+    "status": "taken"
+   },
+   {
+    "event": "2019-06-06",
+    "gap_pct": -0.0012847417558452534,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.02216614097077796,
+    "net": -618.3775155859995,
+    "status": "taken"
+   },
+   {
+    "event": "2019-06-06",
+    "gap_pct": -0.0009497227556060084,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.014274872160681462,
+    "net": -248.20802491000103,
+    "status": "taken"
+   },
+   {
+    "event": "2019-07-05",
+    "gap_pct": 0.0006577237370120059,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.0014232190743054263,
+    "net": 639.568465728,
+    "status": "taken"
+   },
+   {
+    "event": "2019-07-05",
+    "gap_pct": 0.001193690967599359,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.013247465493566035,
+    "net": -310.88386749249804,
+    "status": "taken"
+   },
+   {
+    "event": "2019-08-07",
+    "gap_pct": -0.0003859870685437583,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.012853191508284456,
+    "net": -217.78001335600047,
+    "status": "taken"
+   },
+   {
+    "event": "2019-08-07",
+    "gap_pct": -0.0026096104712327595,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009509365905644107,
+    "net": -787.7311081149994,
+    "status": "taken"
+   },
+   {
+    "event": "2019-10-04",
+    "gap_pct": 0.008057163157553893,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.025099008254917066,
+    "net": -398.07020595400013,
+    "status": "taken"
+   },
+   {
+    "event": "2019-10-04",
+    "gap_pct": 0.005104824939710317,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.012907285817388092,
+    "net": -484.72552094499986,
+    "status": "taken"
+   },
+   {
+    "event": "2019-12-05",
+    "gap_pct": 0.0009070817838652268,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009924908590469794,
+    "net": -94.24580636199892,
+    "status": "taken"
+   },
+   {
+    "event": "2019-12-05",
+    "gap_pct": -0.0006120862214428202,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0034822743138842593,
+    "net": -226.5772369599993,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-01",
+    "gap_pct": -0.0046012418666140364,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.03438890918082693,
+    "net": 58.28996871400193,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-01",
+    "gap_pct": -0.0037851312706869145,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.028296774301126315,
+    "net": 408.8515603325004,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-06",
+    "gap_pct": 0.004819591405571977,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009098126108079363,
+    "net": -391.5880540580009,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-06",
+    "gap_pct": 0.000877026054292962,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.004141052265788536,
+    "net": -1139.8824846175,
+    "status": "taken"
+   },
+   {
+    "event": "2020-08-06",
+    "gap_pct": 0.005844426921471246,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0038475810566354074,
+    "net": 56.23130895249909,
+    "status": "taken"
+   },
+   {
+    "event": "2020-08-06",
+    "gap_pct": 0.00203723691311386,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007330455117827039,
+    "net": -1083.9646632474978,
+    "status": "taken"
+   },
+   {
+    "event": "2020-10-09",
+    "gap_pct": 0.0028574879122869046,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.03098810853709555,
+    "net": -2226.3515626925014,
+    "status": "taken"
+   },
+   {
+    "event": "2020-10-09",
+    "gap_pct": 0.002772190199293423,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.008282763400327964,
+    "net": -1476.2114594574982,
+    "status": "taken"
+   },
+   {
+    "event": "2020-12-04",
+    "gap_pct": -0.0065059474243625015,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.021960111298413798,
+    "net": -717.9993577824978,
+    "status": "taken"
+   },
+   {
+    "event": "2020-12-04",
+    "gap_pct": 0.0021490541508584204,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009077574411473721,
+    "net": -890.2548956424989,
+    "status": "taken"
+   },
+   {
+    "event": "2021-02-05",
+    "gap_pct": 0.00633202317828796,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.008879258770000398,
+    "net": -1367.8993097999994,
+    "status": "taken"
+   },
+   {
+    "event": "2021-02-05",
+    "gap_pct": 0.003665573484342488,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00236986710617737,
+    "net": -544.9142564350009,
+    "status": "taken"
+   },
+   {
+    "event": "2021-04-07",
+    "gap_pct": -0.004013269484010373,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.014066326007791119,
+    "net": -171.9309722074991,
+    "status": "taken"
+   },
+   {
+    "event": "2021-04-07",
+    "gap_pct": -9.829542180606055e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0092567171362814,
+    "net": -853.8421338474996,
+    "status": "taken"
+   },
+   {
+    "event": "2021-06-04",
+    "gap_pct": -0.00033396726561851775,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00764212123710406,
+    "net": -468.7569260325023,
+    "status": "taken"
+   },
+   {
+    "event": "2021-06-04",
+    "gap_pct": 0.00016229220233698882,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0007350882105852108,
+    "net": -360.42168797499926,
+    "status": "taken"
+   },
+   {
+    "event": "2021-08-06",
+    "gap_pct": -1.3906619829140432e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0003629627775412203,
+    "net": -898.187644585001,
+    "status": "taken"
+   },
+   {
+    "event": "2021-08-06",
+    "gap_pct": -0.0012024060390229963,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.003002947735212924,
+    "net": -217.94445351000059,
+    "status": "taken"
+   },
+   {
+    "event": "2021-10-08",
+    "gap_pct": 0.003791608048291817,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0008116390357464365,
+    "net": -177.10231920749885,
+    "status": "taken"
+   },
+   {
+    "event": "2021-10-08",
+    "gap_pct": 0.004248054963597925,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00516336621153779,
+    "net": -383.18585312000084,
+    "status": "taken"
+   },
+   {
+    "event": "2021-12-08",
+    "gap_pct": 0.008281466442779495,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.01789645853687749,
+    "net": -1221.8121494949996,
+    "status": "taken"
+   },
+   {
+    "event": "2021-12-08",
+    "gap_pct": 0.006827127381657139,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.016734009079615086,
+    "net": -1593.1745622099988,
+    "status": "taken"
+   },
+   {
+    "event": "2022-02-10",
+    "gap_pct": 0.0047979165105684896,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00903517180261626,
+    "net": -379.47684125000086,
+    "status": "taken"
+   },
+   {
+    "event": "2022-02-10",
+    "gap_pct": 0.00256576745622894,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007866065222552399,
+    "net": -655.1028441900005,
+    "status": "taken"
+   },
+   {
+    "event": "2022-04-08",
+    "gap_pct": -0.0008764938129068867,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.005856090837594419,
+    "net": -770.4953557175022,
+    "status": "taken"
+   },
+   {
+    "event": "2022-04-08",
+    "gap_pct": 0.000826266824964117,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.008369829134788676,
+    "net": -609.06421866,
+    "status": "taken"
+   },
+   {
+    "event": "2022-06-08",
+    "gap_pct": 0.003099067572496894,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.002292597574320543,
+    "net": 299.5187113700023,
+    "status": "taken"
+   },
+   {
+    "event": "2022-06-08",
+    "gap_pct": 0.002547286090357037,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.003922881446201232,
+    "net": -201.48805413999975,
+    "status": "taken"
+   },
+   {
+    "event": "2022-08-05",
+    "gap_pct": 0.002070344042465866,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.004975973948611934,
+    "net": -112.77837422749758,
+    "status": "taken"
+   },
+   {
+    "event": "2022-08-05",
+    "gap_pct": 0.0020157753833855985,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0016275732767423445,
+    "net": -378.1484568950009,
+    "status": "taken"
+   },
+   {
+    "event": "2022-09-30",
+    "gap_pct": -6.074804615807672e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.024987256116403733,
+    "net": -1108.0014324225003,
+    "status": "taken"
+   },
+   {
+    "event": "2022-09-30",
+    "gap_pct": -0.0010871308656056344,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.016033695116228097,
+    "net": -804.5926190399995,
+    "status": "taken"
+   },
+   {
+    "event": "2022-12-07",
+    "gap_pct": -0.0026738583177243758,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0029039666066852377,
+    "net": -120.85309594000182,
+    "status": "taken"
+   },
+   {
+    "event": "2022-12-07",
+    "gap_pct": -0.004858467824636836,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005385867292442947,
+    "net": -354.019785755001,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-01",
+    "gap_pct": 0.010638492176075154,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.00817399541925068,
+    "net": 359.74007712499827,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-01",
+    "gap_pct": 0.007098853002896144,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.006820742022569215,
+    "net": -158.8972260350012,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-08",
+    "gap_pct": -0.0020712361137126267,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0007900715146798021,
+    "net": -167.70768492999917,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-08",
+    "gap_pct": 0.0010909510112384613,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0071192988671542334,
+    "net": -505.1178405049998,
+    "status": "taken"
+   },
+   {
+    "event": "2023-04-06",
+    "gap_pct": -0.0034344215077912743,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0006647659464833477,
+    "net": -153.95403608249842,
+    "status": "taken"
+   },
+   {
+    "event": "2023-04-06",
+    "gap_pct": -0.0012597889002383678,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0012597889002383678,
+    "net": -239.22780373999979,
+    "status": "taken"
+   },
+   {
+    "event": "2023-06-08",
+    "gap_pct": 0.00010361667237313021,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005563764799163873,
+    "net": -623.9611130424993,
+    "status": "taken"
+   },
+   {
+    "event": "2023-06-08",
+    "gap_pct": 0.00067558941186463,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00470518767554684,
+    "net": -191.89607756500016,
+    "status": "taken"
+   },
+   {
+    "event": "2023-08-10",
+    "gap_pct": -0.0019209223980661827,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005751663596521905,
+    "net": -95.51808265150027,
+    "status": "taken"
+   },
+   {
+    "event": "2023-08-10",
+    "gap_pct": -0.002524175199089762,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.004713148057857941,
+    "net": -492.77210401499997,
+    "status": "taken"
+   },
+   {
+    "event": "2023-10-06",
+    "gap_pct": 0.0020557645845578065,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0022178840260562716,
+    "net": -27.509439530500572,
+    "status": "taken"
+   },
+   {
+    "event": "2023-10-06",
+    "gap_pct": 0.002146361406377695,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0056469746524938635,
+    "net": -830.1692571799989,
+    "status": "taken"
+   },
+   {
+    "event": "2023-12-08",
+    "gap_pct": 6.164029064459342e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009621199158716287,
+    "net": -424.58450225650057,
+    "status": "taken"
+   },
+   {
+    "event": "2023-12-08",
+    "gap_pct": 0.0025771725279115643,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.002101679441580906,
+    "net": -404.2315579300006,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-01",
+    "gap_pct": 0.0005806893797526413,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": 0.002437168437697368,
+    "net": 140.49462308150032,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-01",
+    "gap_pct": -0.00038746182698556897,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.002620525847601307,
+    "net": -135.68922141500013,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-08",
+    "gap_pct": 0.0031290712066920356,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.01993089380667179,
+    "net": -935.5958792979991,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-08",
+    "gap_pct": 0.0023314260783413587,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.008594009189363705,
+    "net": -504.96582890999946,
+    "status": "taken"
+   },
+   {
+    "event": "2024-04-05",
+    "gap_pct": -0.0006037457130941837,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00952299939210488,
+    "net": -545.0350401130003,
+    "status": "taken"
+   },
+   {
+    "event": "2024-04-05",
+    "gap_pct": -0.0018684562571172902,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0007407489303364878,
+    "net": -359.74501300999947,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-04",
+    "gap_pct": -0.009419291559296994,
+    "index": "BANKNIFTY",
+    "kind": "election_result",
+    "move_pct": -0.08179115711721519,
+    "net": -1514.112352588,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-04",
+    "gap_pct": -0.017425740882351715,
+    "index": "NIFTY",
+    "kind": "election_result",
+    "move_pct": -0.0640702497874649,
+    "net": -916.0797848149991,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-07",
+    "gap_pct": -0.006184795416272593,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009572020248504343,
+    "net": -430.55467688650083,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-07",
+    "gap_pct": 4.366907574393508e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.018587742090438786,
+    "net": -1085.2549009650002,
+    "status": "taken"
+   },
+   {
+    "event": "2024-07-23",
+    "gap_pct": 0.002271138562402797,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.008957370490116578,
+    "net": 1099.1385783860003,
+    "status": "taken"
+   },
+   {
+    "event": "2024-07-23",
+    "gap_pct": -0.00010963264941510342,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.0018373619948269804,
+    "net": -195.58079130499885,
+    "status": "taken"
+   },
+   {
+    "event": "2024-08-08",
+    "gap_pct": -0.002000369482347275,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.002677753785704118,
+    "net": 236.73586795400172,
+    "status": "taken"
+   },
+   {
+    "event": "2024-08-08",
+    "gap_pct": -0.0027681504691902115,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009435104416113171,
+    "net": -40.364920440000446,
+    "status": "taken"
+   },
+   {
+    "event": "2024-10-09",
+    "gap_pct": 0.0013134212190495376,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0003658121321205021,
+    "net": 25.8590998565017,
+    "status": "taken"
+   },
+   {
+    "event": "2024-10-09",
+    "gap_pct": 0.0021248107466083077,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0018999946282874935,
+    "net": -246.5120861874996,
+    "status": "taken"
+   },
+   {
+    "event": "2024-12-06",
+    "gap_pct": 0.00047228999164405927,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0008048492165295684,
+    "net": -40.10098762300083,
+    "status": "taken"
+   },
+   {
+    "event": "2024-12-06",
+    "gap_pct": -0.0001756557309195994,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0007631938653751558,
+    "net": -307.72730032999846,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-01",
+    "gap_pct": -0.002847860093859067,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.0018731699490593945,
+    "net": 887.4138319429958,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-01",
+    "gap_pct": -0.001532586514932155,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.0027370640384078992,
+    "net": 497.6260509800045,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-07",
+    "gap_pct": 0.0004307559767391389,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0050218638297366835,
+    "net": 61.65279032599898,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-07",
+    "gap_pct": 0.0009751402555626676,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0031217152337170706,
+    "net": -35.626955124999995,
+    "status": "taken"
+   },
+   {
+    "event": "2025-04-09",
+    "gap_pct": -0.003313097568950596,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005901331936133181,
+    "net": -338.594828955999,
+    "status": "taken"
+   },
+   {
+    "event": "2025-04-09",
+    "gap_pct": -0.003815672316159424,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.006659198819284562,
+    "net": -1267.4193176800009,
+    "status": "taken"
+   },
+   {
+    "event": "2025-06-06",
+    "gap_pct": -0.0007957976176031778,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.012954015030939736,
+    "net": -1348.1509010830014,
+    "status": "taken"
+   },
+   {
+    "event": "2025-06-06",
+    "gap_pct": -0.00026144947589434864,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009448381828859098,
+    "net": -1488.261155755001,
+    "status": "taken"
+   },
+   {
+    "event": "2025-08-06",
+    "gap_pct": 0.00021246254897455685,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0007490205116387205,
+    "net": -310.4653443635,
+    "status": "taken"
+   },
+   {
+    "event": "2025-08-06",
+    "gap_pct": 0.0,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0029504852718573726,
+    "net": -557.5023086200001,
+    "status": "taken"
+   },
+   {
+    "event": "2025-10-01",
+    "gap_pct": 0.0015923740552097332,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.011833738697961449,
+    "net": -1825.9687110765026,
+    "status": "taken"
+   },
+   {
+    "event": "2025-10-01",
+    "gap_pct": -0.0010694841857593618,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0076236061392429555,
+    "net": -976.4474136475019,
+    "status": "taken"
+   },
+   {
+    "event": "2025-12-05",
+    "gap_pct": 6.706548273727186e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.006914451270220168,
+    "net": -568.3629772515,
+    "status": "taken"
+   },
+   {
+    "event": "2025-12-05",
+    "gap_pct": -0.001321291505164801,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.005602123231436051,
+    "net": -952.6299189324995,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-01",
+    "gap_pct": 0.0006910527036185776,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.02015069622725285,
+    "net": -1156.2864167529992,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-01",
+    "gap_pct": 0.00033836420578836623,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.022147117609102818,
+    "net": -1415.072383335999,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-06",
+    "gap_pct": -0.0019052424039247562,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -3.983085165004674e-05,
+    "net": 155.80600656500025,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-06",
+    "gap_pct": -0.0031875607385811744,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00039261418853242525,
+    "net": -174.7351672959977,
+    "status": "taken"
+   },
+   {
+    "event": "2026-04-08",
+    "gap_pct": 0.04590261911606719,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.05778396453374879,
+    "net": -4569.3663007899995,
+    "status": "taken"
+   },
+   {
+    "event": "2026-04-08",
+    "gap_pct": 0.030192949795042168,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.039164445749878096,
+    "net": -2966.1323557200003,
+    "status": "taken"
+   },
+   {
+    "event": "2026-06-05",
+    "gap_pct": 0.0007946302040038322,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0030210595313513444,
+    "net": -496.47337393599696,
+    "status": "taken"
+   },
+   {
+    "event": "2026-06-05",
+    "gap_pct": 0.002058558328654758,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0025476785926945578,
+    "net": -775.8198738170038,
+    "status": "taken"
+   },
+   {
+    "event": "2026-08-05",
+    "gap_pct": 0.004567159420892475,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0020063621431689604,
+    "net": -355.6658696890034,
+    "status": "taken"
+   },
+   {
+    "event": "2026-08-05",
+    "gap_pct": 0.006491390965808197,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0037506719444853065,
+    "net": -979.4498230604986,
+    "status": "taken"
+   },
+   {
+    "event": "2026-10-07",
+    "gap_pct": -0.004478038785535654,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 3.982087844844884e-05,
+    "net": -392.59639009900343,
+    "status": "taken"
+   },
+   {
+    "event": "2026-10-07",
+    "gap_pct": -0.004623739877343769,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.007128631215069681,
+    "net": -812.677590693499,
+    "status": "taken"
+   },
+   {
+    "event": "2026-12-04",
+    "gap_pct": null,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": null,
+    "net": 0.0,
+    "status": "no_rows"
+   },
+   {
+    "event": "2026-12-04",
+    "gap_pct": null,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": null,
+    "net": 0.0,
+    "status": "no_rows"
+   }
+  ],
+  "EDGE2-F9-CONDOR-E1": [
+   {
+    "event": "2019-02-01",
+    "gap_pct": -0.0001536480435482268,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.0022535046387076596,
+    "net": 585.060317634001,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-01",
+    "gap_pct": 0.00127116302205188,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": 0.007488808238610201,
+    "net": -54.27619791250072,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-07",
+    "gap_pct": -0.003721020029396671,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.004200035334208874,
+    "net": 351.63337536,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-07",
+    "gap_pct": -0.0009242310848218693,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.011996970325419465,
+    "net": -171.7779748599994,
+    "status": "taken"
+   },
+   {
+    "event": "2019-04-04",
+    "gap_pct": 0.0006280723618488082,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0004747633601377421,
+    "net": 750.8716440200005,
+    "status": "taken"
+   },
+   {
+    "event": "2019-04-04",
+    "gap_pct": 2.5576210713973424e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0026514005106716976,
+    "net": 272.9573250799998,
+    "status": "taken"
+   },
+   {
+    "event": "2019-05-23",
+    "gap_pct": 0.009438247615202178,
+    "index": "BANKNIFTY",
+    "kind": "election_result",
+    "move_pct": 0.01887486710419828,
+    "net": 0.0,
+    "status": "no_straddle"
+   },
+   {
+    "event": "2019-05-23",
+    "gap_pct": 0.008876990873489143,
+    "index": "NIFTY",
+    "kind": "election_result",
+    "move_pct": 0.007100746868312635,
+    "net": 0.0,
+    "status": "untraded_leg_at_entry"
+   },
+   {
+    "event": "2019-06-06",
+    "gap_pct": -0.0012847417558452534,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.016609988432583433,
+    "net": 442.68566057399903,
+    "status": "taken"
+   },
+   {
+    "event": "2019-06-06",
+    "gap_pct": -0.0009497227556060084,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.012889687006216732,
+    "net": 291.4308475925004,
+    "status": "taken"
+   },
+   {
+    "event": "2019-07-05",
+    "gap_pct": 0.0006577237370120059,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.02722976271229416,
+    "net": -928.476733645999,
+    "status": "taken"
+   },
+   {
+    "event": "2019-07-05",
+    "gap_pct": 0.001193690967599359,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.034504346955044674,
+    "net": -4763.5353379075,
+    "status": "taken"
+   },
+   {
+    "event": "2019-08-07",
+    "gap_pct": -0.0003859870685437583,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0046300660802747196,
+    "net": -599.9092917959995,
+    "status": "taken"
+   },
+   {
+    "event": "2019-08-07",
+    "gap_pct": -0.0026096104712327595,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007769625591488971,
+    "net": -1167.68282809,
+    "status": "taken"
+   },
+   {
+    "event": "2019-10-04",
+    "gap_pct": 0.008057163157553893,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.024475995638911674,
+    "net": -504.7459526680003,
+    "status": "taken"
+   },
+   {
+    "event": "2019-10-04",
+    "gap_pct": 0.005104824939710317,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.017585241775070815,
+    "net": -286.4283332424992,
+    "status": "taken"
+   },
+   {
+    "event": "2019-12-05",
+    "gap_pct": 0.0009070817838652268,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.020654034020242684,
+    "net": -966.8450737740011,
+    "status": "taken"
+   },
+   {
+    "event": "2019-12-05",
+    "gap_pct": -0.0006120862214428202,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.011091994904795621,
+    "net": -645.7086288775002,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-01",
+    "gap_pct": -0.0046012418666140364,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.02925756287717407,
+    "net": 364.81227316800005,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-01",
+    "gap_pct": -0.0037851312706869145,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.024274030164328053,
+    "net": 1165.1819641849995,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-06",
+    "gap_pct": 0.004819591405571977,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.006120703953417683,
+    "net": 135.3957535079985,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-06",
+    "gap_pct": 0.000877026054292962,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0007942877472841836,
+    "net": -343.208557847501,
+    "status": "taken"
+   },
+   {
+    "event": "2020-08-06",
+    "gap_pct": 0.005844426921471246,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009849714736305026,
+    "net": 585.4360271174978,
+    "status": "taken"
+   },
+   {
+    "event": "2020-08-06",
+    "gap_pct": 0.00203723691311386,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009731966180967833,
+    "net": -788.8079368824997,
+    "status": "taken"
+   },
+   {
+    "event": "2020-10-09",
+    "gap_pct": 0.0028574879122869046,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.02511354470836369,
+    "net": -1712.1389227675022,
+    "status": "taken"
+   },
+   {
+    "event": "2020-10-09",
+    "gap_pct": 0.002772190199293423,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00900539224800978,
+    "net": -1182.699522767498,
+    "status": "taken"
+   },
+   {
+    "event": "2020-12-04",
+    "gap_pct": -0.0065059474243625015,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.025331559599488074,
+    "net": -438.9311662799962,
+    "status": "taken"
+   },
+   {
+    "event": "2020-12-04",
+    "gap_pct": 0.0021490541508584204,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.014838707232116777,
+    "net": -1608.1255692249997,
+    "status": "taken"
+   },
+   {
+    "event": "2021-02-05",
+    "gap_pct": 0.00633202317828796,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.018718857888015084,
+    "net": -1096.8056367400006,
+    "status": "taken"
+   },
+   {
+    "event": "2021-02-05",
+    "gap_pct": 0.003665573484342488,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.015518265767504591,
+    "net": -1573.4816487100022,
+    "status": "taken"
+   },
+   {
+    "event": "2021-04-07",
+    "gap_pct": -0.004013269484010373,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007774180178058199,
+    "net": 94.04211476500058,
+    "status": "taken"
+   },
+   {
+    "event": "2021-04-07",
+    "gap_pct": -9.829542180606055e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.011724271173342293,
+    "net": -628.7407861974975,
+    "status": "taken"
+   },
+   {
+    "event": "2021-06-04",
+    "gap_pct": -0.00033396726561851775,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.004464541479712536,
+    "net": 498.0945458900003,
+    "status": "taken"
+   },
+   {
+    "event": "2021-06-04",
+    "gap_pct": 0.00016229220233698882,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.004611007866398564,
+    "net": -698.8914494275001,
+    "status": "taken"
+   },
+   {
+    "event": "2021-08-06",
+    "gap_pct": -1.3906619829140432e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00485341032038078,
+    "net": -904.6152414850005,
+    "status": "taken"
+   },
+   {
+    "event": "2021-08-06",
+    "gap_pct": -0.0012024060390229963,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00231279120771255,
+    "net": 56.18379093499988,
+    "status": "taken"
+   },
+   {
+    "event": "2021-10-08",
+    "gap_pct": 0.003791608048291817,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.012858209959800693,
+    "net": -560.0799991225,
+    "status": "taken"
+   },
+   {
+    "event": "2021-10-08",
+    "gap_pct": 0.004248054963597925,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009259805201550897,
+    "net": -510.452852125,
+    "status": "taken"
+   },
+   {
+    "event": "2021-12-08",
+    "gap_pct": 0.008281466442779495,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.013159720993776158,
+    "net": -596.3880270275024,
+    "status": "taken"
+   },
+   {
+    "event": "2021-12-08",
+    "gap_pct": 0.006827127381657139,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.019506078233306523,
+    "net": -1825.1272994149986,
+    "status": "taken"
+   },
+   {
+    "event": "2022-02-10",
+    "gap_pct": 0.0047979165105684896,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.004826337125332425,
+    "net": -101.00122709249916,
+    "status": "taken"
+   },
+   {
+    "event": "2022-02-10",
+    "gap_pct": 0.00256576745622894,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0071137833485411806,
+    "net": -656.7209616000009,
+    "status": "taken"
+   },
+   {
+    "event": "2022-04-08",
+    "gap_pct": -0.0008764938129068867,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0003376222391107131,
+    "net": 125.16293033249764,
+    "status": "taken"
+   },
+   {
+    "event": "2022-04-08",
+    "gap_pct": 0.000826266824964117,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00036096298155408046,
+    "net": 250.0728010200005,
+    "status": "taken"
+   },
+   {
+    "event": "2022-06-08",
+    "gap_pct": 0.003099067572496894,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0011413117818712681,
+    "net": 895.4892987275009,
+    "status": "taken"
+   },
+   {
+    "event": "2022-06-08",
+    "gap_pct": 0.002547286090357037,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0028120577628316656,
+    "net": -198.31701819000045,
+    "status": "taken"
+   },
+   {
+    "event": "2022-08-05",
+    "gap_pct": 0.002070344042465866,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.013667712428683032,
+    "net": -181.26891023499616,
+    "status": "taken"
+   },
+   {
+    "event": "2022-08-05",
+    "gap_pct": 0.0020157753833855985,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009771190802773333,
+    "net": -730.1671005200008,
+    "status": "taken"
+   },
+   {
+    "event": "2022-09-30",
+    "gap_pct": -6.074804615807672e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007866871977454615,
+    "net": -354.78871999000114,
+    "status": "taken"
+   },
+   {
+    "event": "2022-09-30",
+    "gap_pct": -0.0010871308656056344,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0037039677306291985,
+    "net": -393.59577915499773,
+    "status": "taken"
+   },
+   {
+    "event": "2022-12-07",
+    "gap_pct": -0.0026738583177243758,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.006781291275674173,
+    "net": 303.0168589099977,
+    "status": "taken"
+   },
+   {
+    "event": "2022-12-07",
+    "gap_pct": -0.004858467824636836,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.002727560884006608,
+    "net": 370.40020119500036,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-01",
+    "gap_pct": 0.010638492176075154,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.003052615301066708,
+    "net": 989.7931098799997,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-01",
+    "gap_pct": 0.007098853002896144,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.006371269731131335,
+    "net": 198.8115007899986,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-08",
+    "gap_pct": -0.0020712361137126267,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.001801074881489173,
+    "net": 560.7515287200002,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-08",
+    "gap_pct": 0.0010909510112384613,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00917748479557301,
+    "net": -311.2508632399997,
+    "status": "taken"
+   },
+   {
+    "event": "2023-04-06",
+    "gap_pct": -0.0034344215077912743,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0039885956788999755,
+    "net": 512.7769839100011,
+    "status": "taken"
+   },
+   {
+    "event": "2023-04-06",
+    "gap_pct": -0.0012597889002383678,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0033764612416298245,
+    "net": -55.335694964999675,
+    "status": "taken"
+   },
+   {
+    "event": "2023-06-08",
+    "gap_pct": 0.00010361667237313021,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.006227136755987295,
+    "net": 2.837833555001822,
+    "status": "taken"
+   },
+   {
+    "event": "2023-06-08",
+    "gap_pct": 0.00067558941186463,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00887575538343699,
+    "net": -94.84411535999874,
+    "status": "taken"
+   },
+   {
+    "event": "2023-08-10",
+    "gap_pct": -0.0019209223980661827,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.012571493289540658,
+    "net": -550.43444677,
+    "status": "taken"
+   },
+   {
+    "event": "2023-08-10",
+    "gap_pct": -0.002524175199089762,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009408520234032158,
+    "net": -526.2232359800006,
+    "status": "taken"
+   },
+   {
+    "event": "2023-10-06",
+    "gap_pct": 0.0020557645845578065,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009034781375178214,
+    "net": 103.7871071854997,
+    "status": "taken"
+   },
+   {
+    "event": "2023-10-06",
+    "gap_pct": 0.002146361406377695,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0014743458708094126,
+    "net": -348.77960885500005,
+    "status": "taken"
+   },
+   {
+    "event": "2023-12-08",
+    "gap_pct": 6.164029064459342e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009452219741259427,
+    "net": -332.9081480694996,
+    "status": "taken"
+   },
+   {
+    "event": "2023-12-08",
+    "gap_pct": 0.0025771725279115643,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0025510204081633514,
+    "net": -58.00334043000021,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-01",
+    "gap_pct": 0.0005806893797526413,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.0018910182032089162,
+    "net": 148.20066865400048,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-01",
+    "gap_pct": -0.00038746182698556897,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": 0.006547875608704956,
+    "net": -467.2129680750013,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-08",
+    "gap_pct": 0.0031290712066920356,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005036644924661604,
+    "net": -3.4963297075011326,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-08",
+    "gap_pct": 0.0023314260783413587,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.007321495930230015,
+    "net": -133.25203730500016,
+    "status": "taken"
+   },
+   {
+    "event": "2024-04-05",
+    "gap_pct": -0.0006037457130941837,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.010208696842887166,
+    "net": -433.5742471615006,
+    "status": "taken"
+   },
+   {
+    "event": "2024-04-05",
+    "gap_pct": -0.0018684562571172902,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00602549503034866,
+    "net": -799.8424420800004,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-04",
+    "gap_pct": -0.009419291559296994,
+    "index": "BANKNIFTY",
+    "kind": "election_result",
+    "move_pct": -0.04222447767829729,
+    "net": -1020.2272041235007,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-04",
+    "gap_pct": -0.017425740882351715,
+    "index": "NIFTY",
+    "kind": "election_result",
+    "move_pct": -0.03268127427065226,
+    "net": -462.9291213724987,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-07",
+    "gap_pct": -0.006184795416272593,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.005996672448582263,
+    "net": -132.9548129439994,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-07",
+    "gap_pct": 4.366907574393508e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.015181554182405854,
+    "net": -993.7116846549998,
+    "status": "taken"
+   },
+   {
+    "event": "2024-07-23",
+    "gap_pct": 0.002271138562402797,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.016934565390143486,
+    "net": 716.5000722500002,
+    "status": "taken"
+   },
+   {
+    "event": "2024-07-23",
+    "gap_pct": -0.00010963264941510342,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.005501934813238796,
+    "net": -291.4057594925011,
+    "status": "taken"
+   },
+   {
+    "event": "2024-08-08",
+    "gap_pct": -0.002000369482347275,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.004636407519164498,
+    "net": 273.0653314294998,
+    "status": "taken"
+   },
+   {
+    "event": "2024-08-08",
+    "gap_pct": -0.0027681504691902115,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0014384532831002161,
+    "net": -204.33065177750007,
+    "status": "taken"
+   },
+   {
+    "event": "2024-10-09",
+    "gap_pct": 0.0013134212190495376,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007558495889477879,
+    "net": -49.14966288999966,
+    "status": "taken"
+   },
+   {
+    "event": "2024-10-09",
+    "gap_pct": 0.0021248107466083077,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0005471188720199693,
+    "net": -33.957719497498374,
+    "status": "taken"
+   },
+   {
+    "event": "2024-12-06",
+    "gap_pct": 0.00047228999164405927,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0026763099526498912,
+    "net": 172.59673278799988,
+    "status": "taken"
+   },
+   {
+    "event": "2024-12-06",
+    "gap_pct": -0.0001756557309195994,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0028165487888840435,
+    "net": -214.33212270499945,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-01",
+    "gap_pct": -0.002847860093859067,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.007156752637278885,
+    "net": 1191.144299671997,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-01",
+    "gap_pct": -0.001532586514932155,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.0075126374882515945,
+    "net": 904.319905100002,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-07",
+    "gap_pct": 0.0004307559767391389,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00740090142603933,
+    "net": 237.70491345200026,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-07",
+    "gap_pct": 0.0009751402555626676,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00969863522578085,
+    "net": -41.91250942750139,
+    "status": "taken"
+   },
+   {
+    "event": "2025-04-09",
+    "gap_pct": -0.003313097568950596,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00775780902218326,
+    "net": -199.74249967599928,
+    "status": "taken"
+   },
+   {
+    "event": "2025-04-09",
+    "gap_pct": -0.003815672316159424,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.012695340549306655,
+    "net": -1858.7188062849987,
+    "status": "taken"
+   },
+   {
+    "event": "2025-06-06",
+    "gap_pct": -0.0007957976176031778,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.017036492495235755,
+    "net": -1600.8974322070007,
+    "status": "taken"
+   },
+   {
+    "event": "2025-06-06",
+    "gap_pct": -0.00026144947589434864,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.012887448011777103,
+    "net": -1377.275045327503,
+    "status": "taken"
+   },
+   {
+    "event": "2025-08-06",
+    "gap_pct": 0.00021246254897455685,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.003932357686102783,
+    "net": -90.49638127900079,
+    "status": "taken"
+   },
+   {
+    "event": "2025-08-06",
+    "gap_pct": 0.0,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0013922728854854904,
+    "net": -637.9143694975022,
+    "status": "taken"
+   },
+   {
+    "event": "2025-10-01",
+    "gap_pct": 0.0015923740552097332,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0153056958274711,
+    "net": -1969.9606973124983,
+    "status": "taken"
+   },
+   {
+    "event": "2025-10-01",
+    "gap_pct": -0.0010694841857593618,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009213707155050876,
+    "net": -808.5191596824995,
+    "status": "taken"
+   },
+   {
+    "event": "2025-12-05",
+    "gap_pct": 6.706548273727186e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0015123266357270904,
+    "net": -219.4415374965008,
+    "status": "taken"
+   },
+   {
+    "event": "2025-12-05",
+    "gap_pct": -0.001321291505164801,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0046512515991063985,
+    "net": -496.54196278750106,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-01",
+    "gap_pct": 0.0006910527036185776,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.017790434094604013,
+    "net": -356.58218550700406,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-01",
+    "gap_pct": 0.00033836420578836623,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.01080404778017352,
+    "net": -168.70480577699885,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-06",
+    "gap_pct": -0.0019052424039247562,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007853316250323594,
+    "net": -292.3553713869998,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-06",
+    "gap_pct": -0.0031875607385811744,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007401360544217805,
+    "net": -568.1237738614999,
+    "status": "taken"
+   },
+   {
+    "event": "2026-04-08",
+    "gap_pct": 0.04590261911606719,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.041745472152032725,
+    "net": -2344.655689842997,
+    "status": "taken"
+   },
+   {
+    "event": "2026-04-08",
+    "gap_pct": 0.030192949795042168,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0306767281036322,
+    "net": -2338.444988367501,
+    "status": "taken"
+   },
+   {
+    "event": "2026-06-05",
+    "gap_pct": 0.0007946302040038322,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.006858720608752589,
+    "net": -288.81137715699833,
+    "status": "taken"
+   },
+   {
+    "event": "2026-06-05",
+    "gap_pct": 0.002058558328654758,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.014333350346212081,
+    "net": -673.5533209350053,
+    "status": "taken"
+   },
+   {
+    "event": "2026-08-05",
+    "gap_pct": 0.004567159420892475,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.008025448572676064,
+    "net": -305.79497181700015,
+    "status": "taken"
+   },
+   {
+    "event": "2026-08-05",
+    "gap_pct": 0.006491390965808197,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007485054325693685,
+    "net": -1461.5294777664994,
+    "status": "taken"
+   },
+   {
+    "event": "2026-10-07",
+    "gap_pct": -0.004478038785535654,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009205863081339527,
+    "net": -361.90404236199913,
+    "status": "taken"
+   },
+   {
+    "event": "2026-10-07",
+    "gap_pct": -0.004623739877343769,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.022030760592049337,
+    "net": -2249.0629016645007,
+    "status": "taken"
+   },
+   {
+    "event": "2026-12-04",
+    "gap_pct": null,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": null,
+    "net": 0.0,
+    "status": "no_rows"
+   },
+   {
+    "event": "2026-12-04",
+    "gap_pct": null,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": null,
+    "net": 0.0,
+    "status": "no_rows"
+   }
+  ],
+  "EDGE2-F9-FLY-E0": [
+   {
+    "event": "2019-02-01",
+    "gap_pct": -0.0001536480435482268,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.006970865404313797,
+    "net": 262.22446150600035,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-01",
+    "gap_pct": 0.00127116302205188,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": 0.005328752233746403,
+    "net": -841.3944484,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-07",
+    "gap_pct": -0.003721020029396671,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -8.378214456805644e-05,
+    "net": -210.5563137320004,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-07",
+    "gap_pct": -0.0009242310848218693,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00031559110213419395,
+    "net": -679.3237356025004,
+    "status": "taken"
+   },
+   {
+    "event": "2019-04-04",
+    "gap_pct": 0.0006280723618488082,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005799366322792987,
+    "net": 742.1935409339982,
+    "status": "taken"
+   },
+   {
+    "event": "2019-04-04",
+    "gap_pct": 2.5576210713973424e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0042712271892171305,
+    "net": 156.90243688999874,
+    "status": "taken"
+   },
+   {
+    "event": "2019-05-23",
+    "gap_pct": 0.00960431025891939,
+    "index": "BANKNIFTY",
+    "kind": "election_result",
+    "move_pct": -0.004187080658889286,
+    "net": 3771.2620709039993,
+    "status": "taken"
+   },
+   {
+    "event": "2019-05-23",
+    "gap_pct": 0.009026749224429587,
+    "index": "NIFTY",
+    "kind": "election_result",
+    "move_pct": -0.007575339617116428,
+    "net": 2508.240332712501,
+    "status": "taken"
+   },
+   {
+    "event": "2019-06-06",
+    "gap_pct": -0.0012847417558452534,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.02216614097077796,
+    "net": -88.29152663399887,
+    "status": "taken"
+   },
+   {
+    "event": "2019-06-06",
+    "gap_pct": -0.0009497227556060084,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.014274872160681462,
+    "net": -117.62899476999678,
+    "status": "taken"
+   },
+   {
+    "event": "2019-07-05",
+    "gap_pct": 0.0006577237370120059,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.0014232190743054263,
+    "net": 210.79392352399884,
+    "status": "taken"
+   },
+   {
+    "event": "2019-07-05",
+    "gap_pct": 0.001193690967599359,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.013247465493566035,
+    "net": -580.8287169849982,
+    "status": "taken"
+   },
+   {
+    "event": "2019-08-07",
+    "gap_pct": -0.0003859870685437583,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.012853191508284456,
+    "net": -441.66853796799944,
+    "status": "taken"
+   },
+   {
+    "event": "2019-08-07",
+    "gap_pct": -0.0026096104712327595,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009509365905644107,
+    "net": -488.5038823374997,
+    "status": "taken"
+   },
+   {
+    "event": "2019-10-04",
+    "gap_pct": 0.008057163157553893,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.025099008254917066,
+    "net": 13.136396620002984,
+    "status": "taken"
+   },
+   {
+    "event": "2019-10-04",
+    "gap_pct": 0.005104824939710317,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.012907285817388092,
+    "net": -659.989695197499,
+    "status": "taken"
+   },
+   {
+    "event": "2019-12-05",
+    "gap_pct": 0.0009070817838652268,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009924908590469794,
+    "net": -263.2565509199997,
+    "status": "taken"
+   },
+   {
+    "event": "2019-12-05",
+    "gap_pct": -0.0006120862214428202,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0034822743138842593,
+    "net": -409.6997912200004,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-01",
+    "gap_pct": -0.0046012418666140364,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.03438890918082693,
+    "net": -339.1128324160002,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-01",
+    "gap_pct": -0.0037851312706869145,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.028296774301126315,
+    "net": -995.3931935875005,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-06",
+    "gap_pct": 0.004819591405571977,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009098126108079363,
+    "net": -212.50385773800093,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-06",
+    "gap_pct": 0.000877026054292962,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.004141052265788536,
+    "net": -1533.3574619124993,
+    "status": "taken"
+   },
+   {
+    "event": "2020-08-06",
+    "gap_pct": 0.005844426921471246,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0038475810566354074,
+    "net": -123.72442983750057,
+    "status": "taken"
+   },
+   {
+    "event": "2020-08-06",
+    "gap_pct": 0.00203723691311386,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007330455117827039,
+    "net": -1379.905661395002,
+    "status": "taken"
+   },
+   {
+    "event": "2020-10-09",
+    "gap_pct": 0.0028574879122869046,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.03098810853709555,
+    "net": -1220.9601033925044,
+    "status": "taken"
+   },
+   {
+    "event": "2020-10-09",
+    "gap_pct": 0.002772190199293423,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.008282763400327964,
+    "net": -1242.6657798999981,
+    "status": "taken"
+   },
+   {
+    "event": "2020-12-04",
+    "gap_pct": -0.0065059474243625015,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.021960111298413798,
+    "net": -839.4013214150023,
+    "status": "taken"
+   },
+   {
+    "event": "2020-12-04",
+    "gap_pct": 0.0021490541508584204,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009077574411473721,
+    "net": -856.4473345449987,
+    "status": "taken"
+   },
+   {
+    "event": "2021-02-05",
+    "gap_pct": 0.00633202317828796,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.008879258770000398,
+    "net": -826.8491115599945,
+    "status": "taken"
+   },
+   {
+    "event": "2021-02-05",
+    "gap_pct": 0.003665573484342488,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00236986710617737,
+    "net": -790.2793105900025,
+    "status": "taken"
+   },
+   {
+    "event": "2021-04-07",
+    "gap_pct": -0.004013269484010373,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.014066326007791119,
+    "net": -27.097346697503212,
+    "status": "taken"
+   },
+   {
+    "event": "2021-04-07",
+    "gap_pct": -9.829542180606055e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0092567171362814,
+    "net": -1209.144189339996,
+    "status": "taken"
+   },
+   {
+    "event": "2021-06-04",
+    "gap_pct": -0.00033396726561851775,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00764212123710406,
+    "net": -808.8265037625004,
+    "status": "taken"
+   },
+   {
+    "event": "2021-06-04",
+    "gap_pct": 0.00016229220233698882,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0007350882105852108,
+    "net": -502.94288742249955,
+    "status": "taken"
+   },
+   {
+    "event": "2021-08-06",
+    "gap_pct": -1.3906619829140432e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0003629627775412203,
+    "net": -477.43656822249943,
+    "status": "taken"
+   },
+   {
+    "event": "2021-08-06",
+    "gap_pct": -0.0012024060390229963,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.003002947735212924,
+    "net": -277.7885752099994,
+    "status": "taken"
+   },
+   {
+    "event": "2021-10-08",
+    "gap_pct": 0.003791608048291817,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0008116390357464365,
+    "net": -300.9273781300023,
+    "status": "taken"
+   },
+   {
+    "event": "2021-10-08",
+    "gap_pct": 0.004248054963597925,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00516336621153779,
+    "net": -577.9313084400004,
+    "status": "taken"
+   },
+   {
+    "event": "2021-12-08",
+    "gap_pct": 0.008281466442779495,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.01789645853687749,
+    "net": -1007.6302550174994,
+    "status": "taken"
+   },
+   {
+    "event": "2021-12-08",
+    "gap_pct": 0.006827127381657139,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.016734009079615086,
+    "net": -960.3379940349997,
+    "status": "taken"
+   },
+   {
+    "event": "2022-02-10",
+    "gap_pct": 0.0047979165105684896,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00903517180261626,
+    "net": 409.56735135249903,
+    "status": "taken"
+   },
+   {
+    "event": "2022-02-10",
+    "gap_pct": 0.00256576745622894,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007866065222552399,
+    "net": -582.3050012800013,
+    "status": "taken"
+   },
+   {
+    "event": "2022-04-08",
+    "gap_pct": -0.0008764938129068867,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.005856090837594419,
+    "net": -756.3419412024989,
+    "status": "taken"
+   },
+   {
+    "event": "2022-04-08",
+    "gap_pct": 0.000826266824964117,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.008369829134788676,
+    "net": -511.8661720299992,
+    "status": "taken"
+   },
+   {
+    "event": "2022-06-08",
+    "gap_pct": 0.003099067572496894,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.002292597574320543,
+    "net": -112.48784223999797,
+    "status": "taken"
+   },
+   {
+    "event": "2022-06-08",
+    "gap_pct": 0.002547286090357037,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.003922881446201232,
+    "net": -577.0142729500014,
+    "status": "taken"
+   },
+   {
+    "event": "2022-08-05",
+    "gap_pct": 0.002070344042465866,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.004975973948611934,
+    "net": -23.32940409750171,
+    "status": "taken"
+   },
+   {
+    "event": "2022-08-05",
+    "gap_pct": 0.0020157753833855985,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0016275732767423445,
+    "net": -616.7470878750006,
+    "status": "taken"
+   },
+   {
+    "event": "2022-09-30",
+    "gap_pct": -6.074804615807672e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.024987256116403733,
+    "net": -601.2777409625039,
+    "status": "taken"
+   },
+   {
+    "event": "2022-09-30",
+    "gap_pct": -0.0010871308656056344,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.016033695116228097,
+    "net": -691.0604091300027,
+    "status": "taken"
+   },
+   {
+    "event": "2022-12-07",
+    "gap_pct": -0.0026738583177243758,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0029039666066852377,
+    "net": -305.8076345224997,
+    "status": "taken"
+   },
+   {
+    "event": "2022-12-07",
+    "gap_pct": -0.004858467824636836,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005385867292442947,
+    "net": -349.59358631500174,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-01",
+    "gap_pct": 0.010638492176075154,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.00817399541925068,
+    "net": 469.93811425500144,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-01",
+    "gap_pct": 0.007098853002896144,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.006820742022569215,
+    "net": -127.68837984500021,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-08",
+    "gap_pct": -0.0020712361137126267,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0007900715146798021,
+    "net": 97.51676310750088,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-08",
+    "gap_pct": 0.0010909510112384613,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0071192988671542334,
+    "net": -538.9018715749993,
+    "status": "taken"
+   },
+   {
+    "event": "2023-04-06",
+    "gap_pct": -0.0034344215077912743,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0006647659464833477,
+    "net": -86.87817753249772,
+    "status": "taken"
+   },
+   {
+    "event": "2023-04-06",
+    "gap_pct": -0.0012597889002383678,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0012597889002383678,
+    "net": -399.04612211000034,
+    "status": "taken"
+   },
+   {
+    "event": "2023-06-08",
+    "gap_pct": 0.00010361667237313021,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005563764799163873,
+    "net": -587.3874797274988,
+    "status": "taken"
+   },
+   {
+    "event": "2023-06-08",
+    "gap_pct": 0.00067558941186463,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00470518767554684,
+    "net": -269.49109582999824,
+    "status": "taken"
+   },
+   {
+    "event": "2023-08-10",
+    "gap_pct": -0.0019209223980661827,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005751663596521905,
+    "net": -172.02670651750023,
+    "status": "taken"
+   },
+   {
+    "event": "2023-08-10",
+    "gap_pct": -0.002524175199089762,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.004713148057857941,
+    "net": -590.7554698399999,
+    "status": "taken"
+   },
+   {
+    "event": "2023-10-06",
+    "gap_pct": 0.0020557645845578065,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0022178840260562716,
+    "net": -82.73112893349989,
+    "status": "taken"
+   },
+   {
+    "event": "2023-10-06",
+    "gap_pct": 0.002146361406377695,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0056469746524938635,
+    "net": -882.723658055,
+    "status": "taken"
+   },
+   {
+    "event": "2023-12-08",
+    "gap_pct": 6.164029064459342e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009621199158716287,
+    "net": -395.50717648900013,
+    "status": "taken"
+   },
+   {
+    "event": "2023-12-08",
+    "gap_pct": 0.0025771725279115643,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.002101679441580906,
+    "net": -626.151272184999,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-01",
+    "gap_pct": 0.0005806893797526413,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": 0.002437168437697368,
+    "net": -252.38691264099947,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-01",
+    "gap_pct": -0.00038746182698556897,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.002620525847601307,
+    "net": -601.416292185002,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-08",
+    "gap_pct": 0.0031290712066920356,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.01993089380667179,
+    "net": -514.7465655339984,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-08",
+    "gap_pct": 0.0023314260783413587,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.008594009189363705,
+    "net": -963.95991387,
+    "status": "taken"
+   },
+   {
+    "event": "2024-04-05",
+    "gap_pct": -0.0006037457130941837,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00952299939210488,
+    "net": -525.5433074215008,
+    "status": "taken"
+   },
+   {
+    "event": "2024-04-05",
+    "gap_pct": -0.0018684562571172902,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0007407489303364878,
+    "net": -299.77865522000116,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-04",
+    "gap_pct": -0.009419291559296994,
+    "index": "BANKNIFTY",
+    "kind": "election_result",
+    "move_pct": -0.08179115711721519,
+    "net": -2333.564110468,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-04",
+    "gap_pct": -0.017425740882351715,
+    "index": "NIFTY",
+    "kind": "election_result",
+    "move_pct": -0.0640702497874649,
+    "net": -884.8854772400011,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-07",
+    "gap_pct": -0.006184795416272593,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009572020248504343,
+    "net": -82.68592592199917,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-07",
+    "gap_pct": 4.366907574393508e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.018587742090438786,
+    "net": -827.1008684624994,
+    "status": "taken"
+   },
+   {
+    "event": "2024-07-23",
+    "gap_pct": 0.002271138562402797,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.008957370490116578,
+    "net": 572.7784951879985,
+    "status": "taken"
+   },
+   {
+    "event": "2024-07-23",
+    "gap_pct": -0.00010963264941510342,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.0018373619948269804,
+    "net": -241.27787545500024,
+    "status": "taken"
+   },
+   {
+    "event": "2024-08-08",
+    "gap_pct": -0.002000369482347275,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.002677753785704118,
+    "net": -463.54420963150034,
+    "status": "taken"
+   },
+   {
+    "event": "2024-08-08",
+    "gap_pct": -0.0027681504691902115,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009435104416113171,
+    "net": 83.66789957249955,
+    "status": "taken"
+   },
+   {
+    "event": "2024-10-09",
+    "gap_pct": 0.0013134212190495376,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0003658121321205021,
+    "net": -322.74530776450035,
+    "status": "taken"
+   },
+   {
+    "event": "2024-10-09",
+    "gap_pct": 0.0021248107466083077,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0018999946282874935,
+    "net": -255.23440563500185,
+    "status": "taken"
+   },
+   {
+    "event": "2024-12-06",
+    "gap_pct": 0.00047228999164405927,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0008048492165295684,
+    "net": -237.59600124399878,
+    "status": "taken"
+   },
+   {
+    "event": "2024-12-06",
+    "gap_pct": -0.0001756557309195994,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0007631938653751558,
+    "net": -353.6079172674986,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-01",
+    "gap_pct": -0.002847860093859067,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.0018731699490593945,
+    "net": -122.31324085599931,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-01",
+    "gap_pct": -0.001532586514932155,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.0027370640384078992,
+    "net": -478.19877635500217,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-07",
+    "gap_pct": 0.0004307559767391389,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0050218638297366835,
+    "net": -60.654495745000986,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-07",
+    "gap_pct": 0.0009751402555626676,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0031217152337170706,
+    "net": -742.2275030875043,
+    "status": "taken"
+   },
+   {
+    "event": "2025-04-09",
+    "gap_pct": -0.003313097568950596,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005901331936133181,
+    "net": -601.3341965320006,
+    "status": "taken"
+   },
+   {
+    "event": "2025-04-09",
+    "gap_pct": -0.003815672316159424,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.006659198819284562,
+    "net": -1326.846171512503,
+    "status": "taken"
+   },
+   {
+    "event": "2025-06-06",
+    "gap_pct": -0.0007957976176031778,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.012954015030939736,
+    "net": -1121.6723896329972,
+    "status": "taken"
+   },
+   {
+    "event": "2025-06-06",
+    "gap_pct": -0.00026144947589434864,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009448381828859098,
+    "net": -988.4187690100022,
+    "status": "taken"
+   },
+   {
+    "event": "2025-08-06",
+    "gap_pct": 0.00021246254897455685,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0007490205116387205,
+    "net": -239.81370957900276,
+    "status": "taken"
+   },
+   {
+    "event": "2025-08-06",
+    "gap_pct": 0.0,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0029504852718573726,
+    "net": -676.0118831199995,
+    "status": "taken"
+   },
+   {
+    "event": "2025-10-01",
+    "gap_pct": 0.0015923740552097332,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.011833738697961449,
+    "net": -2147.1572826055003,
+    "status": "taken"
+   },
+   {
+    "event": "2025-10-01",
+    "gap_pct": -0.0010694841857593618,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0076236061392429555,
+    "net": -1186.1355438474989,
+    "status": "taken"
+   },
+   {
+    "event": "2025-12-05",
+    "gap_pct": 6.706548273727186e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.006914451270220168,
+    "net": -757.2008300320024,
+    "status": "taken"
+   },
+   {
+    "event": "2025-12-05",
+    "gap_pct": -0.001321291505164801,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.005602123231436051,
+    "net": -920.8761222400015,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-01",
+    "gap_pct": 0.0006910527036185776,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.02015069622725285,
+    "net": -1009.6564180030007,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-01",
+    "gap_pct": 0.00033836420578836623,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.022147117609102818,
+    "net": -1955.5576450160029,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-06",
+    "gap_pct": -0.0019052424039247562,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -3.983085165004674e-05,
+    "net": 96.25723784900254,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-06",
+    "gap_pct": -0.0031875607385811744,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00039261418853242525,
+    "net": -471.4602602069969,
+    "status": "taken"
+   },
+   {
+    "event": "2026-04-08",
+    "gap_pct": 0.04590261911606719,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.05778396453374879,
+    "net": -1627.4265430059959,
+    "status": "taken"
+   },
+   {
+    "event": "2026-04-08",
+    "gap_pct": 0.030192949795042168,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.039164445749878096,
+    "net": -1737.8320417844957,
+    "status": "taken"
+   },
+   {
+    "event": "2026-06-05",
+    "gap_pct": 0.0007946302040038322,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0030210595313513444,
+    "net": -647.5867900000068,
+    "status": "taken"
+   },
+   {
+    "event": "2026-06-05",
+    "gap_pct": 0.002058558328654758,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0025476785926945578,
+    "net": -786.5711567815033,
+    "status": "taken"
+   },
+   {
+    "event": "2026-08-05",
+    "gap_pct": 0.004567159420892475,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0020063621431689604,
+    "net": -561.4630703289979,
+    "status": "taken"
+   },
+   {
+    "event": "2026-08-05",
+    "gap_pct": 0.006491390965808197,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0037506719444853065,
+    "net": -700.2726508905007,
+    "status": "taken"
+   },
+   {
+    "event": "2026-10-07",
+    "gap_pct": -0.004478038785535654,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 3.982087844844884e-05,
+    "net": -623.0877138969996,
+    "status": "taken"
+   },
+   {
+    "event": "2026-10-07",
+    "gap_pct": -0.004623739877343769,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.007128631215069681,
+    "net": -758.252649694499,
+    "status": "taken"
+   },
+   {
+    "event": "2026-12-04",
+    "gap_pct": null,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": null,
+    "net": 0.0,
+    "status": "no_rows"
+   },
+   {
+    "event": "2026-12-04",
+    "gap_pct": null,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": null,
+    "net": 0.0,
+    "status": "no_rows"
+   }
+  ],
+  "EDGE2-F9-FLY-E1": [
+   {
+    "event": "2019-02-01",
+    "gap_pct": -0.0001536480435482268,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.0022535046387076596,
+    "net": 352.4713778060013,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-01",
+    "gap_pct": 0.00127116302205188,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": 0.007488808238610201,
+    "net": -426.23701448499946,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-07",
+    "gap_pct": -0.003721020029396671,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.004200035334208874,
+    "net": 438.5060996000002,
+    "status": "taken"
+   },
+   {
+    "event": "2019-02-07",
+    "gap_pct": -0.0009242310848218693,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.011996970325419465,
+    "net": -32.55754982499923,
+    "status": "taken"
+   },
+   {
+    "event": "2019-04-04",
+    "gap_pct": 0.0006280723618488082,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0004747633601377421,
+    "net": 935.550865371999,
+    "status": "taken"
+   },
+   {
+    "event": "2019-04-04",
+    "gap_pct": 2.5576210713973424e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0026514005106716976,
+    "net": 197.53109241499953,
+    "status": "taken"
+   },
+   {
+    "event": "2019-05-23",
+    "gap_pct": 0.009438247615202178,
+    "index": "BANKNIFTY",
+    "kind": "election_result",
+    "move_pct": 0.01887486710419828,
+    "net": 0.0,
+    "status": "no_straddle"
+   },
+   {
+    "event": "2019-05-23",
+    "gap_pct": 0.008876990873489143,
+    "index": "NIFTY",
+    "kind": "election_result",
+    "move_pct": 0.007100746868312635,
+    "net": 1858.999793772502,
+    "status": "taken"
+   },
+   {
+    "event": "2019-06-06",
+    "gap_pct": -0.0012847417558452534,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.016609988432583433,
+    "net": -77.55188562799955,
+    "status": "taken"
+   },
+   {
+    "event": "2019-06-06",
+    "gap_pct": -0.0009497227556060084,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.012889687006216732,
+    "net": -286.53481281999876,
+    "status": "taken"
+   },
+   {
+    "event": "2019-07-05",
+    "gap_pct": 0.0006577237370120059,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.02722976271229416,
+    "net": -741.4432962320011,
+    "status": "taken"
+   },
+   {
+    "event": "2019-07-05",
+    "gap_pct": 0.001193690967599359,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.034504346955044674,
+    "net": -3971.2544915200037,
+    "status": "taken"
+   },
+   {
+    "event": "2019-08-07",
+    "gap_pct": -0.0003859870685437583,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0046300660802747196,
+    "net": -84.01685162999942,
+    "status": "taken"
+   },
+   {
+    "event": "2019-08-07",
+    "gap_pct": -0.0026096104712327595,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007769625591488971,
+    "net": -1277.443061739999,
+    "status": "taken"
+   },
+   {
+    "event": "2019-10-04",
+    "gap_pct": 0.008057163157553893,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.024475995638911674,
+    "net": 594.8132241220046,
+    "status": "taken"
+   },
+   {
+    "event": "2019-10-04",
+    "gap_pct": 0.005104824939710317,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.017585241775070815,
+    "net": -956.6932034500009,
+    "status": "taken"
+   },
+   {
+    "event": "2019-12-05",
+    "gap_pct": 0.0009070817838652268,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.020654034020242684,
+    "net": -884.3848141919991,
+    "status": "taken"
+   },
+   {
+    "event": "2019-12-05",
+    "gap_pct": -0.0006120862214428202,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.011091994904795621,
+    "net": -776.5742580024992,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-01",
+    "gap_pct": -0.0046012418666140364,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.02925756287717407,
+    "net": 421.71117466200053,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-01",
+    "gap_pct": -0.0037851312706869145,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.024274030164328053,
+    "net": -126.23650250500123,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-06",
+    "gap_pct": 0.004819591405571977,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.006120703953417683,
+    "net": 70.99121134799933,
+    "status": "taken"
+   },
+   {
+    "event": "2020-02-06",
+    "gap_pct": 0.000877026054292962,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0007942877472841836,
+    "net": -796.2749141874987,
+    "status": "taken"
+   },
+   {
+    "event": "2020-08-06",
+    "gap_pct": 0.005844426921471246,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009849714736305026,
+    "net": 251.293619387499,
+    "status": "taken"
+   },
+   {
+    "event": "2020-08-06",
+    "gap_pct": 0.00203723691311386,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009731966180967833,
+    "net": -1227.0730714900008,
+    "status": "taken"
+   },
+   {
+    "event": "2020-10-09",
+    "gap_pct": 0.0028574879122869046,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.02511354470836369,
+    "net": -1096.1200011925034,
+    "status": "taken"
+   },
+   {
+    "event": "2020-10-09",
+    "gap_pct": 0.002772190199293423,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00900539224800978,
+    "net": -1196.5608382599985,
+    "status": "taken"
+   },
+   {
+    "event": "2020-12-04",
+    "gap_pct": -0.0065059474243625015,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.025331559599488074,
+    "net": -577.0349173874984,
+    "status": "taken"
+   },
+   {
+    "event": "2020-12-04",
+    "gap_pct": 0.0021490541508584204,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.014838707232116777,
+    "net": -1324.003945675,
+    "status": "taken"
+   },
+   {
+    "event": "2021-02-05",
+    "gap_pct": 0.00633202317828796,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.018718857888015084,
+    "net": -976.531410609996,
+    "status": "taken"
+   },
+   {
+    "event": "2021-02-05",
+    "gap_pct": 0.003665573484342488,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.015518265767504591,
+    "net": -1693.2808016499994,
+    "status": "taken"
+   },
+   {
+    "event": "2021-04-07",
+    "gap_pct": -0.004013269484010373,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007774180178058199,
+    "net": 0.3353027524977392,
+    "status": "taken"
+   },
+   {
+    "event": "2021-04-07",
+    "gap_pct": -9.829542180606055e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.011724271173342293,
+    "net": -1629.6445480449956,
+    "status": "taken"
+   },
+   {
+    "event": "2021-06-04",
+    "gap_pct": -0.00033396726561851775,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.004464541479712536,
+    "net": -138.5391817699986,
+    "status": "taken"
+   },
+   {
+    "event": "2021-06-04",
+    "gap_pct": 0.00016229220233698882,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.004611007866398564,
+    "net": -729.4754371449994,
+    "status": "taken"
+   },
+   {
+    "event": "2021-08-06",
+    "gap_pct": -1.3906619829140432e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00485341032038078,
+    "net": -202.61491471499835,
+    "status": "taken"
+   },
+   {
+    "event": "2021-08-06",
+    "gap_pct": -0.0012024060390229963,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00231279120771255,
+    "net": -23.372980944998176,
+    "status": "taken"
+   },
+   {
+    "event": "2021-10-08",
+    "gap_pct": 0.003791608048291817,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.012858209959800693,
+    "net": -698.3961507650005,
+    "status": "taken"
+   },
+   {
+    "event": "2021-10-08",
+    "gap_pct": 0.004248054963597925,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009259805201550897,
+    "net": -582.7557455100009,
+    "status": "taken"
+   },
+   {
+    "event": "2021-12-08",
+    "gap_pct": 0.008281466442779495,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.013159720993776158,
+    "net": -1249.453716272501,
+    "status": "taken"
+   },
+   {
+    "event": "2021-12-08",
+    "gap_pct": 0.006827127381657139,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.019506078233306523,
+    "net": -1122.5970495500012,
+    "status": "taken"
+   },
+   {
+    "event": "2022-02-10",
+    "gap_pct": 0.0047979165105684896,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.004826337125332425,
+    "net": 4.9036926125008335,
+    "status": "taken"
+   },
+   {
+    "event": "2022-02-10",
+    "gap_pct": 0.00256576745622894,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0071137833485411806,
+    "net": -522.3551681049992,
+    "status": "taken"
+   },
+   {
+    "event": "2022-04-08",
+    "gap_pct": -0.0008764938129068867,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0003376222391107131,
+    "net": 41.268687910002086,
+    "status": "taken"
+   },
+   {
+    "event": "2022-04-08",
+    "gap_pct": 0.000826266824964117,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00036096298155408046,
+    "net": -82.14045252999989,
+    "status": "taken"
+   },
+   {
+    "event": "2022-06-08",
+    "gap_pct": 0.003099067572496894,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0011413117818712681,
+    "net": 56.67629649750364,
+    "status": "taken"
+   },
+   {
+    "event": "2022-06-08",
+    "gap_pct": 0.002547286090357037,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0028120577628316656,
+    "net": -515.9142894850011,
+    "status": "taken"
+   },
+   {
+    "event": "2022-08-05",
+    "gap_pct": 0.002070344042465866,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.013667712428683032,
+    "net": -51.78117765000184,
+    "status": "taken"
+   },
+   {
+    "event": "2022-08-05",
+    "gap_pct": 0.0020157753833855985,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009771190802773333,
+    "net": -616.7648693849984,
+    "status": "taken"
+   },
+   {
+    "event": "2022-09-30",
+    "gap_pct": -6.074804615807672e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007866871977454615,
+    "net": -884.8795192400006,
+    "status": "taken"
+   },
+   {
+    "event": "2022-09-30",
+    "gap_pct": -0.0010871308656056344,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0037039677306291985,
+    "net": -694.6755638650043,
+    "status": "taken"
+   },
+   {
+    "event": "2022-12-07",
+    "gap_pct": -0.0026738583177243758,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.006781291275674173,
+    "net": -4.359426684998425,
+    "status": "taken"
+   },
+   {
+    "event": "2022-12-07",
+    "gap_pct": -0.004858467824636836,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.002727560884006608,
+    "net": -34.878176535000875,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-01",
+    "gap_pct": 0.010638492176075154,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.003052615301066708,
+    "net": 45.44953824250092,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-01",
+    "gap_pct": 0.007098853002896144,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.006371269731131335,
+    "net": -134.08902516999956,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-08",
+    "gap_pct": -0.0020712361137126267,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.001801074881489173,
+    "net": 462.99269708000224,
+    "status": "taken"
+   },
+   {
+    "event": "2023-02-08",
+    "gap_pct": 0.0010909510112384613,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00917748479557301,
+    "net": -419.6063575999992,
+    "status": "taken"
+   },
+   {
+    "event": "2023-04-06",
+    "gap_pct": -0.0034344215077912743,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0039885956788999755,
+    "net": 572.9332904500016,
+    "status": "taken"
+   },
+   {
+    "event": "2023-04-06",
+    "gap_pct": -0.0012597889002383678,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0033764612416298245,
+    "net": -257.52497752999875,
+    "status": "taken"
+   },
+   {
+    "event": "2023-06-08",
+    "gap_pct": 0.00010361667237313021,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.006227136755987295,
+    "net": 155.71382982250043,
+    "status": "taken"
+   },
+   {
+    "event": "2023-06-08",
+    "gap_pct": 0.00067558941186463,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00887575538343699,
+    "net": -152.4360521149992,
+    "status": "taken"
+   },
+   {
+    "event": "2023-08-10",
+    "gap_pct": -0.0019209223980661827,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.012571493289540658,
+    "net": -435.11441920299944,
+    "status": "taken"
+   },
+   {
+    "event": "2023-08-10",
+    "gap_pct": -0.002524175199089762,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009408520234032158,
+    "net": -564.3751723749987,
+    "status": "taken"
+   },
+   {
+    "event": "2023-10-06",
+    "gap_pct": 0.0020557645845578065,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009034781375178214,
+    "net": -35.44752455950038,
+    "status": "taken"
+   },
+   {
+    "event": "2023-10-06",
+    "gap_pct": 0.002146361406377695,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0014743458708094126,
+    "net": -747.5443060650009,
+    "status": "taken"
+   },
+   {
+    "event": "2023-12-08",
+    "gap_pct": 6.164029064459342e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009452219741259427,
+    "net": -486.2909407704999,
+    "status": "taken"
+   },
+   {
+    "event": "2023-12-08",
+    "gap_pct": 0.0025771725279115643,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0025510204081633514,
+    "net": -469.64707977500075,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-01",
+    "gap_pct": 0.0005806893797526413,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.0018910182032089162,
+    "net": -20.774394994000318,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-01",
+    "gap_pct": -0.00038746182698556897,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": 0.006547875608704956,
+    "net": -663.5889537650029,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-08",
+    "gap_pct": 0.0031290712066920356,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.005036644924661604,
+    "net": -259.8215061594985,
+    "status": "taken"
+   },
+   {
+    "event": "2024-02-08",
+    "gap_pct": 0.0023314260783413587,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.007321495930230015,
+    "net": -906.8901266949988,
+    "status": "taken"
+   },
+   {
+    "event": "2024-04-05",
+    "gap_pct": -0.0006037457130941837,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.010208696842887166,
+    "net": -663.5769331045001,
+    "status": "taken"
+   },
+   {
+    "event": "2024-04-05",
+    "gap_pct": -0.0018684562571172902,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00602549503034866,
+    "net": -592.7423286850002,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-04",
+    "gap_pct": -0.009419291559296994,
+    "index": "BANKNIFTY",
+    "kind": "election_result",
+    "move_pct": -0.04222447767829729,
+    "net": -2275.0635013675,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-04",
+    "gap_pct": -0.017425740882351715,
+    "index": "NIFTY",
+    "kind": "election_result",
+    "move_pct": -0.03268127427065226,
+    "net": -814.6826483800005,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-07",
+    "gap_pct": -0.006184795416272593,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.005996672448582263,
+    "net": 995.3168429194993,
+    "status": "taken"
+   },
+   {
+    "event": "2024-06-07",
+    "gap_pct": 4.366907574393508e-05,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.015181554182405854,
+    "net": -872.6691219074987,
+    "status": "taken"
+   },
+   {
+    "event": "2024-07-23",
+    "gap_pct": 0.002271138562402797,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.016934565390143486,
+    "net": 95.98319801299829,
+    "status": "taken"
+   },
+   {
+    "event": "2024-07-23",
+    "gap_pct": -0.00010963264941510342,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.005501934813238796,
+    "net": -258.0269406349991,
+    "status": "taken"
+   },
+   {
+    "event": "2024-08-08",
+    "gap_pct": -0.002000369482347275,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.004636407519164498,
+    "net": -218.7577482939996,
+    "status": "taken"
+   },
+   {
+    "event": "2024-08-08",
+    "gap_pct": -0.0027681504691902115,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0014384532831002161,
+    "net": -306.4215464125,
+    "status": "taken"
+   },
+   {
+    "event": "2024-10-09",
+    "gap_pct": 0.0013134212190495376,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007558495889477879,
+    "net": -398.538193205501,
+    "status": "taken"
+   },
+   {
+    "event": "2024-10-09",
+    "gap_pct": 0.0021248107466083077,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0005471188720199693,
+    "net": -220.09699380500086,
+    "status": "taken"
+   },
+   {
+    "event": "2024-12-06",
+    "gap_pct": 0.00047228999164405927,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0026763099526498912,
+    "net": -162.77017856800086,
+    "status": "taken"
+   },
+   {
+    "event": "2024-12-06",
+    "gap_pct": -0.0001756557309195994,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0028165487888840435,
+    "net": -326.35625598499973,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-01",
+    "gap_pct": -0.002847860093859067,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.007156752637278885,
+    "net": 99.41706766999931,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-01",
+    "gap_pct": -0.001532586514932155,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.0075126374882515945,
+    "net": -392.9232630100047,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-07",
+    "gap_pct": 0.0004307559767391389,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00740090142603933,
+    "net": 163.3659036829983,
+    "status": "taken"
+   },
+   {
+    "event": "2025-02-07",
+    "gap_pct": 0.0009751402555626676,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.00969863522578085,
+    "net": -479.17382665000343,
+    "status": "taken"
+   },
+   {
+    "event": "2025-04-09",
+    "gap_pct": -0.003313097568950596,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.00775780902218326,
+    "net": -646.7484614470003,
+    "status": "taken"
+   },
+   {
+    "event": "2025-04-09",
+    "gap_pct": -0.003815672316159424,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.012695340549306655,
+    "net": -1193.9807509600005,
+    "status": "taken"
+   },
+   {
+    "event": "2025-06-06",
+    "gap_pct": -0.0007957976176031778,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.017036492495235755,
+    "net": -1264.2437728749987,
+    "status": "taken"
+   },
+   {
+    "event": "2025-06-06",
+    "gap_pct": -0.00026144947589434864,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.012887448011777103,
+    "net": -1282.4105969875002,
+    "status": "taken"
+   },
+   {
+    "event": "2025-08-06",
+    "gap_pct": 0.00021246254897455685,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.003932357686102783,
+    "net": 219.54025689099626,
+    "status": "taken"
+   },
+   {
+    "event": "2025-08-06",
+    "gap_pct": 0.0,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0013922728854854904,
+    "net": -523.6236214824994,
+    "status": "taken"
+   },
+   {
+    "event": "2025-10-01",
+    "gap_pct": 0.0015923740552097332,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0153056958274711,
+    "net": -2062.2648459939996,
+    "status": "taken"
+   },
+   {
+    "event": "2025-10-01",
+    "gap_pct": -0.0010694841857593618,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.009213707155050876,
+    "net": -1107.5276777875001,
+    "status": "taken"
+   },
+   {
+    "event": "2025-12-05",
+    "gap_pct": 6.706548273727186e-05,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0015123266357270904,
+    "net": -400.4671785339966,
+    "status": "taken"
+   },
+   {
+    "event": "2025-12-05",
+    "gap_pct": -0.001321291505164801,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.0046512515991063985,
+    "net": -793.5498515350002,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-01",
+    "gap_pct": 0.0006910527036185776,
+    "index": "BANKNIFTY",
+    "kind": "budget",
+    "move_pct": -0.017790434094604013,
+    "net": -655.048199970998,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-01",
+    "gap_pct": 0.00033836420578836623,
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.01080404778017352,
+    "net": -477.8583999094987,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-06",
+    "gap_pct": -0.0019052424039247562,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007853316250323594,
+    "net": -99.23584762299816,
+    "status": "taken"
+   },
+   {
+    "event": "2026-02-06",
+    "gap_pct": -0.0031875607385811744,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007401360544217805,
+    "net": -739.7061235989993,
+    "status": "taken"
+   },
+   {
+    "event": "2026-04-08",
+    "gap_pct": 0.04590261911606719,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.041745472152032725,
+    "net": -1102.7393647269919,
+    "status": "taken"
+   },
+   {
+    "event": "2026-04-08",
+    "gap_pct": 0.030192949795042168,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.0306767281036322,
+    "net": -704.0120115870044,
+    "status": "taken"
+   },
+   {
+    "event": "2026-06-05",
+    "gap_pct": 0.0007946302040038322,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.006858720608752589,
+    "net": -295.84926181900266,
+    "status": "taken"
+   },
+   {
+    "event": "2026-06-05",
+    "gap_pct": 0.002058558328654758,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.014333350346212081,
+    "net": -761.7233120715052,
+    "status": "taken"
+   },
+   {
+    "event": "2026-08-05",
+    "gap_pct": 0.004567159420892475,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.008025448572676064,
+    "net": -508.99979588500173,
+    "status": "taken"
+   },
+   {
+    "event": "2026-08-05",
+    "gap_pct": 0.006491390965808197,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.007485054325693685,
+    "net": -1202.4081668505,
+    "status": "taken"
+   },
+   {
+    "event": "2026-10-07",
+    "gap_pct": -0.004478038785535654,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.009205863081339527,
+    "net": -647.6963182210003,
+    "status": "taken"
+   },
+   {
+    "event": "2026-10-07",
+    "gap_pct": -0.004623739877343769,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": -0.022030760592049337,
+    "net": -1569.5403073750003,
+    "status": "taken"
+   },
+   {
+    "event": "2026-12-04",
+    "gap_pct": null,
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": null,
+    "net": 0.0,
+    "status": "no_rows"
+   },
+   {
+    "event": "2026-12-04",
+    "gap_pct": null,
+    "index": "NIFTY",
+    "kind": "rbi_policy",
+    "move_pct": null,
+    "net": 0.0,
+    "status": "no_rows"
+   }
+  ]
+ },
+ "head": "effae511781aba5e66496c09871aa16725bc184b",
+ "mode": "discovery",
+ "nominated": [],
+ "protocol": "research/edge2/F9_PROTOCOL.md",
+ "trials": {
+  "EDGE2-F9-CONDOR-E0": 126,
+  "EDGE2-F9-CONDOR-E1": 127,
+  "EDGE2-F9-FLY-E0": 124,
+  "EDGE2-F9-FLY-E1": 125
+ },
+ "variants": {
+  "EDGE2-F9-CONDOR-E0": {
+   "by_index": {
+    "BANKNIFTY": -292.98239022066673,
+    "NIFTY": -497.48265242155435
+   },
+   "by_type": {
+    "budget": {
+     "mean_net": 32.176830353968946,
+     "trades": 16
+    },
+    "election_result": {
+     "mean_net": 3225.6874791071673,
+     "trades": 3
+    },
+    "rbi_policy": {
+     "mean_net": -593.0498519787388,
+     "trades": 90
+    }
+   },
+   "control_mean_net": -587.512866616941,
+   "decided": 109,
+   "events": 55,
+   "holm": false,
+   "incomplete_exits": 1,
+   "mean_charges": 273.6132564688211,
+   "mean_gross": 211.75458715596338,
+   "mean_net": -396.1705959183623,
+   "mean_net_pad2": -735.3018569115504,
+   "mean_pads": 334.3119266055046,
+   "p": 0.9977660022840262,
+   "p_event": 0.002,
+   "se": 139.34560253982738,
+   "skips": {
+    "no_rows": 2
+   },
+   "trades": 112,
+   "win_share": 0.1743119266055046,
+   "worst": {
+    "event": "2026-04-08",
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.05778396453374879,
+    "net": -4569.3663007899995
+   }
+  },
+  "EDGE2-F9-CONDOR-E1": {
+   "by_index": {
+    "BANKNIFTY": -175.15782516354636,
+    "NIFTY": -599.890739522676
+   },
+   "by_type": {
+    "budget": {
+     "mean_net": -47.89811731153168,
+     "trades": 16
+    },
+    "election_result": {
+     "mean_net": -741.5781627479996,
+     "trades": 2
+    },
+    "rbi_policy": {
+     "mean_net": -440.03440322861667,
+     "trades": 90
+    }
+   },
+   "control_mean_net": -573.8490443446552,
+   "decided": 108,
+   "events": 54,
+   "holm": false,
+   "incomplete_exits": 0,
+   "mean_charges": 272.0520601208889,
+   "mean_gross": 216.00925925925915,
+   "mean_net": -387.52428234311117,
+   "mean_net_pad2": -706.4654440635278,
+   "mean_pads": 331.48148148148147,
+   "p": 0.9999616900084333,
+   "p_event": 0.039,
+   "se": 97.98998446719882,
+   "skips": {
+    "no_rows": 2,
+    "no_straddle": 1,
+    "untraded_leg_at_entry": 1
+   },
+   "trades": 112,
+   "win_share": 0.28703703703703703,
+   "worst": {
+    "event": "2019-07-05",
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.034504346955044674,
+    "net": -4763.5353379075
+   }
+  },
+  "EDGE2-F9-FLY-E0": {
+   "by_index": {
+    "BANKNIFTY": -288.61045231118527,
+    "NIFTY": -641.3458049021184
+   },
+   "by_type": {
+    "budget": {
+     "mean_net": -376.8431085794692,
+     "trades": 16
+    },
+    "election_result": {
+     "mean_net": 1798.2056421255,
+     "trades": 3
+    },
+    "rbi_policy": {
+     "mean_net": -558.0456764836167,
+     "trades": 90
+    }
+   },
+   "control_mean_net": -607.890448122944,
+   "decided": 109,
+   "events": 55,
+   "holm": false,
+   "incomplete_exits": 1,
+   "mean_charges": 307.3461806827569,
+   "mean_gross": 175.06192660550445,
+   "mean_net": -466.59618068275705,
+   "mean_net_pad2": -800.6623880222065,
+   "mean_pads": 334.3119266055046,
+   "p": 0.9999999616706453,
+   "p_event": 0.008,
+   "se": 86.81147936329928,
+   "skips": {
+    "no_rows": 2
+   },
+   "trades": 112,
+   "win_share": 0.11926605504587157,
+   "worst": {
+    "event": "2025-10-01",
+    "index": "BANKNIFTY",
+    "kind": "rbi_policy",
+    "move_pct": 0.011833738697961449,
+    "net": -2147.1572826055003
+   }
+  },
+  "EDGE2-F9-FLY-E1": {
+   "by_index": {
+    "BANKNIFTY": -227.4010938317449,
+    "NIFTY": -682.2527937677729
+   },
+   "by_type": {
+    "budget": {
+     "mean_net": -428.278007862688,
+     "trades": 16
+    },
+    "election_result": {
+     "mean_net": 522.1585726962508,
+     "trades": 2
+    },
+    "rbi_policy": {
+     "mean_net": -486.31145166554984,
+     "trades": 90
+    }
+   },
+   "control_mean_net": -617.2451316790315,
+   "decided": 108,
+   "events": 55,
+   "holm": false,
+   "incomplete_exits": 1,
+   "mean_charges": 305.4135336139815,
+   "mean_gross": 182.30092592592604,
+   "mean_net": -459.0385336139814,
+   "mean_net_pad2": -794.7175539843518,
+   "mean_pads": 335.9259259259259,
+   "p": 0.9999999998741472,
+   "p_event": 0.034,
+   "se": 72.5645481571311,
+   "skips": {
+    "no_rows": 2,
+    "no_straddle": 1
+   },
+   "trades": 112,
+   "win_share": 0.2037037037037037,
+   "worst": {
+    "event": "2019-07-05",
+    "index": "NIFTY",
+    "kind": "budget",
+    "move_pct": -0.034504346955044674,
+    "net": -3971.2544915200037
+   }
+  }
+ }
+}

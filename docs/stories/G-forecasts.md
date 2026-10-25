@@ -2943,3 +2943,69 @@ prompt, at go-live (exact text in `F1-G5-owner-checklist.md`, with who records v
 go-live date is set", writes no log and exits 0 (tested).
 `check_numbers` runs on `main` at merge (no number was claimed by this story). Every later commit on the branch is
 Markdown only.
+
+### G11 fire probe: prove the routine API takes a v4-sized text (25 Oct 2026; builder session_01Rga1fe3C4rmnrmmE1p3diE)
+
+**Why** (orchestrator, 25 Oct): the v4 fired text carries the whole input, about 18-19 KB, while v2's was a few hundred
+bytes. `ROUTINE_POINTER_MAX_BYTES` (64 KiB, `fno/constants_operations.py`) is marked "the routine API's limit, to be
+confirmed before go-live" and never was. A refusal on Mon 26 Oct would show as `not_fired` plus an alert, a counted
+miss. This proves the size once, by hand, before that, with no counted fire. **Lane 1** (a workflow calling an
+outside service). Research only: nothing here places an order.
+
+**Criteria**
+1. `routine-fire-probe.yml` runs only on `workflow_dispatch` (never a push or a schedule), with a read-only checkout,
+   and commits and pushes nothing.
+2. It fires Book 3's routine once through the unchanged `RoutineFireTrigger` and `build_book_trigger`, with only
+   Book 3's two secrets, and those sit on the fire step only (never on the checkout or `pip install`).
+3. The text is one line, ending in exactly one single quote, 24 KiB: above the largest measured v4 pointer, under the
+   cap. The stored prompt's step 2 stops on the quote before anything runs; a truncated text has lost the quote and
+   `brief` refuses it. Either way no commitment, fire log, row or slot.
+4. It prints the API's answer (fired with the session link, or `FireFailed`'s reason) and never the token; exit 1
+   when not fired. A 4xx (or any refusal) is reported, never retried: one POST per run.
+
+**How it is run** (after the PASS and merge; the orchestrator decides who): Actions → `routine-fire-probe` → Run
+workflow, outside 14:00-15:30 IST on a session day, after the owner pasted the new prompts. Read the line "fired
+24,576 bytes to book3_ai: <link>" or "NOT fired (...): <reason>"; open the link: the session's final message must be
+"pointer refused (not one line of JSON)", and the session's first message shows the whole 24,576-character text (the
+quote proves the end arrived, the length the middle). A cut text ends instead on "refused: longer than any pointer"
+or "refused: not JSON (...)". A 4xx such as 413 means the cap is wrong for v4.
+
+**Gap list** (what this does not prove, said plainly):
+- The real limit is known only after the hand run; until then 64 KiB stays unconfirmed (this story adds the means).
+- Book 2's routine is not probed: the same endpoint and plan, so the same limit is assumed (reasoning only).
+- It proves the API takes and delivers a 24 KiB text; not that the model retypes a real 18-19 KB pointer into
+  `brief` correctly within 15:10 (the `input_sha256` check and three tries cover a mis-copy; Monday is the first test).
+- The trailing quote proves the end arrived; the middle is checked by the operator from the session's first
+  message (24,576 characters). No code reads the routine session back.
+- No code guard on the 14:00-15:30 window (docs only; a second session beside a real run was traced harmless).
+- The probe session's minutes are recorded nowhere (usage rows come from reveal timing files only).
+
+**Real output sample** (LOCAL run of `python -m fno ai fire-probe` on story/g11-fire-probe, 25 Oct 2026, against a
+FAKE endpoint: `requests.Session.post` replaced, fake trigger id and token; not the routine API; the real run's lines
+replace these after it):
+```
+[API answers 200] exit 0: Omenix F&O fire probe: fired 24,576 bytes to book3_ai: https://claude.ai/code/session_01FakeProbe
+[API answers 413] exit 1: Omenix F&O fire probe: NOT fired (24,576 bytes to book3_ai): HTTP 413 from the routine API
+[API answers 401] exit 1: Omenix F&O fire probe: NOT fired (24,576 bytes to book3_ai): HTTP 401: the routine's token was refused (expired or revoked); generate a new one on the routine's page
+[no network] exit 1: Omenix F&O fire probe: NOT fired (24,576 bytes to book3_ai): routine API not reached (ConnectionError)
+[secrets missing] exit 1: Omenix F&O fire probe: NOT fired (24,576 bytes to book3_ai): routine book3_ai not configured: add the secrets FNO_ROUTINE_BOOK3_AI_TRIGGER_ID, FNO_ROUTINE_BOOK3_AI_TOKEN
+POST calls per case: {'API answers 200': 1, 'API answers 413': 1, 'API answers 401': 1, 'no network': 1}
+```
+One POST per case: a refusal is reported, not retried; the fake token appears in no line.
+
+**Claims** (builder):
+- `fno/ai/fire_probe.py` (`ProbeText`, `fire_probe`), `fno/ai/cli.py` (`ai fire-probe`), the workflow, and
+  `tests/ai/test_fire_probe.py` (11 tests: size, one line, one quote at the end, under the cap and above 19.5 KB; a
+  truncated text refused by `read_run`; fired and refused lines; the command with HTTP 200, 413, 401 and no network,
+  the token never in stdout or stderr; no secrets set; the workflow's trigger, permissions, no `git`, its two
+  secrets only).
+- Plants, each caught: a `push` trigger; `contents: write`; no trailing quote; a 4 KiB text; the failure's cause in
+  the line; exit 0 on a refusal.
+- Size 24 KiB, not 19.5 KB as first proposed: 19.5 KB is the largest v4 pointer measured; 24 KiB proves that size with
+  about 25% margin for a day with more chain rows, still under a third of the cap (reasoning only).
+- Self-review (an independent agent on 428e21dc6), each checked: blocking, `test_every_job_is_watched` failed (every
+  workflow must be watched or named): the probe is in its `NOT_WATCHED`, since a deliberate refusal is the probe's
+  answer, never a failed capture for O8/O10. Minor, fixed: the two secrets moved from the job onto the fire step, so
+  `pip install` never holds the token (test pinned). Minor, kept as docs: the 14:00-15:30 rule has no code guard (a
+  probe beside a real run is a second session, traced harmless: no shared state). Minor, said here: the probe
+  session's few minutes are recorded nowhere (usage rows come from reveal timing files only).
