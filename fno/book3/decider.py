@@ -38,6 +38,7 @@ UNKNOWN_CARDS = "cards_used names cards the session was not given: {cards}"
 NO_ROLE_SET = "none"
 ROLE_SET = "role_set_version"  # F2's item, as F1t fires it: {"role_set_version", "roles": [{"card_id", "card"}]}
 STRATEGY_STATUS = PlaybookStatus.RESEARCH  # every Book 3 spec is research (D5): each trade "strategy not yet passed"
+LEDGER_REWRITTEN = f"{LEDGER_FILE} changed above its new rows: the trial ledger is append-only, nothing decided"
 PACK_DIFFERS = "{pack} pack read now ({now}) is not the one the session was fired with ({fired})"
 
 
@@ -76,8 +77,11 @@ class Book3Decider(AiBookDecider):
             day, tradable.snapshot, today.market, today.features, today.book, today.counts, today.shadow,
             self._context(today.context, accepted),
         )  # fmt: skip
+        ledger = _bytes(self.root / LEDGER_FILE)
         entries = self.proposer.register_all(day, decision["proposals"], accepted.registered_model,
                                              self.prompt_version, role_set)  # fmt: skip
+        if not _bytes(self.root / LEDGER_FILE).startswith(ledger):  # judge 652: rows 101-108 are frozen (O12e)
+            raise DecisionRefused(LEDGER_REWRITTEN)
         log = write_day_log(self.root, day, decision["reason"], entries, selection.attempted, tradable.excluded)
         body = shadow_body(day, accepted.common_pack.sha256, accepted.common_pack.body["opportunities"],
                            decision["shadow"], self.widths)  # fmt: skip
@@ -125,6 +129,10 @@ def _require_fired_packs(context: Mapping, accepted: AcceptedDecision) -> None:
         now = context.get(f"{pack}_pack_sha256")
         if now != fired:
             raise DecisionRefused(PACK_DIFFERS.format(pack=pack, now=now, fired=fired))
+
+
+def _bytes(path: Path) -> bytes:
+    return path.read_bytes() if path.is_file() else b""
 
 
 def _ids(sheet: Mapping) -> list[str]:

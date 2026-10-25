@@ -30,9 +30,33 @@ def build_book3_evaluators(cfg: dict, root: Path = ROOT) -> Book3Evaluators:
     return Book3Evaluators(rules.finder, rules.builder, rules.allocator, rules.real)
 
 
-def build_book3_decider(cfg: dict, root: Path = ROOT):
+def build_book3_inputs(cfg: dict, root: Path = ROOT):
+    """Book 1's input reader on Book 3's account: the decider's (with its private pack) and the sheet's (at the cutoff,
+    before that pack exists)."""
     from ..books.book1_inputs import LiveBook1Inputs
     from ..books.book1_wiring import cutoff_features, run_context
+    from ..research_engine.implied_vol import Black76
+    from ..storage.wiring import build_quote_store
+
+    return LiveBook1Inputs(root, build_quote_store(), cfg["risk_free_rate"], Black76(),
+                           lambda day, snapshot: cutoff_features(cfg, day, snapshot), lambda m: _parts(root, m),
+                           lambda day, hashes: run_context(root, day, hashes, BOOK3_AI), BOOK3_AI)  # fmt: skip
+
+
+def build_book3_sheet(cfg: dict, root: Path = ROOT):
+    """Book 3's `BookSheet` for the pack step (criterion 13): the decider's own strategies, evaluators and inputs."""
+    from ..research_engine.ledger import Git
+    from .sheet import Book3Sheet
+    from .strategies import Book3Strategies
+    from .wiring import build_strategy_registry
+
+    root, inputs = Path(root), build_book3_inputs(cfg, root)
+    at_cutoff = lambda day, common: inputs.at_cutoff(day, common, {})  # noqa: E731 - the pack's hashes come later
+    return Book3Sheet(Book3Strategies(build_strategy_registry(root)), build_book3_evaluators(cfg, root), at_cutoff,
+                      Git(root).head, lambda name, version: playbook_widths(root, name, version))  # fmt: skip
+
+
+def build_book3_decider(cfg: dict, root: Path = ROOT):
     from ..books.registered_components import RegisteredComponents
     from ..books.version_registry import VersionRegistry
     from ..books.versions import VERSIONS_FILE
@@ -40,10 +64,8 @@ def build_book3_decider(cfg: dict, root: Path = ROOT):
     from ..constants import RISK_PROFILE_BOOKS
     from ..playbook.decision_run import DecisionRun
     from ..playbook.decision_store import DecisionStore
-    from ..research_engine.implied_vol import Black76
     from ..research_engine.ledger import Git
     from ..risk.profile_settings import profile_settings
-    from ..storage.wiring import build_quote_store
     from .decider import Book3Decider
     from .proposals import Book3Proposer
     from .strategies import Book3Strategies
@@ -53,9 +75,7 @@ def build_book3_decider(cfg: dict, root: Path = ROOT):
     registered = RegisteredComponents(VersionRegistry(root / VERSIONS_FILE))
     constitutions = ConstitutionFiles(root)
     in_force = lambda day: constitutions.by_sha256().get(registered(BOOK3_AI, day).get(COMPONENT, ""))  # noqa: E731
-    inputs = LiveBook1Inputs(root, build_quote_store(), cfg["risk_free_rate"], Black76(),
-                             lambda day, snapshot: cutoff_features(cfg, day, snapshot), lambda m: _parts(root, m),
-                             lambda day, hashes: run_context(root, day, hashes, BOOK3_AI), BOOK3_AI)  # fmt: skip
+    inputs = build_book3_inputs(cfg, root)
     registry = build_strategy_registry(root)
     cap = profile_settings(cfg, RISK_PROFILE_BOOKS).max_loss_per_trade_rs
     validator = build_trade_validator(cfg, BOOK3_AI, root)

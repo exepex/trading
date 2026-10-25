@@ -394,6 +394,31 @@ should-fix findings and its minors are answered at d46379c7, unchanged here.
    `fno/judge/evidence.py`, which F4's code round builds. Until then F1t's `NoJudge` gives Book 3 a non-blocking
    "judge not built (F4)" verdict.
 
+9. **Gap found and fixed (25 Oct, round 3; strong evidence: `grep` found no `BookSheet` subclass and an empty
+   `SHEETS`):** nothing put Book 3's day sheet into its private pack, so on the first live day the decider would
+   have refused every day ("the private pack holds no day sheet"). Now `Book3Sheet` (`fno/book3/sheet.py`, the pack
+   step's `BookSheet`) runs D2 over Book 3's tradable strategies on the pack's own cutoff inputs (Book 1's reader's
+   new `at_cutoff`, the same change as F5's) and adds each common opportunity's widths. `SHEETS` in
+   `fno/desk/pack_wiring.py` now maps a book to its sheet's builder, `{book3_ai: ...}`; `build_packs` gets the run's
+   `cfg`, and each live AI book's sheet is built on first use (`LazySheet`, `fno/desk/book_sheet.py`), inside the pack
+   step's per-book guard, so a sheet that cannot even be built refuses that book's pack alone, never Book 1's. A book
+   that is not live gets no sheet. The test fixture's `sheet_for` now calls `Book3Sheet` itself, so every decider test
+   runs the pack step's own code; `tests/book3/test_sheet.py` adds the registration, the sheet's content, an empty
+   day, the decider trading a pick on the pack-step sheet, and the build failure refused alone.
+
+10. **Judge 652 SF1, accepted (its plant reproduced: `BOOK3_WRITE_PATHS` widened to `book3/` passed every test):**
+    - `tests/book3/test_write_paths.py` checks every registered decision version's write paths against every protected
+      file with F1t's own `is_under`. Protected means the constitution, every tracked file whose SHA-256 a D6 row
+      registers (found by hash, so a new envelope, card or prompt is covered without a test edit), and every v4
+      byte-checked and recorded file (`freeze_check`). The widened-path plant now fails.
+    - The ledger is append-only in code too, not only by `Ledger.register`'s current serializer, which rewrites the
+      whole file: the decider refuses the day (`LEDGER_REWRITTEN`) when the ledger after registering does not start
+      with its bytes from before. F1t then puts every write path back.
+    - Tests: a registration on a copy of the real ledger appends one line and keeps every earlier byte; a serializer
+      that rewrites row 1 refuses the day.
+11. **Judge 652 m1, accepted:** each registered version's `prompt_text(ROOT)` is checked against its file. The
+    one-hex-digit plant fails.
+
 Tests: `tests/book3/test_through_f1t.py` takes a real Book 3 trade through F1t's real `Promoter` and run check, and
 checks the label; `tests/book3/test_decider.py` covers F2's item and an uncited card. On the branch: book3, ai_trading,
 ai, playbook, books, checks, desk and daily give 1,606 passed. ruff, format and `check_imports` are clean. The full
