@@ -10,15 +10,10 @@ One file per numbered series; each series has its own numbers, so series never c
 | `judge-addendum.csv` | `## Addendum <k>` in `judge_<n>_*.md`, numbered `<n>.<k>` | a short label |
 | `ledger-trial.csv` | blocks of trial ids in `research/ledger.csv`, numbered `<a>-<b>` (or `<n>`) | the experiment prefix |
 
-**Ledger trials (story O12e).** Claim a block before registering trials:
-`python tools/claim_number.py ledger-trial <experiment-prefix> --session <id> --count <k>`, then merge `main` into
-your branch (`git pull --no-rebase origin main`) and register the trials with an experiment that is the prefix or
-starts with it and `-`. `Ledger.register`, the factory and the evaluation freeze refuse an id outside such a block;
-`require_committed` refuses the same before any run (a row typed by hand never passed `register`); the check fails on
-a trial in no block, a trial in another experiment's block, an id that is not a whole number from 1, and overlapping
-blocks. The one exception is Book 3's `book3:<strategy_id>` under its experiment `book3_ai strategies`: a strategy's
-name, not a counted id. Trials 1-108 were on `main`
-when this merged and are seeded history (pinned), one block per run of one experiment.
+**Ledger trials:** claim a block before registering trials,
+`python tools/claim_number.py ledger-trial <experiment-prefix> --session <id> --count <k>`, then merge `main` into your
+branch. The rules (what a block covers, what is refused, Book 3's exception) live in
+[`docs/stories/O12-number-claims.md`, section O12e](../docs/stories/O12-number-claims.md).
 
 Columns: `number,name,session,claimed_at_utc`. Rows with session `existing` are the files that were on `main` when
 O12 merged (history, kept as it is, duplicates included); their SHA-256 is pinned in `fno/numbering/seed_pins.json`,
