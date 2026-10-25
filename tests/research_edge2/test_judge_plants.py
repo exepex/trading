@@ -37,8 +37,13 @@ def test_the_gate_pairs_only_strikes_whose_call_and_put_both_traded():
 
 
 def test_the_f1_code_hash_covers_the_package_and_the_study_script():
-    import study
+    import importlib.util
+    from pathlib import Path
 
+    path = Path(__file__).resolve().parents[2] / "research" / "edge2" / "study.py"
+    spec = importlib.util.spec_from_file_location("edge2_f1_study", path)  # not EDGE1's study.py on the same path
+    study = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(study)
     files = sorted((study.HERE / "f1study").glob("*.py")) + [study.HERE / "study.py"]
     assert study.code_hash() == hashlib.sha256(b"".join(f.read_bytes() for f in files)).hexdigest()
 
