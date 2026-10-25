@@ -41,7 +41,8 @@ Oct path parameters (Design, "The decision run's terms"). No criterion of the PA
     per day per container (O1 day lock), and the public run log keeps only a status and a closed reason code per step
     (O1-status-only, `fno/daily/reason_codes.py`); the full text goes to the #fno-desk alert and the private log.
   - E3's timetable (`config.yaml` `desk.timetable`, "proposed until S1"): `pack` 14:58, retried to 15:10 while the
-    canonical snapshot is late; `decision_deadline` 15:12; `execution_snapshot` 15:15; `fills_by` 15:20.
+    canonical snapshot is late; `decision_deadline` 15:12; `execution_snapshot` 15:15; `fills_by` as
+    `config.yaml` `desk.timetable.fills_by` sets it (owned by GW1; never restated here).
   - E3's `decisions` step (`fno/desk/daily_steps.py:collect_decisions`) already handles any list of books: at the 15:12
     deadline it pulls once and takes each book's first original D3 run visible then (D3b); a book without one gets a
     committed `no_decision.json`. The fills read only those runs, through one `OrderBuilder` (built at the fill) and
