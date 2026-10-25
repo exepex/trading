@@ -54,7 +54,7 @@ def build_recommend_run(cfg: dict, root: Path = ROOT, env=os.environ) -> Recomme
     from ..school.registration.wiring import build_counting_rule
     from ..school.settings import school_settings
 
-    dashcam, versions, calendar = build_dashcam(env=env), build_versions(root), build_session_calendar()
+    dashcam, versions = build_dashcam(env=env), build_versions(root)
     history, repository = RepoHistory(root), env.get(GITHUB_REPOSITORY_VARIABLE) or DEFAULT_REPOSITORY
     receipts = rehearsed_receipts(GitHubActivityReceipts(repository, env.get(ENV_GITHUB_TOKEN, ""), history),
                                   history)  # fmt: skip
@@ -68,7 +68,7 @@ def build_recommend_run(cfg: dict, root: Path = ROOT, env=os.environ) -> Recomme
     evidence = RecommenderEvidence(
         lambda: [row.book for row in versions.rows], lambda: _at_paper(root),
         school_settings(cfg).first_counted,
-        lambda start, end: [d for d in calendar.sessions(start, end) if is_trading_day(calendar, d)],
+        trading_sessions(),
         dashcam, build_counting_rule(Git(root), versions), receipt_of,
     )  # fmt: skip
     ports = Ports((DeskSource(root, root / JOURNAL_FOLDER), SchoolSource(root, dashcam)), evidence,
@@ -81,10 +81,20 @@ def is_session(day: date) -> bool:
 
 
 def _store(env) -> DriveRecommendations:
+    return DriveRecommendations(build_data_store(WRITER, None, env), build_receipt_publisher())
+
+
+def build_receipt_publisher() -> GitReceiptPublisher:
+    """The recommender's receipts (the records and their checks), committed and pushed to `main`."""
     folder = REPOSITORY / RECEIPTS_FOLDER / DATA_AREA / AREA_FOLDER  # only the recommender's receipts
     recorder = GitManifestRecorder(REPOSITORY, folder, message=RECEIPTS_MESSAGE, label=RECEIPTS_LABEL)
-    return DriveRecommendations(build_data_store(WRITER, None, env),
-                                GitReceiptPublisher(recorder, receipt_folder(), REPOSITORY))  # fmt: skip
+    return GitReceiptPublisher(recorder, receipt_folder(), REPOSITORY)
+
+
+def trading_sessions():
+    """NSE's trading sessions from a to b, both included (muhurat-only days are not trading sessions)."""
+    calendar = build_session_calendar()
+    return lambda start, end: [d for d in calendar.sessions(start, end) if is_trading_day(calendar, d)]
 
 
 def _header(root: Path) -> Header:

@@ -11,13 +11,12 @@ import json
 from datetime import date
 from pathlib import Path
 
-from ..constants import STEP_OK
+from ..constants import SCHOOL_STEP, STEP_OK
 from ..desk.run_log import problem_steps
 from ..forecast_v4_rules.records import LIVE
 from ..weather.records import WeatherRecords
 from .ports import ConditionsPort, DayConditions, InputFailed, open_run_log
 from .refs import RecordRef
-from .school_source import SCHOOL_STEP
 
 QUOTES_DONE = "quotes_done"
 SCORED, RED = "scored", "RED"

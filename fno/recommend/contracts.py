@@ -78,6 +78,7 @@ class Recommendation(CanonicalRecord):
     versions: tuple[VersionEvidence, ...]
     candidates: tuple[Candidate, ...]
     candidate_sources: tuple[CandidateSource, ...]
+    braked_versions: tuple[str, ...]  # held by their own drawdown brake or daily stop: never eligible (REC1c)
     real_money: RealMoneyAnswer
     eligible_version: str | None
     paper: PaperAnswer
@@ -99,6 +100,8 @@ def _problems(rec: Recommendation) -> list[str]:
         (all(_is_sha(h) for h in _hashes(rec)), "a SHA-256 is malformed"),
         (_sorted_unique([ref.path for ref in rec.inputs]), "inputs are not sorted by path or repeat one"),
         (_sorted_unique([v.version for v in rec.versions]), "versions are not sorted or repeat one"),
+        (_sorted_unique(list(rec.braked_versions)), "braked versions are not sorted or repeat one"),
+        (all(rungs.get(v) is EvidenceRung.ESTABLISHED for v in rec.braked_versions), "a braked version is not rung 3"),
         (_sorted_unique([_candidate_key(c) for c in rec.candidates]), "candidates are not sorted or repeat one"),
         (all(rungs.get(c.version) == c.rung for c in rec.candidates),
          "a candidate's rung is not its version's evidence rung"),
@@ -116,7 +119,8 @@ def _real_money_consistent(rec: Recommendation, rungs: dict[str, EvidenceRung]) 
         return rec.eligible_version is None
     proven = rungs.get(rec.eligible_version) is EvidenceRung.ESTABLISHED  # only a proven version, judge 620 S1
     clear_day = rec.reason not in BLOCKS_REAL_MONEY  # never on a day the paper answer is stopped by the day itself
-    return proven and clear_day and source_of(rec.eligible_version) not in _unavailable(rec)
+    unbraked = rec.eligible_version not in rec.braked_versions  # orchestrator's ruling on judge 654.1's open point
+    return proven and clear_day and unbraked and source_of(rec.eligible_version) not in _unavailable(rec)
 
 
 def _paper_consistent(rec: Recommendation, rungs: dict[str, EvidenceRung]) -> bool:

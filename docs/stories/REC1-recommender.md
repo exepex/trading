@@ -580,3 +580,137 @@ Each finding was checked against the code first; every one held.
 
 **Plants this round: 10, all caught.** Each judge's surviving plant (J's S1, X19 and X23; K's m2) is among them. One
 earlier result line was hidden by my own script and was re-run alone; it was caught. Tests: 276 in `tests/recommend`.
+
+### REC1c text amendment (before code; orchestrator's rulings, 25 Oct)
+
+What changes or is made exact in the passed text for REC1c, each named:
+
+1. **The brake rule first** (orchestrator's ruling on judge 654.1's open point, the safer reading): a version under its
+   own drawdown brake is never `ELIGIBLE_FOR_YOUR_OWN_REVIEW`.
+   - `decide` and the record's contract both refuse it.
+   - The real-money line names the brake.
+   - Test and plant: a rung-3, RM1-eligible version that is braked gives `DO_NOT_TRADE_REAL_MONEY`.
+   - It cannot occur before rung 3. It is built now so that it is in place before rung 3 is reachable.
+2. **Where it runs** (orchestrator, 25 Oct; judge 658 S1). Step "3b" of CLAUDE.md's evening section: `python -m fno
+   recommend check`, after step 3 has committed and pushed the edition's receipts and the release logs, so it never
+   races them.
+   - Its own command commits and pushes only its own receipts (`receipts/data/recommend/`), in its own commit.
+   - Step 4's notes cover its alert, its exit 1 and any "alert NOT sent" line.
+   - The CLAUDE.md line ships on REC1c's branch and is judged with it, in lane 1, because it changes a routine's
+     steps. The owner's routine prompt is unchanged: it already reads that section.
+   - **It never fails the evening edition.** It runs after `lab close` has posted. On its own error it alerts
+     #fno-desk and exits non-zero, and the edition's receipts are committed before it, as today.
+   - **"Never fails" also covers the readers after it** (judge 658 m2): LR1's weekly section and REC1d's 08:50 section
+     read a missing or `data_check_failed` check as exactly that, by name, and post their edition all the same.
+3. **What it reads**, all sealed records; it never reads a price, and never searches the day's decisions afresh.
+   - The recommendation record of the session being checked.
+   - Each **listed** candidate's outcome:
+     - A school candidate (`<seal path>#<road>`): its `OutcomeRecord` in the school dashcam's sealed `outcomes`
+       files from its session up to the check's day. The record names the same `decision_sha256`, `driver_id` and
+       `road`. Its `net` is after C1 costs. An outcome with `is_ticket` is reported apart, as a ticket, never as a
+       trade.
+     - **One live outcome per candidate** (judge 658 S2). Corrections are resolved first: a record whose SHA-256 a
+       later record names in `corrects` is replaced and drops out. Exactly one live record means closed; none means
+       open; two or more live records, or a `corrects` naming a record that is not there, mean `data_check_failed`
+       for the day, alerted. (Partly accepted: an outcome naming the candidate's seal under another driver or road
+       is not a fault. One sealed decisions file holds every driver's decisions on every road of the session, so
+       other drivers' outcomes rightly carry the same `decision_sha256`; the match is on all three: seal, driver,
+       road.)
+     - A candidate that did not trade contributes zero, shown as "no trade".
+     - A desk candidate that traded: the desk's outcome reader is not built, as with REC1b's desk evidence. That
+       candidate makes the check `data_check_failed` with that reason. It cannot occur before a desk version reaches
+       `paper`.
+4. **What it writes.** `recommend/<YYYY>/<MM>/<day>.check.json`, written once with its receipt pushed, with:
+   - per listed candidate: its key, `closed` / `open` / `no trade` / `ticket`, and its `net` when closed;
+   - `closed so far`, the sum over the closed trades, with the counts of the open ones (judge 658 m1). Until the day is
+     final it is not the day's total, and it appears in no line;
+   - the day's verdict: `not known yet` while any listed candidate is open, even when a source was unavailable;
+     `complete` when all have closed; `incomplete: <source> unavailable` when all listed candidates have closed but a
+     source was unavailable at decision time (final, written once, not re-checked; judge 658 S3); `data_check_failed`
+     when a listed candidate is still open at the 60th session's check ("never closed in 60 sessions"), final and
+     alerted (judge 658 S3), or when an outcome cannot be resolved to one live record;
+   - for a `NO_TRADE` day, "abstaining saved Rs X" or "abstaining cost Rs X" once complete.
+   A check of a day already checked as complete is never written again. A day still `not known yet` is checked again
+   on later evenings: each check is its own write-once file, `<day>.check.<check day>.json`, so no file is ever
+   rewritten.
+   - Which sessions it checks: every session with a recommendation record whose latest check is not final
+     (`complete`, `incomplete`, `data_check_failed`), from the last 60 sessions. A monthly option closes within about
+     35 days; the 60th session's check is the last and is always final.
+5. **Where it shows.**
+   - One #fno-desk line per newly completed day, "Recommender check for <day>: ...".
+   - The 08:50 "Today" section shows the latest checks (REC1d). The 20:05 edition cannot show tonight's check,
+     because the check runs after it; this is stated, not hidden.
+6. **Criteria for REC1c.** Criterion 12 as passed (trade, no trade, a candidate not closed, a missing record, each
+   candidate plus the total, never editing the recommendation, the dropped-loser plant), plus:
+   - (a) the brake test;
+   - (b) a school ticket never counted as a trade;
+   - (c) a source unavailable at decision time gives `incomplete`, never a total;
+   - (d) a check error never touches the edition's receipts (the command's own commit only);
+   - (e) the CLAUDE.md step text.
+
+### REC1c Claims (text round 2 for judge 658, and the code; branch `story/rec1c-evening-check`)
+
+**Judge 658 (text round 1).** Every point was checked against the code.
+- **S1 accepted.** The check is step 3b, after step 3's push, committing only its own receipts; step 4 covers its
+  alert. It is in CLAUDE.md on this branch.
+- **S2 accepted in part.** Corrections are resolved to one live outcome per candidate (`outcomes._live`, reusing the
+  school's `record_sha256`).
+  - None live means open.
+  - Two or more live records, or a `corrects` naming a record that is not on file, means `data_check_failed`, alerted.
+  - **Not accepted:** "an outcome naming the candidate's seal under another driver or road is a fault". One sealed
+    decisions file holds every driver's decisions on every road of the session (`fno/school/dashcam/store.py`, one
+    file per session and slot), so other drivers' outcomes rightly carry the same `decision_sha256`. The match is on
+    all three: seal, driver, road. The tests show another driver's or road's outcome never matches.
+- **S3 accepted.**
+  - The 60th session's check is the last. A candidate still open then gives final `data_check_failed` ("never closed
+    in 60 sessions"), with a line.
+  - A day unreadable at its last check is written final too, so no day leaves the window silently.
+  - `incomplete` is final only once its listed candidates have closed; until then the day is `not known yet`.
+- **m1 accepted.** `closed so far` (the `closed_so_far` field) appears in no line until the day is final.
+- **m2 accepted.** LR1's and REC1d's readers name a missing or `data_check_failed` check and post their edition all
+  the same. This is their parts' criterion.
+
+**Self-review (quality rule 3).** An independent agent reviewed 7b177c12. Its findings 2, 3 and 7 were already fixed
+by the round-2 work above. The rest are fixed at ca2e8358:
+- **1 (blocking):** the real Drive reader raises `StaleSeal`, and the run did not catch it, so one bad file stopped
+  every day without an alert. Every read is now wrapped, and each day, including its "is it final" read, has its own
+  guard. A damaged check file is that day's problem.
+- **4:** an open school ticket (untraded, no outcome yet) read as "no trade", and the day went final without it. It
+  now keeps the day open, known from its own sealed decision (`SealedOutcomes.ticket`), so it is reported once it
+  closes. "Open" now counts open positions, trades and tickets.
+- **5:** an untraded decision with a trade's sealed outcome is a disagreement, so the check fails.
+- **6:** `recommend check` writes nothing on a day that is not a trading session (criterion 14).
+- **8:** `braked_versions` holds only established versions (`decide`, and the contract refuses others). The line
+  says "no established version is eligible; under their own brake: ...".
+
+**Plants: 32, all caught.**
+- 3 for the brake, 13 for the check, 6 for round 2 (J's "a correction counted twice" among them), 7 for the
+  self-review fixes, and 3 more that each first survived and then got the test that catches it.
+- A comment-only control survived. All plants ran with `PYTHONDONTWRITEBYTECODE=1`.
+
+**Tests:** 331 in `tests/recommend`.
+
+**What the check cannot do yet, stated plainly:**
+- A traded desk candidate fails loudly: the desk's outcome reader is not built, and none can occur before a desk
+  version reaches `paper`.
+- The 20:05 edition never shows the same day's check, because the check runs after it.
+- REC1d (the 08:50 section) and REC1e (LR1) read these files; they are not built here.
+
+### REC1c Claims, code round 2 (judge 658.1 J: 1 should-fix and 1 minor; judge 660 K: the same should-fix and 1 minor; all accepted)
+
+- **S1 (J and K):** a missed evening on the 60th session dropped a day silently.
+  - `_recorded_days` now reads every receipted recommendation up to the check day, however old, not a calendar
+    window. A day 60 or more sessions old gets `last=True`, so its next evening's check is final: `data_check_failed`,
+    "never closed in 60 sessions", alerted.
+  - J's plant "the last evening missed" is `test_the_last_evening_missed_still_ends_the_day_final`.
+- **J m1:** records that disagree are written final at once, with one alert: two live outcomes, an orphan correction,
+  an untraded decision with an outcome. They raise `DataDisagrees`, a subclass of `InputFailed`. Read errors are still
+  retried and are final only at the last check. Tests: `test_records_that_disagree_are_written_final_at_once` and
+  `test_a_read_error_is_retried_not_written_final`.
+- **K m1:** a catch-up with `--on <past day>` counts only the check files made on or before that day (`_checked_on`
+  from the file name). Test: `test_a_catch_up_for_a_past_day_sees_only_the_checks_made_by_then`.
+- `_recorded`, now unused, is removed (no dead code).
+- **Plants this round: 4, all caught:** windowed days ("the last evening missed"), a disagreement retried, a read error
+  written final, later checks counted. Tests: 335 in `tests/recommend`.
+- **Known cost:** each evening reads the latest check of every receipted day. It is cheap through the verified Drive
+  cache, and grows by one small read per session.
