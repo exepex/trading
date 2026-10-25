@@ -785,8 +785,8 @@ empty case the owner forbids (orchestrator, 25 Oct 2026: "it must be fixed befor
 builder is out of reach, so MS-P1j's builder takes it. `school.reports` waits for this story; `school.enabled` does
 not.
 
-**Files owned:** `fno/school/reports/evening.py`, `fno/school/reports/today.py`, `fno/school/reports/inputs.py` (one
-port method), `fno/school/fleet/report_inputs.py` (its reader), `tests/school/reports/` (the fakes, a changed test
+**Files owned:** `fno/school/reports/evening.py`, `fno/school/reports/today.py`, `fno/school/reports/inputs.py` (two
+port methods), `fno/school/fleet/report_inputs.py` (the readers, the plan's roads), `tests/school/reports/` (the fakes, a changed test
 and new ones), this section.
 
 **Acceptance criteria:**
@@ -805,6 +805,13 @@ and new ones), this section.
    planned." (which stays for a day with open roads and no proposal). Each line keeps its source note.
 5. **A recorded day is unchanged.** A session with a sealed decisions file renders exactly as before (g's tests stand),
    whatever the run log says.
+6. **The 08:50 plan asks each driver about its own roads only** (found by the 23 Oct morning rehearsal after REH1p,
+   and on main: the real plan for Mon 26 Oct from 23 Oct's captures was empty, while the 23 Oct slot itself had 6 rule
+   trades). `PreviousSlotToday` asked every rule driver about every open road; the real drivers raise `OutOfScope` for
+   another card's road (`drivers/scope.py`), and the isolated driver then planned nothing, so every plan was empty
+   whenever NIFTY-W was open. Each driver now plans on `SlotRoads.only(card.roads)`, as the slot does (`decide.py`).
+7. **A failed driver is named, never dropped.** A rule driver whose plan fails is listed on one line, "Not planned, the
+   driver failed: <driver id> (<failure>: <error class>)", never its message. The plan is made once per session.
 
 **Gap list.** Every requirement above has a criterion. Out of scope: the rehearsal's separate Drive folder per
 routine (REH1's, by design), REH1p (the rehearsal's earlier-day quote files, REH1's builder).
@@ -3569,3 +3576,17 @@ own STOPPED alert names the cause; no change.
 **Real output sample** (the committed code, g's fakes, printed): `No school record for 2026-11-02: the daily run's
 school step was refused (school:TOO_LATE).`; on 08:50 with every road closed: `No plan can be made today: no road is
 open. (plan from 01 Nov 2026 15:00 data, indicative prices, not today's quotes)`.
+
+**Round 1, before the judges: criteria 6 and 7** (found after the Claims above were written, by checking the morning
+rehearsal's "No candidate today" against the 23 Oct slot).
+
+| # | Code | Tests (`tests/school/fleet/test_plan_roads.py`) | Plants (each caught) |
+|---|---|---|---|
+| 6 Own roads | `PreviousSlotToday._make`: `slot.only(driver.card.roads)` | `test_a_monthly_driver_plans_on_its_own_road_while_the_weekly_road_is_open_too` (a fake with the real `check_scope`) | every open road again (3 failed) |
+| 7 Named failure | `not_planned`, `NOT_PLANNED` (both modules); one plan per session | `test_a_failing_driver_is_named_by_class_and_the_others_still_plan`, `test_the_08_50_section_shows_the_failed_driver_and_never_its_message`, `test_one_plan_is_made_per_session_however_often_it_is_read` | the failure not recorded; the line dropped; no cache |
+
+**Real-data proof** (main's code with this branch, the real roads and drivers, `build_report_inputs`): the 08:50
+section for Mon 26 Oct, from 23 Oct 15:00 data, now plans PS2, PS3 and PS4 on NIFTY-M and BANKNIFTY-M (6 lines,
+structure SC, worst loss Rs 2,271 to Rs 9,373), banner AMBER, nothing "not planned". Before: "No candidate today". The
+23 Oct slot itself made the same 6 rule trades (replay of 23 Oct: PS2, PS3, PS4 trade x2 each; RC1 and REF are
+controls).

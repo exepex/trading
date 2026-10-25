@@ -48,6 +48,7 @@ def net_record(driver="CS1@1", net=137.7, ticket=False) -> OutcomeRecord:
 class Today:
     days: tuple[RoadDay, ...] = field(default_factory=open_roads)
     trades: tuple[PlannedTrade, ...] = field(default_factory=lambda: (plan(),))
+    failed: tuple[str, ...] = ()
 
     def roads(self, session):
         return self.days
@@ -57,6 +58,9 @@ class Today:
 
     def source(self, session):
         return session - timedelta(days=1)
+
+    def not_planned(self, session):
+        return self.failed
 
 
 @dataclass

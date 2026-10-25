@@ -60,6 +60,9 @@ class SealedDayInputs:
         return None if step is None else (step["result"]["status"], step["result"]["reason"])
 
 
+NOT_PLANNED = "{driver} ({cause})"
+
+
 class PreviousSlotToday:
     """The 08:50 section's inputs (325 9.21, "plan at 08:50, booking at the slot"): today's captures do not
     exist yet, so the roads are the previous session's 15:00 roads and the plan is what each rule driver's card proposes
@@ -70,6 +73,7 @@ class PreviousSlotToday:
     def __init__(self, calendar, catalogue: RoadCatalogue, snapshots, gate, drivers, history, seconds: float = 60.0):
         self.calendar, self.catalogue, self.snapshots, self.gate = calendar, catalogue, snapshots, gate
         self.drivers, self.history, self.seconds = drivers, history, seconds
+        self._made: dict[date, tuple[tuple[PlannedTrade, ...], tuple[str, ...]]] = {}  # one plan per session
 
     def roads(self, session: date) -> tuple[RoadDay, ...]:
         return self.catalogue.day(self.source(session))
@@ -78,13 +82,31 @@ class PreviousSlotToday:
         return self.calendar.previous_session(session)
 
     def plan(self, session: date) -> tuple[PlannedTrade, ...]:
+        return self._plan(session)[0]
+
+    def not_planned(self, session: date) -> tuple[str, ...]:
+        """Each rule driver whose plan failed, by id with its failure and error class only (MS-P1j4: never silent)."""
+        return self._plan(session)[1]
+
+    def _plan(self, session: date) -> tuple[tuple[PlannedTrade, ...], tuple[str, ...]]:
+        if session not in self._made:
+            self._made[session] = self._make(session)
+        return self._made[session]
+
+    def _make(self, session: date) -> tuple[tuple[PlannedTrade, ...], tuple[str, ...]]:
+        """Each driver on its card's own roads only, as at the slot (MS-P1j4: another road's `OutOfScope` raise
+        emptied every driver's plan)."""
         previous = self.source(session)
         slot = plan_slot(previous, self.catalogue, self.snapshots, self.gate)
-        planned = []
+        planned, failed = [], []
         for driver in (d for d in self.drivers if d.card.role is DriverRole.RULE):
-            done = isolated(lambda d=driver: self._proposals(d, slot, previous), self.seconds)
+            own = slot.only(driver.card.roads)
+            done = isolated(lambda d=driver, own=own: self._proposals(d, own, previous), self.seconds)
             planned.extend(done.value or ())
-        return tuple(planned)
+            if done.failed:
+                cause = f"{done.failed.value}: {done.error_class}" if done.error_class else done.failed.value
+                failed.append(NOT_PLANNED.format(driver=driver.card.driver_id, cause=cause))
+        return tuple(planned), tuple(failed)
 
     def _proposals(self, driver, slot, previous: date) -> list[PlannedTrade]:
         trades = []

@@ -29,6 +29,9 @@ class TodayInputs(Protocol):
     def plan(self, session: date) -> tuple[PlannedTrade, ...]:
         """The paper trades planned for the session's 15:00 slot."""
 
+    def not_planned(self, session: date) -> tuple[str, ...]:
+        """The rule drivers whose plan failed, each "<driver id> (<failure>: <error class>)" (MS-P1j4)."""
+
     def source(self, session: date) -> date:
         """The session whose 15:00 data the roads and the plan come from (at 08:50, the previous session's)."""
 
