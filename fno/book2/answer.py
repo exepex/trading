@@ -29,7 +29,8 @@ def check_decision(decision, sheet=None) -> list[str]:
         return problems
     if decision["action"] != _action(slots):
         problems.append(f"action must be {_action(slots)!r} for these slots, not {decision['action']!r}")
-    chosen = [s["opportunity_id"] for s in slots if s["action"] == "trade"]
+    chosen = [s["default"] if s["action"] == "follow_rule" else s["opportunity_id"] for s in slots
+              if s["action"] != "no_trade"]  # fmt: skip
     if len(chosen) != len(set(chosen)):
         problems.append("two slots choose the same opportunity")
     return problems + (_against(slots, sheet) if sheet is not None else [])

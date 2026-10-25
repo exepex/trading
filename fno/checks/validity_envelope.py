@@ -4,13 +4,16 @@ independently of the decider, among the versions D2 found eligible that day (fir
 the approved list alone. The envelope file's hash must equal the version's registered D6 component
 (`trade_envelope:<name>-v<n>`): a file edited after registration fails closed. The action must be `allowed`: a
 `shadow-only` action is never the account's trade (the account takes the rule default), and a forbidden one fails.
-A damaged envelope file fails the named `envelope` check."""
+A damaged envelope file fails the named `envelope` check. The unproven limit is checked again here, independently of
+D2's allocator (story F5, judge 260 addendum 2): a version with fewer than 20 completed paper trades may hold at most
+one open trade, counting the book's trades that passed C4 earlier the same day."""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import date
 
+from ..constants import UNPROVEN_BELOW_COMPLETED_TRADES, UNPROVEN_MAX_OPEN_TRADES
 from ..playbook.envelope import AuthorityEnvelope, BookTerms, TradeEnvelope, VersionKey
 from ..playbook.envelope_files import EnvelopeError, component_key
 from .validity_evidence import Evidence
@@ -21,8 +24,22 @@ from .validity_shapes import Shape
 RegisteredComponents = Callable[[str, date], Mapping[str, str]]  # (book, day) -> the active D6 version's components
 
 
+NO_COUNTS = "no paper-trade counts given for the version: fails closed"
+UNPROVEN = "{completed} completed paper trades (limit applies below {below}); {holding} open or passed earlier today"
+
+
 def at_most_lots(lots: int, version_lots: int) -> bool:
     return 1 <= lots <= version_lots
+
+
+def unproven_check(proposal: ValidityProposal, key: VersionKey) -> CheckResult:
+    if proposal.version_counts is None:
+        return CheckResult("unproven", False, NO_COUNTS)
+    completed, held = proposal.version_counts
+    holding = held + sum(1 for e in proposal.earlier if e.strategy is not None and e.strategy.key == key)
+    ok = completed >= UNPROVEN_BELOW_COMPLETED_TRADES or holding < UNPROVEN_MAX_OPEN_TRADES
+    reason = UNPROVEN.format(completed=completed, below=UNPROVEN_BELOW_COMPLETED_TRADES, holding=holding)
+    return CheckResult("unproven", ok, reason, {"completed": completed, "holding": holding})
 
 
 class EnvelopeMode(ValidityMode):
@@ -49,6 +66,7 @@ class EnvelopeMode(ValidityMode):
         component = self.registered(proposal.book, proposal.day).get(component_key(key))
         shown = f"file {envelope.sha256[:12]} vs registered {(component or 'none')[:12]}"
         results.append(CheckResult("envelope_registered", envelope.sha256 == component, shown))
+        results.append(unproven_check(proposal, key))
         if proposal.rule_default is None:
             return results + [CheckResult("envelope", False, "no rule default given: the rules offered no trade")]
         choice = BookTerms(key, proposal.width, proposal.lots)

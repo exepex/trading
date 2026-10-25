@@ -145,9 +145,15 @@ class DayInputs:
     counts: dict = field(default_factory=dict)
     shadow: dict = field(default_factory=dict)
     selection: tuple = ()  # an AI book's picks (F6), each Pick.to_json(); none for Book 1, whose bytes stay unchanged
+    # Book 2 (F5): the rule's own action per opportunity ("trade" or "no trade", the day under `no_trade`), from D2's
+    # rule-default evaluation, so a record of an AI choice names the rule it departed from; None elsewhere
+    rule_defaults: Mapping[str, str] | None = None
 
     def to_json(self) -> dict:
         picks = {"selection": list(self.selection)} if self.selection else {}
+        picks |= (
+            {"book2_rule_defaults": dict(sorted(self.rule_defaults.items()))} if self.rule_defaults is not None else {}
+        )
         return {
             "day": self.day.isoformat(),
             "playbook": self.playbook.to_json(),
@@ -159,7 +165,8 @@ class DayInputs:
     def from_json(cls, data: dict) -> DayInputs:
         snapshot = PlaybookSnapshot.from_json(data["playbook"])
         return cls(date.fromisoformat(data["day"]), snapshot, data["market"], data["features"], data["book"],
-                   data["counts"], data["shadow"], tuple(data.get("selection", ())))  # fmt: skip
+                   data["counts"], data["shadow"], tuple(data.get("selection", ())),
+                   data.get("book2_rule_defaults"))  # fmt: skip
 
     def replay_arguments(self) -> tuple:
         """The arguments of `RuleEvaluator.evaluate`, rebuilt from the stored inputs."""

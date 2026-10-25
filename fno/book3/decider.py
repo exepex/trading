@@ -16,6 +16,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import date
 from pathlib import Path
 
+from ..ai_trading.fired_packs import require_fired_packs
 from ..ai_trading.ports import SERVED_VERSION, AcceptedDecision, AiBookDecider, DecidedRun, DecisionRefused
 from ..books.book1 import Book1Inputs
 from ..books.paths import book_folder
@@ -39,7 +40,6 @@ NO_ROLE_SET = "none"
 ROLE_SET = "role_set_version"  # F2's item, as F1t fires it: {"role_set_version", "roles": [{"card_id", "card"}]}
 STRATEGY_STATUS = PlaybookStatus.RESEARCH  # every Book 3 spec is research (D5): each trade "strategy not yet passed"
 LEDGER_REWRITTEN = f"{LEDGER_FILE} changed above its new rows: the trial ledger is append-only, nothing decided"
-PACK_DIFFERS = "{pack} pack read now ({now}) is not the one the session was fired with ({fired})"
 
 
 RunFactory = Callable[[RuleEvaluator, Sequence[Mapping]], DecisionRun]  # (evaluator, stored picks) -> D3's run
@@ -67,7 +67,7 @@ class Book3Decider(AiBookDecider):
         self._require_new_day(day)
         tradable = self.strategies.on(day, self.head())
         today = self.inputs.day(day)
-        _require_fired_packs(today.context, accepted)
+        require_fired_packs(today.context, accepted)
         arguments = (day, tradable.snapshot.playbook(), today.market, today.features, today.book, today.counts,
                      today.shadow)  # fmt: skip
         self._require_sheet(accepted, arguments, tradable.snapshot.commit)
@@ -120,15 +120,6 @@ class Book3Decider(AiBookDecider):
         return {**context, "common_pack_sha256": accepted.common_pack.sha256,
                 "private_pack_sha256": accepted.private_pack.sha256, "model_served": accepted.model_reported,
                 "session_id": accepted.session, "judge": accepted.judge or None, "served": served}  # fmt: skip
-
-
-def _require_fired_packs(context: Mapping, accepted: AcceptedDecision) -> None:
-    """The packs D2 reads now must be the ones the session was fired with, or the records would claim data the
-    decision did not use."""
-    for pack, fired in (("common", accepted.common_pack.sha256), ("private", accepted.private_pack.sha256)):
-        now = context.get(f"{pack}_pack_sha256")
-        if now != fired:
-            raise DecisionRefused(PACK_DIFFERS.format(pack=pack, now=now, fired=fired))
 
 
 def _bytes(path: Path) -> bytes:

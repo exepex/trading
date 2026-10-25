@@ -11,8 +11,9 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from ..book2.answer import check_decision as book2_check_decision
 from ..book3.answer import check_decision as book3_check_decision
-from ..constants import BOOK3_AI, ISOLATION_SEALED_SAME_DAY
+from ..constants import BOOK2_HYBRID, BOOK3_AI, ISOLATION_SEALED_SAME_DAY
 
 # `check_decision(decision) -> problems`: empty means ok; standard library only (it runs in the routine's `seal`)
 ShapeCheck = Callable[[dict], list[str]]
@@ -64,10 +65,14 @@ class DecisionRegistry:
         raise VersionRefused(f"{label!r} is not a registered decision version")
 
 
+BOOK2_WRITE_PATHS = ("journal/book2_hybrid/",)  # its runs, day log and C4 log; never the playbook or its envelopes
 BOOK3_WRITE_PATHS = ("journal/book3_ai/", "book3/strategies/", "research/ledger.csv")  # never the constitution (D5)
 VERSIONS: tuple[DecisionVersion, ...] = (
+    DecisionVersion(BOOK2_HYBRID, 1, "agents/book2/decide_v1.md",
+                    "12374d67a796a7fe2bcd9bfa896fab7a48ac69b0dfe48afdbe668d9b2f2cc7af", "claude-opus-5-5",
+                    book2_check_decision, BOOK2_WRITE_PATHS),  # story F5: no role unit until F2's cards exist
     DecisionVersion(BOOK3_AI, 1, "agents/book3/decide_v1.md",
                     "93d5fb96ad057a84fe3a3a5b0b027ff3bcb6d2e5010ec3a45b07f8819c2f6de0", "claude-opus-5-5",
                     book3_check_decision, BOOK3_WRITE_PATHS),  # story F6: no role unit until F2's cards exist
-)  # fmt: skip  # F5 adds Book 2's entry when its decider lands
+)  # fmt: skip
 REGISTRY = DecisionRegistry(VERSIONS)

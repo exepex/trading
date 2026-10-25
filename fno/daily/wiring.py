@@ -72,6 +72,22 @@ def live_dates(cfg: dict) -> dict[str, date | None]:
     return {name: date.fromisoformat(str(raw[name])) if raw.get(name) else None for name in LIVE_STEPS}
 
 
+def book2_reviews(cfg: dict, root: Path, alerts, ai_books) -> tuple:
+    """Story F5: Book 2's research pauses join E6's reviews while Book 2 is live (nothing is read otherwise)."""
+    if BOOK2_HYBRID not in ai_books:
+        return ()
+    from ..book2.decision_wiring import build_book2_pauses_review
+
+    return (build_book2_pauses_review(cfg, root, alerts),)
+
+
+def book2_review_paths(ai_books) -> tuple[str, ...]:
+    """What Book 2's review may change, committed by the step: its research pauses file."""
+    from ..book2.pauses import PAUSES_FILE
+
+    return (PAUSES_FILE,) if BOOK2_HYBRID in ai_books else ()
+
+
 def live_ai_books(cfg: dict, day: date) -> tuple[str, ...]:
     """The AI books live on `day` (`daily.live_from.<book>` on or before it); a key `daily.live_from` does not know is
     refused, so a typo can never leave a book silently off (O1 builder, 16 Oct)."""
@@ -199,11 +215,11 @@ def build_day_runner(cfg: dict, root: Path = ROOT, sleep: Callable[[float], None
         REVIEWS_STEP: Alerted(
             REVIEWS_STEP,
             ReviewsStep(
-                (ScorecardReview(build_scorecard_run(cfg, root, alerts)),),
+                (ScorecardReview(build_scorecard_run(cfg, root, alerts)), *book2_reviews(cfg, root, alerts, ai_books)),
                 build_execution_snapshots(),
                 root,
                 git.changed,
-                (f"{PLAYBOOK_FOLDER}/",),
+                (f"{PLAYBOOK_FOLDER}/", *book2_review_paths(ai_books)),
             ),
             alerts,
         ),  # E6's pauses  # fmt: skip

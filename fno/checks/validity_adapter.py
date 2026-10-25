@@ -79,10 +79,14 @@ class BookTradeValidator:
         cutoff = datetime.combine(day, self.cutoff, IST)
         before = tuple(proposal_of(self.book, day, o, market, playbook, cutoff) for o in earlier)
         own = proposal_of(self.book, day, outcome, market, playbook, cutoff)
-        proposal = replace(own, earlier=before, eligible=eligible, **account_inputs(book))
+        proposal = replace(own, earlier=before, eligible=eligible, **account_inputs(book), **self.extra(outcome))
         report = self.checker.check(proposal, self.captures.record(day))
         reason = "; ".join(f"{r.name}: {r.reason}" for r in report.failures)
         return ValidityResult(report.ok, report.record(), reason, report)
+
+    def extra(self, outcome: Outcome) -> dict:
+        """What a book's own validator adds to the proposal (Book 2's rule default and counts, story F5); none here."""
+        return {}
 
     def log_failures(self, day: date, results: Mapping[str, ValidityResult]) -> None:
         """Each report in the book's failure log (a pass writes nothing); the run calls it after writing its records."""

@@ -72,9 +72,16 @@ class RecordBuilder:
 
     def __init__(
         self, book: str, run_id: str, context: Mapping[str, object],
-        validity: Mapping[str, ValidityResult] | None = None,
+        validity: Mapping[str, ValidityResult] | None = None, rule_defaults: Mapping[str, str] | None = None,
     ):  # fmt: skip
+        """`rule_defaults`: Book 2's rule action per opportunity (F5); without it the rule default is the action."""
         self.book, self.run_id, self.context, self.validity = book, run_id, dict(context), dict(validity or {})
+        self.rule_defaults = rule_defaults
+
+    def _rule_default(self, opportunity_id: str, action: str) -> str | None:
+        if self.book == BOOK3_AI:
+            return None
+        return action if self.rule_defaults is None else self.rule_defaults.get(opportunity_id, "no trade")
 
     def _blocked(self, outcome: Outcome) -> ValidityResult | None:
         result = self.validity.get(outcome.opportunity.opportunity_id)
@@ -114,7 +121,7 @@ class RecordBuilder:
             "validity": {"c4": c4.record if c4 else None, "candidate": candidate},
             "decision": {"action": action, "outcome": record["decision"], "reason": reason},
             "alternatives": [_summary(o) for o in outcomes if o is not outcome],
-            "rule_default": action if self.book != BOOK3_AI else None, "chosen_action": action, "reason": reason,
+            "rule_default": self._rule_default(opportunity_id, action), "chosen_action": action, "reason": reason,
         }  # fmt: skip
 
     def _strategy(self, strategy) -> dict:
@@ -133,7 +140,7 @@ class RecordBuilder:
             "expected": None, "risk": None, "validity": None,
             "decision": {"action": action, "outcome": action, "reason": reason},
             "alternatives": [_summary(o) for o in evaluation.outcomes],
-            "rule_default": action if self.book != BOOK3_AI else None, "chosen_action": action, "reason": reason,
+            "rule_default": self._rule_default(NO_TRADE_ID, action), "chosen_action": action, "reason": reason,
         }  # fmt: skip
 
 

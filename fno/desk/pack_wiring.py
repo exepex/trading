@@ -8,13 +8,19 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from ..config import ROOT
-from ..constants import BOOK1_RULES, BOOK3_AI
+from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI
 from .book_sheet import BookSheet, LazySheet
 from .common_pack import CommonPackBuilder
 from .packs import WrittenPacks
 from .private_pack import PrivatePackBuilder
 
 PACKED_BOOKS = (BOOK1_RULES,)  # the daily run also packs each live AI book (story F1t)
+
+
+def _book2_sheet(cfg: dict, root: Path) -> BookSheet:
+    from ..book2.decision_wiring import build_book2_sheet
+
+    return build_book2_sheet(cfg, root)
 
 
 def _book3_sheet(cfg: dict, root: Path) -> BookSheet:
@@ -24,7 +30,7 @@ def _book3_sheet(cfg: dict, root: Path) -> BookSheet:
 
 
 SheetBuilder = Callable[[dict, Path], BookSheet]
-SHEETS: dict[str, SheetBuilder] = {BOOK3_AI: _book3_sheet}  # story E2e: book -> its sheet's builder (F5 adds Book 2)
+SHEETS: dict[str, SheetBuilder] = {BOOK2_HYBRID: _book2_sheet, BOOK3_AI: _book3_sheet}  # E2e: book -> its builder
 
 
 def build_common_pack_builder(root: Path = ROOT) -> CommonPackBuilder:

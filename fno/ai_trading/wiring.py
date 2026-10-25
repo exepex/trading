@@ -51,7 +51,16 @@ def _book3_parts(cfg: dict, root: Path, alerts: AlertSender) -> BookParts:
     )
 
 
-BOOK_PARTS: dict[str, PartsBuilder] = {BOOK3_AI: _book3_parts}  # F5 adds Book 2's builder here
+def _book2_parts(cfg: dict, root: Path, alerts: AlertSender) -> BookParts:
+    """Story F5: Book 2's decider, its orders (the stored picks and defaults replayed through C4) and its exit rules."""
+    from ..book2.decision_wiring import build_book2_decider, build_book2_exit_rules, build_book2_orders
+
+    return BookParts(
+        build_book2_decider(cfg, root), build_book2_orders(cfg, root), build_book2_exit_rules(root, alerts)
+    )
+
+
+BOOK_PARTS: dict[str, PartsBuilder] = {BOOK2_HYBRID: _book2_parts, BOOK3_AI: _book3_parts}
 JUDGE_STEP: Callable[[Path], JudgeStep] | None = None  # F4 sets its builder here (`fno/judge/wiring.py`)
 FIRE_LOG_MARKER = ".pending_ai_fire.json"  # the fire log's pending commit, beside the run's own marker
 

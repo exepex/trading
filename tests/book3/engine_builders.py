@@ -106,14 +106,14 @@ def evaluators() -> Book3Evaluators:
     return Book3Evaluators(rules.finder, rules.builder, rules.allocator, rules.real)
 
 
-def validator(root: Path, log: bool = False) -> BookTradeValidator:
-    """C4's app checker in Book 3's mode (D5): the constitution, D6 and registry under `root`."""
+def validator(root: Path, log: bool = False, book: str = BOOK3_AI) -> BookTradeValidator:
+    """C4's app checker in the book's mode (Book 3's D5 by default; Book 2's D4 for F5): files and D6 under `root`."""
     store = quote_store()
     sources = Sources(EvidenceReader(store, DATASET), NseListing(NSE), Accounts(None))
     checker = ValidityChecker(sources, LimitChecks(limits(), ZERO_CHARGES, MARGINS), validity_modes(root))
     from fno.checks.validity_failures import ValidityFailureLog
 
-    return BookTradeValidator(BOOK3_AI, checker, Captures(committed_record(store, DAY, "exec")), DESK_DECISION_TIME,
+    return BookTradeValidator(book, checker, Captures(committed_record(store, DAY, "exec")), DESK_DECISION_TIME,
                               ValidityFailureLog(root) if log else None)  # fmt: skip
 
 

@@ -39,7 +39,8 @@ def build_book3_inputs(cfg: dict, root: Path = ROOT):
     from ..storage.wiring import build_quote_store
 
     return LiveBook1Inputs(root, build_quote_store(), cfg["risk_free_rate"], Black76(),
-                           lambda day, snapshot: cutoff_features(cfg, day, snapshot), lambda m: _parts(root, m),
+                           lambda day, snapshot: cutoff_features(cfg, day, snapshot),
+                           lambda m: account_parts(root, m, BOOK3_AI),
                            lambda day, hashes: run_context(root, day, hashes, BOOK3_AI), BOOK3_AI)  # fmt: skip
 
 
@@ -161,8 +162,9 @@ def playbook_widths(root: Path, name: str, version: int):
         return None
 
 
-def _parts(root: Path, market) -> tuple:
-    """Book 3's own account for C2 and its trade counts; it has no shadow candidates, so no shadow books."""
+def account_parts(root: Path, market, book: str) -> tuple:
+    """An AI book's own account for C2 and its trade counts; it has no shadow candidates, so no shadow books (Book 3,
+    and Book 2 under the owner's Q11, F5)."""
     from ..books.account import PaperAccount
     from ..books.book1_records import recorded_terms
     from ..desk.records import DeskRecords
@@ -170,6 +172,6 @@ def _parts(root: Path, market) -> tuple:
     from ..risk.book_view import load_risk_book
     from .no_shadows import NoShadowBooks
 
-    terms = recorded_terms(root, BOOK3_AI)
-    counts = DeskTradeCounts(DeskRecords(PaperAccount(root, BOOK3_AI)))
-    return load_risk_book(root, BOOK3_AI, market, terms), counts, NoShadowBooks()
+    terms = recorded_terms(root, book)
+    counts = DeskTradeCounts(DeskRecords(PaperAccount(root, book)))
+    return load_risk_book(root, book, market, terms), counts, NoShadowBooks()

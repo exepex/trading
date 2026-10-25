@@ -2,8 +2,11 @@
 C4's correct SF trade (width 200, one lot) on a version that allows up to 2 lots, made a Book 2 trade with a rule
 default on a version D2 found eligible; the D6 registry is a temporary file."""
 
+import json
 from dataclasses import replace
 from datetime import date
+
+import pytest
 
 from fno.books.registered_components import RegisteredComponents
 from fno.books.version_registry import VersionRegistry, VersionRow
@@ -24,7 +27,8 @@ def book2(width=200.0, lots=1, rule_default=RULE_DEFAULT, approved=frozenset({KE
           the_version=VERSION):  # fmt: skip
     base = proposal("SF")
     return replace(base, book=BOOK2_HYBRID, strategy=the_version, rule_sha256=the_version.parameters_sha256,
-                   width=width, lots=lots, rule_default=rule_default, approved=approved, eligible=eligible)  # fmt: skip
+                   width=width, lots=lots, rule_default=rule_default, approved=approved, eligible=eligible,
+                   version_counts=(25, 0))  # fmt: skip
 
 
 def mode_with(tmp_path, envelopes, registered_sha=None):
@@ -105,3 +109,25 @@ def test_no_rule_default_means_no_trade_to_take(tmp_path):
 def test_book_1_still_needs_exactly_the_version_s_lots():
     assert "lots" in failed(check(proposal("SF", lots=2)))
     assert DAY  # the C4 fixture's day, shared by both books
+
+
+@pytest.mark.parametrize("counts, earlier_same, ok", [
+    ((19, 0), 0, True), ((19, 1), 0, False), ((20, 1), 0, True), ((20, 5), 0, True),
+    ((19, 0), 1, False), ((0, 0), 0, True),
+])  # fmt: skip
+def test_c4_re_checks_the_unproven_limit_whatever_the_allocator_did(tmp_path, counts, earlier_same, ok):
+    """Story F5 criteria 4 and 13: under 20 completed paper trades a version holds at most one open trade, counting the
+    book's trades that passed C4 earlier the same day (boundary at exactly 20 completed)."""
+    earlier = tuple(book2() for _ in range(earlier_same))
+    result = report(tmp_path, replace(book2(), version_counts=counts, earlier=earlier))
+    assert result.ok is ok and (ok or failed(result) == {"unproven"})
+
+
+def test_an_earlier_trade_of_another_version_does_not_count(tmp_path):
+    other = replace(book2(), strategy=version("c4-other", lots=2, widths=(300, 200, 100), code="SF"))
+    assert report(tmp_path, replace(book2(), version_counts=(0, 0), earlier=(other,))).ok
+
+
+def test_no_counts_fail_closed(tmp_path):
+    result = report(tmp_path, replace(book2(), version_counts=None))
+    assert failed(result) == {"unproven"} and "fails closed" in json.dumps(result.record())
