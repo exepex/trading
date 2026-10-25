@@ -61,9 +61,11 @@ cancels orders.
 2. `python -m fno daily run` (story O1). It runs the day's steps in the order of `DAILY_RUN_STEPS`
    (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
    forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), protocol v4's release
-   (story G10: from `daily.live_from.v4_pack`, after the `v4` quote part's 14:30-14:40 capture), E3's desk (pack, Book 1's
-   decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk, v4's 15:10 deadline check
-   (G10, from 15:12) and, from 15:33 IST (after A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`:
+   (story G10: from `daily.live_from.v4_pack`, after the `v4` quote part's 14:32-14:40 capture), G7b's pack-derived v4
+   rows (`forecasts_v4_pack`, from `daily.live_from.forecasts_v4_pack`, right after the release, committed before 15:10),
+   E3's desk (pack, Book 1's decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk,
+   the market school's 15:00 paper slot (MS-P1j2: right after G13d's issue, never started after 15:25 IST, never
+   retried; `school.enabled`), v4's 15:10 deadline check (G10, from 15:12) and, from 15:33 IST (after A16's 15:30 mark), A16b's candle catch-up (`intraday backfill`:
    yesterday's 15-minute candles, read-only Groww) and, last, A4h's close reads. It writes `journal/runs/<date>.json` and commits each step's own files itself. It ends on one line: `day done`, `day
    done with problems: <steps>`, or the desk's stop line ending "; no card today" (exit 1 for the last two). A rerun the
    same day skips the steps already done. A "waiting until HH:MM IST" line is a wait for the next step's time, never a
@@ -104,8 +106,9 @@ each part's commit in its one thread. The `git add` lines below are also the han
    ':(glob)research/data/quotes/groww/**/niftyweekly_*'`, commit and push. It alerts #fno-desk itself for any index
    not recorded.
 3c. Protocol v4's capture (story G10, from `daily.live_from.v4_pack`): `python -m fno quotes record --window v4` (A4e:
-   14:30-14:40 IST, its own dataset) starts with the parts above and commits alone as soon as it ends, never after
-   NIFTY: `git add ':(glob)research/data/quotes/groww/derivatives/quote-snapshots-v4/**'`.
+   14:32-14:40 IST, inside protocol v4's 14:30-14:40 window, after A16's 14:30 mark; its own dataset) starts with the
+   parts above and commits alone as soon as it ends, never after NIFTY:
+   `git add ':(glob)research/data/quotes/groww/derivatives/quote-snapshots-v4/**'`.
 4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day": the command itself
    posts its three alerts to #fno-desk (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day trades",
    "stopped, nothing recorded" (the calendar cannot answer for today, e.g. a new year missing: add NSE's holiday

@@ -212,8 +212,13 @@ def test_the_v2_ai_fire_stops_from_the_v4_go_live_date(tmp_path):
     )
 
 
-def test_the_wiring_refuses_a_day_without_needing_drive():
+def test_the_wiring_refuses_a_day_without_needing_drive(monkeypatch):
+    """Since the v4 freeze the slot registry reads G7b's Drive records for each question's first eligible session: the
+    v4 tests' one no-Drive seam stands in for them (never a skip)."""
     from fno.ai.wiring import build_v4_firer
+    from tests.forecast_scoring_v4.conftest import SEAM, NoDriveRecords
+
+    monkeypatch.setattr(SEAM, lambda folder: NoDriveRecords())
 
     assert "is not today" in build_v4_firer({}).fire(date(2026, 10, 1))[-1]  # no Drive settings in this env
 
@@ -226,13 +231,14 @@ def test_the_fire_log_is_in_the_folder_v4_fire_yml_commits():
 
 def test_the_ai_books_go_live_on_their_own_key_never_forecasts_v4s_date():
     """Orchestrator, 21 Oct: O1's rule forecasts going live must not fire the books (their v4 steps are not built), so
-    an accidental merge does nothing; the repository's config keeps the books' key null until step 7 and round 2c."""
+    an accidental merge does nothing. The v4 freeze commit sets the books' own key to the first counted session (owner,
+    25 Oct 2026: S = Mon 26 Oct), in the same commit as the record and the slot rows."""
     from fno.ai.wiring import v4_live_from
     from fno.config import load_app_config
 
     assert v4_live_from({"daily": {"live_from": {"forecasts_v4": "2026-10-22"}}}) is None
     assert v4_live_from({"daily": {"live_from": {"ai_books_v4": "2026-11-02"}}}) == date(2026, 11, 2)
-    assert v4_live_from(load_app_config()) is None
+    assert v4_live_from(load_app_config()) == date(2026, 10, 26)
 
 
 def test_a_pointer_brief_would_refuse_is_a_logged_not_fired_and_never_sent(tmp_path, monkeypatch):

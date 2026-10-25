@@ -10,9 +10,11 @@ GOOD = {"enabled": False, "reports": False, "first_counted": None, "account_rs":
         "open_risk_rs": 150_000, "new_risk_day_rs": 50_000}  # fmt: skip
 
 
-def test_the_repository_settings_are_off_with_todays_limits():
+def test_the_repository_settings_have_the_record_on_the_reports_off_and_todays_limits():
+    """The owner's switch (25 Oct 2026): the paper record on; the reports wait for MS-P1j4; nothing counts before the
+    10-session gate sets `first_counted` (CARD_P1.md section 5)."""
     settings = school_settings(load_app_config())
-    assert settings.enabled is False and settings.reports is False and settings.first_counted is None
+    assert settings.enabled is True and settings.reports is False and settings.first_counted is None
     assert (settings.max_loss_rs, settings.daily_stop_rs, settings.brake_rs) == (10_000, 25_000, 120_000)
 
 

@@ -2,8 +2,9 @@
 said on the session and how each scores, per v3 question, from G4's report and the committed records
 (`forecast_lab_inputs.py`).
 
-- **v3 only in the questions:** protocol v4 is listed as a draft with its question ids, and no V question is shown
-  until G6 freezes it: no draft numbers and no invented minimum on a public page (screens lead, 16 Oct 2026).
+- **v3 only in the questions:** protocol v4 is listed with its question ids, as a draft until its freeze record's day
+  and as frozen with its protocol commit from then (G6 freeze; orchestrator, 25 Oct 2026); no V question is shown yet:
+  v4's per-question entries are P2b's open work (no draft numbers and no invented minimum on a public page).
 - **The standing** is G4's own sentence: forecasts are secondary to net profit and never promote a book."""
 
 from __future__ import annotations
@@ -29,15 +30,17 @@ def forecast_lab(inputs: ForecastLabInputs) -> dict:
     report = inputs.report or {}
     return {
         "standing": report.get("standing", STANDING),  # G4's own sentence, also before its first report
-        "protocols": _protocols(report),
+        "protocols": _protocols(report, inputs),
         "forecasters": forecasters(inputs),
         "questions": questions(inputs),
     }
 
 
-def _protocols(report: dict) -> list[dict]:
+def _protocols(report: dict, inputs: ForecastLabInputs) -> list[dict]:
     v3_commit = (report.get("inputs") or {}).get("protocol_v3_commit")
     v3 = {"version": "v3", "status": "frozen" if v3_commit else "draft", "frozen_commit": v3_commit,
           "questions": [contract_id for contract_id, _ in V3_QUESTIONS.values()]}  # fmt: skip
-    v4 = {"version": "v4", "status": "draft", "frozen_commit": None, "questions": list(V4_IDS)}
+    v4_commit = inputs.v4_freeze.commit if inputs.v4_freeze else None
+    v4 = {"version": "v4", "status": "frozen" if v4_commit else "draft", "frozen_commit": v4_commit,
+          "questions": list(V4_IDS)}  # fmt: skip
     return [v3, v4]

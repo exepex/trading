@@ -12,7 +12,7 @@ quotes:
   # Story A4e: named capture windows, each in its own dataset (quote-snapshots-<name>); `quotes record --window v4`.
   # The default capture (no --window) is A4's 14:55-15:10 and is not set here.
   windows:
-    v4: {start: "14:30", end: "14:40", max_early_wait_minutes: 30}
+    v4: {start: "14:32", end: "14:40", max_early_wait_minutes: 30}  # after A16's 14:30 mark (Groww cap; 25 Oct)
 
 underlyings: [NIFTY, BANKNIFTY]
 
@@ -212,9 +212,9 @@ daily:
     forecasts_v4: "2026-10-22"  # the same; G7's rule forecasts, uncounted until the day after `Frozen on:`
     # G11: the AI books' own v4 go-live (the v4 AI fire runs and the v2 AI fire stops from it), never forecasts_v4's
     # date; null until the v4 freeze, the AI slots' registration and the routines' steps 3-4 (F1-G5-owner-checklist.md)
-    ai_books_v4: null
-    v4_pack: "2026-10-26"  # G10: the 14:27 `v4` capture, the release by 14:45, the 15:10 check (owner, 24 Oct)
-    forecasts_v4_pack: null  # G7b completion: the pack-derived v4 rows after the release (null until the owner's go)
+    ai_books_v4: "2026-10-26"
+    v4_pack: "2026-10-26"  # G10: the `v4` capture (part starts 14:29, captures from 14:32), the release by 14:45, the 15:10 check (owner, 24 Oct)
+    forecasts_v4_pack: "2026-10-26"  # G7b completion: the pack-derived v4 rows after the release (owner, 24 Oct)
     card: "2026-10-26"  # T1's daily card to #fno-desk (owner, 24 Oct: "enable/activate everything that has been completed")
     price_distribution: "2026-10-22"  # story G13's valuation record and price-distribution forecasts
     price_distribution_scores: "2026-10-22"  # G13's daily `pricedist score` (the previous sessions' outcomes)
@@ -260,7 +260,7 @@ health:
 # orchestrator turns them on. The limits are the school's own copy of today's values (response 325 section 9.1,
 # DESK_DECISIONS "Market school pilot: report sections and brake"), so a desk change never moves the pilot mid-count.
 school:
-  enabled: false
+  enabled: true
   reports: false
   first_counted:            # set from the frozen comparison card (MS-P1h) before the first counted session
   account_rs: 2000000       # each driver version's paper account
