@@ -15,23 +15,12 @@ where possible.
 
 ## What is wrong today (strong evidence: the code at a54f1016)
 
-1. **Sign-in storm.** `GrowwProvider.api` (`fno/providers/groww.py:139-145`) sets `_api` only after a successful
-   sign-in, so after a failed one every later call signs in again. An A16 mark makes 3-6 calls before it gives up
-   (prepare, index, candle, expiry plan), so 26-30 marks make about 160-210 sign-ins a day. That is over the cap of
-   150 per 24 hours, and the lock-out can last into the next morning.
-2. **No limiter shared across sessions.** Each scheduled routine runs in its own container. `RatePacer`
+- **No limiter shared across sessions.** Each scheduled routine runs in its own container. `RatePacer`
    (`fno/intraday/pacing.py`) is per process, so nothing stops two processes at full speed in the same minute. Known
    overlaps with an A16 mark: 14:30 (the `v4` capture), 15:00-15:01:30 (a NIFTY retry and A4c at 15:01) and 15:15
    (E3's execution capture). On 22 Oct, 4 quotes failed at 15:15.
-3. **A 429 is invisible in A4's sidecars.** With SDK 1.5, Groww's rate-limit answer arrives as `status: FAILURE` with
-   code `429`, and the SDK raises it as a plain `GrowwAPIException`. A4's `withheld()` keeps only the class name, so
-   the sidecars on file read "GrowwAPIException (provider message withheld)" (4 of them).
-4. **Raw SDK client.** The 3 pm, `v4` and execution captures and `GrowwFutureQuotes` (`fno/quotes/future_quotes.py:31`)
-   call the raw `GrowwAPI`, which can place, modify and cancel orders. Only A16, the pre-open capture and A16b use the
-   `ReadOnlyGroww` allow-list (`fno/intraday/read_only.py`).
-5. **A 429 does not stop an A4 attempt.** The attempt asks for every remaining contract anyway, so it burns the budget
-   the other taker needs, and it is incomplete either way.
-6. **A16's claim.** A run whose claim push fails takes the mark anyway (`fno/intraday/claims.py:5`), so two blind
+- The sign-in storm, the hidden 429, the raw SDK client and the missing 429 stop: [GW1a](GW1a-groww-guard-core.md).
+- **A16's claim.** A run whose claim push fails takes the mark anyway (`fno/intraday/claims.py:5`), so two blind
    runs can take one mark at 10 a second.
 
 ## Frozen files (protocol v4's freeze, FREEZE_v4.md on story/v4-freeze)
@@ -48,31 +37,9 @@ it.
 
 ## The rule
 
-1. **Sign-in guard (part 1).** `GrowwSignIn` (new `fno/providers/groww_sign_in.py`) owns the client of one process.
-   - A successful sign-in is kept until the 06:00 IST token day ends, as today.
-   - A failed sign-in is remembered. No new try is made for 5 minutes, then for 10 (tries at +0, +5 and +15 min).
-   - At most 3 tries are made per process per token day (round 2, judge 637 m1: was 6).
-   - Between tries, every call raises `GrowwSignInPaused` at once and reaches no network.
-   - The first failure of a token day calls the injected `on_sign_in_failure` once, with the exception's class name
-     only. `get_provider` wires it to a #fno-desk line. A caller that builds `GrowwProvider` directly gets no alert,
-     but its own failure records name `GrowwSignInPaused`.
-   - Worst case (judge 637 m1), about 38 processes on a session day:
-     - A16's 7 fires each run up to 2h45m and are rerun at the tool's 2-hour limit, so up to 21 processes.
-     - The daily run's Groww children (NIFTY, A4c, v4, E3, A16b) make 5, and 10 with a rerun.
-     - The pre-open capture makes 1, the school's slots 4 and readers run by hand 2.
-     - With every sign-in failing all day: 38 x 3 = 114 tries, under 150. A normal day: about 38 sign-ins.
-2. **One read-only client for every caller (part 2).** `GrowwProvider.api` returns the `ReadOnlyGroww` allow-list over
-   the guarded client, never the raw SDK. The feed probe alone needs the raw object (`GrowwFeed(groww_api)` reads its
-   internals) and gets it through `feed_client()`, which the feed wiring alone calls.
-3. **A 429 is named (part 3).** Groww's rate-limit answer, whether `GrowwAPIRateLimitException` or a
-   `GrowwAPIException` with code `429`, is raised as `GrowwRateLimited`, a class of its own with `.code` `429` and
-   none of Groww's text (`fno/providers/groww_rate_guard.py`; the SDK is an optional install). A4's sidecar
-   then reads "GrowwRateLimited (provider message withheld)", and A16's `failure_name` reads "GrowwRateLimited:429".
-   No message, URL or value is ever kept.
-4. **Stop at the first 429 (part 4).** After a 429, the process's Groww read calls raise `GrowwRateLimitPause` without
-   reaching the network for 60 s, Groww's per-minute window. A4's attempt then ends incomplete at once, and its own
-   60 s retry gap follows. A16 gets the same pause (orchestrator, Q3): on a clash it loses the rest of that mark, the
-   honest cost of not spending the budget the other taker needs.
+Parts 1-4 (sign-in guard, read-only client, 429 named, 60 s stop) are on main and owned by
+[GW1a](GW1a-groww-guard-core.md); this story builds on them unchanged.
+
 5. **Quiet windows for A16's marks (part 5; orchestrator, Q4 and Q5).** For providers built through `get_provider`
    (the 3 pm NIFTY, `v4`, A4c and E3's execution capture) a quiet window runs from each A16 mark to 120 s after it
    (`fno/providers/groww_quiet_windows.py`, A16's own `marks()`). An attempt that starts inside one waits for its end
@@ -172,19 +139,8 @@ it.
 
 ## Acceptance
 
-1. A failed sign-in is not retried within its back-off. Calls in between raise `GrowwSignInPaused` and the sign-in
-   function is not called. The back-off doubles (5, then 10 minutes). The 4th try in a token day is never made. A new token
-   day resets the count. A success is reused until 06:00 IST. Cases: good, bad, boundary (exactly at the back-off's
-   end) and empty credentials.
-2. The failure callback fires once per token day, with the class name only (a planted secret in the message never
-   reaches it).
-3. `GrowwProvider.api` refuses `place_order`, `modify_order` and `cancel_order` (`ReadOnlyViolation`, and the SDK
-   stub is never touched). `chain`, `quote_book`, `expiries` and `GrowwFutureQuotes.quote` still work through it.
-   `groww-check` works through it.
-4. A `GrowwAPIException` with code `429`, and `GrowwAPIRateLimitException`, both arrive as `GrowwRateLimited`. A4's
-   `withheld()` shows the name. Other errors pass through unchanged.
-5. After a 429, the next call within 60 s raises `GrowwRateLimitPause` and the stub is not called. At 60 s it is called
-   again. A4's attempt with a 429 at contract 3 of 20 asks Groww 3 times, not 20.
+Criteria for parts 1-4: [GW1a's acceptance](GW1a-groww-guard-core.md#acceptance).
+
 6. Through `get_provider`, an attempt starting at 14:30:10 asks from 14:32:00, at 15:00:00 from 15:02:00, at
    15:01:59 one second later and at 15:15:00 from 15:17:00. At 15:02:00, 14:32:00, 09:14:59 and 15:32:00 it does not
    wait. Any other call at the waiting times is refused unsent and never delayed. A16's directly built provider is
@@ -220,18 +176,6 @@ the code (`test_the_orderings_the_table_relies_on_hold_in_the_code`):
 - E3's first call at 15:17 comes after A4c's 15:13 and NIFTY's 15:10 ends.
 
 The 1.2 is measured, not a pacer (see the known limits).
-
-## Round 1's head: every taker paces for the worst pair (orchestrator, 25 Oct: a must-fix under the owner's rule; replaced in round 2 by one taker a mark)
-
-The first version's pair (5 a second claimed, 2.5 unclaimed: 7.5 a second for one rare mark) broke the owner's "in any situation". A run cannot know it is alone, so every
-taker paces for the worst pair: a claimed mark at 4 a second, an unclaimed one at 1 (4 + 1 = 5 and 1 + 1 = 2, both
-within 300 a minute and 10 a second). Cost, estimated from 78 slot rows of 20-23 Oct at 5 a second (overhead about 9 s,
-216-220 quotes): a mark takes about 63 s instead of 52 (median), and about 101 s instead of 83 at worst. The quiet
-window grows from 90 to 120 s: A4c then asks from 15:02:00, E3 from 15:17:00 (ends near 15:19:34 at 23 Oct's 2 min 34
-s), and the v4 capture at 14:32:00 sits exactly at the 14:30 window's end. An unclaimed mark at 1 a second spreads its
-contract quotes over about 3.8 minutes (the index still goes first, so the realised variance is on time). It also
-leaves A16 at 240 a minute, so its few unpaced calls (index, future, chains, candle) can never push a long mark over
-300.
 
 ## Claims
 
