@@ -164,7 +164,7 @@ desk:
     pack_wait_until: "15:10"  # the recorder's window end: no canonical snapshot by then means no pack today
     decision_deadline: "15:12"
     execution_snapshot: "15:15"
-    fills_by: "15:20"
+    fills_by: "15:23"  # GW1: E3 asks from 15:17:00 (A16's 15:15 quiet window); 2m57s + a 60 s 429 pause + 60 s
     lock_lease_seconds: 60
 
 # Story BG1: the monthly AI budget. Decided by the owner on 15 Oct 2026 (docs/DESK_DECISIONS.md, "Monthly AI budget

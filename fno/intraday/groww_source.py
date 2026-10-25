@@ -3,8 +3,8 @@ name, nothing else. A failure is kept by its exception class name only (an excep
 
 Order inside a snapshot: the index quote first (the realised variance's input, sent right at the mark; with the
 1-minute candle fallback when Groww gives the index no time), then the near future, the two chains, and one quote per
-contract within 6% of the index level, at most 4 at a time: 4 a second inside the mark's quiet window, 1 a second
-after it (story GW1)."""
+contract within 6% of the index level, at most 4 at a time and 4 a second, and nothing asked after the mark's quiet
+window (story GW1)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 
-from ..models import now_ist
+from ..models import IST, now_ist
 from ..providers.groww import _payload, listed_expiries, parse_groww_chain, parse_groww_quote_book
 from ..providers.groww_quiet_windows import QUIET_SECONDS
 from .document import CallRecord, SnapshotDocument
@@ -25,11 +25,10 @@ from .source import IntradayQuoteSource
 SPOT_BAND = 0.06  # strikes within 6% of the index level (design 2.1)
 INDEX_SYMBOL = "NIFTY"
 FUTURE_SYMBOL = "NIFTY{expiry:%y}{month}FUT"  # e.g. NIFTY26OCTFUT (step 0: the form get_quote accepts)
-# GW1: 4 a second only inside the mark's quiet window, where every other Groww reader is refused; after it (a late
-# mark, a long one) 1 a second, so A16 and any one other reader stay under 5 a second together. Step 0 measured 5 a
-# second clean with 4 workers.
-WORKERS, PER_SECOND, AFTER_WINDOW_PER_SECOND = 4, 4, 1
-FAST_LEAD = timedelta(seconds=WORKERS / PER_SECOND)  # the furthest ahead a fast start can be booked
+# GW1: A16 asks only inside its mark's quiet window, where every other Groww reader is refused, and at 4 a second, so
+# its few unpaced extras never take a long mark over 300 a minute. Step 0 measured 5 a second clean with 4 workers.
+WORKERS, PER_SECOND = 4, 4
+WINDOW_ENDED = "QuietWindowEnded"  # not asked: the mark's quiet window had ended (judge 638 finding 2)
 CALL_TIMEOUT_SECONDS = 10  # a hung call is a failure, never a stuck loop
 QUOTES_RETRIED = "quotes_retried:{count}"
 MAX_CODE_LENGTH = 12  # Groww's error codes are short words (e.g. 429); anything longer is not kept
@@ -46,12 +45,10 @@ class GrowwIntradaySource(IntradayQuoteSource):
     name = "groww"
 
     def __init__(self, client: ReadOnlyGroww, plan: ExpiryPlan, lot_size: int,
-                 clock: Callable[[], datetime] = now_ist, pacer: RatePacer | None = None,
-                 after_window_pacer: RatePacer | None = None):  # fmt: skip
+                 clock: Callable[[], datetime] = now_ist, pacer: RatePacer | None = None):  # fmt: skip
         self.client, self.plan, self.lot_size, self.clock = client, plan, lot_size, clock
         self.pacer = pacer or RatePacer(PER_SECOND)
-        self.after_window_pacer = after_window_pacer or RatePacer(AFTER_WINDOW_PER_SECOND)
-        self._window_end: datetime | None = None
+        self._window_end = datetime.max.replace(tzinfo=IST)  # set by each `take`
         self._expiries: dict[date, Expiries] = {}
         self._prepare_notes: list[str] = []
 
@@ -132,9 +129,12 @@ class GrowwIntradaySource(IntradayQuoteSource):
         return self._expiries[session]
 
     def _call(self, name: str, request, meta: dict | None = None) -> CallRecord:
-        """Every call of a mark is paced (GW1), before its send time is taken."""
-        self._pacer_now().wait()
+        """Every call of a mark is paced, and none starts once the mark's quiet window has ended: it is recorded as a
+        failure, unasked, as the other readers are let in then (GW1; a late or long mark ends there too)."""
+        self.pacer.wait()
         sent = self.clock()
+        if sent >= self._window_end:
+            return CallRecord(name, sent, None, None, WINDOW_ENDED, meta or {})
         try:
             payload = _payload(request(self.client))
         except Exception as exc:  # name and code only: an exception's text could carry a credential
@@ -166,12 +166,6 @@ class GrowwIntradaySource(IntradayQuoteSource):
         low, high = level * (1 - SPOT_BAND), level * (1 + SPOT_BAND)
         picked = sorted((strike, kind, q.symbol) for (strike, kind), q in chain.quotes.items() if low <= strike <= high)
         return [{"expiry": chain.expiry.isoformat(), "strike": s, "type": k, "symbol": sym} for s, k, sym in picked]
-
-    def _pacer_now(self) -> RatePacer:
-        """The fast pace ends FAST_LEAD before the window does: a start it books is at most that far ahead, so no fast
-        request starts after the window, when the other readers are let in (round 2 review)."""
-        fast_until = self._window_end - FAST_LEAD if self._window_end is not None else None
-        return self.pacer if fast_until is not None and self.clock() < fast_until else self.after_window_pacer
 
     def _quote(self, contract: dict) -> CallRecord:
         if not contract["symbol"]:

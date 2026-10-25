@@ -99,31 +99,56 @@ it.
      git's first-push-wins leaves exactly one taker, whatever the number of runs.
    - Cost: a mark is lost only when every living run fails to push its claim, which in practice means GitHub is down.
      Before GW1 such a mark was taken, by every run.
-   - Groww's source paces every call of a mark at 4 a second from the mark until 1 s before the end of its 120 s
-     quiet window, where every `get_provider` reader is refused. Every call includes the index, the future, the
-     chains and the candle, before its send time is taken. After that it paces at 1 a second. This covers a mark
-     taken up to 120 s late (`ON_TIME_SECONDS`) and a mark that runs long.
-   - The pace is chosen on each call's turn (`_pacer_now`). The fast pace ends `FAST_LEAD` (1 s: 4 workers at 4 a
-     second) early because a start can be booked at most that far ahead. So no fast request starts after the window,
-     when the other readers are let in. Round 2's review measured 5 starts in the first second after the window
-     without it.
+   - Groww's source paces every call of a mark at 4 a second, before its send time is taken: the index, the future,
+     the chains, the candle and the quotes.
+   - It asks nothing at or after the end of the mark's 120 s quiet window (mark + `QUIET_SECONDS`, imported). A call
+     whose turn comes later is recorded unasked as `QuietWindowEnded` (round 2, judge 638 finding 2; `_retry_failed`
+     goes through the same call).
+   - The window runs from the mark, not from the take's start, so a mark taken late (up to `ON_TIME_SECONDS`, 120 s)
+     has only what is left of it (judge 637 SF2). A mark taken after it asks nothing.
+   - The cost is a slow day's tail: quotes not asked by mark + 120 s are missing, and the mark is incomplete (its
+     realised-variance input, the index, goes first). A16's marks took 48-58 s on 20-23 Oct, 83 s at most at 5 a
+     second (about 63 and 101 s at 4).
 
 ## Known limits (said plainly)
 
-- E3's execution capture took 2 min 34 s on 23 Oct (15:15:00 to 15:17:34, its committed record). Starting at
-  15:17:00 it ends near 15:19:34. `desk.fills_by` (15:20) limits only a rerun that did not take the snapshot itself.
+- **E3 and `desk.fills_by` (judge 638 finding 1).** My round-1 text, "`fills_by` limits only a rerun", was wrong.
+  - `fills_by` also ends the capture's window: execution_capture.py:78 reads its record in
+    `execution_snapshot`..`fills_by`, and C3's `SnapshotInWindow` (snapshot_checks.py:30) refuses a snapshot that
+    finished later, so nothing fills from it and exits are not taken from it.
+  - E3's four committed captures took 2m35s-2m57s. Asked from 15:17:00, they would end at 15:19:35-15:19:57, only
+    3-25 s before 15:20.
+  - **The orchestrator's decision (25 Oct):** `execution_snapshot` stays 15:15 and `fills_by` moves to 15:23
+    (config.yaml). That covers the longest capture (2m57s) plus one 60 s 429 pause plus 60 s:
+    `test_e3s_capture_ends_before_fills_by_with_a_pause_and_a_minute_to_spare` pins it.
+  - Every reader of `fills_by`:
+    - execution_capture.py:78 and C3 (above): the window widens by 3 minutes.
+    - daily_run.py:256: a rerun that did not take the snapshot may fill until 15:23, not 15:20. This widens the
+      owner's 24 Oct rule ("no fills after fills_by") by 3 minutes.
+    - runner._finish_parts: only after a stop, waiting for busy 3 pm parts, which end by 15:13.
+    - The timetable's order check (`fills_by` after `execution_snapshot`).
+    - The tests that pinned 15:20 now read it from the config.
+    - Nothing in a normal run waits for `fills_by`: `quotes_done` waits only for the 3 pm parts, and the desk's steps
+      run at `execution_snapshot`.
+  - **The school** (SCHOOL_STARTS_BY 15:25) starts about 80 s after the snapshot step ends (22-23 Oct run logs), and
+    that step ends about 13 s after the capture. Worst single capture with a pause: 15:17:00 + 2m57s + 60 s + 13 s +
+    80 s = 15:22:30 (`test_the_school_still_starts_by_its_limit_after_that_capture`).
+  - **Not covered: E3's common retry.** On 22 Oct the first attempt (15:15-15:18:10) was incomplete and the retry ran
+    15:18:24-15:21:10, already past 15:20 before GW1 (the day's snapshot was invalid). Under GW1 a retry would end
+    about 15:23:07, past 15:23, and the school would start about 15:24:30, or past 15:25 with a pause. Covering it
+    needs a later `fills_by` and school start: the orchestrator's or the owner's call.
 - No Groww reader outside `get_provider` gets the quiet windows. A new reader must be built through `get_provider`
   (MS-P0b is) or keep out of A16's marks by its own schedule. The pre-open capture (08:40-09:11) and A16b's candles
-  (15:33, 2 a second) build `GrowwProvider` directly. Each runs outside A16's windows, and beside A16's 1 a second it
-  stays at 3 at most.
+  (15:33, 2 a second) build `GrowwProvider` directly. Each runs outside A16's windows, where A16 asks nothing.
 - A16's `prepare` asks for the session's expiry list once a session (two `get_expiries`, unpaced), before its first
-  claim. It is outside every window and beside one other reader at most: 2 calls plus 2.5 a second.
+  claim. It is outside every window and beside one other reader at most: 2 calls plus 2.5 a second. It is A16's only
+  Groww call outside a mark's window.
 - A claim committed locally while GitHub was out is pushed later by the run's own sync. If it lands inside the mark's
   window before any other run claimed, a later fire sees `lost` and the mark is taken by nobody. That costs a mark,
   never the limit.
 - **The unpaced readers stay under the limit only because Groww is slow (judge 637 m3).** The 3 pm NIFTY, `v4` and
   E3 captures ask one quote at a time with no pacer: 54-71 a minute measured (12 sidecars, 15-23 Oct). A Groww that
-  answered in 0.2 s would make one of them 5 a second, and 6 beside A16's 1 a second after a mark's window. Pacing
+  answered in 0.2 s would make one of them 5 a second. Pacing
   them needs the frozen A4 slot (`fno/quotes/slot.py`, `per_second`): not done here.
 - **E8's stand-in fill snapshot moves later (judge 637 SF3).** When A16's 15:15 mark is missing, E8 prices a
   "15:15" exit from E3's capture, whose `started_at` stays 15:15 (`fno/desk/owner_timing/mark_snapshots.py:90-96`).
@@ -163,11 +188,14 @@ it.
    wait. Any other call at the waiting times is refused unsent and never delayed. A16's directly built provider is
    never held.
 7. A16 takes no `unclaimed` mark: a claim failing twice leaves 09:15 untaken ("missed", "claim not pushed"), and
-   09:30, claimed, is taken. A claim landing on its retry is taken. Groww's source paces at 4 a second inside the
-   mark's window and at 1 after it: an on-time mark, a mark started 121 s late and a mark that crosses the window's end
-   (`tests/intraday/test_gw1_pacing.py`). Every set of readers that can overlap sums to 5 a second or less
+   09:30, claimed, is taken. A claim landing on its retry is taken. Groww's source paces every call at 4 a second and
+   asks none at or after mark + 120 s, recording the rest `QuietWindowEnded`. Cases: an on-time mark (all asked), a
+   slow mark, a mark taken 110 s late (the index asked) and a mark taken after its window (nothing asked), in
+   `tests/intraday/test_gw1_pacing.py`. Every set of readers that can overlap sums to 5 a second or less
    (`test_no_set_of_readers_that_can_overlap_exceeds_five_a_second`, one case per row of the table below).
-8. Each criterion fails when its code is broken on purpose (mutation per criterion). The full suite passes.
+8. E3's longest capture asked from 15:17:00, plus one 60 s pause, plus 60 s, ends by `fills_by`. The school then
+   still starts by 15:25.
+9. Each criterion fails when its code is broken on purpose (mutation per criterion). The full suite passes.
 
 ## Every set of readers that can overlap (round 2)
 
@@ -176,19 +204,20 @@ All rates are per second; Groww's limit is 5 a second, which is 300 a minute. Ev
 | When | Readers | Rate |
 |---|---|---|
 | Inside an A16 window (mark to mark + 120 s) | A16 alone (one taker; every `get_provider` reader refused) | 4 |
-| 14:32-14:40 | the `v4` capture + A16 after its window | 1.2 + 1 = 2.2 |
-| 14:55-15:10 | the 3 pm NIFTY capture + A16 after its window | 1.2 + 1 = 2.2 |
-| 15:02-15:13 | A4c (starts after NIFTY ends) + A16 after its window | 2.5 + 1 = 3.5 |
-| 15:17-15:20 | E3's capture (A4c ended at 15:13) + A16 after its window | 1.2 + 1 = 2.2 |
-| 15:33 | A16b's candles + A16 after its window | 2 + 1 = 3 |
+| 14:32-14:40 | the `v4` capture (A16 asks nothing outside its windows) | 1.2 |
+| 14:55-15:10 | the 3 pm NIFTY capture | 1.2 |
+| 15:02-15:13 | A4c (starts after NIFTY ends) | 2.5 |
+| 15:17-15:23 | E3's capture (A4c ended at 15:13) | 1.2 |
+| 15:33 | A16b's candles | 2 |
 
-A16's own fires never add up: one `won` run takes a mark, and the others (`lost` or `unclaimed`) take nothing. Every
-A16 call of a mark is paced, so A16 is never above its row's rate. The orderings the table relies on are asserted
-from the code (`test_the_orderings_the_table_relies_on_hold_in_the_code`):
-- A4c starts after NIFTY;
+A16's own fires never add up: one `won` run takes a mark, and the others (`lost` or `unclaimed`) take nothing. A16
+asks nothing outside its windows, so each reader there is alone. The orderings the table relies on are asserted from
+the code (`test_the_orderings_the_table_relies_on_hold_in_the_code`):
+- A4c starts after NIFTY's part has ended (`fno/daily/quote_parts.py`, `starts_after`);
 - v4's 14:40 end comes before NIFTY's 14:55 start;
-- E3's first call at 15:17 comes after A4c's 15:13 and NIFTY's 15:10 ends. NIFTY and A4c never overlap: A4c starts only after NIFTY's part has ended (`fno/daily/quote_parts.py`,
-`starts_after`). The 1.2 is measured, not a pacer (see the known limits).
+- E3's first call at 15:17 comes after A4c's 15:13 and NIFTY's 15:10 ends.
+
+The 1.2 is measured, not a pacer (see the known limits).
 
 ## Round 1's head: every taker paces for the worst pair (orchestrator, 25 Oct: a must-fix under the owner's rule; replaced in round 2 by one taker a mark)
 
@@ -204,7 +233,10 @@ leaves A16 at 240 a minute, so its few unpaced calls (index, future, chains, can
 
 ## Claims
 
-### Round 2 (judge 637, judge K; the orchestrator accepted every finding)
+### Round 2 (judges 637 K and 638 I; the orchestrator accepted every finding)
+
+- Parts 1-4 merge alone as GW1a (`story/gw1a-groww-guard-core`, `docs/stories/GW1a-groww-guard-core.md`; the
+  orchestrator's split, 25 Oct). This branch keeps them unchanged.
 
 - Gates: pytest -n auto 16632 passed, 1 skipped, 13 xfailed (fresh bytecode); ruff check and format, check_imports and
   check_records clean.
@@ -212,10 +244,12 @@ leaves A16 at 240 a minute, so its few unpaced calls (index, future, chains, can
 - **SF1 (limit a), fixed.** One A16 taker per mark: an `unclaimed` run takes nothing (rule 6). Round 1's slow pace
   for it was not enough: up to three A16 fires are alive at one mark, so `won` 4 plus two `unclaimed` at 1 each is 6.
   The table of every set of readers is one test case per row (`tests/intraday/test_gw1_pacing.py`).
-- **SF2 (late or long mark), fixed.** The pace depends on the clock, not on the mark's start: 4 a second only until 1 s
-  before the window's end, 1 a second after (rule 6). A late mark (`test_a_mark_taken_after_its_quiet_window_asks_at_one_a_second_only`)
-  and a mark crossing the window's end (`test_a_long_mark_slows_down_before_its_window_ends`) are tested. Beside A4c
-  that is 1 + 2.5 = 3.5, and beside E3 1 + 1.2.
+- **SF2 (late or long mark) and judge 638 finding 2, fixed.** A16 asks nothing at or after mark + `QUIET_SECONDS`
+  and records the rest unasked (rule 6). Tests: a slow mark, a mark taken 110 s late, a mark taken after its window
+  (`tests/intraday/test_gw1_pacing.py`). The first round-2 head paced 1 a second after the window instead; judge I and
+  the orchestrator chose the stop.
+- **Judge 638 finding 1 (E3 and `fills_by`), fixed:** `fills_by` 15:23, every reader listed and the school's start
+  checked under Known limits, with the margin pinned by a test. E3's common retry is not covered (stated there).
 - **SF3 (E8), stated** under Known limits; the orchestrator tells E8's owner.
 - **m1, fixed.** Tries cut to 3 a process and token day. About 38 processes a session day (rule 1's count), so at
   worst 114 tries.
@@ -225,7 +259,8 @@ leaves A16 at 240 a minute, so its few unpaced calls (index, future, chains, can
   - HIGH: the claim retry read "nothing new to commit" as pushed. It now pushes and counts only a landed push. Tests
     use real git: GitHub out on both tries stays `unclaimed`; restored, it is `won` and on GitHub; meeting another
     run's pushed claim, it is `lost`.
-  - MEDIUM: fast starts booked past the window's end. Fixed with `FAST_LEAD`.
+  - MEDIUM: fast starts booked past the window's end. Fixed then with a 1 s lead; now no request starts after the
+    window at all (the check comes after the pacer's wait, right before the send).
   - Its low items, all addressed:
     - A16's unpaced calls are now paced.
     - The table's orderings are asserted from the code.
@@ -242,10 +277,11 @@ leaves A16 at 240 a minute, so its few unpaced calls (index, future, chains, can
     - no claim retry;
     - the 4th sign-in try.
   - Pacing:
-    - no fast lead;
+    - no stop at the window's end;
+    - the stop at one second past it (`>` for `>=`);
     - an unpaced call;
-    - the after-window pace at 3;
-    - the after-window pace at 4 claimed and 6 fast.
+    - `fills_by` back at 15:20;
+    - `execution_snapshot` at 15:18 (no room left).
   - Wiring:
     - A4c not after NIFTY;
     - `groww-check` and the feed probe built directly.
