@@ -54,3 +54,9 @@ string would be promoted, labelled "strategy not yet passed").
 
 - A leftover `firing` entry is judged on its receipts, as the text says. Trigger errors keep only `FireFailed`'s own
   wording or an exception type, never the token.
+- **Round 1's head moved (still round 1, not an addendum):** to `b8f0585c1`, then `a1ed229a4`. Both add only judge F's
+  D6 test, `tests/books/test_registered_file_components.py`, and a merge of main. The F1t code under `fno/ai_trading`,
+  `fno/ai` and `fno/desk` is byte-identical to `cab730a85`, so findings 1-4 stand. Plant `rehearsing = lambda: False`
+  still survives there (667 passed). **Minor 5 is closed at `a1ed229a4`.** Both components are checked by equality: the
+  envelope by its component key, the constitution against `book3/constitution-v1.yaml` alone. A byte appended to the
+  constitution or to the envelope is caught, and so is the constitution check turned off.
