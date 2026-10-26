@@ -16,8 +16,10 @@ No owner message reached this session. It ran its own scheduled reminder for Mon
 - Claims added to response 291 on story/a14c-part2-followup (fd02d6a82).
 
 ## Decisions so far
-- A14c part 2 merges with its follow-up after judge L's PASS and judge M's look at the merge resolution (owner,
-  25 Oct). The margin check goes live on Tue 27 Oct (orchestrator, under the owner's 25 Oct rule).
+- A14c part 2 is held, not merged (orchestrator, 26 Oct): it waits for the owner's new-repository decision and
+  STAB1. `daily.live_from.margin_check` stays null, so no scheduled margin check runs on Tue 27 Oct. The branch stays
+  as it is: ff978df29 judged, with fd02d6a82 (text) on top.
 
 ## Open questions
-- Tue 27 Oct about 14:06 IST: the first scheduled live check, and the first real test of the two NIFTY readings.
+- The two-NIFTY-reading rule is still untested on a moving market; its first test is the first scheduled check after
+  the merge and a live date.
