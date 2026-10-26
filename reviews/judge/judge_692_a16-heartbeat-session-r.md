@@ -39,3 +39,31 @@ pass: correct, both are one line). Survivor: none. My replay test (finding 1) is
 ## Notes
 
 - Merge only outside 09:15-15:35 IST, as the story says. No Groww command was run for this verdict.
+
+## Addendum 1
+
+Round 2 at cff78174f8a0906d2a8c2db61ff4f7b716e22ccd (code at a7aecaf04). **FAIL, documents only** (1 should fix);
+the code passes. Lane 1.
+
+| # | Finding | Result | Evidence |
+|---|---|---|---|
+| 1 | Stale beat wins | Accepted | `heartbeat.json` now holds run times only; `last_mark.json` is written only when `took` (`recorder.py` `_beat`); the merge test replays both push orders with two clones and asserts 2026-10-26 / 09:30 |
+| 2 | Four mixed merges | Accepted | story names f5bc66797, b32ffcb, b0cf5a38a, 46a19b2df and 869ba011f |
+
+Plants: 3. (a) `write_mark` called on every run: `test_failures.py::...keeps_the_last_marks_fields` fails (caught).
+(b) Mark fields copied back into `heartbeat.json`: 2 tests fail (caught). (c) A no-mark run rewriting `last_mark.json`
+with its own copy: passes, but it is an equivalent mutation (the copy equals its base, so git sees no change).
+Gates (unshallowed): ruff check and format, `check_imports`, `check_records` clean; pytest 18,063 passed, 1 skipped,
+13 xfailed. The silence check still reads only `heartbeat.json`'s `run_finished_at` (`PublishedHeartbeat`).
+
+New finding:
+3. **Should fix: the owning documents still describe the old heartbeat.** `A16-intraday-quote-recorder.md` item 9
+   (line 322) says `heartbeat.json` holds the last slot's fields, and lines 233-234 and 524 list the owned paths as
+   `slots/`, `rv/`, `heartbeat.json`. The hand-commit command at line 446, and the same command in
+   `A16-owner-checklist.md:50-55` (the routine's stored prompt), add `heartbeat.json` but not `last_mark.json`. A hand
+   fix after "NOT committed" then leaves the mark file behind in a container that is about to end. Fix: update those
+   lines in place, and tell the owner the stored prompt needs the new `git add` line (the owner edits routines, not a
+   session).
+
+Note: this is my second round. The rest is a text fix, so I ask the orchestrator to put a short reading check to
+the owner (as was granted for O14 on 25 Oct), or the owner decides.
