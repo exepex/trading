@@ -227,3 +227,42 @@ def test_the_part_never_starts_before_the_parts_one_early_limit(monkeypatch):
     assert v4_part(WINDOW).not_before == time(14, 29)
     short = replace(WINDOW, max_early_wait_seconds=60)  # a 1-minute wait: the recorder refuses before 14:31
     assert v4_part(short).not_before == time(14, 34)  # 14:31 plus O1's 3-minute margin: never "too early"
+
+
+def test_a_hung_capture_is_stopped_five_minutes_after_its_window_by_service_alone(tmp_path):
+    """STAB1: with `v4_release` off nothing awaits the part at 14:45, so servicing stops it: 14:40 + 5 minutes, failed,
+    uncommitted, alerted once; NIFTY, which starts later and is not an `apart` part, is untouched."""
+    clock = Clock()
+    clock.now = at(14, 7)
+    parts, processes, commits, alerts = run(tmp_path, clock, live=DAY, ends=(15, 30))
+    parts.start(DAY)
+    clock.now = at(14, 29)
+    parts.start_due()
+    clock.now = at(14, 44)
+    parts.service()
+    assert "v4" in parts.running and not processes.made[V4.arguments].stopped  # inside the grace
+    clock.now = at(14, 45)
+    parts.service()
+    assert processes.made[V4.arguments].stopped and "v4" not in parts.running
+    assert parts.results["v4"]["status"] == STEP_FAILED and parts.results["v4"]["reason"].startswith(
+        "still running at 14:45"
+    )
+    assert commits == [] and sum("v4" in text for text in alerts.sent) == 1
+    clock.now = at(14, 58)
+    parts.service()
+    assert "nifty" in parts.running or "nifty" in parts.results  # the 3 pm parts start as ever
+
+
+def test_a_capture_that_ends_inside_the_grace_is_committed_not_stopped(tmp_path):
+    clock = Clock()
+    clock.now = at(14, 7)
+    files = {V4.pathspecs[0]: [f"{V4_FOLDER}/nifty_20261026.canonical"]}
+    parts, processes, commits, alerts = run(tmp_path, clock, live=DAY, ends=(14, 43), files=files)
+    parts.start(DAY)
+    clock.now = at(14, 29)
+    parts.start_due()
+    for minute in (35, 41, 44, 46):
+        clock.now = at(14, minute)
+        parts.service()
+    assert parts.results["v4"]["status"] == STEP_OK and not processes.made[V4.arguments].stopped
+    assert [m for _, m, _ in commits] == ["3 pm quotes 2026-10-26 v4"] and alerts.sent == []

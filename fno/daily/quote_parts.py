@@ -49,6 +49,7 @@ HUNG = "still running at {at:%H:%M}, after its window: stopped, nothing of it co
 NOT_IN_THIS_RUN = "not in this run: an earlier run started it and ended, its window has closed and a marker is missing"
 STARTED, RESTARTED, ADOPTED, EARLIER = "started", "restarted", "adopted", "earlier run"  # each part's `how` (F1)
 FINISH_LIMIT = timedelta(minutes=20)
+HUNG_GRACE = timedelta(minutes=5)  # an apart part still running this long after its window end is hung (STAB1)
 START_MARGIN = timedelta(minutes=3)  # inside A4's early limit by this much, for a slow start or a late clock
 
 
@@ -182,7 +183,19 @@ class QuoteParts:
             code = process.poll()
             if code is not None and (name == LEAD or LEAD in self.results or self._part(name).apart):
                 self._finish(self._part(name), code, process.lines(), process.alerted(), process.errors())
+        self._stop_hung()
         self.start_due()
+
+    def _stop_hung(self) -> None:
+        """Stops and fails an `apart` part (the `v4` capture) still running `HUNG_GRACE` after its window end, at 14:45
+        for v4's 14:40: nothing else ends it before `finish`, and with `v4_release` off its step no longer does
+        (STAB1). The 3 pm parts are never stopped here, and an earlier run's recorder never is (F1)."""
+        for name in list(self.running):
+            part = self._part(name)
+            ends = datetime.combine(self.day, part.window_end, IST) + HUNG_GRACE
+            if part.apart and self.how.get(name) != ADOPTED and self.clock() >= ends:
+                self.running.pop(name).stop()
+                self._failed(name, HUNG.format(at=ends))
 
     def finish(self, wait: Callable[[datetime], None], not_before: datetime | None = None) -> dict[str, dict]:
         """Waits for the parts still running (servicing them), at most `FINISH_LIMIT`; their results. Past the limit
