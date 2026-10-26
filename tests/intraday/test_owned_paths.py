@@ -54,7 +54,12 @@ def test_only_the_recorders_paths_are_committed_and_strays_beside_them_stay_untr
     assert outcome.lines[-1].startswith("intraday files committed and pushed")
     files = pushed_files(seed)
     assert f"{FOLDER}/heartbeat.json" in files and f"{FOLDER}/rv/2026/nifty_rv_20261015.csv" in files
-    assert {f.split("/")[3] for f in files} == {"slots", "rv", "heartbeat.json"}  # nothing else reached GitHub
+    assert {f.split("/")[3] for f in files} == {
+        "slots",
+        "rv",
+        "heartbeat.json",
+        "last_mark.json",
+    }  # nothing else reached GitHub
     untracked = git(checkout, "ls-files", "--others", "--exclude-standard").split()
     assert sorted(untracked) == sorted([STRAY_RV_CANDLE, STRAY_TMP])  # left exactly as they were
 
@@ -64,7 +69,11 @@ def test_a_fresh_folder_without_rv_commits_its_first_slot_row_and_heartbeat(tmp_
     outcome = build(tmp_path, checkout, 9, 14).snapshot()  # the first mark of the first session: no rv/ yet
     assert not (checkout / FOLDER / "rv").exists()
     assert outcome.lines[-1].startswith("intraday files committed and pushed")
-    assert pushed_files(seed) == {f"{FOLDER}/heartbeat.json", f"{FOLDER}/slots/2026/10/15/nifty_20261015_0915.csv"}
+    assert pushed_files(seed) == {
+        f"{FOLDER}/heartbeat.json",
+        f"{FOLDER}/last_mark.json",
+        f"{FOLDER}/slots/2026/10/15/nifty_20261015_0915.csv",
+    }
 
 
 def test_no_owned_path_at_all_and_a_stray_file_give_nothing_to_commit_and_no_refusal(tmp_path):
@@ -90,8 +99,12 @@ def test_a_file_staged_in_the_folder_by_another_writer_stops_pull_and_commit_wit
     assert git(checkout, "rev-parse", "HEAD") == head and staged(checkout) == [STRAY_RV_CANDLE]
     assert (checkout / FOLDER / "slots/2026/10/15/nifty_20261015_0915.csv").exists()  # kept on disk, not lost
     git(checkout, "reset", "-q", "--", STRAY_RV_CANDLE)  # the other writer clears its staging
-    assert run.sync.commit("after").startswith("intraday files committed and pushed (2 file(s))")
-    assert pushed_files(seed) == {f"{FOLDER}/heartbeat.json", f"{FOLDER}/slots/2026/10/15/nifty_20261015_0915.csv"}
+    assert run.sync.commit("after").startswith("intraday files committed and pushed (3 file(s))")
+    assert pushed_files(seed) == {
+        f"{FOLDER}/heartbeat.json",
+        f"{FOLDER}/last_mark.json",
+        f"{FOLDER}/slots/2026/10/15/nifty_20261015_0915.csv",
+    }
 
 
 def test_a_manifest_row_staged_outside_the_folder_is_refused_too(tmp_path):

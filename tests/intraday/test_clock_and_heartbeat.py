@@ -98,7 +98,7 @@ def test_no_heartbeat_at_all_is_silent_in_watched_hours():
 
 def test_the_check_alerts_a_warning_with_what_to_do_and_exits_1(tmp_path, capsys):
     heartbeat, alerts = Heartbeat(tmp_path), FakeAlerts()
-    heartbeat.write(beat(ist(DAY, 10, 0)))
+    heartbeat.write_run(utc_text(ist(DAY, 9, 45)), utc_text(ist(DAY, 10, 0)), "test")
     assert heartbeat_check(heartbeat, calendar(), alerts, ist(DAY, 11, 0)) == 1
     assert alerts.sent[0].startswith("Action: check the 15-minute recorder's routine") and "WARNING" in alerts.sent[0]
     assert "alert sent to #fno-desk" in capsys.readouterr().out
@@ -106,7 +106,7 @@ def test_the_check_alerts_a_warning_with_what_to_do_and_exits_1(tmp_path, capsys
 
 def test_the_check_is_quiet_when_fresh_or_on_a_holiday(tmp_path):
     heartbeat, alerts = Heartbeat(tmp_path), FakeAlerts()
-    heartbeat.write(beat(ist(DAY, 10, 50)))
+    heartbeat.write_run(utc_text(ist(DAY, 10, 35)), utc_text(ist(DAY, 10, 50)), "test")
     assert heartbeat_check(heartbeat, calendar(), alerts, ist(DAY, 11, 0)) == 0
     assert heartbeat_check(heartbeat, calendar(), alerts, ist(date(2026, 10, 20), 11, 0)) == 0
     assert not alerts.sent

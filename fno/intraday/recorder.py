@@ -228,13 +228,11 @@ class IntradayRecorder:
 
     def _beat(self, day: date, started: datetime, outcome: SlotOutcome, taken, took: bool) -> None:
         """The heartbeat: run times always; the last mark's fields only when this run took or failed a mark."""
-        beat = (self.heartbeat.read() or {}) if not took else {}
-        beat.update(recorder=HEARTBEAT_NAME, run_started_at=utc_text(started), run_finished_at=utc_text(self.now()))
+        self.heartbeat.write_run(utc_text(started), utc_text(self.now()), HEARTBEAT_NAME)
         if took:
-            beat.update(session=day.isoformat(), mark=outcome.mark, status=outcome.status,
-                        clock_status=taken[2].status if taken else "",
-                        clock_skew_seconds=taken[2].worst if taken else None)  # fmt: skip
-        self.heartbeat.write(beat)
+            self.heartbeat.write_mark(dict(session=day.isoformat(), mark=outcome.mark, status=outcome.status,
+                                           clock_status=taken[2].status if taken else "",
+                                           clock_skew_seconds=taken[2].worst if taken else None))  # fmt: skip
 
     def _finish_session(self, day: date) -> list[str]:
         try:

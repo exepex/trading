@@ -36,7 +36,7 @@ from .claims import CLAIM_LABEL, CLAIM_MESSAGE, GitMarkClaims, MarkClaims, NoCla
 from .clock_wiring import build_clock_check
 from .expiry_plan import UNDERLYING, ExpiryPlan
 from .groww_source import GrowwIntradaySource, groww_listed_expiries
-from .heartbeat import FILE_NAME, Heartbeat, PublishedHeartbeat
+from .heartbeat import FILE_NAME, LAST_MARK_NAME, Heartbeat, PublishedHeartbeat
 from .ledger import ROOT as LEDGER_ROOT
 from .ledger import SlotLedger
 from .observer import MarkObserver
@@ -55,7 +55,12 @@ CLAIMS_FOLDER = REPOSITORY / "receipts" / "intraday" / "claims"  # one claim fil
 DRY_RUN_DRIVE = "drive"  # inside a dry-run folder: stands in for the Drive project folder
 COMMIT_MESSAGE, COMMIT_LABEL = "Data: intraday slots ({what})", "intraday files"
 DRY_RUN_ALERTS = "dry run"
-OWNED_PATHS = (LEDGER_ROOT, RV_ROOT, FILE_NAME)  # the ledger, the session RV and the heartbeat; nothing else (A16e)
+OWNED_PATHS = (
+    LEDGER_ROOT,
+    RV_ROOT,
+    FILE_NAME,
+    LAST_MARK_NAME,
+)  # the ledger, the session RV and the heartbeat's two files; nothing else (A16e)
 
 
 def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> IntradayRecorder:

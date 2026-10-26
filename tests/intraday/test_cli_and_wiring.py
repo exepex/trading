@@ -63,7 +63,9 @@ def test_the_live_wiring_writes_to_the_repository_folder_and_commits_it(monkeypa
     committer = recorder.sync.committer
     assert isinstance(recorder.sync, GitLedgerSync) and isinstance(committer, OwnedPathsCommitter)
     assert recorder.sync.alerts is recorder.alerts  # one sender, so "one alert per run" is the run's own
-    assert committer.owned == tuple(f"research/data/intraday/{name}" for name in ("slots/", "rv/", "heartbeat.json"))
+    assert committer.owned == tuple(
+        f"research/data/intraday/{name}" for name in ("slots/", "rv/", "heartbeat.json", "last_mark.json")
+    )
     assert committer.folder == "research/data/intraday" and committer.merge_option == ("-X", "theirs")
     assert committer.message.format(what="x") == "Data: intraday slots (x)" and committer.label == "intraday files"
     assert recorder.files.store.area == "raw" and recorder.files.store.store.folder == tmp_path

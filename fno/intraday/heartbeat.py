@@ -13,7 +13,8 @@ from pathlib import Path
 from ..models import IST
 from .document import parse_time
 
-FILE_NAME = "heartbeat.json"
+FILE_NAME = "heartbeat.json"  # run times: any run writes them
+LAST_MARK_NAME = "last_mark.json"  # the last mark's fields: only the run that took (or failed) the mark writes them
 SILENT_AFTER = timedelta(minutes=30)
 WATCH_FROM, WATCH_TO = time(9, 45), time(15, 45)  # 30 minutes after the first mark, 15 after the last
 OK, SILENT, NOT_WATCHED = "ok", "silent", "not watched"
@@ -30,17 +31,30 @@ class HeartbeatState:
 
 
 class Heartbeat:
+    """Two one-line files. The pull's `-X theirs` keeps what is already on GitHub, and the run that lost a mark's claim
+    pushes first, so the taker's mark fields sit in a file a run taking no mark never rewrites: it merges cleanly
+    (judge 691). One line each, so a clash is settled for a whole file."""
+
     def __init__(self, folder: Path):
         self.file = Path(folder) / FILE_NAME
+        self.last_mark_file = Path(folder) / LAST_MARK_NAME
 
-    def write(self, beat: dict) -> None:
+    def write_run(self, started: str, finished: str, recorder: str) -> None:
         self.file.parent.mkdir(parents=True, exist_ok=True)
-        # One line: two overlapping runs' pushes then clash as a whole file, never field by field (a per-line merge once
-        # joined one run's mark to the other's session).
-        self.file.write_text(json.dumps(beat, sort_keys=True) + "\n", encoding="utf-8")
+        _dump(self.file, {"recorder": recorder, "run_started_at": started, "run_finished_at": finished})
+
+    def write_mark(self, fields: dict) -> None:
+        """Only the run that took or failed a mark calls this; a run that took none never touches the file."""
+        _dump(self.last_mark_file, fields)
 
     def read(self) -> dict | None:
-        return _parse(self.file.read_text(encoding="utf-8")) if self.file.is_file() else None
+        runs = _parse(self.file.read_text(encoding="utf-8")) if self.file.is_file() else None
+        marks = _parse(self.last_mark_file.read_text(encoding="utf-8")) if self.last_mark_file.is_file() else None
+        return {**runs, **(marks or {})} if runs is not None else None
+
+
+def _dump(file: Path, fields: dict) -> None:
+    file.write_text(json.dumps(fields, sort_keys=True) + "\n", encoding="utf-8")
 
 
 class PublishedHeartbeat:
