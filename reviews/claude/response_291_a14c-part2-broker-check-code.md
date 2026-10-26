@@ -298,3 +298,25 @@ the orchestrator for that owner's agreement.
   runs. At 14:15:30 the margin call is refused unsent (`GrowwQuietWindow`) and nothing reaches the fake SDK.
 - **M's minor:** the story's retry sentence now points to DESK_DECISIONS 25 Oct, "Failed commands: automatic retry
   with exponential backoff, at most 5 retries, then escalate", and to O14.
+
+### Real read-only sample on Mon 26 Oct, 15:47 IST, after the close (strong evidence for the chain, one day)
+
+Run after 15:35 IST under the owner's 25 Oct Groww rule. It is a rehearsal, not the command: the clock is pinned to
+10:00 IST of the day, so the check asks as it would inside its window. The record is in memory only, never Drive, and
+nothing went to Slack. The code is `story/a14c-part2-followup` at ff978df29, the merged head the judges see: the client
+comes through `get_provider`, with GW1's guards and quiet windows, and the dated lot is read from Drive.
+
+- **Result:** 15 ok, 0 mismatch, 0 error; exit 0.
+- **Dated lot:** the 26 Oct lot file's manifest row was committed at 05:05 UTC (10:35 IST). That is the new 06:00 IST
+  slot running about 4.5 h late, as measured, and about 3.5 h before the 14:05 check (one day of evidence for judge
+  656's note). Its NIFTY lot equals `lot_sizes.NIFTY`.
+- **SPAN:** all 15 within Rs 1 a lot. The largest gap is Rs 0.50 (SF 250: Groww 15,525.75 vs 15,525.25); then SC 100
+  Rs 0.45, SC 200 Rs 0.35, SF 150 Rs 0.35, SF 300 Rs 0.30. Groww moves in steps of Rs 0.25. The five BF rows are 0.00
+  at both.
+- **Exposure:** Groww's figure equals A14's rule at the NIFTY reading to the paisa: 59,158.32 for every basket.
+- **NIFTY:** before 22,753.20, after 22,753.20. They are equal because the market is closed, so the two-reading range
+  rule is NOT tested by this sample. Its first real test is Tue 27 Oct's scheduled step.
+- **Requests and time:** 17 Groww requests (2 quotes, 15 baskets) in 69.6 s, at about 2.7 s per basket. That is
+  within the window and between A16's 14:00 and 14:15 quiet windows when run at about 14:06.
+- **Account after the run** (read-only, through `get_provider` with an account-reads list): 0 orders, 0 positions,
+  `net_fno_margin_used` 0.0, `span_margin_used` 0.0, `exposure_margin_used` 0.0.
