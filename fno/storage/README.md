@@ -131,7 +131,7 @@ printed, not bypassed), and `data-coverage` lists any manifest file still uncomm
 every file both have).
 
 `owned_paths_commit.py` (story A16e) is the same committer limited to the paths one writer owns inside a shared folder
-(A16's `slots/`, `rv/` and `heartbeat.json`; only those that exist or are tracked), and it names anything else staged
+(A16's `slots/`, `rv/`, `heartbeat.json` and `last_mark.json`; only those that exist or are tracked), and it names anything else staged
 in the checkout so its writer can refuse to pull or commit.
 
 Adding a store (S3, Dropbox) or a source (another exchange) means one new class behind `RawFileStore` or

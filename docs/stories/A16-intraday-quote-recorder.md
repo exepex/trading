@@ -230,8 +230,10 @@ New package `fno/intraday/` (each file under 350 lines):
 - `AlertSender` (existing) for alerts; `NoAlertSender` in dry runs and tests.
 - Repository files under `research/data/intraday/` (derived only, no prices), **one file per record** so two runs in
   two checkouts never append to the same file: `slots/<YYYY>/<MM>/<DD>/nifty_<YYYYMMDD>_<HHMM>.csv` (header plus the
-  one row of that mark), `rv/<YYYY>/nifty_rv_<YYYYMMDD>.csv` (header plus the session's one row), `heartbeat.json`. After every mark the recorder commits and pushes its own paths in this folder (`slots/`, `rv/`,
-  `heartbeat.json`; nothing else, A16e) itself (the existing
+  one row of that mark), `rv/<YYYY>/nifty_rv_<YYYYMMDD>.csv` (header plus the session's one row), `heartbeat.json` (run times, any run) and `last_mark.json` (the last mark's
+  session, mark, status and clock fields, written only by the run that took or failed the mark; story A16-heartbeat-session).
+  After every mark the recorder commits and pushes its own paths in this folder (`slots/`, `rv/`,
+  `heartbeat.json`, `last_mark.json`; nothing else, A16e) itself (the existing
   `GitManifestRecorder`, given its own commit message; hooks run, never bypassed), so GitHub's copy of the heartbeat
   is at most about 15 minutes old.
 - **Two checkouts, one ledger (judge 108 addendum 1, should-fix B).** Each fire is its own container with its own
