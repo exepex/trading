@@ -31,3 +31,21 @@
 - More register rows than O14's and CP1's say that code continues on an already-merged branch (`story/e6-s2-missed-execution`, `s6-scorecard-measures`, `s3-scoreboard-a`, `lr3-drift-cusum`, `f2-analyst-cards`, `g10-build`, `rm2-real-money-record`, `oss1-vollib-reference`). Deleting them loses no commit, because all of it is on main, and the next push recreates them. Still, the orchestrator should confirm which of these are in use and add those to the keep list.
 - The open PR list has grown from 5 to 7 (`story/f5-code`, `story/ing1-data-ingestion`). Both are protected at the run's own `gh pr list`.
 - Fast-forwarded merged branches stay `keep-unsure` forever. That is the safe side and Judge Q's finding; I agree it is a gap against CLAUDE.md's new line.
+
+## Addendum 1
+
+Round 2 at `640445b94` (judge P): **FAIL**, 2 should fix still open. Re-checked on a fresh fetch of every branch,
+26 Oct 04:15 UTC.
+
+| Round-1 finding | Verdict | Evidence |
+|---|---|---|
+| 1 Rehearsal branches (blocking) | Fixed | `ongoing_decision` gives `KEEP` and `inventory_decision` gives `KEEP_UNSURE` (`REHEARSAL_WHY`). The inventory has 49 rehearsal rows, none `delete`. Test `test_rehearsal_runs_are_kept_for_the_owner` |
+| 2 Grace measured from the wrong time | **Not fixed** | `branch_git.py::_landed_at` is unchanged (`--first-parent --ancestry-path`). On the tip: 225 of 470 merged branches have `landed_at` None. Three real branches would be deleted now inside their 24 h: `story/gw1-groww-rate-guard` (reached main 25 Oct 09:20 UTC, tip 01:09), `story/reh1q-scheduled-reads` and `story/reh1s-guard-recorders` (reached main 25 Oct 05:17 UTC). No answer or pushback was given. Fix as asked: the oldest first-parent commit among `rev-list --ancestry-path <sha>..main` (no `--first-parent`), plus a test where the tip is not the merge's own second parent |
+| 3 Captured data on idle branches | **Not fixed** | `CODE_PATHS` now adds `tests` but not `research/data`, `receipts` or `journal`. `claude/lucid-ptolemy-hoov99` and `-ml36q5` are still `delete` in `docs/branch_inventory.csv`. The orchestrator (25 Oct, to this judge) ruled: keep them `keep-unsure` and report them |
+| 4 Survivor on cherry lines (minor) | Fixed | `test_a_cherry_picked_commit_is_not_unfinished_work` |
+| 5 Register row text (minor) | Not checked further | Text only |
+
+Also accepted: dropping `on_main_line` (Judge Q's finding). A branch with no commit of its own loses nothing when it is deleted, and the next push recreates it.
+
+This is my second and last round: if the builder disputes 2 or 3, the owner decides (JUDGE.md "Rounds"). A
+tip that fixes both with the tests named above will be re-checked narrowly on request.
