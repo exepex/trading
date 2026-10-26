@@ -77,7 +77,7 @@ forecasting step on by hand; that is the owner's decision and a judged change.
 2. `python -m fno daily run` (story O1). It runs the day's steps in the order of `DAILY_RUN_STEPS`
    (`fno/constants_operations.py`): the 3 pm quote parts start first, then A14c's margin check, the weather and the v4
    forecasts (each from its `daily.live_from` date in `config.yaml`, `not_live` before it), protocol v4's release
-   (story G10: from `daily.live_from.v4_pack`, after the `v4` quote part's 14:32-14:40 capture), G7b's pack-derived v4
+   (story G10: from `daily.live_from.v4_release`, null since STAB1; the `v4` quote part's 14:32-14:40 capture runs from `v4_pack`), G7b's pack-derived v4
    rows (`forecasts_v4_pack`, from `daily.live_from.forecasts_v4_pack`, right after the release, committed before 15:10),
    E3's desk (pack, Book 1's decision, fills, exits), E6's reviews, the quote parts' end and T1's card in #fno-desk,
    the market school's 15:00 paper slot (MS-P1j2: right after G13d's issue, never started after 15:25 IST, never
