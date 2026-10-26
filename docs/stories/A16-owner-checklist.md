@@ -47,12 +47,12 @@ simplest choice is the same environment.
 > 3. Work out the end time and run the recorder in the background, then wait for it to finish:
 >    `H=$(TZ=Asia/Kolkata date +%-H); if [ "$H" -ge 14 ]; then UNTIL=15:35; else UNTIL=$(printf '%02d:05' $((H + 2))); fi; python -m fno intraday run --until "$UNTIL"`
 >    It waits for each 15-minute mark up to that time. After each mark it writes the slot row and the heartbeat, and it
->    commits and pushes its own files in `research/data/intraday/` (`slots/`, `rv/`, `heartbeat.json`). At the 15:30
+>    commits and pushes its own files in `research/data/intraday/` (`slots/`, `rv/`, `heartbeat.json`, `last_mark.json`). At the 15:30
 >    mark it also writes the session's realised variance. On a day that is not a session it prints "not a trading day"
 >    and stops.
 > 4. If a line says "NOT committed" (and not "NOT pulled or committed"), commit and push only the recorder's own paths
 >    by hand: `git pull --no-rebase origin main`, then (push with `git push origin HEAD:main`)
->    `git add -- research/data/intraday/slots research/data/intraday/rv research/data/intraday/heartbeat.json`, commit,
+>    `git add -- research/data/intraday/slots research/data/intraday/rv research/data/intraday/heartbeat.json research/data/intraday/last_mark.json`, commit,
 >    push. Never add the whole folder; never bypass the record scan (`--no-verify`).
 > 5. If a line says "NOT pulled or committed: ... staged that are not the recorder's", change nothing: the run has
 >    already alerted, and the owner clears the other files.
@@ -74,7 +74,7 @@ sent":
 
 **A16e, rule 8 part 2 (the first live fire):** the first commit the routine pushes to `main` under
 `research/data/intraday/` is shown with `git show --stat <commit>`. Pass: it holds only `slots/...` rows and
-`heartbeat.json` (plus `rv/...` at the 15:30 mark), and the run printed no "NOT pulled or committed" line. The builder
+`heartbeat.json` and `last_mark.json` (plus `rv/...` at the 15:30 mark), and the run printed no "NOT pulled or committed" line. The builder
 records it in `conversations/<date>.md` and tells the orchestrator and judge D.
 
 **The trial (criterion 15): the first 5 consecutive recorded sessions.** Nothing counts as recorded history until it

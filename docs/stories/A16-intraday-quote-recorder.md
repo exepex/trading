@@ -321,8 +321,9 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_p
    `clock_partial`, with the unchecked server's reason printed; no answer is `clock_unchecked`; a source time more than
    5 s after our receive time is `source_ahead_of_host`. Tests: an error answer carrying a `Date` is ignored, and
    GitHub is asked at the repository path.
-9. **Heartbeat.** Each run writes `heartbeat.json` (last run start and finish; the last slot, its status and skew,
-   kept as they were by a run that took nothing); the `heartbeat-check` command reads GitHub's copy (`git fetch`, then
+9. **Heartbeat.** Each run writes `heartbeat.json` (last run start and finish only); the last slot, its status and
+   skew go in `last_mark.json`, written only by the run that took or failed the mark, so a run that took nothing never
+   rewrites it and the pull's `-X theirs` cannot drop the taker's fields (story A16-heartbeat-session, judge 691/692); the `heartbeat-check` command reads GitHub's copy (`git fetch`, then
    `origin/main`), never the host's own working tree, so a host whose pushes fail does not look alive; during a
    recorded session from 09:45 to 15:45 IST it reports "silent" with exit 1 and a WARNING alert when the last finish is
    more than 30 minutes old or the copy cannot be read (design 4.2), and "ok" otherwise.
@@ -445,7 +446,8 @@ the missing settings and alerts, criterion 13); `FNO_SLACK_BOT_TOKEN` for alerts
 > the ledger and heartbeat and commits and pushes its own files in `research/data/intraday/` itself; at the 15:30 mark it also writes
 > the session's realised variance; on a non-session day it prints "not a trading day"). If a commit line says "NOT
 > committed", commit and push only the recorder's own paths by hand (`git add -- research/data/intraday/slots
-> research/data/intraday/rv research/data/intraday/heartbeat.json`, `git pull --no-rebase` first); never add the
+> research/data/intraday/rv research/data/intraday/heartbeat.json research/data/intraday/last_mark.json`, `git pull
+> --no-rebase` first); never add the
 > whole folder. Never bypass the record scan. If the
 > command exits 1, post its lines to #fno-desk only if it printed "alert NOT sent". Note any failure in
 > `conversations/<date>.md`.
@@ -516,14 +518,14 @@ manifest rows in `research/data/manifests/groww-candles/`. On a shared checkout,
 without their manifests, or any other file someone leaves in the folder (the A16b builder's finding).
 
 **A16's own paths (checked in the code, not assumed):** `slots/` (the ledger, `ledger.py`), `rv/` (the session
-realised variance, `rv_table.py`) and `heartbeat.json` (`heartbeat.py`), all under `research/data/intraday/`.
+realised variance, `rv_table.py`) `heartbeat.json` and `last_mark.json` (`heartbeat.py`), all under `research/data/intraday/`.
 **A16 writes no manifest rows**, so it has none to commit: its Drive store is the bare `AreaStore(drive, raw)`
 (`fno/intraday/wiring.py`), not the fingerprinting store, because each copy's name carries its SHA-256 and the ledger
 row names the copy (amendment 2). The brief's "its manifests" therefore names nothing; adding a manifest path would
 only widen what the run can commit.
 
 **Change (revised after judge 108 addendum 11, FAIL on a59b8be, both should-fix accepted and reproduced):**
-1. The committer is given its owned paths: `slots/`, `rv/` and `heartbeat.json`, named once in
+1. The committer is given its owned paths: `slots/`, `rv/`, `heartbeat.json` and `last_mark.json`, named once in
    `fno/intraday/wiring.py`. It adds, counts and commits only those pathspecs (`git add -- <owned>`, `git commit
    --only -- <owned>`). **Only owned paths that exist on disk or are tracked are passed**: Git refuses a whole
    `git add` when one pathspec matches nothing (`fatal: pathspec ... did not match any files`, exit 128, reproduced),
