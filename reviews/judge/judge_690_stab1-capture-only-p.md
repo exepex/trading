@@ -52,3 +52,19 @@ STAB1 follow-up `story/stab1-minors` at `4e2b26b6e`, based on 15c05b394 (judge P
 
 Gates on the tip: `pytest -n 3` 18078 passed, 1 skipped, 13 xfailed; ruff, format and `check_imports` clean. 5 plants, all
 caught. Judge Q is the second judge.
+
+## Addendum 2
+
+Correction to addendum 1 (judge P): `story/stab1-minors` at `4e2b26b6e` is **FAIL**, 1 should fix. Addendum 1's PASS
+was written before I read the whole test diff.
+
+1. **Should fix: a lane-1 capture test was deleted.** The commit removes
+   `test_the_built_run_gives_its_quote_parts_the_capture_key_not_the_release_key` (`tests/daily/test_capture_only.py`).
+   It was the only test that the real `build_day_runner` hands `QuoteParts` a live `v4_pack`. My plant
+   `QuoteParts(..., {**live, 'v4_pack': None})` in `fno/daily/wiring.py:142-144` (the v4 14:32-14:40 capture would never
+   run) **survives** `tests/daily`, `tests/rehearsal` and `tests/v4_pack` on the tip: 560 passed. On 15c05b394 that test
+   caught it. Deleting a test in a lane-1 area is lane 1 (JUDGE.md). Fix: restore the test, alongside the new trigger
+   test (it was likely lost while replacing the neighbouring manual-only test).
+
+The rest of addendum 1 stands: the hung-v4 stop is correct and both minors are fixed. A tip that restores the test will
+be re-checked narrowly.
