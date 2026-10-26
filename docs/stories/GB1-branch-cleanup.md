@@ -123,7 +123,7 @@ only if it was already planned for deletion).
 ## Claims
 
 - **Gates (branch tip e2afda0b8 on `origin/main` fefcf893):** `python -m pytest -q -n auto` 18114 passed, 1 skipped,
-  13 xfailed; `ruff check fno tests tools`, `ruff format --check` and `tools/check_imports.py` clean. `check_numbers` is
+  13 xfailed; round 2 tip 3e6c4f85e: 18116 passed, 1 skipped, 13 xfailed; `ruff check fno tests tools`, `ruff format --check` and `tools/check_imports.py` clean. `check_numbers` is
   for `main` after the merge.
 - **Real output sample (dry run, 25 Oct 10:43 UTC, the committed code against the real origin):**
   `python tools/branch_cleanup.py --mode inventory --open-prs <file>` printed 460 `WOULD DELETE` lines (first:
