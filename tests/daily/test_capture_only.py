@@ -187,3 +187,10 @@ def test_every_workflow_keeps_exactly_its_trigger_set_so_no_capture_lost_one():
     assert {name: _triggers(name) for name in names} == TRIGGERS
     assert {n for n, kinds in TRIGGERS.items() if kinds == {"workflow_dispatch"}} == {
         *FORECASTING_WORKFLOWS, "routine-fire-probe"}  # fmt: skip
+
+
+def test_the_built_run_gives_its_quote_parts_the_capture_key_not_the_release_key(monkeypatch):
+    """`build_day_runner` hands QuoteParts the real dates, so the v4 part is live, the release not."""
+    runner, steps = _built_runner(monkeypatch, SESSIONS[0])
+    assert runner.parts.live["v4_pack"] == date(2026, 10, 26) and runner.parts.live[V4_RELEASE_STEP] is None
+    assert steps[V4_RELEASE_STEP].step.live_from is None
