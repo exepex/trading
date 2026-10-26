@@ -1,0 +1,92 @@
+{
+ "attempted": {
+  "v1_rv_next_session": {
+   "reason": "Envelope is null (no rules value and no baseline), so the answer is null as required.",
+   "value": null
+  },
+  "v2_rv_next_5_sessions": {
+   "reason": "Rule 0.000363. Recent close-proxy RV runs higher: last 10 sessions imply 0.00049 and last 20 imply 0.00052 per 5 sessions; VIX 17.42 (up 0.56, far above its 20-day mean 14.35) implies about 0.0006; 3 Nov weekly straddle 478 (2.1% of spot) implies more. Two weekly expiries in the window. Moved to near the envelope top 0.000453.",
+   "value": 0.00045
+  },
+  "v6_abs_move_2pct_next_session": {
+   "probability": 0.05,
+   "reason": "Rule 0.04, baseline 0.027. VIX 17.42 means about 1.1% daily sigma, a normal 2% two-sided tail near 7%, but implied usually exceeds realised and no 2% day occurred in the last 60 sessions (largest 1.66%); weekly expiry 27 Oct. Slightly above the rule."
+  },
+  "v6_abs_move_2pct_within_5_sessions": {
+   "probability": 0.19,
+   "reason": "Rule 0.167, baseline 0.104. A 5% daily chance gives about 23% over 5 sessions; the past year had 8 such days in 250 (about 15% per 5 sessions) and none in the last 60. VIX elevated and rising, market falling. Set 0.19."
+  },
+  "v7_vix_higher_in_5_sessions": {
+   "probability": 0.43,
+   "reason": "Rule 0.5, baseline 0.495. VIX 17.42 sits 3 points above its 20-day mean 14.35 and near its highest since July; elevated VIX tends to mean-revert, and the 27 Oct and 3 Nov expiries pass inside the window, but the trend is up with NIFTY falling. Moderate tilt down to 0.43."
+  }
+ },
+ "book": "book2_hybrid",
+ "collected_at": "2026-10-26T15:11:06.651205+05:30",
+ "commitment_received_at": "2026-10-26T09:09:24+00:00",
+ "counted": {
+  "v1_rv_next_session": null,
+  "v2_rv_next_5_sessions": 0.00045,
+  "v6_abs_move_2pct_next_session": 0.05,
+  "v6_abs_move_2pct_within_5_sessions": 0.19,
+  "v7_vix_higher_in_5_sessions": 0.43
+ },
+ "day": "2026-10-26",
+ "fire": {
+  "envelope": {
+   "v1_rv_next_session": null,
+   "v2_rv_next_5_sessions": [
+    0.000271931,
+    0.00045322
+   ],
+   "v6_abs_move_2pct_next_session": [
+    0.0,
+    0.14
+   ],
+   "v6_abs_move_2pct_within_5_sessions": [
+    0.004,
+    0.266667
+   ],
+   "v7_vix_higher_in_5_sessions": [
+    0.394667,
+    0.6
+   ]
+  },
+  "fired": true,
+  "fired_at": "2026-10-26T14:36:56.268706+05:30",
+  "input_sha256": "0ca136cb5e05328ce7a01e32747a679ce08fd4690745b6db594c7494b814bba8",
+  "labels": {
+   "book": "book2_hybrid",
+   "day": "2026-10-26",
+   "export_sha256": "0ca136cb5e05328ce7a01e32747a679ce08fd4690745b6db594c7494b814bba8",
+   "pack_sha256": "973644612d50f367f25da4e98bd068519f2b5fa09696f1a3251e56abe8396940",
+   "version": "book2_hybrid/v2/sha256:c73e452042326029c6af757b303edf7db398b27da69df652f5699fe362368165/isolation:sealed_same_day"
+  },
+  "pack_sha256": "973644612d50f367f25da4e98bd068519f2b5fa09696f1a3251e56abe8396940",
+  "questions": [
+   "v1_rv_next_session",
+   "v2_rv_next_5_sessions",
+   "v6_abs_move_2pct_next_session",
+   "v6_abs_move_2pct_within_5_sessions",
+   "v7_vix_higher_in_5_sessions"
+  ],
+  "session": "https://claude.ai/code/cse_01BqFQWv6HMPhwWWUqW9V6e6",
+  "stop_rule": false,
+  "version": "book2_hybrid/v2/sha256:c73e452042326029c6af757b303edf7db398b27da69df652f5699fe362368165/isolation:sealed_same_day"
+ },
+ "isolation": "sealed_same_day",
+ "model_check": "unverified",
+ "model_reported": "unknown",
+ "notes": [],
+ "problems": {
+  "v1_rv_next_session": "",
+  "v2_rv_next_5_sessions": "",
+  "v6_abs_move_2pct_next_session": "",
+  "v6_abs_move_2pct_within_5_sessions": "",
+  "v7_vix_higher_in_5_sessions": ""
+ },
+ "released_sha256": "973644612d50f367f25da4e98bd068519f2b5fa09696f1a3251e56abe8396940",
+ "reveal_received_at": "2026-10-26T09:40:19+00:00",
+ "status": "on_time",
+ "version": "book2_hybrid/v2/sha256:c73e452042326029c6af757b303edf7db398b27da69df652f5699fe362368165/isolation:sealed_same_day"
+}
