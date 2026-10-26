@@ -332,6 +332,23 @@
     "reason": "issued",
     "exit_code": 0
    }
+  },
+  "school": {
+   "started_at": "2026-10-26T15:21:44.533101+05:30",
+   "finished_at": "2026-10-26T15:26:58.617659+05:30",
+   "inputs": {
+    "command": [
+     "school",
+     "run",
+     "unlisted",
+     "2026-10-26"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
