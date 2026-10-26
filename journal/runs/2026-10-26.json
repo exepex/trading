@@ -69,6 +69,21 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "v4_release": {
+   "started_at": "2026-10-26T14:09:37.210930+05:30",
+   "finished_at": "2026-10-26T14:36:19.925602+05:30",
+   "inputs": {
+    "command": [
+     "v4-pack",
+     "release"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
