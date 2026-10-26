@@ -44,3 +44,23 @@ Branch `story/a16-heartbeat-session` at `34e8093f4`. **FAIL, lane 1** (1 blockin
   `recorder.py:106`, `groww_source.py:55-61`) about 45 s before the mark. That is outside the quiet window and reads
   no quotes.
 - No Groww command was run.
+
+## Addendum 1
+
+Round 2 at `a7aecaf04`. **PASS, lane 1** (1 minor, not blocking). Full clone; gates run.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 1 | Fixed | Two one-line files. `heartbeat.json` (run times) is written by every run (`heartbeat.py` `write_run`). `last_mark.json` is written only when `took` (`recorder.py` `_beat`), so the claim loser never rewrites it. `read()` merges the two; the silence check still reads only `run_finished_at` from GitHub's `heartbeat.json` (`wiring.py:96`). The merge test has two clones and runs both push orders; both publish session 2026-10-26, mark 09:30 |
+| 2 | Fixed | The story names `f5bc66797` |
+| - | Checked | `last_mark.json` is in `OWNED_PATHS`, so both the slot committer and the claims committer push it (`_ledger_paths`). No other reader of the old mark fields under `fno/`, `tools/` or `.github/`. File sizes 103, 248 and 145 lines |
+
+- Gates: 18063 passed, 1 skipped, 13 xfailed; ruff, format and `check_imports` clean.
+- Plants: 3 planted, 2 caught.
+  - Caught: the loser writes `last_mark.json`; `last_mark.json` dropped from `OWNED_PATHS`.
+  - Survived: `write_run` keeping an old file's mark fields together with `read()` letting them win. This needs two
+    edits and a file in the old format. Low risk, as the builder says: the first `write_run` drops the legacy fields.
+- **Minor (carry in the next A16 doc change):** A16's design (`A16-intraday-quote-recorder.md:233-234`) and
+  `fno/storage/README.md:134` still list the owned paths without `last_mark.json`. LM1's planned `MonitorHeartbeat`
+  reuses `heartbeat_state` only, so the removed `write` does not affect it.
+- Merge only outside 09:15-15:35 IST, after judge R's PASS too. No Groww command was run.
