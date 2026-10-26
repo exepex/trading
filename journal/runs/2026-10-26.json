@@ -349,6 +349,23 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "recommend": {
+   "started_at": "2026-10-26T15:27:01.838392+05:30",
+   "finished_at": "2026-10-26T15:27:14.842776+05:30",
+   "inputs": {
+    "command": [
+     "recommend",
+     "decide",
+     "unlisted",
+     "2026-10-26"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "recommend:POSTED",
+    "exit_code": 0
+   }
   }
  }
 }
