@@ -64,3 +64,6 @@ Round 2 at `a7aecaf04`. **PASS, lane 1** (1 minor, not blocking). Full clone; ga
   `fno/storage/README.md:134` still list the owned paths without `last_mark.json`. LM1's planned `MonitorHeartbeat`
   reuses `heartbeat_state` only, so the removed `write` does not affect it.
 - Merge only outside 09:15-15:35 IST, after judge R's PASS too. No Groww command was run.
+- Tip `5cef9bcc2` (after a7aecaf04): only Markdown changed, with no code or test diff; the minor is fixed there
+  (`A16-intraday-quote-recorder.md:231-235`, `fno/storage/README.md:134` now name `last_mark.json`). PASS stands at
+  this tip.
