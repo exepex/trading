@@ -381,6 +381,26 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "price_ranges": {
+   "started_at": "2026-10-26T15:28:17.503621+05:30",
+   "finished_at": "2026-10-26T15:28:44.520613+05:30",
+   "inputs": {
+    "command": [
+     "pricerange",
+     "issue",
+     "unlisted",
+     "unlisted",
+     "unlisted",
+     "2026-10-26",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "issued",
+    "exit_code": 0
+   }
   }
  }
 }
