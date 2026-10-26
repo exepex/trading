@@ -36,3 +36,19 @@ judge: Q.
 - Your scheduled task "Check November refit ratios stored" (2 Nov) tells a session to run `forecast-v4 capture-pack` by hand. With forecasting off, that is a forecasting step run by hand: cancel it or reword it.
 - The REC1 and school reminder tasks (26-27 Oct) will find no record. That is expected, not a failure.
 - The owner's open questions in the story still need answers: the weekly data-health summary is now off, and v4's freeze record.
+
+## Addendum 1
+
+STAB1 follow-up `story/stab1-minors` at `4e2b26b6e`, based on 15c05b394 (judge P): **PASS**, lane 1 (capture code).
+
+| Check | Verdict | Evidence |
+|---|---|---|
+| Never stops a 3 pm part | MET | `_stop_hung` acts only on `part.apart`, which only `v4_part.py:36` sets. Plant removing `part.apart and` is caught |
+| Never stops an adopted recorder | MET | `how != ADOPTED`; a plant is caught. `EarlierRun.stop()` is a no-op either way, and an `EARLIER` part's `poll()` returns at once (lock not held), so it finishes before the check |
+| Never stops a capture that ends inside the grace | MET | `service()` polls and finishes ended parts before `_stop_hung`. `test_a_capture_that_ends_inside_the_grace_is_committed_not_stopped` (ends 14:43, committed, no alert). Grace plants (0 min, early bound) are caught |
+| Does not delay NIFTY | MET | NIFTY has no `starts_after` on v4. The stop is a `killpg` + `wait` of the v4 child only. Removing the call is caught (a hung part would otherwise run until `finish`) |
+| Minor 1 (CLAUDE.md step 2) | Fixed | It now names `v4_release` for the release and `v4_pack` for the capture |
+| Minor 2 (trigger guard) | Fixed | `test_capture_only.py` reworked to pin triggers |
+
+Gates on the tip: `pytest -n 3` 18078 passed, 1 skipped, 13 xfailed; ruff, format and `check_imports` clean. 5 plants, all
+caught. Judge Q is the second judge.
