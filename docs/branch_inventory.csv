@@ -8,9 +8,9 @@ claude/festive-wright-l4490l,848ac1d0ceed27bf70c155568cff545d39765af8,2026-10-23
 claude/funny-cerf-cwvsga,bdd8bde44f3de1de44e0ca334e28e16ad8aadb55,2026-10-12T11:07:23Z,no,1,keep,an open pull request has it as its head
 claude/laughing-noether-1t9bdf,975159c2e4304fc07b96d7e48e254d7660409d7f,2026-10-15T04:20:33Z,yes,0,delete,merged into main
 claude/lucid-ptolemy-cn5z9n,aea9ac0e5e1e6eff30a50033c3de30673ec36ecb,2026-10-16T03:23:18Z,no,1,keep-unsure,not merged; named in a file written in the last 48 h
-claude/lucid-ptolemy-hoov99,63c9b1890a9d34cb29bc006fe0ba0f809fd246b9,2026-10-16T07:00:58Z,no,7,delete,"not merged (7 commits only here), idle over 48 h, no open PR, in no register row"
+claude/lucid-ptolemy-hoov99,63c9b1890a9d34cb29bc006fe0ba0f809fd246b9,2026-10-16T07:00:58Z,no,7,keep-unsure,"not merged; 15 code files changed only here (unfinished work, owner decides)"
 claude/lucid-ptolemy-i7whpe,3ad82b1ceba66cd70653a18c0c8d4f18a855c06f,2026-10-16T05:31:27Z,yes,0,delete,merged into main
-claude/lucid-ptolemy-ml36q5,800c10dcd06da8e8c11b61d999c72a927d71fea8,2026-10-16T07:00:55Z,no,3,delete,"not merged (3 commits only here), idle over 48 h, no open PR, in no register row"
+claude/lucid-ptolemy-ml36q5,800c10dcd06da8e8c11b61d999c72a927d71fea8,2026-10-16T07:00:55Z,no,3,keep-unsure,"not merged; 4 code files changed only here (unfinished work, owner decides)"
 claude/pensive-fermat-erk186,9d063eb99e3e23e842cd83aa9313364a7449c038,2026-10-13T10:50:12Z,no,4,keep-unsure,not merged; named in a file written in the last 48 h
 claude/project-thread-vdpsxd,ab47a2c5f89a006338e22242f63584ada4144af7,2026-10-15T13:16:42Z,yes,0,delete,merged into main
 claude/quirky-shannon-phvh0f,c4ab8f78d3ab1f4725b45c0a557375a14eadcda8,2026-10-23T03:15:53Z,yes,0,delete,merged into main
@@ -24,7 +24,7 @@ docs/a14c-open-items,0ff7e4a01c91bb48a294e831e2255728dddc4709,2026-10-22T18:41:3
 docs/a16-checklist-signin,3cef31e35e1be3ee6fca1243f4aac95bb4c3d40a,2026-10-15T16:11:07Z,yes,0,delete,merged into main
 docs/a16-owner-checklist,2098f75834379bad020f99de242112196cf6c84f,2026-10-15T13:30:48Z,yes,0,delete,merged into main
 docs/data-use-map,29d60738fe6cb7f81b0903ad338eac84fb474eb9,2026-10-21T20:58:02Z,yes,0,delete,merged into main
-docs/g7b-watch-2nov,39d3ca82e4cab65a7e24599c18b01072c4369efa,2026-10-24T22:14:16Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+docs/g7b-watch-2nov,39d3ca82e4cab65a7e24599c18b01072c4369efa,2026-10-24T22:14:16Z,yes,0,delete,merged into main
 docs/v4-freeze-checklist-g7,d0a9f4640f748180095d8dce67eb93e18096f5ce,2026-10-16T12:08:56Z,no,3,delete,"not merged (3 commits only here), idle over 48 h, no open PR, in no register row"
 draft/ci-green-tests,c781f30a9da2b850b9c185afa19551c9613013ae,2026-10-15T13:11:11Z,no,1,delete,"not merged (1 commits only here), idle over 48 h, no open PR, in no register row"
 fix/e2c-account-tests,75103ee4568ef4c59902a64b5a9b03b35ed2f835,2026-10-15T20:07:08Z,yes,0,delete,merged into main
@@ -32,7 +32,7 @@ fix/g7-v6-counts-fixed-date,4b9309dda9619622aa25a7f12515f554294f000d,2026-10-15T
 fix/g8-v1-series-test,fa05e2883de0bb78fd23fd47a79ca59bf125ef21,2026-10-21T14:20:15Z,no,1,keep-unsure,not merged; named in a file written in the last 48 h
 freeze/v4-checklist,c3fe3b0d09519108577aa76abf250b6b13b6e347,2026-10-16T10:35:39Z,no,18,delete,"not merged (18 commits only here), idle over 48 h, no open PR, in no register row"
 judge-e-handover,d7b43ffa40f6416dfe7019ef00bfe07e7f89433c,2026-10-21T14:02:42Z,no,1,delete,"not merged (1 commits only here), idle over 48 h, no open PR, in no register row"
-main,4590491b4b1984927672793e00c55c6a732e68ed,2026-10-25T11:19:20Z,yes,0,keep,the default branch
+main,925c818adad449c1c958bf691652336575d5d809,2026-10-26T04:14:53Z,yes,0,keep,the default branch
 rehearsal/2026-10-19-20261024T221832Z-d53c4f,adb42339f836a37c68b1ef1cc86eaef6b203cffc,2026-10-19T10:32:08Z,no,37,keep-unsure,"rehearsal run: REH1 Q3 (owner, 24 Oct) keeps them for inspection until the owner says otherwise"
 rehearsal/2026-10-19-20261024T230443Z-dafab0,2dc405833e48b06fd2a4687d1fb19414948872aa,2026-10-19T10:32:09Z,no,37,keep-unsure,"rehearsal run: REH1 Q3 (owner, 24 Oct) keeps them for inspection until the owner says otherwise"
 rehearsal/2026-10-21-20261024T220648Z-e86e9a,d113decc1678a2fb1b0fe32719a825c37b1d44ed,2026-10-21T10:32:09Z,no,37,keep-unsure,"rehearsal run: REH1 Q3 (owner, 24 Oct) keeps them for inspection until the owner says otherwise"
@@ -121,9 +121,9 @@ story/a17c-minors,cc739e7d1d28bfdc2eef7209208d12203cbaf79b,2026-10-15T04:21:50Z,
 story/a17d-fbil-drive,2a9c8b5e23926e45dfb335ddac158fdfab4bebbe,2026-10-15T17:07:12Z,yes,0,delete,merged into main
 story/a17e-global-markets,bc21f17f17278a14724a723a9790da9783f87c45,2026-10-21T23:11:42Z,yes,0,delete,merged into main
 story/a17e-preopen-calendar,a0514fc15e0a99433c64c3e5fb8f689761c548ae,2026-10-22T00:07:50Z,yes,0,delete,merged into main
-story/a17f-taiex-empty,82cd71a51d839b9d4073e9d22d6d2a73c3d0ff26,2026-10-24T14:43:22Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/a17f-taiex-empty,82cd71a51d839b9d4073e9d22d6d2a73c3d0ff26,2026-10-24T14:43:22Z,yes,0,delete,merged into main
 story/a19-news-capture,cda414e4f0cdc9e0e4ce5c0480c1ad482b8518e4,2026-10-16T12:52:16Z,no,11,keep-unsure,"not merged; 40 code files changed only here (unfinished work, owner decides)"
-story/a20-lots-early-slot,7ff32a3dc0e9831d6997f2af2b9d31908d488059,2026-10-25T00:43:52Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/a20-lots-early-slot,7ff32a3dc0e9831d6997f2af2b9d31908d488059,2026-10-25T00:43:52Z,yes,0,delete,merged into main
 story/a20-rules-and-dates,9ed3c0713cafba6f13b3e720638e3867e3e34284,2026-10-16T12:50:13Z,no,2,keep,"not merged, and named in docs/WORK_REGISTER.md's Branch column"
 story/a20a-fo-masters,83d8ccc2d0808c690b52109858a76aaa8003f1e4,2026-10-16T13:01:02Z,yes,0,delete,merged into main
 story/a20b-circulars,7bafaa53df3dc5702ae1a45c1e1bd514fb29ac1e,2026-10-21T15:10:37Z,yes,0,delete,merged into main
@@ -134,8 +134,8 @@ story/a21-rates-first-seen,5ae7688158f5380b77d0c3e1d6310ea4033e87b8,2026-10-16T1
 story/a22-preopen,bf04c0123646ab25fa8c22f4f2df61e64d66140d,2026-10-21T22:31:53Z,yes,0,delete,merged into main
 story/a22b-gift-early,628dc9b8fc49c7f7768a841866b5d776b8fa146d,2026-10-21T23:18:48Z,yes,0,delete,merged into main
 story/a22c-routine-asia,8e831ecb0d412d1c2b21586559d2df6406a88789,2026-10-22T00:12:06Z,yes,0,delete,merged into main
-story/a22d-flat-candle,3555eda2fdd2ef833a06494b954eda9c7142cab4,2026-10-24T14:51:37Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/a22e-last-read,5f90b561a1cbf112765947e8de23c064d8ec3976,2026-10-24T16:44:11Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/a22d-flat-candle,3555eda2fdd2ef833a06494b954eda9c7142cab4,2026-10-24T14:51:37Z,yes,0,delete,merged into main
+story/a22e-last-read,5f90b561a1cbf112765947e8de23c064d8ec3976,2026-10-24T16:44:11Z,yes,0,delete,merged into main
 story/a23-flow-history,b26d33476e3a4b87d7daddc0745b82c5856f1040,2026-10-22T03:09:58Z,yes,0,delete,merged into main
 story/a23-live-from,cd33f535d614c70bddbf570fcb4f0af778a46eb2,2026-10-23T08:04:11Z,yes,0,delete,merged into main
 story/a23-volume-fix,b5508fc53076f502a0b293ac7b7bf04be28e4862,2026-10-22T00:18:36Z,yes,0,delete,merged into main
@@ -153,14 +153,14 @@ story/a4h-newest-first,2a3d6677e8dafb7ff3827392c2f51af7f1bae0c2,2026-10-22T00:56
 story/a4h2-day-range,72d769b89f1e3b481ce344001f91ed9c386666e5,2026-10-23T17:02:58Z,yes,0,delete,merged into main
 story/a8-actions-watch,b33f2c012663ad9ed5893878b0c0b843ea0f8582,2026-10-14T14:01:11Z,yes,0,delete,merged into main
 story/a9b-nse-retry,a19b5b3e8856571b7f6d5000bc878592febd0e45,2026-10-15T05:54:08Z,yes,0,delete,merged into main
-story/activate-26oct,406a5fcc95f48ce238d1bf176f2474cf1ad315d4,2026-10-24T15:15:07Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/activate-26oct,406a5fcc95f48ce238d1bf176f2474cf1ad315d4,2026-10-24T15:15:07Z,yes,0,delete,merged into main
 story/ag1-session-process,f5c026c8ba6b8f1bbb91ca68fee628e06b113186,2026-10-25T10:35:58Z,no,2,keep,"keep list: in flight (orchestrator, 25 Oct 2026)"
-story/ai-books-terms-v1,1a694643ca27fd0f8793a94846b7d106ff819fa4,2026-10-24T23:14:18Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/ai-books-terms-v1,1a694643ca27fd0f8793a94846b7d106ff819fa4,2026-10-24T23:14:18Z,yes,0,delete,merged into main
 story/bg1-fallback-alert,0409a53e9fbc2d75f7aece56462f85e058242057,2026-10-16T07:53:17Z,yes,0,delete,merged into main
 story/bg1t-test-a-inputs,df9dee04ac0abbf84f9b00eae50c7c2af2d61782,2026-10-24T15:45:31Z,no,3,keep,"keep list: BG1-t code, in flight (orchestrator, 25 Oct 2026)"
-story/bg1u-no-cap,4d8b825bfd450b21aef7d6df56f52cf1a65765de,2026-10-24T15:22:51Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/bg1w-owner-answer,b0bbd3e1030a00cd6c10ebbd2eba223c1291a304,2026-10-24T14:45:42Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/bg1w-reveal-wait,3d19625a20057656cb2f4c37202d2452f3b8f7e5,2026-10-24T13:56:30Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/bg1u-no-cap,4d8b825bfd450b21aef7d6df56f52cf1a65765de,2026-10-24T15:22:51Z,yes,0,delete,merged into main
+story/bg1w-owner-answer,b0bbd3e1030a00cd6c10ebbd2eba223c1291a304,2026-10-24T14:45:42Z,yes,0,delete,merged into main
+story/bg1w-reveal-wait,3d19625a20057656cb2f4c37202d2452f3b8f7e5,2026-10-24T13:56:30Z,yes,0,delete,merged into main
 story/br1-breadth-design,a47f6cb68e0b7f2622b33ec648cc1ccfd27ece36,2026-10-15T17:51:55Z,yes,0,delete,merged into main
 story/br1-followup,6f49be48392ff82f7098036103250a2cc4854541,2026-10-16T06:13:50Z,yes,0,delete,merged into main
 story/br1a-protocol,fff7d9aedd39bd0eed3aaae93eabd9190fc188d8,2026-10-15T23:38:54Z,yes,0,delete,merged into main
@@ -177,7 +177,7 @@ story/c5d-nse-symbols,c06265d3f471298909fa3e5fcf33c996093082e6,2026-10-21T14:26:
 story/ci-green-tests,872c913c4e992b70e46b341a8a06b087ec5cccf3,2026-10-15T13:20:54Z,yes,0,delete,merged into main
 story/ci-python-3-13,1b53a43477189090cede0826b6d079e144d5ee41,2026-10-15T12:07:45Z,yes,0,delete,merged into main
 story/ci-two-red-tests,b958b5a7734a4a872f2a46411b0896568d79505d,2026-10-22T21:56:31Z,yes,0,delete,merged into main
-story/cp1-measured-pads,1fd94daf69440aca2abe4e320cce80964f96f7d5,2026-10-25T08:42:25Z,yes,0,keep,"keep list: CP1's story text is on main, its code comes on this branch (register row)"
+story/cp1-measured-pads,1fd94daf69440aca2abe4e320cce80964f96f7d5,2026-10-25T08:42:25Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/cut-list,97e331a7a61b772a24e05342fe178d486907b7f5,2026-10-22T05:49:31Z,yes,0,delete,merged into main
 story/d1-playbook,618b2fd4e79b524b8e28bc6460111c13239beeea,2026-10-14T00:36:56Z,yes,0,delete,merged into main
 story/d2-rule-evaluation,5acb188dc2a8d3f873be06d5fe9286ae14803a48,2026-10-14T01:27:25Z,yes,0,delete,merged into main
@@ -229,15 +229,15 @@ story/e8a-fill-timing,642461f6865ea9baa7e1d67cba629791deb37615,2026-10-15T20:22:
 story/edge1-build,e35b7f6236eb8789f38f2a9253e9e79d7040ab7d,2026-10-22T11:37:01Z,yes,0,delete,merged into main
 story/edge1-text,a219747f733a8616fc0c7988d020bddad75631af,2026-10-22T05:59:02Z,yes,0,delete,merged into main
 story/edge2-f1-vrp-weekly,764a36c3d3c48dc75467e963ac4ce10558be96a4,2026-10-24T22:45:37Z,no,3,keep,"not merged, and named in docs/WORK_REGISTER.md's Branch column"
-story/edge2-f1-weekly,da2b113af199db63fdc3a0eb237caf8afb813554,2026-10-24T23:43:40Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/edge2-f1-weekly,da2b113af199db63fdc3a0eb237caf8afb813554,2026-10-24T23:43:40Z,yes,0,delete,merged into main
 story/edge2-f6-fixes-s1s2,fa5ad37d69f101cab852c5b874da60793f1e91e1,2026-10-25T00:20:24Z,no,2,keep,"not merged, and named in docs/WORK_REGISTER.md's Branch column"
 story/edge2-f6-participant-oi,fa5ad37d69f101cab852c5b874da60793f1e91e1,2026-10-25T00:20:24Z,no,2,keep,"not merged, and named in docs/WORK_REGISTER.md's Branch column"
-story/edge2-f8-fii-side-spread,90becf94764f8cb36ae30a51a84a5be33edecee5,2026-10-25T01:20:05Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/edge2-f8-fii-side-spread,90becf94764f8cb36ae30a51a84a5be33edecee5,2026-10-25T01:20:05Z,yes,0,delete,merged into main
 story/edge2-f9-event-crush,c48249edd9a0effc888340d622b7b016cf11d62b,2026-10-25T04:53:57Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/edge2-plant-tests,557364d383e1e9d5fe1d7841d0e9aca29cccbd49,2026-10-25T02:19:45Z,no,1,keep-unsure,"not merged, last commit within 48 h, in no register row"
 story/edge2-round2,d9979131ece056abd9131d341784d3736163d213,2026-10-25T01:18:00Z,no,8,keep,"not merged, and named in docs/WORK_REGISTER.md's Branch column"
 story/edge2-slippage-floor,a77e9f78a5e893d75614715db37e5a58ae21992f,2026-10-25T08:45:59Z,no,1,keep-unsure,"not merged, last commit within 48 h, in no register row"
-story/edge2-slippage-note,3aa244b5db0134507f1679ac15589a12084a06ea,2026-10-25T03:47:10Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/edge2-slippage-note,3aa244b5db0134507f1679ac15589a12084a06ea,2026-10-25T03:47:10Z,yes,0,delete,merged into main
 story/f1-books-prompt-no-install,5615652e49449b98252a74aa8a82641109e62cce,2026-10-23T19:18:37Z,yes,0,delete,merged into main
 story/f1-gate-stdlib-test,d6d72df1809919fc5f9312226329ee23a379ffa5,2026-10-14T13:01:09Z,yes,0,delete,merged into main
 story/f1-late-start-status,1eb005c9561a2fb94c2b6eea8bc70544c041faaa,2026-10-14T15:04:38Z,yes,0,delete,merged into main
@@ -247,12 +247,12 @@ story/f1t-ai-trading-runner,c2d2b922934ee7e3cf16974020cdddc62bdd8707,2026-10-16T
 story/f1t-code,eb89b9e87ac5abbf5d048c73cfead052d4244e5b,2026-10-25T03:59:23Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/f1t-f4-handover,d8ec2eae164ed7c5314d34bcffd7ccd32e732aad,2026-10-16T13:01:10Z,no,29,keep-unsure,"not merged; 70 code files changed only here (unfinished work, owner decides)"
 story/f1t-narrow-fix,eb89b9e87ac5abbf5d048c73cfead052d4244e5b,2026-10-25T03:59:23Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/f1t-runner-v2,4dbf786d7ee59802545a151c3a31a5546cf20e22,2026-10-24T22:59:30Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/f1t-runner-v2,4dbf786d7ee59802545a151c3a31a5546cf20e22,2026-10-24T22:59:30Z,yes,0,delete,merged into main
 story/f1t-template-test,1a5fc1fe1c90190619b02c2a3aaa44d6b9ec003e,2026-10-25T09:41:15Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/f2-analyst-cards,f68b50e81be8901022079a785fa3e102b3e6d9fe,2026-10-16T11:30:12Z,yes,0,delete,merged into main
-story/f4-ai-judge,1ca9b69163f62b21e4844707e6d989ce03b80576,2026-10-24T23:18:34Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/f5-book2-decider,69a7425fab77eaa035f72bfcf1bf00479af164b5,2026-10-22T21:25:56Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/f5-book2-q11,27aa4610735aa6327a125061b787b5fc43dbb9da,2026-10-24T23:55:40Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/f4-ai-judge,1ca9b69163f62b21e4844707e6d989ce03b80576,2026-10-24T23:18:34Z,yes,0,delete,merged into main
+story/f5-book2-decider,69a7425fab77eaa035f72bfcf1bf00479af164b5,2026-10-22T21:25:56Z,yes,0,delete,merged into main
+story/f5-book2-q11,27aa4610735aa6327a125061b787b5fc43dbb9da,2026-10-24T23:55:40Z,yes,0,delete,merged into main
 story/f5-code,bc146b720e0c57bba20a2e0791492b1e9ecca280,2026-10-25T03:57:07Z,no,45,keep,an open pull request has it as its head
 story/f5-round2-hold,bf626f488209b2b40357a757c45f3ab1c0e1cad8,2026-10-25T03:36:14Z,no,43,keep-unsure,"not merged, last commit within 48 h, in no register row"
 story/f6-book3-engine,50b479e1bed52aa844b8a98df7ffbd1a3234a663,2026-10-24T22:26:15Z,no,23,keep,"not merged, and named in docs/WORK_REGISTER.md's Branch column"
@@ -281,19 +281,19 @@ story/fl1-session-offset-clock,3c30e5d06fc2b485a42e7b35c9d7953dbdbdbd58,2026-10-
 story/fno-screens,03ad22b46ff1d0a13a32c939cf42c2d3ee564292,2026-10-15T23:41:43Z,yes,0,delete,merged into main
 story/g10-build,638cf54c5bb7996ae8a15070d34e849c8a2fc92b,2026-10-15T20:43:56Z,yes,0,delete,merged into main
 story/g10-cohorts,f5f177d4435f447c9d8922abefb41e31ba297c64,2026-10-15T21:42:57Z,yes,0,delete,merged into main
-story/g10-completion,5bde718c13211e582d16f6e19a591e5b79f1f207,2026-10-24T12:36:42Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/g10-day-labels-live-date,b6d3077872a33ad180bce33da3656d2e32b2f6db,2026-10-24T17:29:05Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/g10-completion,5bde718c13211e582d16f6e19a591e5b79f1f207,2026-10-24T12:36:42Z,yes,0,delete,merged into main
+story/g10-day-labels-live-date,b6d3077872a33ad180bce33da3656d2e32b2f6db,2026-10-24T17:29:05Z,yes,0,delete,merged into main
 story/g10-flag,617f5b9339d132f6a6b25dc105dc59e535bdc15d,2026-10-15T21:16:37Z,yes,0,delete,merged into main
-story/g10-labels-follow-up,d9c7d08a565981d886d842e4fd0bd24f91d65321,2026-10-24T18:15:59Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/g10-live-date,b1de501417a03425b07214cfc17c942b8ada53a4,2026-10-24T13:31:03Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/g10-labels-follow-up,d9c7d08a565981d886d842e4fd0bd24f91d65321,2026-10-24T18:15:59Z,yes,0,delete,merged into main
+story/g10-live-date,b1de501417a03425b07214cfc17c942b8ada53a4,2026-10-24T13:31:03Z,yes,0,delete,merged into main
 story/g10-part2-text,df5dcf35435737171629857357c6d582bc0a18ed,2026-10-16T10:51:39Z,yes,0,delete,merged into main
 story/g10-part2a-pack,df9432e9d2f2a694e96fa71cf777fd9cfa90ca2b,2026-10-16T11:28:49Z,yes,0,delete,merged into main
 story/g10-part2b-pack,94b3c6d8aaf466787eeff7a4bccd34f1653e3081,2026-10-21T14:55:39Z,no,8,keep-unsure,not merged; named in a file written in the last 48 h
 story/g10-part2b-release,8131128379b18a3b782b93dcfe2ca30fdb91e9fb,2026-10-16T12:53:04Z,yes,0,delete,merged into main
 story/g10-protocol-edits,a831e2ce0a7d43c2b9e483a264179e490f1c8ff5,2026-10-21T14:55:20Z,yes,0,delete,merged into main
 story/g10-v4-timeline,8fb27427d94142a0d6069b1db6edd4aa4f3e84f6,2026-10-15T17:56:12Z,yes,0,delete,merged into main
-story/g11-ai-books-v4,eb49d77f014f49c7ca1626a6b0c979e9f38a7d5a,2026-10-24T15:29:20Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/g11-fire-probe,8d5ad1ec3a78a2ff9ff2b652b2ceb935580251e6,2026-10-24T22:56:32Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/g11-ai-books-v4,eb49d77f014f49c7ca1626a6b0c979e9f38a7d5a,2026-10-24T15:29:20Z,yes,0,delete,merged into main
+story/g11-fire-probe,8d5ad1ec3a78a2ff9ff2b652b2ceb935580251e6,2026-10-24T22:56:32Z,yes,0,delete,merged into main
 story/g13-price-distribution,4e5c2326372c31805d4518314d02068f3c43f667,2026-10-21T15:31:02Z,yes,0,delete,merged into main
 story/g13-score-steps,e6d91cf3b94a623a014543433944cf0c9c44cec7,2026-10-21T17:57:13Z,yes,0,delete,merged into main
 story/g13-thin-expiry,9cc3169ca4507cbf56997ae97f5fb338dfc8dd86,2026-10-22T10:33:53Z,yes,0,delete,merged into main
@@ -301,10 +301,10 @@ story/g13b-price-ranges,9de0bc8906dd40b3381971f0c0fcd5a38ce059f8,2026-10-21T16:4
 story/g13c-itm-chance,e608af4cda55bcfe4059ae2c370f48fabbf7bc05,2026-10-22T02:48:36Z,yes,0,delete,merged into main
 story/g13d-go-live,6e05bfd42f35695fec36adfb95ec2c475f952c73,2026-10-22T10:32:29Z,yes,0,delete,merged into main
 story/g13d-premium-ranges,5350a2447c6eda6dd73b3d5a7b1e0180172f6bdb,2026-10-22T03:52:39Z,yes,0,delete,merged into main
-story/g14-amend2,7442d761fef04530b6f46cd30da307f285d3f19c,2026-10-24T19:21:39Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/g14-amend2,7442d761fef04530b6f46cd30da307f285d3f19c,2026-10-24T19:21:39Z,yes,0,delete,merged into main
 story/g14-o1-step,1a13e7ce05cf7d17c1552de61b75ac0c23a38972,2026-10-24T19:58:11Z,no,2,keep-unsure,"not merged, last commit within 48 h, in no register row"
 story/g14-v5-v1-candle,a4a61c2d7857a5cbcac8bad8ebea74fb1b2ef69a,2026-10-22T20:57:07Z,yes,0,delete,merged into main
-story/g14-v5-v1-candle-2,9d9b4cafaa3257780e8404399b216702ade25cdf,2026-10-24T18:18:28Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/g14-v5-v1-candle-2,9d9b4cafaa3257780e8404399b216702ade25cdf,2026-10-24T18:18:28Z,yes,0,delete,merged into main
 story/g4-calendar-label,c65daea47b8533c5ac0dd65126507b3e8b159cc2,2026-10-16T08:41:15Z,yes,0,delete,merged into main
 story/g6-freeze-code,76174a7c688b66c632711266e9d57903ca087918,2026-10-21T14:26:04Z,yes,0,delete,merged into main
 story/g6-protocol-rest,8a5397054a6bd59f792d72ee32b32546c2019279,2026-10-21T21:05:56Z,yes,0,delete,merged into main
@@ -318,8 +318,8 @@ story/g7-hash-gate-v1,2593467bb34f48ba6520038a1b1eb10de588e7fc,2026-10-22T09:20:
 story/g7-pack-sha-column,fe89e9154b8087598739c68ab94f467e31bd74c2,2026-10-16T11:30:41Z,yes,0,delete,merged into main
 story/g7-phase2-baselines,a33c1d4888f4c9248fd0d9f8174696887ed000d3,2026-10-16T09:45:35Z,yes,0,delete,merged into main
 story/g7-record-folders,23c610a7dfcdcbac42dbd3716903263169c9cf48,2026-10-16T10:43:51Z,yes,0,delete,merged into main
-story/g7b-completion,2949410bffe86cde9cfb7eea972551e614e777ad,2026-10-24T16:37:27Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/g7b-routine-line,8815543b16739f952ad6c6cc04553a35014ed51b,2026-10-24T23:37:06Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/g7b-completion,2949410bffe86cde9cfb7eea972551e614e777ad,2026-10-24T16:37:27Z,yes,0,delete,merged into main
+story/g7b-routine-line,8815543b16739f952ad6c6cc04553a35014ed51b,2026-10-24T23:37:06Z,yes,0,delete,merged into main
 story/g7b-vix-gaps,198ac67eac7c365fe5ee53d0d10b5768d41f5c6f,2026-10-16T11:25:48Z,yes,0,delete,merged into main
 story/g8-audit-file-required,16e082a784c6b6939e319cb24c29c20d70fd3039,2026-10-15T22:35:02Z,yes,0,delete,merged into main
 story/g8-effective-start,c645f662c8330ff50a685210d632dd093c464310,2026-10-15T19:54:20Z,yes,0,delete,merged into main
@@ -330,7 +330,7 @@ story/g8-skill-n,84dbb4d27c532739202523a330ed89486b403233,2026-10-15T19:42:09Z,y
 story/g8-v7-shared-rule,74de530565c3a32c246a1c04403e8f2f28424d97,2026-10-16T10:19:03Z,yes,0,delete,merged into main
 story/g8-vix-missing-line,cc026608bff54f8a2cc172889f32c931ab83c734,2026-10-16T10:41:19Z,yes,0,delete,merged into main
 story/g9-miss-rule,f3da76bd5f33463cac2b553a9c2b902e81ec4898,2026-10-15T15:24:34Z,yes,0,delete,merged into main
-story/gb1-branch-cleanup,52b58038fbb3dbf9c6112d461a4e9464531afaf1,2026-10-25T11:03:54Z,no,3,keep,keep list: this story
+story/gb1-branch-cleanup,640445b9499408808c744c5842efacf70f4afb94,2026-10-25T11:25:26Z,no,5,keep,keep list: this story
 story/git-before-writes,3cd347c76e90154977d97c805150d1063c83c3be,2026-10-22T23:58:14Z,yes,0,delete,merged into main
 story/git-run-fails-loud,bc3ac6e5019e669f5f9e130e4bf7c03892debce5,2026-10-22T22:45:48Z,yes,0,delete,merged into main
 story/gr1-sharper-ranges,e0c639d571f828978e6968e68d95f3b8d5e637ea,2026-10-22T01:40:46Z,yes,0,delete,merged into main
@@ -338,15 +338,15 @@ story/groww-quiet-hours,f69dd5a4d7a3086ba039bac8eb9c3a2d7c377d5b,2026-10-25T08:5
 story/gw1-groww-rate-guard,6a69a85800177b8ed49a30a8fe31dc3cc551270d,2026-10-25T01:09:44Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/gw1-round3,c182a3aa212d08bbe0019410af1eab0172cb06aa,2026-10-25T09:04:50Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/gw1-round3-text,82f21b09eb80eb5e75d016217dfd118b374b0cac,2026-10-25T08:36:51Z,no,1,keep-unsure,"not merged, last commit within 48 h, in no register row"
-story/gw1a-groww-guard-core,98e5dcfcbe881e4039f082f1d37b52185e6b5edf,2026-10-25T00:52:20Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/gw1a-groww-guard-core,98e5dcfcbe881e4039f082f1d37b52185e6b5edf,2026-10-25T00:52:20Z,yes,0,delete,merged into main
 story/handover-013xqa,fe58e1cad6d1398f1f2a0879fb636ea5c97c7f1c,2026-10-24T06:47:01Z,no,1,keep-unsure,"not merged, last commit within 48 h, in no register row"
-story/il-innovation-lab,4550232c5391a8512af09fb10b7b46ab35a39390,2026-10-21T20:12:41Z,no,2,keep-unsure,not merged; named in a file written in the last 48 h
+story/il-innovation-lab,4550232c5391a8512af09fb10b7b46ab35a39390,2026-10-21T20:12:41Z,no,2,delete,"not merged (2 commits only here), idle over 48 h, no open PR, in no register row"
 story/ing1-data-ingestion,9fe008e1b8dc23f648b15988ce1e0d8afe89fafb,2026-10-25T10:53:16Z,no,16,keep,"keep list: in flight (orchestrator, 25 Oct 2026)"
 story/lab-close-hold,6003e98d23b56120c058ec33949c62d54c616170,2026-10-21T20:28:47Z,yes,0,delete,merged into main
 story/lm1-code,1129f44f93ca439bc69b2ce05dfb63df8fefbb49,2026-10-24T06:47:33Z,no,16,keep,"not merged, and named in docs/WORK_REGISTER.md's Branch column"
 story/lm1-monitor,a742a1187ae0871c36dadcda4ec20f08ece70b3b,2026-10-15T23:31:30Z,yes,0,delete,merged into main
 story/lm1-round1,97cfd132409cb5f34aa28f633f82224b086f84a6,2026-10-16T10:32:40Z,no,8,keep-unsure,not merged; named in a file written in the last 48 h
-story/lr1-fetch-depth,44ecd6fb981e0966edbd988cd631655d7e68d715,2026-10-24T15:37:47Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/lr1-fetch-depth,44ecd6fb981e0966edbd988cd631655d7e68d715,2026-10-24T15:37:47Z,yes,0,delete,merged into main
 story/lr1-weekly-postmortem,b715d6eed60a68e3dca30e7f6885ad59b5063050,2026-10-15T18:43:40Z,yes,0,delete,merged into main
 story/lr3-drift-cusum,f6716b56a67d4ecb3e5c9f4e6e2837cc3860590b,2026-10-16T06:25:46Z,yes,0,delete,merged into main
 story/m1-calendar-end,a7a91d65726e46f66dfd73c2084a13f89ac57139,2026-10-16T08:24:45Z,yes,0,delete,merged into main
@@ -368,7 +368,7 @@ story/ms-ins-review-sources,f67ee2a520439c59615cd240ce30332e9065a2d3,2026-10-23T
 story/ms-ins-story,c892aed1e4703433acb7426d38decc69918f0904,2026-10-22T20:35:01Z,yes,0,delete,merged into main
 story/ms-ins-unreadable-pin,21c5362132aa5d46e0f44ed371a3d9343a62c405,2026-10-23T05:34:31Z,yes,0,delete,merged into main
 story/ms-p0-probes,337ca46891bdf555fed287cf5de72aff94306281,2026-10-22T14:54:38Z,yes,0,delete,merged into main
-story/ms-p0b-capture,bc445819dd1682451658ca6f725fa524a1fdc228,2026-10-25T01:47:57Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/ms-p0b-capture,bc445819dd1682451658ca6f725fa524a1fdc228,2026-10-25T01:47:57Z,yes,0,delete,merged into main
 story/ms-p0b-schedule,b3d8315f1d23622d524d37b743cfcf4bfdc9be63,2026-10-25T08:32:46Z,no,3,keep-unsure,"not merged, last commit within 48 h, in no register row"
 story/ms-p1-acceptance,2b9b45c8f70301325bee515dad113975b90cda31,2026-10-22T18:04:15Z,yes,0,delete,merged into main
 story/ms-p1-card,78f9b5e73a725c09a446a735a41f31431de16f0f,2026-10-22T17:43:54Z,yes,0,delete,merged into main
@@ -402,18 +402,18 @@ story/ms-p1g-editions-test,c115ff2be384c58dd449b3bcd917007f78e974db,2026-10-23T1
 story/ms-p1g-why-lines,5bf325d98a62f98fb5c7ea28db734a93b7099187,2026-10-23T08:03:56Z,yes,0,delete,merged into main
 story/ms-p1j-card-mismatch,d0a9c2bf00dae64972e7f155f1c21ba9d58bcf63,2026-10-23T03:45:22Z,yes,0,delete,merged into main
 story/ms-p1j-daily-steps,3287b128e092c333f9d53bc2e839d26baf2bc722,2026-10-22T22:13:39Z,no,1,keep-unsure,not merged; named in a file written in the last 48 h
-story/ms-p1j-daily-steps-r2,526bccb618ea3e174874d0c1aa4848594c3c9a44,2026-10-24T16:11:07Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/ms-p1j-daily-steps-r2,526bccb618ea3e174874d0c1aa4848594c3c9a44,2026-10-24T16:11:07Z,yes,0,delete,merged into main
 story/ms-p1j-fleet,fec42868b505a0b9bb45e02a8a418de5359c5c70,2026-10-23T00:20:34Z,yes,0,delete,merged into main
 story/ms-p1j-ins-wiring,98d16fcd8080caae89e7afc502dfdac4180c4f52,2026-10-23T06:19:37Z,yes,0,delete,merged into main
 story/ms-p1j-sim-seams,1f767528a5b0386e1e0e4424e2a8813fd755f339,2026-10-23T02:59:09Z,yes,0,delete,merged into main
-story/ms-p1j3-first-seal-cutoff,aa94ad7264f38f029c76540bbaa6ed0dc360aac4,2026-10-24T23:21:26Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/ms-p1j4-no-record,f6af5275261d539c6b3fce591ca6feec14669a9c,2026-10-25T01:09:49Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/ms-p1j3-first-seal-cutoff,aa94ad7264f38f029c76540bbaa6ed0dc360aac4,2026-10-24T23:21:26Z,yes,0,delete,merged into main
+story/ms-p1j4-no-record,f6af5275261d539c6b3fce591ca6feec14669a9c,2026-10-25T01:09:49Z,yes,0,delete,merged into main
 story/ms-p1m-factor-seam,2992864da63bf863d86b59ec154dca7b6ca27380,2026-10-23T01:53:51Z,yes,0,delete,merged into main
 story/ms-p1m-margin-rows,0c0447f84a3f5af934663ed8da44fe584db6114e,2026-10-22T18:34:12Z,yes,0,delete,merged into main
 story/ms-p1m-pin-exposure,362d1aa687c89ff0ea010e1e0882a66ba0031f05,2026-10-22T18:57:09Z,yes,0,delete,merged into main
-story/ms-school-reports-on,9b9039eb64d0a4ed80a45a75a4eecdc0c443a476,2026-10-25T01:41:46Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/ms-school-routine-line,72e286176ed45224d27791c92bbc91374b431e3f,2026-10-24T23:57:45Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/ms-school-switch-on,01a2fd24bdcae2b25027c1aea70d483f8d3248d2,2026-10-24T23:57:28Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/ms-school-reports-on,9b9039eb64d0a4ed80a45a75a4eecdc0c443a476,2026-10-25T01:41:46Z,yes,0,delete,merged into main
+story/ms-school-routine-line,72e286176ed45224d27791c92bbc91374b431e3f,2026-10-24T23:57:45Z,yes,0,delete,merged into main
+story/ms-school-switch-on,01a2fd24bdcae2b25027c1aea70d483f8d3248d2,2026-10-24T23:57:28Z,yes,0,delete,merged into main
 story/ms-sim-a,662447ee68fb8fa319dabc6da5899dcf57b9e480,2026-10-22T21:30:18Z,yes,0,delete,merged into main
 story/ms-sim-b,b62bc0b5187b0524a2a61f5b9d60ac00c5127154,2026-10-22T21:30:22Z,yes,0,delete,merged into main
 story/ms-sim-c,fde1dd9506e3fd541346f5fad5d9fdabd57c0f9c,2026-10-22T22:52:37Z,yes,0,delete,merged into main
@@ -447,7 +447,7 @@ story/o1-part-lock,00e9da610894d4b5206230896e1044a5a57f5d20,2026-10-21T17:15:18Z
 story/o1-part-start,f85e362fa875bd22a17c5a044d35b70e2ab7d265,2026-10-21T14:02:37Z,yes,0,delete,merged into main
 story/o1-r1r2-step-safety,c9fba758488f54a3eb91277166aefd47520cd1da,2026-10-24T07:07:08Z,no,1,keep-unsure,"not merged, last commit within 48 h, in no register row"
 story/o1-r1r2-step-safety-b,ee5711075328261a297846c681e964dab0c9e33f,2026-10-24T11:04:50Z,yes,0,delete,merged into main
-story/o1-r2-exits-retry-test,b75ead0d06fa4bf4daa87b4f901db60b9ce7ad8b,2026-10-24T12:21:20Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/o1-r2-exits-retry-test,b75ead0d06fa4bf4daa87b4f901db60b9ce7ad8b,2026-10-24T12:21:20Z,yes,0,delete,merged into main
 story/o1-status-only,119d3e2e5a7b7b1051a3361d73add0e99d6982b1,2026-10-21T23:51:42Z,no,2,keep,"not merged, and named in docs/WORK_REGISTER.md's Branch column"
 story/o1-status-only-keys,c532d57faf08959837d38a809c8c3bd4cbb96ba1,2026-10-21T23:54:04Z,yes,0,delete,merged into main
 story/o10-capture-health,7aaa0259a428bdbec6c773af1411def1a81b71b5,2026-10-16T12:26:58Z,yes,0,delete,merged into main
@@ -462,18 +462,18 @@ story/o12c-loud-claim,bf1c78e20fd63ac6b798cb501b92f2c1c6ac9b12,2026-10-22T04:17:
 story/o12d-claim-wording,616acea357c1e689e88d0ccb09f8bd917880d453,2026-10-22T04:51:01Z,yes,0,delete,merged into main
 story/o12e-ledger-trials,1f680b2c14a6b10ee9ce02d91e3331ea9ff3d0a4,2026-10-25T08:20:13Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/o13-routine-logs,f9f6356d7af6ed0f8b129d00c20221667eddd6ac,2026-10-23T18:04:18Z,no,13,keep,keep list: in flight; open pull request 134
-story/o14-retry-policy,3f15306ae80077950c3577a20b4c84334c96e812,2026-10-25T09:15:14Z,yes,0,keep,"keep list: O14's story text is on main, its code comes on this branch (register row)"
+story/o14-retry-policy,3f15306ae80077950c3577a20b4c84334c96e812,2026-10-25T09:15:14Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/o14-retry-policy-r3-draft,3f15306ae80077950c3577a20b4c84334c96e812,2026-10-25T09:15:14Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/o2-failure-handling,bd9848e7feba853b8f466db70e4c7342c9650b11,2026-10-21T17:44:41Z,no,1,keep,"not merged, and named in docs/WORK_REGISTER.md's Branch column"
 story/o2-git-limit-test,8e766fe6a08f6a1a53bf6e3155dc4b1d2c935d3f,2026-10-22T04:22:43Z,yes,0,delete,merged into main
 story/o2b-split,49b8166928ca0c01947986329d9975b686c6fdbd,2026-10-21T16:15:40Z,yes,0,delete,merged into main
-story/o7b-setup-test-sandbox,d6f680bc351e4adc46c49840fa2e215f3ad8cc8b,2026-10-25T03:41:58Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/o7b-setup-test-sandbox,d6f680bc351e4adc46c49840fa2e215f3ad8cc8b,2026-10-25T03:41:58Z,yes,0,delete,merged into main
 story/o8-health-check,05883928590fc603a06c802c57a50c79cfbb3bc5,2026-10-15T18:09:38Z,yes,0,delete,merged into main
 story/o8b-calendar-horizon,9232281dd7f9ba3ed93986f5772e27009a1555c3,2026-10-16T08:24:58Z,yes,0,delete,merged into main
 story/o8c-calendar-stop-line,7fadc85f36768460c9e6769c1d9c3019e8061ad9,2026-10-16T08:31:03Z,yes,0,delete,merged into main
 story/o8d-decisions-start,fc91e2b22f3da6064704f547cb379819b2d2c2d0,2026-10-24T00:07:33Z,yes,0,delete,merged into main
 story/o8e-collected-late,782bb6632ea1482658c66256bd2f03bfb44254a4,2026-10-24T00:34:37Z,yes,0,delete,merged into main
-story/o9-child-no-absent-cache,e14fb90096241b8c5481712c81094bf9d2d1b884,2026-10-24T18:26:34Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/o9-child-no-absent-cache,e14fb90096241b8c5481712c81094bf9d2d1b884,2026-10-24T18:26:34Z,yes,0,delete,merged into main
 story/o9-data-to-drive,50bf9f7c22547a9d571c1b0a79cbc44314360905,2026-10-22T10:51:16Z,yes,0,delete,merged into main
 story/o9-readonly-index-close,fb1a4bd7d8bb20c0a9481b84242ecb558c47c504,2026-10-24T01:05:01Z,yes,0,delete,merged into main
 story/o9-step1-followups,6be069b3cb33e7154d3725728f3bdf364a931042,2026-10-16T08:10:05Z,yes,0,delete,merged into main
@@ -481,10 +481,10 @@ story/o9-step1-store,aa79450bb55dd69995a5e797c034e47d311c2569,2026-10-16T07:46:4
 story/o9-step2a-recorder,6a93aefba0392ec714d3ed1ddd947f6ab545ec1c,2026-10-16T08:29:17Z,yes,0,keep,an open pull request has it as its head
 story/o9-step2a-wiring-test,a1d17d4fea1aa934a434c1c8edea06311f607c54,2026-10-16T08:37:14Z,yes,0,delete,merged into main
 story/o9-sync-file,5139e51e28ff1e5d549a3dfb844262a034a27fae,2026-10-23T16:04:54Z,yes,0,delete,merged into main
-story/o9b-cues,1391775eceef3409a8f7a066718d7dea4be7355d,2026-10-23T23:55:43Z,no,9,keep-unsure,"not merged, last commit within 48 h, in no register row"
+story/o9b-cues,1391775eceef3409a8f7a066718d7dea4be7355d,2026-10-23T23:55:43Z,no,9,keep-unsure,not merged; named in a file written in the last 48 h
 story/o9b-data-checks-trigger,ccfc340a6e80431d3a673afa895675319ce559ed,2026-10-23T11:09:52Z,yes,0,delete,merged into main
-story/o9b-margins,9b3a7922c93abfbf17748fe68c0b740640d782ad,2026-10-23T23:45:44Z,no,13,keep-unsure,"not merged, last commit within 48 h, in no register row"
-story/o9b-verified-raw,c81725070f0990fb35cb8d7978bec92b7a168c2f,2026-10-24T00:13:27Z,no,2,keep-unsure,"not merged, last commit within 48 h, in no register row"
+story/o9b-margins,9b3a7922c93abfbf17748fe68c0b740640d782ad,2026-10-23T23:45:44Z,no,13,keep-unsure,not merged; named in a file written in the last 48 h
+story/o9b-verified-raw,c81725070f0990fb35cb8d7978bec92b7a168c2f,2026-10-24T00:13:27Z,no,2,keep-unsure,not merged; named in a file written in the last 48 h
 story/o9b-vix,ef9e976b0c8486625751cf668df27231b0f587cb,2026-10-22T11:13:45Z,yes,0,delete,merged into main
 story/o9b-vix-removal,9c2ac0b63baf6526131e30ca93877ffe5ee324a5,2026-10-23T08:10:49Z,yes,0,delete,merged into main
 story/oss1-second-host,c58780f8e69089a15d94a2b68b6afa906d04f484,2026-10-22T07:36:56Z,no,10,keep,"not merged, and named in docs/WORK_REGISTER.md's Branch column"
@@ -517,33 +517,33 @@ story/r3-b0-registration,89fcbbd51ecabf72d630db8154f18a0a2bebec63,2026-10-16T07:
 story/r3-forward-shadows,d10f2e918d1e6cf5a217b0023e4e51b628ae4692,2026-10-15T22:59:15Z,yes,0,delete,merged into main
 story/r3-part-b,7f94dbdf9f6ca6564409532c8a6e73091d226071,2026-10-16T06:26:08Z,yes,0,delete,merged into main
 story/r3-shadow-accounts,f5cf9b973152611c4a43d0732b736a41c1b72a87,2026-10-16T05:49:11Z,yes,0,delete,merged into main
-story/rec1-recommender-text,03639247dca74794bd6ffa3ca1e3156dc7a98836,2026-10-24T22:31:01Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/rec1a-contracts,4988abbbe14d0ac6dfb68eab736e7b7a33258633,2026-10-24T23:21:37Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/rec1b-daily-record,d82e459d798d63843165250225f0d7aa401b2c40,2026-10-25T01:27:43Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/rec1b-switch-on,a0ab7a40261ced621773b7a4e0b9eeb130f87967,2026-10-25T02:22:20Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/rec1c-evening-check,33f0252db5c933ded100f25c35b7b861a5cce6af,2026-10-25T02:36:45Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/rec1c-tests,e118ccb7d5c85d5b4a48fe33ddae625824cf68f0,2026-10-25T02:59:03Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/rec1d-sections,729a3c81585d2a84a5435fc048e73f7778c2bc8c,2026-10-25T03:30:40Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/rec1-recommender-text,03639247dca74794bd6ffa3ca1e3156dc7a98836,2026-10-24T22:31:01Z,yes,0,delete,merged into main
+story/rec1a-contracts,4988abbbe14d0ac6dfb68eab736e7b7a33258633,2026-10-24T23:21:37Z,yes,0,delete,merged into main
+story/rec1b-daily-record,d82e459d798d63843165250225f0d7aa401b2c40,2026-10-25T01:27:43Z,yes,0,delete,merged into main
+story/rec1b-switch-on,a0ab7a40261ced621773b7a4e0b9eeb130f87967,2026-10-25T02:22:20Z,yes,0,delete,merged into main
+story/rec1c-evening-check,33f0252db5c933ded100f25c35b7b861a5cce6af,2026-10-25T02:36:45Z,yes,0,delete,merged into main
+story/rec1c-tests,e118ccb7d5c85d5b4a48fe33ddae625824cf68f0,2026-10-25T02:59:03Z,yes,0,delete,merged into main
+story/rec1d-sections,729a3c81585d2a84a5435fc048e73f7778c2bc8c,2026-10-25T03:30:40Z,yes,0,delete,merged into main
 story/rec1d-sections-code,1d1f1098c65fc9470e7987338b9c74c4e4289d15,2026-10-25T04:17:28Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/receipts-reach,910ee216e5067400c7f70b56c8b5073eaff42eb4,2026-10-22T23:52:47Z,yes,0,delete,merged into main
 story/receipts-reach-minors,74706a51efeea7af356aa27c542db16432e5b6e6,2026-10-23T00:17:28Z,yes,0,delete,merged into main
 story/recheck1-text,e5e11f03c1363da884fbef8405fcf6a360345867,2026-10-22T10:08:40Z,no,1,keep-unsure,not merged; named in a file written in the last 48 h
-story/reh1-candle-no-groww,409b064ca025a4a02b9dd04b27e23d903dd45625,2026-10-24T17:10:35Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/reh1-candle-no-groww,409b064ca025a4a02b9dd04b27e23d903dd45625,2026-10-24T17:10:35Z,yes,0,delete,merged into main
 story/reh1-rehearsal,c37804a9dc3447a7fdd21d4f5eafd45cea3ac484,2026-10-24T01:38:59Z,yes,0,delete,merged into main
 story/reh1b-sources,67e150e3346e61ab3cb26c567ac9ec299f8313ed,2026-10-24T02:51:12Z,yes,0,delete,merged into main
 story/reh1c-routines,320d48102ace1edd9f7e052bd69b46226d9a429c,2026-10-24T03:46:27Z,yes,0,delete,merged into main
 story/reh1e-parent-env,8246ddcfe74f186cbafd7645eef7f1b998344796,2026-10-24T04:24:47Z,yes,0,delete,merged into main
 story/reh1g-record-gaps,f1f37f3a535fcedd53b863004f8ac1e626d817ce,2026-10-24T10:05:25Z,yes,0,delete,merged into main
-story/reh1h-archive-serving,5bd3ed8d2b629505b8544e8a3e922116c186a4e2,2026-10-24T12:13:39Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/reh1i-guard-calls,b876844b601a811ee057cbad8e0ceb2a930b3f12,2026-10-24T11:47:46Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/reh1j-not-live,2b902569d925602c71eb9461b3bd53a7d4b275fa,2026-10-24T16:55:24Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/reh1k-lab-editions,cd7cf403dc2d72f6dcde9b69998e1c05f9fa84c9,2026-10-24T20:02:38Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/reh1l-preopen-serving,c9b41b40b983b1a44a6ee54d7259a6bef5ee46ad,2026-10-24T20:35:27Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/reh1h-archive-serving,5bd3ed8d2b629505b8544e8a3e922116c186a4e2,2026-10-24T12:13:39Z,yes,0,delete,merged into main
+story/reh1i-guard-calls,b876844b601a811ee057cbad8e0ceb2a930b3f12,2026-10-24T11:47:46Z,yes,0,delete,merged into main
+story/reh1j-not-live,2b902569d925602c71eb9461b3bd53a7d4b275fa,2026-10-24T16:55:24Z,yes,0,delete,merged into main
+story/reh1k-lab-editions,cd7cf403dc2d72f6dcde9b69998e1c05f9fa84c9,2026-10-24T20:02:38Z,yes,0,delete,merged into main
+story/reh1l-preopen-serving,c9b41b40b983b1a44a6ee54d7259a6bef5ee46ad,2026-10-24T20:35:27Z,yes,0,delete,merged into main
 story/reh1n-code,1ffa48bc3b666445b4dd09098fcb37c685c491e5,2026-10-25T09:02:30Z,no,2,keep,"keep list: in flight (orchestrator, 25 Oct 2026)"
 story/reh1n-new-quote-parts,80b522bf6eb9a3d42475d11d89bacb0a42bcc6ea,2026-10-25T08:20:36Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/reh1o-issuer-live-dates,07c06957e780838630a1d26c973ac634a2de1e55,2026-10-25T00:10:36Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/reh1op-minor-tests,549fd77993246043750250c8fe96d2c83af9ba43,2026-10-25T00:57:46Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/reh1p-quote-visibility,678be37b42ad493a50c5c1cbc73a032b02587b93,2026-10-24T23:48:31Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/reh1o-issuer-live-dates,07c06957e780838630a1d26c973ac634a2de1e55,2026-10-25T00:10:36Z,yes,0,delete,merged into main
+story/reh1op-minor-tests,549fd77993246043750250c8fe96d2c83af9ba43,2026-10-25T00:57:46Z,yes,0,delete,merged into main
+story/reh1p-quote-visibility,678be37b42ad493a50c5c1cbc73a032b02587b93,2026-10-24T23:48:31Z,yes,0,delete,merged into main
 story/reh1q-scheduled-reads,569ba7b7ad78efa9aa932fdf0aa7d010b6fa8432,2026-10-25T04:12:43Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/reh1qs-minors,adc5063a5558364628dc3d5b960b46057901ca27,2026-10-25T04:54:32Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
 story/reh1r-code,5695be3d5e5225a3b4961c7fa8432480cf289901,2026-10-25T06:07:12Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
@@ -566,6 +566,7 @@ story/s3-scoreboard-a,650e861df50e466a7669fdcb5b200693d9013d51,2026-10-15T20:35:
 story/s6-followups,e015438b338fc483a3e2556ab5af8a8f9def1cad,2026-10-15T23:03:40Z,yes,0,delete,merged into main
 story/s6-scorecard-measures,7cb57e3cb8d17cb9effd6f95926d1235a86f91a6,2026-10-15T22:05:58Z,yes,0,delete,merged into main
 story/stab1-capture-only,15c05b39408d2505d4278fef7f8bc26ffe0ff741,2026-10-25T11:18:04Z,no,8,keep,"keep list: in flight (orchestrator, 25 Oct 2026)"
+story/stab1-capture-only-minors,5fec31b43ec4fb6ff924a3e00f6ebebac3b4a49d,2026-10-26T04:14:22Z,no,10,keep-unsure,"not merged, last commit within 48 h, in no register row"
 story/status-refresh,e8fa12cad03ecd83d17da863062b618a08c018e5,2026-10-15T18:08:22Z,yes,0,delete,merged into main
 story/str1-structures,0ba5edcc35321d3e037fcdd0e7029303e881801e,2026-10-15T01:14:53Z,yes,0,delete,merged into main
 story/str1b-activation-gates,918c5ef8c9b9d64afeffae7bd2b91356640394c1,2026-10-15T10:39:37Z,yes,0,delete,merged into main
@@ -573,18 +574,18 @@ story/t1-daily-card,a84f92db66056cc7f8b154e17da3ebf327f70d0c,2026-10-15T02:23:18
 story/t1-unknown-channel,28e42825dd130f221a5a1f81840daa94fe2808c8,2026-10-21T17:51:17Z,yes,0,delete,merged into main
 story/t1c-card-weather,e30ab3d0a6b026081e7fa198e54759d3f58d8aef,2026-10-23T23:44:56Z,yes,0,delete,merged into main
 story/t1c-followups,8f462a97604727bf3f967e4b5fdf2c91eebe6ed2,2026-10-24T00:34:35Z,yes,0,delete,merged into main
-story/t1d-failed-steps,80b5259de237041af9b80ccc786d9dfc4f9a4fc9,2026-10-24T11:36:26Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/t1e-card-warning,c80ad6cc0c1f98a5a2a1d8e9ec018ac163307e88,2026-10-24T13:52:46Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/t1f-card-rehearsal-clock,f84c08a18d424f2a9d2f7a9b3dfc9cc94560562d,2026-10-24T15:55:35Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/t1g-card-trade-fields,99d766e45cf69534911c823bd531f62d835696ab,2026-10-24T22:58:54Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/t1g-depends,8ebb0c3f4395fac853c11f0f5711dd3d494b6355,2026-10-25T00:22:09Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/t1g-depends-2,545a228a7577b88960ac15312d8daf5437300ebf,2026-10-25T00:27:31Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/t1d-failed-steps,80b5259de237041af9b80ccc786d9dfc4f9a4fc9,2026-10-24T11:36:26Z,yes,0,delete,merged into main
+story/t1e-card-warning,c80ad6cc0c1f98a5a2a1d8e9ec018ac163307e88,2026-10-24T13:52:46Z,yes,0,delete,merged into main
+story/t1f-card-rehearsal-clock,f84c08a18d424f2a9d2f7a9b3dfc9cc94560562d,2026-10-24T15:55:35Z,yes,0,delete,merged into main
+story/t1g-card-trade-fields,99d766e45cf69534911c823bd531f62d835696ab,2026-10-24T22:58:54Z,yes,0,delete,merged into main
+story/t1g-depends,8ebb0c3f4395fac853c11f0f5711dd3d494b6355,2026-10-25T00:22:09Z,yes,0,delete,merged into main
+story/t1g-depends-2,545a228a7577b88960ac15312d8daf5437300ebf,2026-10-25T00:27:31Z,yes,0,delete,merged into main
 story/t2-t3-advocate,38699fee68c73a9d214f579f1743ed5b578d75f9,2026-10-15T20:22:26Z,yes,0,delete,merged into main
 story/v1-method-filter,732db7e7a89ffdee0bf6257f9df7748695b21f10,2026-10-15T19:23:31Z,yes,0,delete,merged into main
-story/v4-freeze,631a47c28c49d52a29896e342607d02cf3e4195b,2026-10-24T22:53:23Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/v4-freeze,631a47c28c49d52a29896e342607d02cf3e4195b,2026-10-24T22:53:23Z,yes,0,delete,merged into main
 story/v4-iv-proof,436522940da915a7fc1cd9e873fab6119fec750b,2026-10-15T20:10:46Z,yes,0,delete,merged into main
-story/v4-tests-no-drive,b804a16f71e3df47a137ca2747ea08420d2dd751,2026-10-24T14:04:10Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
-story/v4pack-rehearsed-live,2871e32d4413132e0cada3e775468ddd74421206,2026-10-24T15:24:20Z,yes,0,keep-unsure,merged into main less than 24 h ago (grace for a late push)
+story/v4-tests-no-drive,b804a16f71e3df47a137ca2747ea08420d2dd751,2026-10-24T14:04:10Z,yes,0,delete,merged into main
+story/v4pack-rehearsed-live,2871e32d4413132e0cada3e775468ddd74421206,2026-10-24T15:24:20Z,yes,0,delete,merged into main
 story/x-backfill-test-decompressed,40c6a3f5b48bffb1dcc246f75aac4af739b25cb1,2026-10-15T15:58:36Z,yes,0,delete,merged into main
 story/x-conflict-marker-guard,aa34cac20c7ab890aa6455fae9bd3e036e4e7076,2026-10-16T06:58:29Z,yes,0,delete,merged into main
 story/x-design-v2,ed414143e7a6f014b1ac829770070f0a3ff5d9b0,2026-10-14T21:42:32Z,yes,0,delete,merged into main

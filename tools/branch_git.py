@@ -27,28 +27,46 @@ def _time(text: str) -> datetime:
     return datetime.fromisoformat(text).astimezone(UTC)
 
 
-def _landed_at(sha: str) -> datetime | None:
-    """The first commit on main's own line that holds the tip: when the branch reached main."""
-    path = git("rev-list", "--first-parent", "--ancestry-path", "--reverse", f"{sha}..{MAIN_REF}").split("\n")[0]
-    return _time(git("show", "-s", "--format=%cI", path)) if path else None
+def _main_line() -> list[str]:
+    """Main's own line (first parents), oldest first."""
+    return git("rev-list", "--first-parent", "--reverse", MAIN_REF).split()
+
+
+def _is_ancestor(sha: str, of: str) -> bool:
+    return subprocess.run(["git", "merge-base", "--is-ancestor", sha, of], cwd=ROOT).returncode == 0
+
+
+def _landed_at(sha: str, main_line: list[str]) -> datetime | None:
+    """The oldest commit on main's own line that holds the tip: when the branch reached main, however many merges deep
+    (a branch merged into another branch that was merged later reaches main only with the last one). Once a main-line
+    commit holds the tip every later one does, so a binary search finds it."""
+    low, high = 0, len(main_line)
+    while low < high:
+        middle = (low + high) // 2
+        if _is_ancestor(sha, main_line[middle]):
+            high = middle
+        else:
+            low = middle + 1
+    return _time(git("show", "-s", "--format=%cI", main_line[low])) if low < len(main_line) else None
 
 
 # a branch that alone changes these holds unfinished work
-CODE_PATHS = ("fno", "tools", "tests", ".github", "config.yaml")
+WORK_PATHS = ("fno", "tools", "tests", ".github", "config.yaml", "research/data", "receipts", "journal")
 
 
-def unique_code_files(sha: str) -> int:
+def unique_work_files(sha: str) -> int:
     """Code files touched by commits only on the branch (a patch-equal copy on main does not count)."""
     unique = [line[2:] for line in git("cherry", MAIN_REF, sha).splitlines() if line.startswith("+ ")]
     touched = {
         f
         for commit in unique
-        for f in git("diff-tree", "--no-commit-id", "--name-only", "-r", commit, "--", *CODE_PATHS).split()
+        for f in git("diff-tree", "--no-commit-id", "--name-only", "-r", commit, "--", *WORK_PATHS).split()
     }
     return len(touched)
 
 
 def read_branches(with_code: bool = False) -> list[Branch]:
+    main_line = _main_line()
     merged = set(git("branch", "-r", "--merged", MAIN_REF, "--format=%(refname:lstrip=3)").split())
     fields = "%(refname:lstrip=3)|%(objectname)|%(committerdate:iso-strict)"
     found = []
@@ -58,8 +76,8 @@ def read_branches(with_code: bool = False) -> list[Branch]:
             continue
         is_merged = name in merged
         ahead = 0 if is_merged else int(git("rev-list", "--count", f"{MAIN_REF}..{sha}"))
-        landed = _landed_at(sha) if is_merged else None
-        code = unique_code_files(sha) if with_code and ahead else 0
+        landed = _landed_at(sha, main_line) if is_merged else None
+        code = unique_work_files(sha) if with_code and ahead else 0
         found.append(Branch(name, sha, _time(date), is_merged, ahead, landed, code))
     return found
 

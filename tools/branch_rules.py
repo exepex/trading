@@ -26,7 +26,7 @@ class Branch:
     merged: bool  # the tip is an ancestor of origin/main
     ahead: int  # commits on the branch that are not on origin/main
     landed_at: datetime | None = None  # the main commit that first held the tip; None when not merged
-    code_files: int = 0  # code files only this branch changes (inventory only; 0 = nothing of value would be lost)
+    work_files: int = 0  # code files only this branch changes (inventory only; 0 = nothing of value would be lost)
 
 
 @dataclass(frozen=True)
@@ -116,9 +116,9 @@ def inventory_decision(branch: Branch, evidence: Evidence, now: datetime) -> tup
         return KEEP_UNSURE, "not merged, last commit within 48 h, in no register row"
     if branch.name in evidence.recent_mentions:
         return KEEP_UNSURE, "not merged; named in a file written in the last 48 h"
-    if branch.code_files:
+    if branch.work_files:
         return (
             KEEP_UNSURE,
-            f"not merged; {branch.code_files} code files changed only here (unfinished work, owner decides)",
+            f"not merged; {branch.work_files} code files changed only here (unfinished work, owner decides)",
         )
     return DELETE, f"not merged ({branch.ahead} commits only here), idle over 48 h, no open PR, in no register row"

@@ -73,7 +73,7 @@ def test_unfinished_code_is_counted_only_for_commits_not_on_main(clone):
 
     found = {b.name: b for b in branch_git.read_branches(with_code=True)}
 
-    assert found["story/code"].code_files == 1 and found["story/docs"].code_files == 0
+    assert found["story/code"].work_files == 1 and found["story/docs"].work_files == 0
 
 
 def test_remote_heads_read_the_origin_not_the_fetched_copies(clone):
@@ -128,7 +128,7 @@ def test_a_cherry_picked_commit_is_not_unfinished_work(clone):
 
     found = {b.name: b for b in branch_git.read_branches(with_code=True)}
 
-    assert found["story/picked"].ahead == 1 and found["story/picked"].code_files == 0
+    assert found["story/picked"].ahead == 1 and found["story/picked"].work_files == 0
 
 
 def test_a_branch_that_only_adds_tests_holds_unfinished_work(clone):
@@ -138,4 +138,29 @@ def test_a_branch_that_only_adds_tests_holds_unfinished_work(clone):
 
     found = {b.name: b for b in branch_git.read_branches(with_code=True)}
 
-    assert found["story/tests-only"].code_files == 1
+    assert found["story/tests-only"].work_files == 1
+
+
+def test_a_branch_merged_through_another_branch_landed_with_the_last_merge(clone):
+    push_branch(clone, "story/inner", ["a.txt"])
+    git(clone, "checkout", "-q", "-b", "story/outer", "main")
+    git(clone, "merge", "-q", "--no-ff", "-m", "inner into outer", "story/inner", date="2026-01-02T10:00:00+00:00")
+    git(clone, "push", "-q", "origin", "story/outer")
+    git(clone, "checkout", "-q", "main")
+    git(clone, "merge", "-q", "--no-ff", "-m", "outer into main", "story/outer", date="2026-01-05T10:00:00+00:00")
+    git(clone, "push", "-q", "origin", "main")
+    git(clone, "fetch", "-q", "origin")
+
+    found = {b.name: b for b in branch_git.read_branches()}
+
+    assert found["story/inner"].landed_at.isoformat() == "2026-01-05T10:00:00+00:00"
+
+
+def test_a_branch_that_only_adds_capture_rows_holds_unfinished_work(clone):
+    (clone / "research" / "data").mkdir(parents=True)
+    push_branch(clone, "claude/rows", ["research/data/slot.csv"])
+    git(clone, "fetch", "-q", "origin")
+
+    found = {b.name: b for b in branch_git.read_branches(with_code=True)}
+
+    assert found["claude/rows"].work_files == 1

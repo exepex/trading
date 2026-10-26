@@ -8,7 +8,5 @@ story/ag1-session-process  # in flight (orchestrator, 25 Oct 2026)
 story/a14c-part2-followup  # in flight (orchestrator, 25 Oct 2026)
 story/o13-routine-logs  # in flight; open pull request 134
 story/reh1n-code  # in flight (orchestrator, 25 Oct 2026)
-story/o14-retry-policy  # O14's story text is on main, its code comes on this branch (register row)
 story/bg1t-test-a-inputs  # BG1-t code, in flight (orchestrator, 25 Oct 2026)
-story/cp1-measured-pads  # CP1's story text is on main, its code comes on this branch (register row)
 claude/beautiful-pascal-566jb5  # named by the orchestrator, 25 Oct 2026
