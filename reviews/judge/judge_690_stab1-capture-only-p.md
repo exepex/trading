@@ -68,3 +68,12 @@ was written before I read the whole test diff.
 
 The rest of addendum 1 stands: the hung-v4 stop is correct and both minors are fixed. A tip that restores the test will
 be re-checked narrowly.
+
+## Addendum 3
+
+Narrow re-check of `story/stab1-minors` at `d797670e2` (judge P): **PASS**, lane 1. The only change since 4e2b26b6e is
+the restored `test_the_built_run_gives_its_quote_parts_the_capture_key_not_the_release_key` (+7 lines in one test file).
+My plant (`QuoteParts(..., {**live, 'v4_pack': None})`, `fno/daily/wiring.py:144`) is now caught (1 failed, 11 passed). Against 15c05b394 the
+branch now removes only `test_exactly_these_workflows_are_manual_only...`, replaced by the stricter
+`test_every_workflow_keeps_exactly_its_trigger_set...`. `tests/daily` + code size: 3135 passed; ruff and format clean.
+The full suite passed on 4e2b26b6e (18078; addendum 1), and only this test file has changed since.
