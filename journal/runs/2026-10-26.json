@@ -151,6 +151,21 @@
     "status": "not_live",
     "reason": "ai:NOT_LIVE_BOOKS"
    }
+  },
+  "decisions": {
+   "started_at": "2026-10-26T15:12:00.000353+05:30",
+   "finished_at": "2026-10-26T15:12:01.232239+05:30",
+   "inputs": {
+    "deadline": "2026-10-26T15:12:00+05:30",
+    "origin": "8f54c940eed99c8f8d3652fcbb0aa221f897b3c5"
+   },
+   "result": {
+    "book1_rules": {
+     "run_id": "2026-10-26-r1",
+     "commit": "9b2dccb2d30626f1fc1e88c28fb359fbe582fe1a",
+     "committed_at": "2026-10-26T14:58:43+05:30"
+    }
+   }
   }
  }
 }

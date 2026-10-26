@@ -38,3 +38,4 @@ date,job,step,kind,message,run_url
 2026-10-24,index-closes,closes / Commit the closes,failure,closes / Commit the closes: failure,https://github.com/exepex/trading/actions/runs/40087915710
 2026-10-26,filings-archive,"archive / Results and shareholding XBRL (backfill, then daily)",failure,"archive / Results and shareholding XBRL (backfill, then daily): failure",https://github.com/exepex/trading/actions/runs/40270408639
 2026-10-26,forecast-capture,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/40299728751
+2026-10-26,forecast-capture,before any step,cancelled,before any step: no job ran,https://github.com/exepex/trading/actions/runs/40299736060
