@@ -26,7 +26,7 @@ class Branch:
     merged: bool  # the tip is an ancestor of origin/main
     ahead: int  # commits on the branch that are not on origin/main
     landed_at: datetime | None = None  # the main commit that first held the tip; None when not merged
-    work_files: int = 0  # code files only this branch changes (inventory only; 0 = nothing of value would be lost)
+    work_files: int = 0  # files of code, tests or captured data only this branch changes (inventory only; 0 = nothing of value would be lost)
 
 
 @dataclass(frozen=True)
