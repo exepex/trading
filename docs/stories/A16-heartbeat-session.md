@@ -11,8 +11,8 @@ were of 2026-10-26, and its run times (09:15-09:29 IST) ended before the 09:30 m
 Two overlapping recorder runs push the file. A run that took no mark copies the old file and changes only the run
 times (A16 design 4.2); a run that took a mark changes mark, session and times. The pull settles a clash with `-X
 theirs`, which decides **per hunk**, and the pretty-printed file had one line per field: the `mark` line (changed only by
-one side) merged cleanly, the `session` and time lines (changed by both, adjacent) took the other side. The first mix is f5bc66797 (09:15 IST); fa33262,
-b21b2c1 and merge b32ffcb (09:30) show the same: mark 09:30 from one run, session 2026-10-23 and times from the other. The
+one side) merged cleanly, the `session` and time lines (changed by both, adjacent) took the other side. The mixed merges on 26 Oct are f5bc66797, b32ffcb, b0cf5a38a and 46a19b2df (the stale session 2026-10-23
+first came from 869ba011f); fa33262, b21b2c1 and b32ffcb show the 09:30 case: mark 09:30 from one run, session 2026-10-23 and times from the other. The
 next run (0df866f) then carried the mixed file on. No code path wrote a wrong session by itself.
 
 ## Fix (round 2, judge 691)
