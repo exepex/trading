@@ -35,7 +35,9 @@ class Heartbeat:
 
     def write(self, beat: dict) -> None:
         self.file.parent.mkdir(parents=True, exist_ok=True)
-        self.file.write_text(json.dumps(beat, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        # One line: two overlapping runs' pushes then clash as a whole file, never field by field (a per-line merge once
+        # joined one run's mark to the other's session).
+        self.file.write_text(json.dumps(beat, sort_keys=True) + "\n", encoding="utf-8")
 
     def read(self) -> dict | None:
         return _parse(self.file.read_text(encoding="utf-8")) if self.file.is_file() else None
