@@ -114,11 +114,11 @@ def inventory_decision(branch: Branch, evidence: Evidence, now: datetime) -> tup
         return KEEP_UNSURE, REHEARSAL_WHY
     if now - branch.tip_time < RECENT:
         return KEEP_UNSURE, "not merged, last commit within 48 h, in no register row"
-    if branch.name in evidence.recent_mentions:
-        return KEEP_UNSURE, "not merged; named in a file written in the last 48 h"
     if branch.work_files:
         return (
             KEEP_UNSURE,
-            f"not merged; {branch.work_files} code files changed only here (unfinished work, owner decides)",
+            f"not merged; {branch.work_files} files of code, tests or captured data changed only here (owner decides)",
         )
+    if branch.name in evidence.recent_mentions:
+        return KEEP_UNSURE, "not merged; named in a file written in the last 48 h"
     return DELETE, f"not merged ({branch.ahead} commits only here), idle over 48 h, no open PR, in no register row"
