@@ -49,3 +49,18 @@ Also accepted: dropping `on_main_line` (Judge Q's finding). A branch with no com
 
 This is my second and last round: if the builder disputes 2 or 3, the owner decides (JUDGE.md "Rounds"). A
 tip that fixes both with the tests named above will be re-checked narrowly on request.
+
+## Addendum 2
+
+Narrow re-check at `3e6c4f85e` (judge P), on the builder's request after addendum 1: **PASS**, lane 1. Findings 2
+and 3 are fixed; no new finding.
+
+| Finding | Verdict | Evidence |
+|---|---|---|
+| 2 Grace timing | Fixed | `_landed_at` binary-searches main's first-parent line with `merge-base --is-ancestor`. This is correct because once a main-line commit holds the tip, every later one does. New test `test_a_branch_merged_through_another_branch_landed_with_the_last_merge`. Checked on a fresh fetch of every branch: all 447 merged `delete` rows have a landing time, and none is inside 24 h. My 16 differences were fast-forwarded tips that sit on main's line themselves, where the tool's answer (the tip itself) is the right one. `gw1-groww-rate-guard` and `reh1q-scheduled-reads` are now `keep-unsure` |
+| 3 Captured data | Fixed | `WORK_PATHS` adds `research/data`, `receipts` and `journal`. `claude/lucid-ptolemy-hoov99` and `-ml36q5` are `keep-unsure`. Test `test_a_branch_that_only_adds_capture_rows_holds_unfinished_work` |
+
+Inventory: 460 delete, 31 keep, 109 keep-unsure; 0 rehearsal rows deleted. Plants: 4 more (`research/data` removed,
+landing one commit early, a wrong binary-search bound, the work-files rule off), all 4 caught. Gates on the tip:
+`pytest -n 3` 18116 passed, 1 skipped, 13 xfailed; ruff, format and `check_imports` clean.
+Minor (no block): `unique_work_files`' docstring and the `work_files` comment still say "code files".
