@@ -314,6 +314,24 @@
     "reason": "command:exit_1",
     "exit_code": 1
    }
+  },
+  "premium_ranges": {
+   "started_at": "2026-10-27T15:21:28.916312+05:30",
+   "finished_at": "2026-10-27T15:21:50.935229+05:30",
+   "inputs": {
+    "command": [
+     "premrange",
+     "issue",
+     "unlisted",
+     "2026-10-27",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "issued",
+    "exit_code": 0
+   }
   }
  }
 }
