@@ -1,10 +1,10 @@
 {
  "clock_skew_seconds": 0.0,
  "clock_status": "clock_ok",
- "mark": "12:45",
+ "mark": "13:00",
  "recorder": "story A16 intraday recorder",
- "run_finished_at": "2026-10-27T07:14:22.047093+00:00",
- "run_started_at": "2026-10-27T07:00:24.839843+00:00",
- "session": "2026-10-23",
+ "run_finished_at": "2026-10-27T07:31:04.052365+00:00",
+ "run_started_at": "2026-10-27T07:27:03.670245+00:00",
+ "session": "2026-10-27",
  "status": "good"
 }
