@@ -107,6 +107,15 @@
    "result": {
     "line": "versions:NONE_YET"
    }
+  },
+  "pack": {
+   "started_at": "2026-10-27T14:58:05.788082+05:30",
+   "finished_at": "2026-10-27T14:58:12.391283+05:30",
+   "inputs": {},
+   "result": {
+    "built": true,
+    "sha256": "d3086e04b9303a9865ef788eecef95b7736eda201cc8f3235d925cee52e43889"
+   }
   }
  }
 }
