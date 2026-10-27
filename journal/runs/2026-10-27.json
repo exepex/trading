@@ -431,6 +431,21 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "v4_deadline": {
+   "started_at": "2026-10-27T15:29:55.970058+05:30",
+   "finished_at": "2026-10-27T15:30:02.091549+05:30",
+   "inputs": {
+    "command": [
+     "v4-pack",
+     "deadline"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "v4_deadline:UNKNOWN",
+    "exit_code": 1
+   }
   }
  }
 }
