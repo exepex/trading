@@ -1,0 +1,116 @@
+{
+ "chains": [
+  {
+   "expiry": "2026-10-27",
+   "request_sent_at": "2026-10-27T14:32:38.850258+05:30",
+   "response_received_at": "2026-10-27T14:32:40.147046+05:30",
+   "spot": 22676.1
+  },
+  {
+   "expiry": "2026-11-23",
+   "request_sent_at": "2026-10-27T14:32:40.147094+05:30",
+   "response_received_at": "2026-10-27T14:32:41.730826+05:30",
+   "spot": 22674.45
+  },
+  {
+   "expiry": "2026-11-03",
+   "request_sent_at": "2026-10-27T14:35:01.196022+05:30",
+   "response_received_at": "2026-10-27T14:35:02.166496+05:30",
+   "spot": 22679.25
+  }
+ ],
+ "clock_checks": [
+  "clock_ok",
+  "clock_ok"
+ ],
+ "clock_status": "clock_ok",
+ "clock_worst_skew_seconds": 0.0,
+ "complete": true,
+ "csv_sha256": "eeb00c4581acf4b887009e2ea8e21a700c3beb0b381c9ca3a21b2f93645567b1",
+ "expected_contracts": 184,
+ "expiries": [
+  "2026-10-27",
+  "2026-11-23"
+ ],
+ "expiry_source": {
+  "source": "groww"
+ },
+ "failures": [],
+ "finished_at": "2026-10-27T14:36:15.426159+05:30",
+ "future_quote": "recorded",
+ "futures": [
+  {
+   "expiry": "2026-10-27",
+   "last": 22665.0,
+   "volume": 3912935
+  },
+  {
+   "expiry": "2026-11-23",
+   "last": 22770.7,
+   "volume": 4883255
+  },
+  {
+   "expiry": "2026-12-29",
+   "last": 22925.0,
+   "volume": 365235
+  }
+ ],
+ "in_window": true,
+ "india_vix": 16.54,
+ "india_vix_time": "27-Oct-2026 14:31",
+ "levels_failures": [],
+ "levels_received_at": "2026-10-27T14:32:43.220402+05:30",
+ "levels_requested_at": "2026-10-27T14:32:41.730893+05:30",
+ "levels_source": "nse",
+ "monthly_check": {
+  "files": [
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/09/BhavCopy_NSE_FO_0_0_0_20260904_F_0000.csv.zip",
+    "file_date": "2026-09-04",
+    "sha256": "9e92b9e9f91b5951213b854e123edbdbb461a111adcf442d7fee1b341f2f3312",
+    "source": "Google Drive"
+   },
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/09/BhavCopy_NSE_FO_0_0_0_20260911_F_0000.csv.zip",
+    "file_date": "2026-09-11",
+    "sha256": "532f111f183057b70433da2f7497a73a85da7a93c0a6230dbd898e9fef3463a2",
+    "source": "Google Drive"
+   },
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/09/BhavCopy_NSE_FO_0_0_0_20260918_F_0000.csv.zip",
+    "file_date": "2026-09-18",
+    "sha256": "ad7456e47a74b5ff3e127b09e844d94c9892fdee369307ea09c73a450d82d281",
+    "source": "Google Drive"
+   },
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/09/BhavCopy_NSE_FO_0_0_0_20260925_F_0000.csv.zip",
+    "file_date": "2026-09-25",
+    "sha256": "d7fda7c5881bf6b1aff715af0c90ae5bdc8fccbb7d537c83e3b1e44470dfa4af",
+    "source": "Google Drive"
+   },
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/10/BhavCopy_NSE_FO_0_0_0_20261001_F_0000.csv.zip",
+    "file_date": "2026-10-01",
+    "sha256": "d44a052b79a3961910f74783960ebbd5043696dbed39e7fb86ec84929fd60338",
+    "source": "Google Drive"
+   },
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/10/BhavCopy_NSE_FO_0_0_0_20261009_F_0000.csv.zip",
+    "file_date": "2026-10-09",
+    "sha256": "3db31a70f80a3d3c3ee2f58c1ce0ec16d9f826b3b02f8553ab86f1288e422276",
+    "source": "Google Drive"
+   }
+  ],
+  "rule": "listed more than 50 days ahead by that day (A5 monthly_as_of)",
+  "status": "verified"
+ },
+ "note": "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today",
+ "provider": "groww",
+ "recorded_contracts": 184,
+ "snapshot_id": "nifty_20261027_143200",
+ "spot": 22676.1,
+ "started_at": "2026-10-27T14:32:00.000758+05:30",
+ "underlying": "NIFTY",
+ "v4_expiry": "2026-11-03",
+ "v4_failures": []
+}
