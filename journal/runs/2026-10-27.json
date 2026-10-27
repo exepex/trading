@@ -366,6 +366,21 @@
     "reason": "recommend:INPUT_PROBLEM",
     "exit_code": 1
    }
+  },
+  "price_distribution_scores": {
+   "started_at": "2026-10-27T15:26:21.856869+05:30",
+   "finished_at": "2026-10-27T15:27:31.898867+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
