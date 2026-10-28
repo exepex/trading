@@ -349,6 +349,23 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "recommend": {
+   "started_at": "2026-10-28T15:26:32.524202+05:30",
+   "finished_at": "2026-10-28T15:26:43.529476+05:30",
+   "inputs": {
+    "command": [
+     "recommend",
+     "decide",
+     "unlisted",
+     "2026-10-28"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "recommend:INPUT_PROBLEM",
+    "exit_code": 1
+   }
   }
  }
 }
