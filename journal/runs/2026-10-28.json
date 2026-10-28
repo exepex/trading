@@ -296,6 +296,24 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "price_distribution": {
+   "started_at": "2026-10-28T15:21:19.997213+05:30",
+   "finished_at": "2026-10-28T15:21:36.120809+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "record",
+     "unlisted",
+     "2026-10-28",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "command:exit_1",
+    "exit_code": 1
+   }
   }
  }
 }
