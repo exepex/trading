@@ -3,8 +3,8 @@
  "clock_status": "clock_ok",
  "mark": "10:00",
  "recorder": "story A16 intraday recorder",
- "run_finished_at": "2026-10-28T04:31:34.347437+00:00",
- "run_started_at": "2026-10-28T04:23:39.720459+00:00",
- "session": "2026-10-28",
- "status": "incomplete"
+ "run_finished_at": "2026-10-28T04:29:21.434569+00:00",
+ "run_started_at": "2026-10-28T04:16:05.673892+00:00",
+ "session": "2026-10-23",
+ "status": "good"
 }
