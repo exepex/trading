@@ -99,6 +99,14 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "versions": {
+   "started_at": "2026-10-28T14:58:00.000481+05:30",
+   "finished_at": "2026-10-28T14:58:00.784553+05:30",
+   "inputs": {},
+   "result": {
+    "line": "versions:NONE_YET"
+   }
   }
  }
 }
