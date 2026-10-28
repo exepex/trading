@@ -194,6 +194,17 @@
     }
    },
    "result": {}
+  },
+  "exits": {
+   "started_at": "2026-10-28T15:20:17.787554+05:30",
+   "finished_at": "2026-10-28T15:20:32.984501+05:30",
+   "inputs": {},
+   "result": {
+    "book1_rules": {
+     "reviewed": true,
+     "results": []
+    }
+   }
   }
  }
 }
