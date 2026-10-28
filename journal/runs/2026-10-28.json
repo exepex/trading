@@ -116,6 +116,15 @@
     "built": true,
     "sha256": "39b334e4689d0877726a7720caca808977d64e76c6a1fa96416beba782ddc8c6"
    }
+  },
+  "ai_fire": {
+   "started_at": "2026-10-28T14:58:12.995873+05:30",
+   "finished_at": "2026-10-28T14:58:12.995977+05:30",
+   "inputs": {},
+   "result": {
+    "status": "not_live",
+    "reason": "ai:NOT_LIVE_BOOKS"
+   }
   }
  }
 }
