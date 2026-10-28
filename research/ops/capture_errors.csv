@@ -42,3 +42,5 @@ date,job,step,kind,message,run_url
 2026-10-26,filings-archive,"archive / Results and shareholding XBRL (backfill, then daily)",failure,"archive / Results and shareholding XBRL (backfill, then daily): failure",https://github.com/exepex/trading/actions/runs/40326307921
 2026-10-27,preopen,gift file,taken,file already written by an earlier run; this run's not kept,
 2026-10-27,preopen,gift,late,seen 08:48:34,
+2026-10-28,preopen,gift file,taken,file already written by an earlier run; this run's not kept,
+2026-10-28,preopen,gift,late,seen 08:49:52,
