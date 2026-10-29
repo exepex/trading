@@ -21,20 +21,35 @@ so the retry is skipped and the note `quotes_retry_skipped` says why. A failure 
 as before. No other change: no new call, no faster pace, the window check in `_call` is untouched.
 
 ## What it can and cannot recover
-The work of a 429 mark is about 5 s of chain calls + 55 s of quotes + 60 s of pause = 120 s, exactly the quiet window.
-So a 429 costs nothing but time when the first pass ends by about 59 s, and the last 0-4 quotes (the tail of the sorted
-contract list, far strikes of the second chain) stay unasked when it ends later (observed 58-60.6 s). Those are named
-`QuietWindowEnded`, the mark is still `incomplete`, but by a handful of quotes instead of up to 117. Raising the window
-or the pace is GW1's decision (not built here).
+Quotes after a 429 are paced even when refused, so the first pass always ends at F (the chain calls plus the quotes at
+4 a second), wherever the 429 falls. The pause ends 60.5 s after the 429 and the retries need the quotes refused since
+(F minus the 429's moment) at 4 a second, so the retry ends at F + 60.5 s whatever the moment, and the quotes that
+cannot start before 120 s stay unasked:
+
+**lost = 4 x (F + 60.5 - 120) quotes, when positive.** The test sweeps it: the same loss for a 429 at the 10th, 60th and
+120th quote, and 0, 1, 9, 17 lost for 0, 2, 4, 6 s of chain calls in the harness (228 quotes).
+
+On real marks (54 good marks of 27-29 Oct, raw files in Drive; first quote sent 3.6-6.6 s after the mark, median 4.3 s;
+216-220 quotes): the last quote was sent 59.5 s after the mark at the median (57.9 to 74.2 s), so a 429 would have
+lost a median of about 1 quote, at most 7 for 9 marks in 10, and 41% would lose none. A slow mark (one mark ran
+74 s) loses many. This is an estimate from the good marks' timings; no real 429 mark can be replayed. Those quotes are
+named `QuietWindowEnded`; the mark stays `incomplete` by that handful instead of by up to 117. Lowering the 0.5 s
+margin, a shorter chain prelude, a longer quiet window or a lower pace would change F or the 120 s; they are GW1's and
+the orchestrator's decisions, not built here.
 
 ## Claims
 1. `tests/intraday/test_429_recovery.py` runs the real guard (`RateGuardedGroww`, `RateLimitPause`) under the real source
-   on one simulated timeline. A 429 after 91 quotes (the 29 Oct 10:15 shape): the old behaviour lost 103 of 228 (checked by
-   disabling the wait), now 0 are lost.
+   on one simulated timeline. A 429 after 91 quotes (the 29 Oct 10:15 shape, no chain delay): the old behaviour lost 103
+   of 228 (checked by disabling the wait), now 0 are lost. With a realistic chain prelude the loss follows the formula
+   above (claim 3b).
 2. No call is sent inside the pause (checked from the call times) and none at or after 120 s, for 429s at the first
    quote, the 5th, 30th, 50th, 150th and 226th.
 3. Worst case, a 429 on the first quote after 5 s of chain calls: the retry fits as many quotes as the window allows
    (computed from the pause end), the rest are `QuietWindowEnded`.
+3b. `test_the_loss_is_set_by_when_the_first_pass_ends_wherever_the_429_falls`: at 0, 2, 4 and 6 s of chain calls, a 429
+   at the 10th, 60th and 120th quote loses the formula's number (within 2) and the same number for all three.
+3c. `test_a_429_inside_the_retry_pass_keeps_the_first_in_the_notes_and_refuses_the_rest`: a second 429 in the retry pass
+   leaves the note on the first and costs the quotes behind it (the retry pass is not repeated).
 4. The pace never exceeds 4 a second; a mark without a 429 and a non-429 failure are unchanged (no waits).
 5. A late 429 whose pause ends after the window skips the retry and says so.
 6. Several 429s (judge 693 should-fix 1): with 4 workers, calls in flight together meet the limit too, and each 429

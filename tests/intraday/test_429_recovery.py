@@ -29,9 +29,9 @@ class Rate429(Exception):
 class TimedApi(FakeGrowwApi):
     """Takes `latency` seconds a call on the shared clock; answers 429 on the quote calls numbered `limited`."""
 
-    def __init__(self, clock: FakeClock, limited: range, chain_seconds: float = 0.0, in_flight: int = 0):
+    def __init__(self, clock: FakeClock, limited, chain_seconds: float = 0.0, in_flight: int = 0):
         super().__init__(index_level=24000.0)  # 6% band: 22600-25400, 57 strikes
-        self.clock, self.limited, self.chain_seconds = clock, limited, chain_seconds
+        self.clock, self.limited, self.chain_seconds = clock, sorted(limited), chain_seconds
         self.sent_at: list[datetime] = []
         self.quote_calls = 0
         self.answered_429: list[tuple[str, datetime]] = []  # in the order Groww answered
@@ -45,8 +45,8 @@ class TimedApi(FakeGrowwApi):
                 self.quote_calls += 1
                 number = self.quote_calls
             if number in self.limited:
-                self._answer_429(trading_symbol, number - self.limited.start)
-            elif self._together and number >= self.limited.stop:
+                self._answer_429(trading_symbol, self.limited.index(number))
+            elif self._together and number > self.limited[-1]:
                 self._all_answered.wait(5)  # in flight with them: sent now, answered once they have been
         return super().get_quote(trading_symbol, exchange, segment, timeout)
 
@@ -88,7 +88,7 @@ class QuarterSecondPacer:
             self.clock.moment = max(self.clock.moment, start)  # the clock never runs backwards
 
 
-def mark_with(limited: range, chain_seconds: float = 0.0, api: FakeGrowwApi | None = None, in_flight: int = 0):
+def mark_with(limited, chain_seconds: float = 0.0, api: FakeGrowwApi | None = None, in_flight: int = 0):
     clock = FakeClock(MARK)
     clock.lock = threading.RLock()  # the pacer and the answers move one clock
     api = api or TimedApi(clock, limited, chain_seconds, in_flight)
@@ -199,3 +199,32 @@ def test_429s_of_calls_in_flight_together_name_the_first_and_wait_for_the_last_p
     fits = int((window_end() - last_pause_ends).total_seconds() * PER_SECOND)
     assert abs(lost(doc) - max(0, retried - fits)) <= 3  # what the window allows after the LAST pause, no more
     assert max(doc.api.sent_at) < window_end()
+
+
+def test_a_429_inside_the_retry_pass_keeps_the_first_in_the_notes_and_refuses_the_rest():
+    """Judge 694 should-fix 1: the note is the mark's FIRST 429. A second one, in the retry pass, restarts the pause
+    (nothing more is recovered: the pass is not repeated) but never replaces the note."""
+    first = mark_with({40})
+    both = mark_with({40, 80})
+    note_of = lambda doc: next(n for n in doc.notes if n.startswith("first_429"))  # noqa: E731
+    assert note_of(both) == note_of(first) and len(answered_429(both).isoformat()) > 0
+    assert lost(first) == 0 and lost(both) > 0  # the second 429 cost the quotes behind it
+    assert all(q.failure in ("", "GrowwRateLimited:429", "GrowwRateLimitPaused", WINDOW_ENDED) for q in both.quotes)
+    assert max(both.api.sent_at) < window_end()
+
+
+@pytest.mark.parametrize("chain_seconds", [0.0, 1.0, 2.0, 3.0])
+def test_the_loss_is_set_by_when_the_first_pass_ends_wherever_the_429_falls(chain_seconds):
+    """Judge 694 should-fix 2. The quotes after a 429 are paced even when refused, so the first pass always ends at F =
+    the chain calls + quotes at 4 a second. The pause ends at (429 + 60.5 s) and the retries need (F - 429) more, so the
+    retry ends at F + 60.5 s whatever the 429's moment: lost = 4 * (F + 60.5 - 120) quotes when that is positive. 27-29
+    Oct's good marks: F median 59.75 s, so about one quote; see docs/stories/A16-429-recovery.md."""
+    results = {}
+    for where in (10, 60, 120):
+        doc = mark_with({where}, chain_seconds=chain_seconds)
+        pause_end = (answered_429(doc) - MARK).total_seconds() + PAUSE_SECONDS + 0.5
+        first_pass_end = pause_end - sum(doc.sleeps)  # the retry slept from there to the end of the pause
+        expected = max(0, round(PER_SECOND * (first_pass_end + PAUSE_SECONDS + 0.5 - QUIET_SECONDS)))
+        results[where] = (lost(doc), expected)
+    assert all(abs(got - expected) <= 2 for got, expected in results.values()), results
+    assert max(g for g, _ in results.values()) - min(g for g, _ in results.values()) <= 2  # wherever the 429 falls
