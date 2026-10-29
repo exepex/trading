@@ -44,3 +44,4 @@ date,job,step,kind,message,run_url
 2026-10-27,preopen,gift,late,seen 08:48:34,
 2026-10-28,preopen,gift file,taken,file already written by an earlier run; this run's not kept,
 2026-10-28,preopen,gift,late,seen 08:49:52,
+2026-10-29,school-p0b,nse,blocked,p0b nse stopped for the day at 10:07: HTTP 404,
