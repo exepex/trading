@@ -37,4 +37,14 @@ or the pace is GW1's decision (not built here).
    (computed from the pause end), the rest are `QuietWindowEnded`.
 4. The pace never exceeds 4 a second; a mark without a 429 and a non-429 failure are unchanged (no waits).
 5. A late 429 whose pause ends after the window skips the retry and says so.
-6. Gates: ruff check, ruff format --check, `tools/check_imports.py`, full pytest (results in the commit message).
+6. Several 429s (judge 693 should-fix 1): with 4 workers, calls in flight together meet the limit too, and each 429
+   restarts the guard's pause. The test makes three calls in flight, answered 0.3 s apart under the real guard: the
+   note names the first answered (not the last), nothing is sent between the first answer and the last pause's end
+   (the source keeps the latest pause end), no refused quote is left, and the loss equals what the window allows after
+   the last pause. Plants caught: overwriting `_first_429` on every 429, and keeping only the first pause end.
+7. What reaches the repository (judge 693 minor 2): `doc.notes` go into the slot row's `failures` field in
+   `research/data/intraday/slots/` as well as the raw file (this is how `quotes_retried:N` already travels). The two new
+   notes add, once per mark with a 429, one contract symbol (a public instrument name, as in the 3 pm sidecars) with
+   two timestamps and the code `GrowwRateLimited:429`; no Groww text, no value of a quote, no credential. Quotes are
+   still counted, not listed, in the row. The record scan stays on.
+8. Gates: ruff check, ruff format --check, `tools/check_imports.py`, full pytest (results in the commit message).

@@ -3,6 +3,8 @@ A16 source on one simulated timeline. 29 Oct 10:15 lost 112 of 220 quotes to `Gr
 inside the pause. Now it waits the pause out, asks nothing inside it, never asks after the mark's 120 s quiet window and
 never faster than 4 a second, and the mark's notes keep the first 429 (the retry used to overwrite its call)."""
 
+import threading
+import time
 from datetime import datetime, timedelta
 
 import pytest
@@ -27,19 +29,44 @@ class Rate429(Exception):
 class TimedApi(FakeGrowwApi):
     """Takes `latency` seconds a call on the shared clock; answers 429 on the quote calls numbered `limited`."""
 
-    def __init__(self, clock: FakeClock, limited: range, chain_seconds: float = 0.0):
+    def __init__(self, clock: FakeClock, limited: range, chain_seconds: float = 0.0, in_flight: int = 0):
         super().__init__(index_level=24000.0)  # 6% band: 22600-25400, 57 strikes
         self.clock, self.limited, self.chain_seconds = clock, limited, chain_seconds
         self.sent_at: list[datetime] = []
         self.quote_calls = 0
+        self.answered_429: list[tuple[str, datetime]] = []  # in the order Groww answered
+        self._together = threading.Barrier(in_flight, timeout=5) if in_flight > 1 else None
+        self._released, self._all_answered = threading.Event(), threading.Event()
 
     def get_quote(self, trading_symbol, exchange, segment, timeout=None):
         self.sent_at.append(self.clock.now())
         if segment == self.SEGMENT_FNO and trading_symbol.startswith("NIFTY26") and "FUT" not in trading_symbol:
-            self.quote_calls += 1
-            if self.quote_calls in self.limited:
-                raise Rate429()
+            with self.clock.lock:
+                self.quote_calls += 1
+                number = self.quote_calls
+            if number in self.limited:
+                self._answer_429(trading_symbol, number - self.limited.start)
+            elif self._together and number >= self.limited.stop:
+                self._all_answered.wait(5)  # in flight with them: sent now, answered once they have been
         return super().get_quote(trading_symbol, exchange, segment, timeout)
+
+    def _answer_429(self, symbol: str, order: int) -> None:
+        """Calls in flight together all meet Groww's limit, 0.3 s of the shared clock apart, in `order`."""
+        if self._together:
+            self._together.wait()
+            self._released.set()
+            time.sleep(0.15 * order)  # real time: fixes who is answered first
+        with self.clock.lock:
+            self.clock.advance(0.3)
+            self.answered_429.append((symbol, self.clock.now()))
+            if len(self.answered_429) == len(self.limited):
+                self._all_answered.set()
+        raise Rate429()
+
+    def hold(self) -> None:
+        """Groww's answers take real time: the clock of the next calls waits for them (else it races ahead)."""
+        if self._released.is_set():
+            self._all_answered.wait(5)
 
     def get_option_chain(self, exchange, underlying, expiry_date, timeout=None):
         self.sent_at.append(self.clock.now())
@@ -50,18 +77,21 @@ class TimedApi(FakeGrowwApi):
 class QuarterSecondPacer:
     """4 a second on the shared clock: each call starts 0.25 s after the previous one."""
 
-    def __init__(self, clock: FakeClock):
-        self.clock, self.next = clock, MARK
+    def __init__(self, clock: FakeClock, hold=lambda: None):
+        self.clock, self.next, self.lock, self.hold = clock, MARK, clock.lock, hold
 
     def wait(self) -> None:
-        start = max(self.clock.now(), self.next)
-        self.next = start + timedelta(seconds=1 / PER_SECOND)
-        self.clock.moment = start
+        self.hold()
+        with self.lock:
+            start = max(self.clock.now(), self.next)
+            self.next = start + timedelta(seconds=1 / PER_SECOND)
+            self.clock.moment = max(self.clock.moment, start)  # the clock never runs backwards
 
 
-def mark_with(limited: range, chain_seconds: float = 0.0, api: FakeGrowwApi | None = None):
+def mark_with(limited: range, chain_seconds: float = 0.0, api: FakeGrowwApi | None = None, in_flight: int = 0):
     clock = FakeClock(MARK)
-    api = api or TimedApi(clock, limited, chain_seconds)
+    clock.lock = threading.RLock()  # the pacer and the answers move one clock
+    api = api or TimedApi(clock, limited, chain_seconds, in_flight)
     sleeps: list[float] = []
 
     def sleep(seconds: float) -> None:  # what the source waits for itself (the pacer moves the clock on its own)
@@ -71,7 +101,7 @@ def mark_with(limited: range, chain_seconds: float = 0.0, api: FakeGrowwApi | No
     pause = RateLimitPause(clock=lambda: (clock.now() - MARK).total_seconds())
     guarded = RateGuardedGroww(lambda: FakeGrowwProvider(api).api, pause)
     source = GrowwIntradaySource(ReadOnlyGroww(lambda: guarded), ExpiryPlan(lambda: LISTED), 75, clock.now,
-                                 QuarterSecondPacer(clock), sleep)  # fmt: skip
+                                 QuarterSecondPacer(clock, getattr(api, 'hold', lambda: None)), sleep)  # fmt: skip
     doc = source.take(DAY, MARK)
     doc.sleeps, doc.api = sleeps, api
     return doc
@@ -150,4 +180,22 @@ def test_a_failure_that_is_not_a_429_is_retried_at_once_without_waiting():
 @pytest.mark.parametrize("limited", [range(5, 6), range(50, 51), range(150, 151), range(1, 2)])
 def test_the_real_29_oct_shapes_all_end_inside_the_window(limited):
     doc = mark_with(limited, chain_seconds=2.0)
+    assert max(doc.api.sent_at) < window_end()
+
+
+def test_429s_of_calls_in_flight_together_name_the_first_and_wait_for_the_last_pause():
+    """4 workers: calls sent before the first 429 returns meet the limit too, and each restarts the guard's pause. The
+    note names the first answered; the retry starts after the last pause, never inside an earlier one."""
+    doc = mark_with(range(40, 43), chain_seconds=2.0, in_flight=3)
+    (first, first_at), (_, _), (_, last_at) = doc.api.answered_429
+    assert last_at - first_at >= timedelta(seconds=0.5)
+    notes = [n for n in doc.notes if n.startswith("first_429")]
+    assert len(notes) == 1 and f"quote {first}" in notes[0]  # the first answered, not the last
+    assert abs((answered_429(doc) - first_at).total_seconds()) < 0.05
+    last_pause_ends = last_at + timedelta(seconds=PAUSE_SECONDS)
+    assert [t for t in doc.api.sent_at if first_at < t < last_pause_ends] == []  # nothing inside either pause
+    assert not any(q.failure == "GrowwRateLimitPaused" for q in doc.quotes)  # so the retry was not refused
+    retried = int(next(n for n in doc.notes if n.startswith("quotes_retried")).split(":")[1])
+    fits = int((window_end() - last_pause_ends).total_seconds() * PER_SECOND)
+    assert abs(lost(doc) - max(0, retried - fits)) <= 3  # what the window allows after the LAST pause, no more
     assert max(doc.api.sent_at) < window_end()
