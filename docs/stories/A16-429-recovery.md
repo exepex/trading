@@ -62,4 +62,10 @@ the orchestrator's decisions, not built here.
    notes add, once per mark with a 429, one contract symbol (a public instrument name, as in the 3 pm sidecars) with
    two timestamps and the code `GrowwRateLimited:429`; no Groww text, no value of a quote, no credential. Quotes are
    still counted, not listed, in the row. The record scan stays on.
-8. Gates: ruff check, ruff format --check, `tools/check_imports.py`, full pytest (results in the commit message).
+8. Harness (judge 693 addendum 2): the tests run on `tests/intraday/sim_429.py`, where every pool thread keeps its own
+   simulated time (its pacer slot, its own answer times) and a call's number is its pacer slot, so thread scheduling
+   cannot move a send time or a count; real time only gates which thread checks the guard first, never orders simulated
+   events. The earlier shared clock drifted under CPU load (up to 6 failures in 48 loaded runs). Now 48 of 48 pass with 12
+   processes at once on 4 CPUs, 4 rounds; the plants (no wait, margin -2 s, no skip, overwriting the first 429, keeping
+   the first pause end) are each caught.
+9. Gates: ruff check, ruff format --check, `tools/check_imports.py`, full pytest (results in the commit message).
