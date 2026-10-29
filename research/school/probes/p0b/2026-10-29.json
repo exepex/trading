@@ -86,6 +86,29 @@
     "stop": "",
     "used": 50
    }
+  },
+  "14:07": {
+   "groww": {
+    "drive": "ok",
+    "latency_ms": {
+     "chain_median": 759.9,
+     "chain_p95": 773.3,
+     "expiries_median": 708.8,
+     "expiries_p95": 1589.4,
+     "future_median": 685.4,
+     "future_p95": 708.7,
+     "option_median": 687.5,
+     "option_p95": 1563.9
+    },
+    "quality": {
+     "ok": 46
+    },
+    "refusals": {},
+    "reserved": 56,
+    "rows": 46,
+    "stop": "",
+    "used": 56
+   }
   }
  },
  "stops": {
