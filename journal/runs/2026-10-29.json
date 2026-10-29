@@ -84,6 +84,21 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "forecasts_v4_pack": {
+   "started_at": "2026-10-29T14:36:21.189698+05:30",
+   "finished_at": "2026-10-29T14:37:15.209036+05:30",
+   "inputs": {
+    "command": [
+     "forecast-v4",
+     "capture-pack"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
