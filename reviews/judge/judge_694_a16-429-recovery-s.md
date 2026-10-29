@@ -93,3 +93,11 @@ Round 2 at `09e695852`. `fno/` is unchanged since `52ad50d47`; only tests and th
     - (a) gate the single-429 case like the group, so the next call waits until the 429 is noted;
     - (b) allow up to `WORKERS − 1` with that reason written in the test.
   - On `main` this test would turn CI red about 1 run in 30.
+
+**For the owner's decision (not a third round):** tip `2e8e04a60`. Tests and story only; `fno/` is unchanged since
+`52ad50d47`. Round 2's flaky-test should-fix is resolved there:
+- I ran the whole file 14 at a time on 4 CPUs, 8 rounds: 112 of 112 runs passed.
+- 5 of 5 plants caught.
+- Ruff and format clean.
+- The story now states the measured limits: 12 quotes lost at 5 s of chain calls, 8 at 4 s, 16 at 6 s.
+On my evidence, nothing of mine is left open at `2e8e04a60`.
