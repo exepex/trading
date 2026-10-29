@@ -67,3 +67,29 @@ clone, gates run, no Groww command.
   - The test syncs real threads with a barrier, `sleep(0.15 × order)` and 5 s timeouts. A note on flake risk, not a
     finding.
 - **Finding 2 is still open:** story lines 24-25 and 36 still say "5 s of chain calls ... the last 0-4 quotes".
+
+## Addendum 1
+
+Round 2 at `09e695852`. `fno/` is unchanged since `52ad50d47`; only tests and the story changed. **FAIL, lane 1**:
+1 should fix, a flaky test. Findings 1-3 are fixed. This was the last round, so the owner decides.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 1 | Fixed | A second 429 in the retry pass keeps the first in the note; the overwrite plant fails 2 tests |
+| 2 | Fixed (text) | Story: lost = 4 × (F + 60.5 − 120), with F the first pass's end, wherever the 429 falls. It matches my own run on the harness (0, 8, 12 lost at 2, 4, 5 s of chain calls). The 54-mark estimate is the builder's from Drive's raw files; I did not re-read them |
+| 3 | Fixed | The keep-earliest-pause-end plant fails the in-flight test |
+
+- Plants: 5 planted, 5 caught (no wait, margin −2 s, no skip, overwrite the first 429, keep the earliest pause end).
+- Gates at `e8871dc19` (same code): 18077 passed; the same 2 `forecast_v5_v1` failures as `main`.
+- **New should fix: `test_the_loss_is_set_by_when_the_first_pass_ends_wherever_the_429_falls` is flaky.**
+  - I ran the whole file 12 at a time on 4 CPUs: 3 of 84 runs failed, at chain times 2.0 and 3.0.
+    - `{10: (8, 7), 60: (8, 7), 120: (9, 7)}`: loss 8-9 where 7 was expected.
+    - `{10: (16, 15), 60: (17, 15), 120: (16, 15)}`: loss 16-17 where 15 was expected.
+    - The test allows ±1.
+  - Cause: in the single-429 case nothing gates the calls after the 429 (`TimedApi.gate` gates only an in-flight group).
+    So whether the next 1-3 pool calls pass the guard before `pause.start()` is decided by real thread scheduling.
+  - So `sim_429.py`'s "thread scheduling cannot change a send time or a count" is false for that case.
+  - Fix expected (any one):
+    - (a) gate the single-429 case like the group, so the next call waits until the 429 is noted;
+    - (b) allow up to `WORKERS − 1` with that reason written in the test.
+  - On `main` this test would turn CI red about 1 run in 30.
