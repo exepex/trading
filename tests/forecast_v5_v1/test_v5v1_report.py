@@ -19,6 +19,15 @@ from fno.forecast_v5_v1.gap import gap_table
 from fno.forecast_v5_v1.report import render, score
 
 SESSIONS = [oct(16), oct(19), oct(21), oct(22), oct(23), oct(26)]
+LAST_PINNED_DAY = oct(23)  # the committed A16 and A16b rows grow every session; these tests read them as of 23 Oct
+
+
+def _live_as_of_23_oct() -> dict[date, float | None]:
+    return {d: v for d, v in live_rv().items() if d <= LAST_PINNED_DAY}
+
+
+def _candle_as_of_23_oct() -> dict[date, float | None]:
+    return {c.day: c.value for c in candle_rows() if c.day <= LAST_PINNED_DAY}
 
 
 def _row(day: date, value: float | None, label="live"):
@@ -47,8 +56,8 @@ def test_a_void_target_is_counted_and_never_scored():
 
 def test_a_void_or_unrecorded_live_target_is_never_resolved_by_a_candle_row():
     # 23 Oct void live; even a candle row for it must not resolve 22 Oct's forecast, and 26 Oct has no live row yet
-    live = live_rv()
-    assert oct(16) in {c.day for c in candle_rows()} and live[oct(16)] is None
+    live = _live_as_of_23_oct()
+    assert oct(16) in _candle_as_of_23_oct() and live[oct(16)] is None and live[oct(23)] is None and oct(26) not in live
     s = score("f", _rows((oct(23), 1.0e-4), (date(2026, 10, 15), 1.0e-4)), live, SESSIONS)
     assert (s.scored, s.pending) == (0, 1)  # 23 Oct -> 26 Oct pending; 15 Oct -> 16 Oct void
     assert s.void == 1
@@ -68,7 +77,7 @@ def test_no_rows_gives_not_enough_data_yet():
 
 
 def test_the_gap_table_prints_19_21_and_22_oct():
-    pairs = paired_rv(live_rv(), {c.day: c.value for c in candle_rows()})  # G7b's one pairing
+    pairs = paired_rv(_live_as_of_23_oct(), _candle_as_of_23_oct())  # G7b's one pairing
     lines = gap_table(pairs)
     assert lines[0] == "Measure gap: candle RV (15m bars) vs live quote RV"
     assert [line.split(" | ")[-1].rstrip(" |") for line in lines[3:]] == ["0.962", "0.997", "1.009"]
