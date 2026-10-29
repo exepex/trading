@@ -54,3 +54,16 @@ clone, gates run, no Groww command.
 - A 429 on the index, future or chain calls still loses the mark: the chains are not retried. This is old behaviour,
   unchanged here.
 - `forecast_v5_v1` is red on `main` (2 tests). The orchestrator should route it.
+
+## Correction and tip check (round 1; not a new round)
+
+- **Criterion 6 was wrong.** `doc.notes` do reach the repository: `status.py:76` copies them into the slot row's
+  `failures` field (that is how `quotes_retried:N` already travels). The new `first_429` note adds one contract symbol
+  (a public instrument name), two times and `GrowwRateLimited:429`, once per mark. I staged such a row in a real slot
+  CSV and `tools/check_records.py --staged` printed "clean". So claim 7 (`be3057122`) is right: MET.
+- **Tip `be3057122`:** tests and the story only; `fno/` is unchanged since `52ad50d47`.
+  - Findings 1 and 3 are fixed: the in-flight multi-429 test catches both plants that survived before
+    (overwriting `_first_429`, keeping the earliest pause end). 13 passed; the new test passed 3 runs in a row.
+  - The test syncs real threads with a barrier, `sleep(0.15 × order)` and 5 s timeouts. A note on flake risk, not a
+    finding.
+- **Finding 2 is still open:** story lines 24-25 and 36 still say "5 s of chain calls ... the last 0-4 quotes".
