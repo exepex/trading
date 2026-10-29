@@ -1,0 +1,74 @@
+{
+ "day": "2026-10-29",
+ "kind": "daily_run",
+ "steps": {
+  "quotes": {
+   "started_at": "2026-10-29T14:07:10.016544+05:30",
+   "finished_at": "2026-10-29T14:07:10.016622+05:30",
+   "inputs": {
+    "parts": [
+     "nifty",
+     "nse",
+     "indices",
+     "v4"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "unlisted"
+   }
+  },
+  "owner_timing_fills": {
+   "started_at": "2026-10-29T14:07:13.300645+05:30",
+   "finished_at": "2026-10-29T14:07:14.225491+05:30",
+   "inputs": {
+    "sealed": false
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "owner_timing:SEALED_ONLY"
+   }
+  },
+  "margin_check": {
+   "started_at": "2026-10-29T14:07:17.232143+05:30",
+   "finished_at": "2026-10-29T14:07:17.232194+05:30",
+   "inputs": {
+    "live_from": "None"
+   },
+   "result": {
+    "status": "not_live",
+    "reason": "o1:NO_DATE"
+   }
+  },
+  "weather": {
+   "started_at": "2026-10-29T14:07:20.171858+05:30",
+   "finished_at": "2026-10-29T14:07:22.610184+05:30",
+   "inputs": {
+    "command": [
+     "weather",
+     "capture"
+    ]
+   },
+   "result": {
+    "status": "refused",
+    "reason": "command:nothing_written",
+    "exit_code": 0
+   }
+  },
+  "forecasts_v4": {
+   "started_at": "2026-10-29T14:07:25.573730+05:30",
+   "finished_at": "2026-10-29T14:07:27.581960+05:30",
+   "inputs": {
+    "command": [
+     "forecast-v4",
+     "capture"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  }
+ }
+}
