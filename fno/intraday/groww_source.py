@@ -8,6 +8,8 @@ window (story GW1)."""
 
 from __future__ import annotations
 
+import threading
+import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
@@ -15,7 +17,8 @@ from datetime import date, datetime, timedelta
 from ..models import IST, now_ist
 from ..providers.groww import _payload, listed_expiries, parse_groww_chain, parse_groww_quote_book
 from ..providers.groww_quiet_windows import QUIET_SECONDS
-from .document import CallRecord, SnapshotDocument
+from ..providers.groww_rate_guard import PAUSE_SECONDS, is_rate_limit
+from .document import CallRecord, SnapshotDocument, utc_text
 from .expiry_plan import UNDERLYING, Expiries, ExpiryPlan
 from .index_reading import CANDLE_SYMBOL, QUOTE_BASIS, candle_reading, candle_window, quote_reading
 from .pacing import RatePacer
@@ -31,6 +34,10 @@ WORKERS, PER_SECOND = 4, 4
 WINDOW_ENDED = "QuietWindowEnded"  # not asked: the mark's quiet window had ended (judge 638 finding 2)
 CALL_TIMEOUT_SECONDS = 10  # a hung call is a failure, never a stuck loop
 QUOTES_RETRIED = "quotes_retried:{count}"
+# A 429 stops every call of the process for PAUSE_SECONDS (GW1a). The retry pass starts after it, never inside it.
+RESUME_MARGIN_SECONDS = 0.5  # the pause's clock is the guard's own, read a moment after the 429 was raised
+FIRST_429 = "first_429: {name} sent {sent} answered {answered} {failure}"
+RETRY_SKIPPED = "quotes_retry_skipped: the 429 pause ends at {end}, after the mark's quiet window"
 MAX_CODE_LENGTH = 12  # Groww's error codes are short words (e.g. 429); anything longer is not kept
 EXPIRY_PLAN, INDEX_PARSE, CHAIN_PARSE = "expiry_plan", "index_parse", "chain_parse"
 PARSE_ERRORS = (TypeError, ValueError, OverflowError, IndexError, KeyError, AttributeError, OSError)
@@ -45,9 +52,15 @@ class GrowwIntradaySource(IntradayQuoteSource):
     name = "groww"
 
     def __init__(self, client: ReadOnlyGroww, plan: ExpiryPlan, lot_size: int,
-                 clock: Callable[[], datetime] = now_ist, pacer: RatePacer | None = None):  # fmt: skip
-        self.client, self.plan, self.lot_size, self.clock = client, plan, lot_size, clock
+                 clock: Callable[[], datetime] = now_ist, pacer: RatePacer | None = None,
+                 sleep: Callable[[float], None] = time.sleep):  # fmt: skip
+        self.client, self.plan, self.lot_size, self.clock, self.sleep = client, plan, lot_size, clock, sleep
         self.pacer = pacer or RatePacer(PER_SECOND)
+        self._rate_limit_lock = threading.Lock()
+        self._first_429: str | None = (
+            None  # the mark's first 429: its call, times and code (the retry overwrites the call)
+        )
+        self._pause_ends: datetime | None = None  # when the latest 429's pause is over
         self._window_end = datetime.max.replace(tzinfo=IST)  # set by each `take`
         self._expiries: dict[date, Expiries] = {}
         self._prepare_notes: list[str] = []
@@ -62,6 +75,7 @@ class GrowwIntradaySource(IntradayQuoteSource):
 
     def take(self, session: date, mark: datetime) -> SnapshotDocument:
         self._window_end = mark + timedelta(seconds=QUIET_SECONDS)
+        self._first_429 = self._pause_ends = None
         index = self._call("index", lambda api: api.get_quote(trading_symbol=INDEX_SYMBOL, exchange=api.EXCHANGE_NSE,
                            segment=api.SEGMENT_CASH, timeout=CALL_TIMEOUT_SECONDS))  # fmt: skip
         doc = SnapshotDocument(self.name, UNDERLYING, session, mark, index, None, None,
@@ -92,11 +106,26 @@ class GrowwIntradaySource(IntradayQuoteSource):
         """Asks once more, at the same pace, for every quote that failed (16 Oct: single 429s happen even with one
         recorder). A retried quote keeps its own request and answer times; the note counts the retries."""
         failed = [i for i, q in enumerate(doc.quotes) if q.failure and contracts[i]["symbol"]]
-        if not failed:
+        if not failed or not self._wait_out_pause(doc):
             return
         for i, record in zip(failed, pool.map(self._quote, [contracts[i] for i in failed]), strict=True):
             doc.quotes[i] = record
         doc.notes.append(QUOTES_RETRIED.format(count=len(failed)))
+
+    def _wait_out_pause(self, doc: SnapshotDocument) -> bool:
+        """True when the retry may start. A 429's pause is waited out, so the retry asks nothing inside it (a call there
+        is refused unsent and fails again: 29 Oct 10:15 lost 112 quotes that way). When the pause ends after the mark's
+        quiet window nothing could be asked, so the refused quotes are left as they were and the note says why."""
+        end = self._pause_ends
+        if end is None:
+            return True
+        if end >= self._window_end:
+            doc.notes.append(RETRY_SKIPPED.format(end=utc_text(end)))
+            return False
+        wait = (end - self.clock()).total_seconds()
+        if wait > 0:
+            self.sleep(wait)
+        return True
 
     def _read_index(self, doc: SnapshotDocument) -> None:
         """The level and its source time: the quote's own, else one finished 1-minute candle's close and end."""
@@ -120,6 +149,8 @@ class GrowwIntradaySource(IntradayQuoteSource):
         """Names every failed call in the document's failures and stamps when it was complete."""
         extra = [r for r in (doc.index_candle, doc.future) if r]
         doc.failures += [call.name for call in [doc.index, *extra, *doc.chains, *doc.quotes] if call.failure]
+        if self._first_429:
+            doc.notes.append(self._first_429)
         doc.finished_at = self.clock()
         return doc
 
@@ -138,8 +169,20 @@ class GrowwIntradaySource(IntradayQuoteSource):
         try:
             payload = _payload(request(self.client))
         except Exception as exc:  # name and code only: an exception's text could carry a credential
-            return CallRecord(name, sent, None, None, failure_name(exc), meta or {})
+            failure = failure_name(exc)
+            if is_rate_limit(exc):
+                self._note_rate_limit(name, sent, failure)
+            return CallRecord(name, sent, None, None, failure, meta or {})
         return CallRecord(name, sent, self.clock(), payload, "", meta or {})
+
+    def _note_rate_limit(self, name: str, sent: datetime, failure: str) -> None:
+        answered = self.clock()
+        pause_ends = answered + timedelta(seconds=PAUSE_SECONDS + RESUME_MARGIN_SECONDS)
+        with self._rate_limit_lock:
+            self._pause_ends = max(self._pause_ends or pause_ends, pause_ends)
+            if self._first_429 is None:
+                self._first_429 = FIRST_429.format(name=name, sent=utc_text(sent), answered=utc_text(answered),
+                                                   failure=failure)  # fmt: skip
 
     def _future(self, monthly: date) -> CallRecord:
         symbol = FUTURE_SYMBOL.format(expiry=monthly, month=f"{monthly:%b}".upper())
