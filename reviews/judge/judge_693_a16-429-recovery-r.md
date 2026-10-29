@@ -63,3 +63,37 @@ main itself.
 Notes: the new test paces Groww's 429 answers with real `time.sleep(0.15 * order)` under a barrier. It held under
 4x oversubscription, but it remains the one timing-sensitive test here; if it ever flakes, give its answer order to
 the simulated clock. Merge only after 15:35 IST.
+
+## Addendum 2
+
+Tip e8871dc195d350fc84b805f29041f35dd4d1ae85 (tests and story only; `fno/` unchanged since 52ad50d47), after
+Judge S's round. **My PASS of addendum 1 is withdrawn: FAIL** (1 should fix, test harness only). The code still holds.
+
+- Plants on the tip: P4 (keep the last 429) fails 2 tests, P5 (a pause 5 s short) fails 9: caught.
+  `tests/intraday` 322 passed, 1 skipped (`-n auto`); ruff clean.
+- The loss formula `4 x (F + 60.5 - 120)` is right for this design: the first pass ends at F wherever the 429
+  falls, and the retry ends at F + 60.5 s. The story labels its real-mark timings (54 good marks from Drive's raw
+  files) as an estimate. I did not reproduce them.
+
+Finding:
+3. **Should fix: `test_429_recovery.py` fails under CPU load.** I ran the whole file as 12 processes at once on 4 CPUs,
+   4 rounds (48 runs each):
+
+   | Commit | Runs failed |
+   |---|---|
+   | 52ad50d47 | 3 of 48 |
+   | be3057122 | 1 of 48 |
+   | e8871dc19 | 6 of 48 |
+
+   Four different tests failed (`real_29_oct_shapes`, `loss_is_set_by...[2.0]` with (9, 7) beyond its tolerance of 2,
+   `in_flight_together`, `first_quote`). The cause is the harness, not the code. `_call` checks the window after
+   `pacer.wait()` (correct), but the fake records `sent_at` from the shared simulated clock when `get_quote` runs.
+   Other worker threads move that clock forward (pacer slots, chain seconds, 0.3 s 429 answers) in between. So a
+   descheduled thread's call is recorded after 10:17:00 (seen: 10:17:02.05 and 10:17:02.90), and the loss counts
+   drift. A red CI run then means nothing. Fix: record the time the source checked (`sent`), or move the clock under
+   one lock covering the check and the record; take real `time.sleep` out of the ordering; then show the file clean
+   in a parallel loaded run.
+
+My error: in round 2 I load-tested only the new in-flight test. The older tests already failed under load at
+52ad50d47. This is past my two rounds; the orchestrator or the owner decides whether a short test-only check
+follows.
