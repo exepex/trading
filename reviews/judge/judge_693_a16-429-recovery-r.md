@@ -45,3 +45,21 @@ P4 last 429 instead of first, P6 first pause end only: survived (finding 1).
 - The two `test_v5v1_report.py` failures are red on main itself; someone should own them (reported to the
   orchestrator).
 - No Groww command was run. Merge only after both PASS and after 15:35 IST.
+
+## Addendum 1
+
+Round 2 at be30571224a75cdf628c2b3ebc54603d5e2e7062: test file and story text only, `fno/` unchanged since 52ad50d47.
+**PASS**, lane 1, judge 1 of 2; the merge also needs Judge S's PASS.
+
+| # | Finding | Result | Evidence |
+|---|---|---|---|
+| 1 | No test with several 429s | Accepted | new `test_429s_of_calls_in_flight_together_...`: three calls in flight under the real guard, 429s 0.3 s apart; P4 (keep the last 429) now fails it, and so does P6 (first pause end only). Run 40 times alone and 48 times as 16 parallel processes on 4 CPUs: all passed |
+| 2 | Notes reach the committed ledger | Accepted | Claim 7 states it: one public contract symbol, two times and the code, once per mark with a 429; quotes still counted; the record scan is clean on a sample row (round 1) |
+
+Gates: `tests/intraday` 317 passed, 1 skipped (`-n auto`); ruff check and format clean on the changed test. The code
+is identical to round 1, whose full run gave 18,071 passed and the 2 `test_v5v1_report.py` failures that are red on
+main itself.
+
+Notes: the new test paces Groww's 429 answers with real `time.sleep(0.15 * order)` under a barrier. It held under
+4x oversubscription, but it remains the one timing-sensitive test here; if it ever flakes, give its answer order to
+the simulated clock. Merge only after 15:35 IST.
