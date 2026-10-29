@@ -3,3 +3,4 @@ fetched_at,path,url,form,sha256,size_bytes
 2026-10-26T08:50:17.364700+05:30,yahoo/preopen/2026/10/26/085017_nikkei225_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EN225?range=1d&interval=5m,,295f6acae97bac8ff73644557aae936c371ed849d624f74c827f9b5b1c69d4c4,3566
 2026-10-27T08:50:18.593152+05:30,yahoo/preopen/2026/10/27/085018_nikkei225_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EN225?range=1d&interval=5m,,0e4ea0e6a87334889b9edd82e8c1198a5597906d70722a28e95225e6940cd704,3578
 2026-10-28T08:50:18.958001+05:30,yahoo/preopen/2026/10/28/085018_nikkei225_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EN225?range=1d&interval=5m,,b62c69f628dd88d435bbb6db966b340cdb691f960db691bd51ff65e93888a382,3550
+2026-10-29T08:50:17.355085+05:30,yahoo/preopen/2026/10/29/085017_nikkei225_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EN225?range=1d&interval=5m,,092d0ca870922be07097602e8390a4b439a17130e886db36dd63639227e7257b,3512
