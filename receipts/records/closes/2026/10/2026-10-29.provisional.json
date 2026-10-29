@@ -1,0 +1,71 @@
+{
+ "chosen": {
+  "fetched_at": "2026-10-29T10:10:07.771254+00:00",
+  "path": "data/closes/2026/10/2026-10-29.first.raw.json",
+  "sha256": "fdc670a819b45da7bd1ad2d83a94450ee9edcc3ac8ab09bd9fcaebb6b4b7bc31",
+  "size": 113875
+ },
+ "dataset": "closes",
+ "level": "provisional",
+ "reason": "2 passing version(s) agree on NIFTY 50, NIFTY BANK",
+ "rules": "2",
+ "session": "2026-10-29",
+ "versions": [
+  {
+   "checks": [
+    {
+     "detail": "",
+     "name": "integrity",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "layout",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "stamp and indices",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "sanity",
+     "passed": true
+    }
+   ],
+   "fetched_at": "2026-10-29T10:10:07.771254+00:00",
+   "path": "data/closes/2026/10/2026-10-29.first.raw.json",
+   "sha256": "fdc670a819b45da7bd1ad2d83a94450ee9edcc3ac8ab09bd9fcaebb6b4b7bc31",
+   "size": 113875
+  },
+  {
+   "checks": [
+    {
+     "detail": "",
+     "name": "integrity",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "layout",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "stamp and indices",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "sanity",
+     "passed": true
+    }
+   ],
+   "fetched_at": "2026-10-29T10:30:06.791894+00:00",
+   "path": "data/closes/2026/10/2026-10-29.recheck.raw.json",
+   "sha256": "d512036c02827e32fcd56160141f82c03b2caf7902ad98e3d3e24eebdaaf63ba",
+   "size": 113874
+  }
+ ]
+}
