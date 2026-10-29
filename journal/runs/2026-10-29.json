@@ -166,6 +166,241 @@
      "committed_at": "2026-10-29T14:58:38+05:30"
     }
    }
+  },
+  "snapshot": {
+   "started_at": "2026-10-29T15:15:00.000284+05:30",
+   "finished_at": "2026-10-29T15:20:07.419577+05:30",
+   "inputs": {},
+   "result": {
+    "valid": true,
+    "snapshot_id": "nifty_20261029_151500",
+    "sha256": "3e945603490e46c70c92dbdacd180a41dfb8803c8379d04184550809cb1c56d2",
+    "attempts": [
+     "nifty_20261029_151500"
+    ]
+   }
+  },
+  "fills": {
+   "started_at": "2026-10-29T15:20:10.511720+05:30",
+   "finished_at": "2026-10-29T15:20:10.641462+05:30",
+   "inputs": {
+    "snapshot_valid": true,
+    "decisions": {
+     "book1_rules": {
+      "run_id": "2026-10-29-r1",
+      "commit": "bb80962cfcd9fcb57f15a4fdf3ae946b3e824090",
+      "committed_at": "2026-10-29T14:58:38+05:30"
+     }
+    }
+   },
+   "result": {}
+  },
+  "exits": {
+   "started_at": "2026-10-29T15:20:13.661884+05:30",
+   "finished_at": "2026-10-29T15:20:21.829746+05:30",
+   "inputs": {},
+   "result": {
+    "book1_rules": {
+     "reviewed": true,
+     "results": []
+    }
+   }
+  },
+  "trade_marks": {
+   "started_at": "2026-10-29T15:20:24.686383+05:30",
+   "finished_at": "2026-10-29T15:20:35.564653+05:30",
+   "inputs": {},
+   "result": {
+    "book1_rules": {
+     "marked": true,
+     "equity_row": true,
+     "trades": []
+    },
+    "shadow:b0-monthly-sc-v1": {
+     "marked": true,
+     "equity_row": true,
+     "trades": []
+    }
+   }
+  },
+  "reviews": {
+   "started_at": "2026-10-29T15:20:38.814391+05:30",
+   "finished_at": "2026-10-29T15:20:40.814823+05:30",
+   "inputs": {
+    "snapshot_id": "nifty_20261029_151500"
+   },
+   "result": {
+    "status": "ok",
+    "reason": "unlisted",
+    "marked_contracts": 184,
+    "open_positions": 0
+   }
+  },
+  "quotes_done": {
+   "started_at": "2026-10-29T15:20:43.807103+05:30",
+   "finished_at": "2026-10-29T15:20:43.807184+05:30",
+   "inputs": {},
+   "result": {
+    "status": "ok",
+    "reason": "unlisted",
+    "parts": {
+     "v4": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "5729bc10ccfa9e82002fb53b330b1ae2b617e957",
+      "how": "started",
+      "started_at": "2026-10-29T14:29:03.475148+05:30"
+     },
+     "nifty": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "a8150614c86aae0b7d3f183b4a7b6b6b591a904f",
+      "how": "started",
+      "started_at": "2026-10-29T14:38:03.531071+05:30"
+     },
+     "nse": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "05da2df129c55628acb65bc2e380a20fffac1ea9",
+      "how": "started",
+      "started_at": "2026-10-29T14:38:03.532114+05:30"
+     },
+     "indices": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "9080dfa85d8258843f14c75a86fb31ac164c0b10",
+      "how": "started",
+      "started_at": "2026-10-29T14:57:40.236707+05:30"
+     }
+    }
+   }
+  },
+  "card": {
+   "started_at": "2026-10-29T15:20:46.599359+05:30",
+   "finished_at": "2026-10-29T15:21:01.607249+05:30",
+   "inputs": {
+    "command": [
+     "card",
+     "daily",
+     "unlisted",
+     "2026-10-29",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "price_distribution": {
+   "started_at": "2026-10-29T15:21:04.385196+05:30",
+   "finished_at": "2026-10-29T15:21:18.503307+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "record",
+     "unlisted",
+     "2026-10-29",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "command:exit_1",
+    "exit_code": 1
+   }
+  },
+  "premium_ranges": {
+   "started_at": "2026-10-29T15:21:21.396438+05:30",
+   "finished_at": "2026-10-29T15:21:44.406066+05:30",
+   "inputs": {
+    "command": [
+     "premrange",
+     "issue",
+     "unlisted",
+     "2026-10-29",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "issued",
+    "exit_code": 0
+   }
+  },
+  "school": {
+   "started_at": "2026-10-29T15:21:47.563228+05:30",
+   "finished_at": "2026-10-29T15:26:23.626141+05:30",
+   "inputs": {
+    "command": [
+     "school",
+     "run",
+     "unlisted",
+     "2026-10-29"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "recommend": {
+   "started_at": "2026-10-29T15:26:26.504166+05:30",
+   "finished_at": "2026-10-29T15:26:36.507596+05:30",
+   "inputs": {
+    "command": [
+     "recommend",
+     "decide",
+     "unlisted",
+     "2026-10-29"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "recommend:INPUT_PROBLEM",
+    "exit_code": 1
+   }
+  },
+  "price_distribution_scores": {
+   "started_at": "2026-10-29T15:26:39.826312+05:30",
+   "finished_at": "2026-10-29T15:27:35.847517+05:30",
+   "inputs": {
+    "command": [
+     "pricedist",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "price_ranges": {
+   "started_at": "2026-10-29T15:27:39.379214+05:30",
+   "finished_at": "2026-10-29T15:28:10.823231+05:30",
+   "inputs": {
+    "command": [
+     "pricerange",
+     "issue",
+     "unlisted",
+     "unlisted",
+     "unlisted",
+     "2026-10-29",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "command:exit_1",
+    "exit_code": 1
+   }
   }
  }
 }
