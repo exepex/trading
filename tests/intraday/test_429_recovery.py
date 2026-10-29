@@ -106,11 +106,14 @@ def test_a_429_inside_the_retry_pass_keeps_the_first_in_the_notes_and_refuses_th
     """Judge 694 should-fix 1: the note is the mark's FIRST 429. A second one, in the retry pass (slot numbers after
     the first pass's 228), restarts the pause (nothing more is recovered: the pass is not repeated) but never replaces
     the note."""
-    first = mark_with({40})
+    clean = mark_with({40})
     both = mark_with({40, 260})
-    note_of = lambda doc: next(n for n in doc.notes if n.startswith("first_429"))  # noqa: E731
-    assert note_of(both) == note_of(first)
-    assert lost(first) == 0 and lost(both) > 0  # the second 429 cost the quotes behind it
+    (first, first_at), (second, second_at) = sorted(both.api.answered_429, key=lambda a: a[1])
+    assert second_at > first_at + timedelta(seconds=PAUSE_SECONDS)  # the second one came in the retry pass
+    notes = [n for n in both.notes if n.startswith("first_429")]
+    assert len(notes) == 1 and f"quote {first}" in notes[0] and f"quote {second}" not in notes[0]
+    assert answered_429(both) == first_at
+    assert lost(clean) == 0 and lost(both) > 0  # the second 429 cost the quotes behind it
     assert max(asked_times(both)) < window_end()
 
 
@@ -126,6 +129,7 @@ def test_the_loss_is_set_by_when_the_first_pass_ends_wherever_the_429_falls(chai
         pause_end = (answered_429(doc) - MARK).total_seconds() + PAUSE_SECONDS + 0.5
         first_pass_end = pause_end - sum(doc.sleeps)  # the retry slept from there to the end of the pause
         expected = max(0, round(PER_SECOND * (first_pass_end + PAUSE_SECONDS + 0.5 - QUIET_SECONDS)))
-        results[where] = (lost(doc), expected)
-    assert all(abs(got - expected) <= 1 for got, expected in results.values()), results
-    assert max(g for g, _ in results.values()) - min(g for g, _ in results.values()) <= 1  # wherever the 429 falls
+        results[where] = (lost(doc), expected, doc.sleeps, [n[:60] for n in doc.notes])
+    assert all(abs(got - expected) <= 1 for got, expected, *_ in results.values()), results
+    losses = [got for got, *_ in results.values()]
+    assert max(losses) - min(losses) <= 1, results  # wherever the 429 falls

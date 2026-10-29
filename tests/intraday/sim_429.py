@@ -83,15 +83,34 @@ class TimedApi(FakeGrowwApi):
         self.observed = lambda: True  # set by `mark_with`: has the source noted a 429 yet
         self._together = threading.Barrier(in_flight + 1, timeout=10) if in_flight > 1 else None
         self._group_answered = threading.Event()
+        self._entered: set[int] = set()
+        self._arrivals = threading.Condition()
+
+    def _enter(self, number: int) -> None:
+        with self._arrivals:
+            self._entered.add(number)
+            self._arrivals.notify_all()
+
+    def _after_earlier_calls(self, first: int) -> None:
+        """Real time only: every call numbered before the first 429 is inside Groww (past the guard) before any 429 is
+        raised, as it was sent earlier in simulated time; else it could meet the pause that its own slot precedes."""
+        with self._arrivals:
+            self._arrivals.wait_for(lambda: all(n in self._entered for n in range(1, first)), timeout=10)
 
     def gate(self, number: int) -> None:
         """Calls after the group wait, in real time, until it is answered: they then meet the guard's pause as they
         would have after the real answers."""
         if self.group and number > self.group[-1] + (1 if self._together else 0):
             self._group_answered.wait(10)
+            pause_started = threading.Event()  # the source notes a 429 only after the guard has started its pause
+            for _ in range(10_000):
+                if self.observed() or pause_started.wait(0.001):
+                    break
 
     def get_quote(self, trading_symbol, exchange, segment, timeout=None):
         number = getattr(self.clock.local, "number", None) if _worker() else None
+        if number:
+            self._enter(number)
         if number in self.limited:
             self._answer_429(trading_symbol, number)
         elif number and self._together and number == self.group[-1] + 1:
@@ -99,6 +118,8 @@ class TimedApi(FakeGrowwApi):
         return super().get_quote(trading_symbol, exchange, segment, timeout)
 
     def _answer_429(self, symbol: str, number: int) -> None:
+        if number in self.group:
+            self._after_earlier_calls(self.group[0])
         if self._together and number in self.group:
             self._together.wait()
             self.clock.advance(ANSWER_SECONDS + ANSWER_SPREAD_SECONDS * self.group.index(number))

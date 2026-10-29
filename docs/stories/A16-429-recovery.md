@@ -29,6 +29,9 @@ cannot start before 120 s stay unasked:
 **lost = 4 x (F + 60.5 - 120) quotes, when positive.** The test sweeps it: the same loss for a 429 at the 10th, 60th and
 120th quote, and 0, 1, 9, 17 lost for 0, 2, 4, 6 s of chain calls in the harness (228 quotes).
 
+The case judge S measured: 5 s of chain calls and 228 quotes lose 12 (0 at 2 s, 8 at 4 s, 16 at 6 s); the real marks ask
+216-220 quotes, a few fewer than the harness.
+
 On real marks (54 good marks of 27-29 Oct, raw files in Drive; first quote sent 3.6-6.6 s after the mark, median 4.3 s;
 216-220 quotes): the last quote was sent 59.5 s after the mark at the median (57.9 to 74.2 s), so a 429 would have
 lost a median of about 1 quote, at most 7 for 9 marks in 10, and 41% would lose none. A slow mark (one mark ran
@@ -62,10 +65,18 @@ the orchestrator's decisions, not built here.
    notes add, once per mark with a 429, one contract symbol (a public instrument name, as in the 3 pm sidecars) with
    two timestamps and the code `GrowwRateLimited:429`; no Groww text, no value of a quote, no credential. Quotes are
    still counted, not listed, in the row. The record scan stays on.
-8. Harness (judge 693 addendum 2): the tests run on `tests/intraday/sim_429.py`, where every pool thread keeps its own
-   simulated time (its pacer slot, its own answer times) and a call's number is its pacer slot, so thread scheduling
-   cannot move a send time or a count; real time only gates which thread checks the guard first, never orders simulated
-   events. The earlier shared clock drifted under CPU load (up to 6 failures in 48 loaded runs). Now 48 of 48 pass with 12
-   processes at once on 4 CPUs, 4 rounds; the plants (no wait, margin -2 s, no skip, overwriting the first 429, keeping
-   the first pause end) are each caught.
+8. Harness (judge 693 addendum 2, orchestrator 29 Oct): the tests run on `tests/intraday/sim_429.py`. Every pool thread
+   keeps its own simulated time (its pacer slot, its own answer times) and a call's number is its pacer slot, so thread
+   scheduling cannot move a send time or a count. Real time only gates when a thread checks the guard: every call
+   numbered before the first 429 is inside Groww before it is answered, later calls wait until the source has noted it
+   (the guard has then started its pause). The earlier harness read one shared clock from several threads and drifted
+   (3, 1 and 6 failures in 48 loaded runs). Now 1,120 loaded runs of the whole file (12 and 16 processes at once on 4
+   CPUs) have no failure; the plants (no wait, margin -2 s, no skip, overwriting the first 429, keeping the first pause
+   end) are each caught.
+8b. The race is in the test, not in production. In `_call` the time that is checked against the window is the very
+   `sent` value stored in the record (`request_sent_at`); the fake API had read the shared clock a second time. The new
+   state (`_pause_ends`, `_first_429`) is written under a lock by pool threads and read by the taking thread only after
+   `pool.map` has returned, i.e. after every future finished, and `take` runs one mark at a time. The unchanged GW1
+   gap remains: a call is stamped just before it is sent, so a call stamped at 119.99 s can reach Groww after 120 s by
+   microseconds to milliseconds.
 9. Gates: ruff check, ruff format --check, `tools/check_imports.py`, full pytest (results in the commit message).
