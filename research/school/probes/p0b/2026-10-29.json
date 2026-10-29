@@ -86,6 +86,18 @@
     "stop": "",
     "used": 50
    }
+  },
+  "14:07": {
+   "groww": {
+    "drive": "none",
+    "latency_ms": {},
+    "quality": {},
+    "refusals": {},
+    "reserved": 56,
+    "rows": 0,
+    "stop": "",
+    "used": null
+   }
   }
  },
  "stops": {
