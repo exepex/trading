@@ -42,6 +42,27 @@
     "stop": "HTTP 404",
     "used": 2
    }
+  },
+  "11:37": {
+   "groww": {
+    "drive": "ok",
+    "latency_ms": {
+     "chain_median": 741.8,
+     "chain_p95": 778.5,
+     "future_median": 683.6,
+     "future_p95": 938.1,
+     "option_median": 681.5,
+     "option_p95": 1533.3
+    },
+    "quality": {
+     "ok": 46
+    },
+    "refusals": {},
+    "reserved": 50,
+    "rows": 46,
+    "stop": "",
+    "used": 50
+   }
   }
  },
  "stops": {
