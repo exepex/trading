@@ -25,13 +25,22 @@
    },
    "nse": {
     "drive": "none",
-    "latency_ms": {},
-    "quality": {},
-    "refusals": {},
+    "latency_ms": {
+     "future_median": 335.0,
+     "future_p95": 335.0,
+     "page_median": 1196.7,
+     "page_p95": 1196.7
+    },
+    "quality": {
+     "missing": 46
+    },
+    "refusals": {
+     "HTTP 404": 1
+    },
     "reserved": 11,
-    "rows": 0,
+    "rows": 46,
     "stop": "HTTP 404",
-    "used": null
+    "used": 2
    }
   }
  },
