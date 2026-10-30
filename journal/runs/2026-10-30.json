@@ -401,6 +401,51 @@
     "reason": "command:exit_1",
     "exit_code": 1
    }
+  },
+  "price_range_scores": {
+   "started_at": "2026-10-30T15:28:04.892366+05:30",
+   "finished_at": "2026-10-30T15:29:20.914521+05:30",
+   "inputs": {
+    "command": [
+     "pricerange",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "premium_range_scores": {
+   "started_at": "2026-10-30T15:29:29.038042+05:30",
+   "finished_at": "2026-10-30T15:30:06.053775+05:30",
+   "inputs": {
+    "command": [
+     "premrange",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "v4_deadline": {
+   "started_at": "2026-10-30T15:30:09.137264+05:30",
+   "finished_at": "2026-10-30T15:30:16.225795+05:30",
+   "inputs": {
+    "command": [
+     "v4-pack",
+     "deadline"
+    ]
+   },
+   "result": {
+    "status": "failed",
+    "reason": "v4_deadline:UNKNOWN",
+    "exit_code": 1
+   }
   }
  }
 }
