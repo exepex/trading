@@ -1,0 +1,28 @@
+{
+ "session": "2026-10-30",
+ "slots": {
+  "10:07": {
+   "groww": {
+    "drive": "none",
+    "latency_ms": {},
+    "quality": {},
+    "refusals": {},
+    "reserved": 56,
+    "rows": 0,
+    "stop": "",
+    "used": null
+   },
+   "nse": {
+    "drive": "none",
+    "latency_ms": {},
+    "quality": {},
+    "refusals": {},
+    "reserved": 11,
+    "rows": 0,
+    "stop": "",
+    "used": null
+   }
+  }
+ },
+ "stops": {}
+}
