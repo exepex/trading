@@ -1,0 +1,50 @@
+{
+ "session": "2026-10-30",
+ "slots": {
+  "10:07": {
+   "groww": {
+    "drive": "ok",
+    "latency_ms": {
+     "chain_median": 606.6,
+     "chain_p95": 742.5,
+     "expiries_median": 674.7,
+     "expiries_p95": 866.1,
+     "future_median": 669.5,
+     "future_p95": 1483.0,
+     "option_median": 671.1,
+     "option_p95": 1481.5
+    },
+    "quality": {
+     "ok": 46
+    },
+    "refusals": {},
+    "reserved": 56,
+    "rows": 46,
+    "stop": "",
+    "used": 56
+   },
+   "nse": {
+    "drive": "none",
+    "latency_ms": {
+     "future_median": 335.0,
+     "future_p95": 335.0,
+     "page_median": 1196.7,
+     "page_p95": 1196.7
+    },
+    "quality": {
+     "missing": 46
+    },
+    "refusals": {
+     "HTTP 404": 1
+    },
+    "reserved": 11,
+    "rows": 46,
+    "stop": "HTTP 404",
+    "used": 2
+   }
+  }
+ },
+ "stops": {
+  "nse": "p0b nse stopped for the day at 10:07: HTTP 404"
+ }
+}
