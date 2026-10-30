@@ -476,6 +476,22 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "close_recheck": {
+   "started_at": "2026-10-30T15:40:17.483215+05:30",
+   "finished_at": "2026-10-30T16:00:11.013455+05:30",
+   "inputs": {
+    "command": [
+     "closes",
+     "read",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
