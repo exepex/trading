@@ -278,6 +278,24 @@
      }
     }
    }
+  },
+  "card": {
+   "started_at": "2026-10-30T15:20:36.855263+05:30",
+   "finished_at": "2026-10-30T15:20:51.864960+05:30",
+   "inputs": {
+    "command": [
+     "card",
+     "daily",
+     "unlisted",
+     "2026-10-30",
+     "unlisted"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
