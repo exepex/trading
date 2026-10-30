@@ -4,3 +4,4 @@ fetched_at,path,url,form,sha256,size_bytes
 2026-10-27T08:51:11.231692+05:30,yahoo/preopen/2026/10/27/085111_sti_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ESTI?range=1d&interval=5m,,3cff271ad269ef907996f9b96715e586feb59464141b1a6deda9dfbae10fafe3,3326
 2026-10-28T08:51:17.191232+05:30,yahoo/preopen/2026/10/28/085117_sti_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ESTI?range=1d&interval=5m,,00ddad25d2102af3601a67d2135153c213f50176b9cab1049a8502f6d6b17524,3316
 2026-10-29T08:51:22.149157+05:30,yahoo/preopen/2026/10/29/085122_sti_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ESTI?range=1d&interval=5m,,fc958cf5fbd068a43127057cb556ebf68de622c0796ec646927d03ea683e8139,3352
+2026-10-30T08:51:24.277411+05:30,yahoo/preopen/2026/10/30/085124_sti_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ESTI?range=1d&interval=5m,,52ac55a8293042f65f59bd80ae79bfd0c7f0d875c82fad059b1c5ae4d964761a,3326

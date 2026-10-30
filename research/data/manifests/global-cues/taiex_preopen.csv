@@ -2,3 +2,4 @@ fetched_at,path,url,form,sha256,size_bytes
 2026-10-27T08:50:46.188092+05:30,yahoo/preopen/2026/10/27/085046_taiex_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?range=1d&interval=5m,,2799c48530baf7cff90c51702849d87d735fd0e41f00cad27f90581f188aa855,3083
 2026-10-28T08:50:48.742652+05:30,yahoo/preopen/2026/10/28/085048_taiex_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?range=1d&interval=5m,,651e46d32e047a068a4b548d2c2960dfbe8eaca4de4ef9c8c75e7f43719d470f,3070
 2026-10-29T08:50:50.201678+05:30,yahoo/preopen/2026/10/29/085050_taiex_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?range=1d&interval=5m,,55aaf2a557aac67d43bb74623ad0e0fb2a0b9e4dff877efc1e1f9bb32b9051d7,3051
+2026-10-30T08:50:51.651562+05:30,yahoo/preopen/2026/10/30/085051_taiex_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5ETWII?range=1d&interval=5m,,f075f0c8ffb072c1ccdcce14a912056d82e6fcaa5265dee0b06e50672589b757,3076
