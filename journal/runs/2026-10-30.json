@@ -39,6 +39,21 @@
     "status": "not_live",
     "reason": "o1:NO_DATE"
    }
+  },
+  "weather": {
+   "started_at": "2026-10-30T14:07:39.173482+05:30",
+   "finished_at": "2026-10-30T14:07:41.594727+05:30",
+   "inputs": {
+    "command": [
+     "weather",
+     "capture"
+    ]
+   },
+   "result": {
+    "status": "refused",
+    "reason": "command:nothing_written",
+    "exit_code": 0
+   }
   }
  }
 }
