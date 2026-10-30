@@ -125,6 +125,23 @@
     "status": "not_live",
     "reason": "ai:NOT_LIVE_BOOKS"
    }
+  },
+  "book1": {
+   "started_at": "2026-10-30T14:58:15.699042+05:30",
+   "finished_at": "2026-10-30T14:58:42.705453+05:30",
+   "inputs": {
+    "command": [
+     "desk",
+     "book1",
+     "unlisted",
+     "2026-10-30"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
