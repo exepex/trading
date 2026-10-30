@@ -179,6 +179,21 @@
      "nifty_20261030_151500"
     ]
    }
+  },
+  "fills": {
+   "started_at": "2026-10-30T15:20:00.888282+05:30",
+   "finished_at": "2026-10-30T15:20:01.016185+05:30",
+   "inputs": {
+    "snapshot_valid": true,
+    "decisions": {
+     "book1_rules": {
+      "run_id": "2026-10-30-r1",
+      "commit": "464b0d7de40067860d1c7e2cbbc0876c6c22c0e9",
+      "committed_at": "2026-10-30T14:58:40+05:30"
+     }
+    }
+   },
+   "result": {}
   }
  }
 }
