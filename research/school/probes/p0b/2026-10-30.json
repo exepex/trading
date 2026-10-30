@@ -3,14 +3,25 @@
  "slots": {
   "10:07": {
    "groww": {
-    "drive": "none",
-    "latency_ms": {},
-    "quality": {},
+    "drive": "ok",
+    "latency_ms": {
+     "chain_median": 606.6,
+     "chain_p95": 742.5,
+     "expiries_median": 674.7,
+     "expiries_p95": 866.1,
+     "future_median": 669.5,
+     "future_p95": 1483.0,
+     "option_median": 671.1,
+     "option_p95": 1481.5
+    },
+    "quality": {
+     "ok": 46
+    },
     "refusals": {},
     "reserved": 56,
-    "rows": 0,
+    "rows": 46,
     "stop": "",
-    "used": null
+    "used": 56
    },
    "nse": {
     "drive": "none",
@@ -19,10 +30,12 @@
     "refusals": {},
     "reserved": 11,
     "rows": 0,
-    "stop": "",
+    "stop": "HTTP 404",
     "used": null
    }
   }
  },
- "stops": {}
+ "stops": {
+  "nse": "p0b nse stopped for the day at 10:07: HTTP 404"
+ }
 }
