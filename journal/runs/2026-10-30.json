@@ -69,6 +69,36 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "v4_release": {
+   "started_at": "2026-10-30T14:07:51.944079+05:30",
+   "finished_at": "2026-10-30T14:35:50.426746+05:30",
+   "inputs": {
+    "command": [
+     "v4-pack",
+     "release"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "forecasts_v4_pack": {
+   "started_at": "2026-10-30T14:35:53.302841+05:30",
+   "finished_at": "2026-10-30T14:36:53.323708+05:30",
+   "inputs": {
+    "command": [
+     "forecast-v4",
+     "capture-pack"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
