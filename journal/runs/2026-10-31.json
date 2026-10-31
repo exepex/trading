@@ -1,0 +1,16 @@
+{
+ "day": "2026-10-31",
+ "kind": "daily_run",
+ "steps": {
+  "skipped": {
+   "started_at": "2026-10-31T14:07:21.961161+05:30",
+   "finished_at": "2026-10-31T14:07:21.961249+05:30",
+   "inputs": {
+    "session": null
+   },
+   "result": {
+    "reason": "unlisted"
+   }
+  }
+ }
+}
