@@ -235,6 +235,49 @@
     "marked_contracts": 184,
     "open_positions": 0
    }
+  },
+  "quotes_done": {
+   "started_at": "2026-11-02T15:20:22.992286+05:30",
+   "finished_at": "2026-11-02T15:20:22.992396+05:30",
+   "inputs": {},
+   "result": {
+    "status": "ok",
+    "reason": "unlisted",
+    "parts": {
+     "v4": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "df7a5b9ebe4393bfec7ea684621ac7541040b8c2",
+      "how": "started",
+      "started_at": "2026-11-02T14:29:01.022380+05:30"
+     },
+     "nifty": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "8a2d7de5a13689f0bce5c0917d6e39a6b5f527c9",
+      "how": "started",
+      "started_at": "2026-11-02T14:38:01.093621+05:30"
+     },
+     "nse": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "44322be08c90131dd74ebd15071af6ca46eaaa8d",
+      "how": "started",
+      "started_at": "2026-11-02T14:38:01.108384+05:30"
+     },
+     "indices": {
+      "status": "ok",
+      "reason": "command:ok",
+      "exit_code": 0,
+      "commit": "83afe2deecd5a843b9193656a6e536103366bec2",
+      "how": "started",
+      "started_at": "2026-11-02T14:57:45.297601+05:30"
+     }
+    }
+   }
   }
  }
 }
