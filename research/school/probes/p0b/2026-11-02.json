@@ -23,6 +23,27 @@
     "stop": "",
     "used": 56
    }
+  },
+  "11:37": {
+   "groww": {
+    "drive": "ok",
+    "latency_ms": {
+     "chain_median": 759.5,
+     "chain_p95": 779.9,
+     "future_median": 673.5,
+     "future_p95": 1556.6,
+     "option_median": 657.0,
+     "option_p95": 726.0
+    },
+    "quality": {
+     "lot_unknown": 46
+    },
+    "refusals": {},
+    "reserved": 50,
+    "rows": 46,
+    "stop": "",
+    "used": 50
+   }
   }
  },
  "stops": {}
