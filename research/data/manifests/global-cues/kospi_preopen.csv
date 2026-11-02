@@ -5,3 +5,4 @@ fetched_at,path,url,form,sha256,size_bytes
 2026-10-28T08:50:34.767115+05:30,yahoo/preopen/2026/10/28/085034_kospi_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EKS11?range=1d&interval=5m,,5b008318a3ad79d4fa12c8243a08dab039e32832d4212de5504b84c89c6d2bae,4162
 2026-10-29T08:50:33.792543+05:30,yahoo/preopen/2026/10/29/085033_kospi_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EKS11?range=1d&interval=5m,,2152eecfc3fe558ef0267a24c4eadb5cc5e4abbfe2aef218d62d799d8f7ea8dc,4278
 2026-10-30T08:50:34.760342+05:30,yahoo/preopen/2026/10/30/085034_kospi_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EKS11?range=1d&interval=5m,,3b4618d9ba77e14eaabedc3c51bb0a2097d0de9ebcd40971bfceaf80c3a8e52a,4289
+2026-11-02T08:50:35.868269+05:30,yahoo/preopen/2026/11/02/085035_kospi_5m.json,https://query1.finance.yahoo.com/v8/finance/chart/%5EKS11?range=1d&interval=5m,,3ec38613e086f9c961b01f6d3cc3a49b91b2f81533e9b61f50b9a2b909f81fe4,4247
