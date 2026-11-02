@@ -401,6 +401,21 @@
     "reason": "command:exit_1",
     "exit_code": 1
    }
+  },
+  "price_range_scores": {
+   "started_at": "2026-11-02T15:30:46.253465+05:30",
+   "finished_at": "2026-11-02T15:32:07.286151+05:30",
+   "inputs": {
+    "command": [
+     "pricerange",
+     "score"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
   }
  }
 }
