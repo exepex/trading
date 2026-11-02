@@ -99,6 +99,58 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "versions": {
+   "started_at": "2026-11-02T14:58:00.000333+05:30",
+   "finished_at": "2026-11-02T14:58:00.908966+05:30",
+   "inputs": {},
+   "result": {
+    "line": "versions:NONE_YET"
+   }
+  },
+  "pack": {
+   "started_at": "2026-11-02T14:58:04.806132+05:30",
+   "finished_at": "2026-11-02T14:58:10.556567+05:30",
+   "inputs": {},
+   "result": {
+    "built": true,
+    "sha256": "b00bc8b8a995ba84f113f8d8c3352b1635c872cd1095868afe99535b41a90d5b"
+   }
+  },
+  "ai_fire": {
+   "started_at": "2026-11-02T14:58:13.489704+05:30",
+   "finished_at": "2026-11-02T14:58:13.489773+05:30",
+   "inputs": {},
+   "result": {
+    "status": "not_live",
+    "reason": "ai:NOT_LIVE_BOOKS"
+   }
+  },
+  "book1": {
+   "started_at": "2026-11-02T14:58:16.396305+05:30",
+   "finished_at": "2026-11-02T14:58:44.404764+05:30",
+   "inputs": {
+    "command": [
+     "desk",
+     "book1",
+     "unlisted",
+     "2026-11-02"
+    ]
+   },
+   "result": {
+    "status": "ok",
+    "reason": "command:ok",
+    "exit_code": 0
+   }
+  },
+  "ai_collect": {
+   "started_at": "2026-11-02T14:58:47.335325+05:30",
+   "finished_at": "2026-11-02T14:58:47.335375+05:30",
+   "inputs": {},
+   "result": {
+    "status": "not_live",
+    "reason": "ai:NOT_LIVE_BOOKS"
+   }
   }
  }
 }
