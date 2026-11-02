@@ -142,6 +142,15 @@
     "reason": "command:ok",
     "exit_code": 0
    }
+  },
+  "ai_collect": {
+   "started_at": "2026-11-02T14:58:47.335325+05:30",
+   "finished_at": "2026-11-02T14:58:47.335375+05:30",
+   "inputs": {},
+   "result": {
+    "status": "not_live",
+    "reason": "ai:NOT_LIVE_BOOKS"
+   }
   }
  }
 }
