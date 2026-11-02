@@ -1,0 +1,42 @@
+{
+ "complete": false,
+ "csv_sha256": "c634de2bfc9b306dc0e3c6cb8d8e77e48a1bda3cc16d3a0d89a86d8443318482",
+ "expected_contracts": 220,
+ "expiries": [
+  "2026-11-23",
+  "2026-12-29"
+ ],
+ "expiry_source": {
+  "source": "groww"
+ },
+ "failures": [
+  "2026-12-29 54400 CE: GrowwAPIException (provider message withheld)"
+ ],
+ "finished_at": "2026-11-02T15:03:40.004785+05:30",
+ "in_window": true,
+ "monthly_check": {
+  "files": [
+   {
+    "file": "nse/derivatives/fo-bhavcopy/2026/10/BhavCopy_NSE_FO_0_0_0_20261001_F_0000.csv.zip",
+    "file_date": "2026-10-01",
+    "sha256": "d44a052b79a3961910f74783960ebbd5043696dbed39e7fb86ec84929fd60338",
+    "source": "Google Drive"
+   }
+  ],
+  "rule": "listed more than 50 days ahead by that day (A5 monthly_as_of)",
+  "status": "verified"
+ },
+ "note": "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today",
+ "provider": "groww",
+ "recorded_contracts": 219,
+ "snapshot_id": "banknifty_20261102_150100",
+ "spot": 54859.45,
+ "started_at": "2026-11-02T15:01:00.001561+05:30",
+ "underlying": "BANKNIFTY",
+ "universe": {
+  "file": "nse/derivatives/fo-bhavcopy/2026/10/BhavCopy_NSE_FO_0_0_0_20261030_F_0000.csv.zip",
+  "file_date": "2026-10-30",
+  "sha256": "99da5162c5e18aa4f79183a0c546780d07d5c1dedfbbcb5f1a0fbf55af28158b",
+  "source": "Google Drive"
+ }
+}
