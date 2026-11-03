@@ -1,0 +1,81 @@
+{
+ "chosen": {
+  "fetched_at": "2026-11-02T10:10:07.269921+00:00",
+  "path": "data/closes/2026/11/2026-11-02.first.raw.json",
+  "sha256": "101304e75bc2cfa05014ba5634c35c688e7f31a408398d89e2e3bd8ac96c3279",
+  "size": 113792
+ },
+ "dataset": "closes",
+ "level": "certified",
+ "reason": "closest to NSE's official file ind_close_all_02112026.csv, within 0.01",
+ "rules": "2",
+ "session": "2026-11-02",
+ "versions": [
+  {
+   "checks": [
+    {
+     "detail": "",
+     "name": "integrity",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "layout",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "stamp and indices",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "sanity",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "official file",
+     "passed": true
+    }
+   ],
+   "fetched_at": "2026-11-02T10:10:07.269921+00:00",
+   "path": "data/closes/2026/11/2026-11-02.first.raw.json",
+   "sha256": "101304e75bc2cfa05014ba5634c35c688e7f31a408398d89e2e3bd8ac96c3279",
+   "size": 113792
+  },
+  {
+   "checks": [
+    {
+     "detail": "",
+     "name": "integrity",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "layout",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "stamp and indices",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "sanity",
+     "passed": true
+    },
+    {
+     "detail": "",
+     "name": "official file",
+     "passed": true
+    }
+   ],
+   "fetched_at": "2026-11-02T10:30:06.769232+00:00",
+   "path": "data/closes/2026/11/2026-11-02.recheck.raw.json",
+   "sha256": "37f7ce813948e9db6e2eddb16f7bae67111153de60c45b46f132278762caa2dc",
+   "size": 113790
+  }
+ ]
+}
