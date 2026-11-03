@@ -18,6 +18,7 @@ from pathlib import Path
 
 from ..constants import BOOK3_FOLDER
 from ..playbook.documents import strategy_from_text
+from ..playbook.schema import version_id as strategy_id_of  # one spelling: spec, row, C4, D3
 from ..research_engine.ledger import Git, Ledger
 from .constitution import Constitution
 from .spec_rules import constitution_problems
@@ -77,7 +78,7 @@ class StrategyRegistry:
     def register(self, raw_spec: str, provenance: Provenance, constitution: Constitution) -> dict:
         """Writes the spec and appends its row (commit both, and the ledger, together)."""
         spec = strategy_from_text(raw_spec, "the proposed spec")
-        strategy_id, rows = f"{spec.name}-v{spec.version}", self.rows()
+        strategy_id, rows = strategy_id_of(spec.name, spec.version), self.rows()
         problems = constitution_problems(spec, constitution)
         if problems:
             raise RegistrationRefused(f"{strategy_id}: " + "; ".join(problems))

@@ -24,7 +24,13 @@ class CommitTimes(Protocol):
 
 def timeliness(run: Path, root: Path, snapshot_started_at: datetime, git: CommitTimes) -> tuple[str, str]:
     """(on_time or late, why) for a run folder, from the commit that added its `records.sha256`."""
-    committed = git.added_at((run / SUMS_FILE).relative_to(root).as_posix())
+    return file_timeliness((run / SUMS_FILE).relative_to(root).as_posix(), snapshot_started_at, git)
+
+
+def file_timeliness(path: str, snapshot_started_at: datetime, git: CommitTimes) -> tuple[str, str]:
+    """(on_time or late, why) for one committed file (repository path), from the commit that added it; also Book 3's
+    shadow file (story F7)."""
+    committed = git.added_at(path)
     moment = available_time(committed) if committed else None
     if moment is None:
         return LATE, "not committed"

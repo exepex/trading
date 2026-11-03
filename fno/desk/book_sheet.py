@@ -7,7 +7,7 @@ prices reads the canonical 3 pm snapshot the common pack names in its provenance
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import date
 
 from .common_pack import CommonPack
@@ -17,3 +17,15 @@ class BookSheet(ABC):
     @abstractmethod
     def sheet(self, book: str, day: date, common: CommonPack) -> Mapping:
         """The book's evaluation for `day`, JSON-ready. Raising refuses that book's private pack (named, alerted)."""
+
+
+class LazySheet(BookSheet):
+    """A book's sheet built on its first use (story F6), inside the pack step's per-book guard: a sheet that cannot
+    even be built (a missing setting, a broken file) refuses that book's private pack alone, never Book 1's pack."""
+
+    def __init__(self, build: Callable[[], BookSheet]):
+        self.build, self.built = build, None
+
+    def sheet(self, book: str, day: date, common: CommonPack) -> Mapping:
+        self.built = self.built or self.build()
+        return self.built.sheet(book, day, common)

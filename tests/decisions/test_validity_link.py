@@ -41,7 +41,7 @@ from .builders import CONTEXT, SAME_CODE, doc, snapshot
 CHOSEN, CHOSEN_ID = "sc-a-v1_2026-11-27", "sc-a-v1:2026-11-27"
 FILE_DAY = DAY - timedelta(days=1)  # NSE's file of the session before
 NSE = NseFiles({FILE_DAY: nse_file(expiries=("2026-11-20", EXPIRY.isoformat()), strikes=range(24_000, 26_050, 50))})
-MARGINS = Margins([MARGIN_ROWS[1] | {"width": f"{w}", "as_of": FILE_DAY.isoformat()} for w in (300, 200, 100)])
+MARGINS = Margins([MARGIN_ROWS[1] | {"width": f"{w}", "as_of": FILE_DAY.isoformat()} for w in (300, 200, 100, 50)])
 
 
 class Captures:

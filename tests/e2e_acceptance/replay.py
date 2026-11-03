@@ -184,23 +184,31 @@ class Replay:
         nse = nse_files(rd.NSE_FILE_DAY) if self.listed else nse_files()
         gate = DataGate(build_data_checks([nse], CALENDAR), RecordedExecutionSnapshots(quotes),
                         CommittedExecutionSchedule(root, TIMETABLE), self.alerts)  # fmt: skip
-        validator = build_trade_validator(self.cfg, BOOK1_RULES, root, log=False)
-        orders = ReplayedOrders(build_rule_evaluator(self.cfg, root), SAME_CODE, validator)
         capture = RecorderExecutionCapture(self.capture(clock, quotes), quotes, root / rd.QUOTES, root,
                                            Commits(clock))  # fmt: skip
-        steps = DeskSteps(root, (BOOK1_RULES,), TIMETABLE, Versions(), self.packs,
-                          D3CommittedDecisions(root, self.commits), orders, capture, gate, RecordedC4Pass(),
+        steps = DeskSteps(root, self.books(), TIMETABLE, Versions(), self.packs,
+                          D3CommittedDecisions(root, self.commits), self.orders(), capture, gate, RecordedC4Pass(),
                           LocalSync(root), self.entries(clock), ExitDesk(CHARGES, self.alerts, FakeSettlements(),
                                                                                 clock),
                           self.exit_rules(), self.alerts, clock)  # fmt: skip
-        marking = marking_step(root, (BOOK1_RULES,), quotes, self.alerts)
-        lab = self.out.lab = LabReplay(root, self.cfg, clock, self.alerts)
-        commands = {"weather": self.weather, "forecasts_v4": self.forecasts_v4, "book1": self.decide,
-                    "price_distribution": self.price_distribution, "price_ranges": lab.price_ranges}  # fmt: skip
-        o1 = day_steps(commands, build_scorecard_run(self.cfg, root, self.alerts), build_execution_snapshots(
+        marking = marking_step(root, self.books(), quotes, self.alerts)
+        self.out.lab = LabReplay(root, self.cfg, clock, self.alerts)
+        o1 = day_steps(self.commands(), build_scorecard_run(self.cfg, root, self.alerts), build_execution_snapshots(
             root / rd.QUOTES), root, self.alerts)  # fmt: skip
         return DailyRun(steps, CALENDAR, PendingCommitter(self.run_commits, root), clock, clock, marking,
                         day_steps=o1)  # fmt: skip
+
+    def books(self) -> tuple[str, ...]:
+        return (BOOK1_RULES,)
+
+    def orders(self):
+        validator = build_trade_validator(self.cfg, BOOK1_RULES, self.root, log=False)
+        return ReplayedOrders(build_rule_evaluator(self.cfg, self.root), SAME_CODE, validator)
+
+    def commands(self) -> dict:
+        """O1's command steps the replay runs in-process (a subclass adds a live AI book's)."""
+        return {"weather": self.weather, "forecasts_v4": self.forecasts_v4, "book1": self.decide,
+                "price_distribution": self.price_distribution, "price_ranges": self.out.lab.price_ranges}  # fmt: skip
 
     def exit_rules(self) -> PlaybookExitRules:
         finder = OpportunityFinder(TradingDays(CALENDAR))

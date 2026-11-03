@@ -13,6 +13,7 @@ from fno.desk.pack_wiring import PACKED_BOOKS
 from tests.desk.conftest import RecordingAlerts
 
 from . import real_day as rd
+from .book2_replay import Book2Replay, book2_legs, book2_trades
 from .replay import Replay
 
 
@@ -57,9 +58,10 @@ def test_books_2_and_3_get_their_private_packs():
     assert {BOOK2_HYBRID, BOOK3_AI} <= set(PACKED_BOOKS)
 
 
-@missing("F1t", "F5")
 def test_book2_decides_on_the_recorded_day_from_a_fake_ai_answer(tmp_path, monkeypatch):
-    assert replayed_decisions(tmp_path, monkeypatch, BOOK2_HYBRID)
+    """F5: a follow-the-rule answer through F1t's promotion and Book 2's decider gives a run with a chosen trade."""
+    Book2Replay(tmp_path, monkeypatch, RecordingAlerts()).run()
+    assert book2_trades(tmp_path)
 
 
 @missing("F1t", "F6")
@@ -67,9 +69,19 @@ def test_book3_decides_on_the_recorded_day_from_a_fake_ai_answer(tmp_path, monke
     assert replayed_decisions(tmp_path, monkeypatch, BOOK3_AI)
 
 
-@missing("F5", "F6")
-def test_books_2_and_3_fill_and_exit_in_the_daily_run():
-    not_built("Book 2's and Book 3's OrderBuilder and ExitRules in E3's daily run (F5, F6)")
+def test_book2_fills_exits_and_marks_in_the_daily_run(tmp_path, monkeypatch):
+    """F5's half of O11's fill item: E3 collects Book 2's run, fills its 4 legs with Book 2's orders, reviews its exit
+    with Book 2's exit rules and marks it, with no alert."""
+    alerts = RecordingAlerts()
+    log = Book2Replay(tmp_path, monkeypatch, alerts).run().log
+    assert log.result("decisions")[BOOK2_HYBRID]["run_id"] == f"{rd.DAY}-r1" and len(book2_legs(tmp_path)) == 4
+    assert [r["outcome"] for r in log.result("exits")[BOOK2_HYBRID]["results"]] == ["held"]
+    assert log.result("trade_marks")[BOOK2_HYBRID]["marked"] and alerts.sent == []
+
+
+@missing("F6")
+def test_book3_fills_and_exits_in_the_daily_run():
+    not_built("Book 3's OrderBuilder and ExitRules in the recorded-day replay (F6's half; F5's is above)")
 
 
 @missing("F1t")

@@ -264,6 +264,7 @@ registering its file when it lands; every new number is then claimed with the to
 - [Response 260: A17 schedules: global cues at 04:41 and 14:11 IST, India VIX months at 07:11 IST on GitHub Actions; alerts name the failed cues; A16b waits on the owner (no Groww key in GitHub)](response_260_a17-schedules.md)
 - [Response 256: D3 refuses a non-empty owner_override in every book (DESK_DECISIONS row 229 item 4), builder's claims; F4's override text flagged](response_256_d3-no-owner-override.md)
 - [Response 251: M1's record folders for the daily run (O1 commits exactly the weather step's folders), outside the method hash](response_251_m1-record-folders.md)
+- [Response 261: F6/F7 story text, Book 3 decision engine and matched shadow file](response_261_f6-f7-book3.md)
 - [Response 270: F5 story text, Book 2's AI decider to design v2: day sheet in the private pack (E2 hook shared with F6), answer check, decider with F6's selection allocator, C2 and C4; for judge E](response_270_f5-book2-story.md)
 - [Response 278: story A4e claims (a named 3 pm quote window, v4's 14:30-14:40, own dataset, every field timed, clock-checked; default unchanged)](response_278_a4e-named-quote-window.md)
 - [Response 289: the 3 pm quote commands print an unsent alert with its text (O1's ReportedAlerts), never a bare "alert NOT sent" line; O2's outage gap](response_289_a4-unsent-alert-text.md)
