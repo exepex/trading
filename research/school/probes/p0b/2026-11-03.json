@@ -70,14 +70,25 @@
   },
   "14:07": {
    "groww": {
-    "drive": "none",
-    "latency_ms": {},
-    "quality": {},
+    "drive": "ok",
+    "latency_ms": {
+     "chain_median": 711.5,
+     "chain_p95": 804.9,
+     "expiries_median": 690.0,
+     "expiries_p95": 777.9,
+     "future_median": 694.5,
+     "future_p95": 855.2,
+     "option_median": 671.0,
+     "option_p95": 799.4
+    },
+    "quality": {
+     "ok": 46
+    },
     "refusals": {},
     "reserved": 56,
-    "rows": 0,
+    "rows": 46,
     "stop": "",
-    "used": null
+    "used": 56
    }
   }
  },
