@@ -1,0 +1,29 @@
+{
+ "session": "2026-11-03",
+ "slots": {
+  "10:07": {
+   "groww": {
+    "drive": "ok",
+    "latency_ms": {
+     "chain_median": 707.8,
+     "chain_p95": 770.5,
+     "expiries_median": 691.8,
+     "expiries_p95": 720.3,
+     "future_median": 730.3,
+     "future_p95": 802.4,
+     "option_median": 678.5,
+     "option_p95": 859.0
+    },
+    "quality": {
+     "ok": 46
+    },
+    "refusals": {},
+    "reserved": 56,
+    "rows": 46,
+    "stop": "",
+    "used": 56
+   }
+  }
+ },
+ "stops": {}
+}
